@@ -13,6 +13,14 @@
       <p>Manage print orders</p>
     </header>
 
+    <div id="cashAlert" class="hidden" style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:1.5em;">💰</span>
+      <div style="flex:1;">
+        <strong id="cashAlertCount" style="font-size:1.1em;">0 Cash orders</strong>
+        <span style="display:block;color:#856404;font-size:0.85em;margin-top:2px;">Customer will pay cash at counter. Accept after collecting payment.</span>
+      </div>
+    </div>
+
     <div class="card">
       <div class="admin-bar">
         <button class="btn btn-secondary" onclick="fetchOrders()">Refresh Orders</button>
@@ -83,14 +91,24 @@
             tbody.innerHTML = '<tr><td colspan="10">No orders yet</td></tr>';
             return;
           }
+          const cashPaid = orders.filter(o => o.payment_method === 'cash' && o.status === 'paid');
+          const cashAlert = document.getElementById('cashAlert');
+          if (cashPaid.length > 0) {
+            cashAlert.classList.remove('hidden');
+            document.getElementById('cashAlertCount').textContent = cashPaid.length + ' Cash order' + (cashPaid.length > 1 ? 's' : '') + ' pending';
+          } else {
+            cashAlert.classList.add('hidden');
+          }
+
           tbody.innerHTML = orders.map(o => {
             const date = new Date(o.created_at).toLocaleString();
             const typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
             const sideLabel = o.print_side === 'both' ? 'Both' : 'Single';
-            const payLabel = o.payment_method === 'cash' ? 'Cash' : 'Paytm';
+            const payLabel = o.payment_method === 'cash' ? '<span class="cash-badge">Cash</span>' : '<span class="paytm-badge">Paytm</span>';
             const statusLabel = getStatusLabel(o.status);
             const actionBtn = getActionButtons(o);
-            return `<tr>
+            const rowClass = o.payment_method === 'cash' && o.status === 'paid' ? ' class="cash-row"' : '';
+            return `<tr${rowClass}>
               <td>${date}</td>
               <td>${escapeHtml(o.customer_name)}</td>
               <td>${escapeHtml(o.file_name)}</td>
