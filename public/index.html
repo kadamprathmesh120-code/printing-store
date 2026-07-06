@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Printing Store - Upload Your File</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Printing Store</h1>
+      <p>Upload your documents for printing</p>
+    </header>
+
+    <div id="stepUpload" class="card">
+      <h2>Upload Files</h2>
+      <div class="form-group">
+        <label for="customerName">Your Name</label>
+        <input type="text" id="customerName" placeholder="Enter your name" required>
+      </div>
+      <div class="form-group">
+        <label for="fileInput">Choose Files</label>
+        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple required>
+        <small>Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
+      </div>
+      <div id="fileList" class="hidden"></div>
+      <div class="form-group">
+        <label>Print Type</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="printType" value="bw" checked>
+            <span class="radio-box bw">Black & White - ₹5/page</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="printType" value="color">
+            <span class="radio-box color">Color - ₹10/page</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Print Side</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="printSide" value="single" checked>
+            <span class="radio-box bw">Single Side</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="printSide" value="both">
+            <span class="radio-box color">Both Sides</span>
+          </label>
+        </div>
+      </div>
+      <button id="btnUpload" class="btn btn-primary" onclick="uploadFiles()">Calculate Price</button>
+      <div id="uploadError" class="error"></div>
+    </div>
+
+    <div id="stepPrice" class="card hidden">
+      <h2>Order Summary</h2>
+      <div id="summaryOrders"></div>
+      <div class="summary">
+        <div class="summary-row"><span>Name:</span><span id="summaryName"></span></div>
+        <div class="summary-row"><span>Type:</span><span id="summaryType"></span></div>
+        <div class="summary-row"><span>Side:</span><span id="summarySide"></span></div>
+        <div class="summary-row total"><span>Total Price:</span><span id="summaryPrice"></span></div>
+      </div>
+      <h3>Pay via UPI</h3>
+      <p class="paytm-info">Scan QR code to pay</p>
+      <div class="qr-container">
+        <img src="paytm-qr.jpg" alt="Paytm QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">
+      </div>
+      <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;">💡 Please confirm payment so we can start printing right away</p>
+      <button id="btnPaid" class="btn btn-primary" onclick="confirmAllPayment()">I Have Paid</button>
+      <div id="paymentError" class="error"></div>
+    </div>
+
+    <div id="stepStatus" class="card hidden">
+      <h2>Order Status</h2>
+      <div id="orderIdsDisplay" class="order-id">Order IDs: <span id="orderIdsSpan"></span></div>
+      <div id="statusBadge" class="status-badge pending">Pending</div>
+      <p id="statusMessage"></p>
+      <button class="btn btn-secondary" onclick="checkAllStatus()">Refresh Status</button>
+      <div id="statusDone" class="hidden">
+        <div class="success-message">All prints ready! Please collect from the counter.</div>
+      </div>
+    </div>
+
+    <div id="stepStartOver" class="card hidden">
+      <button class="btn btn-primary" onclick="startOver()">Upload More Files</button>
+    </div>
+  </div>
+
+  <script>
+    let currentOrderIds = [];
+    let currentFilePages = {};
+
+    document.getElementById('fileInput').addEventListener('change', function() {
+      var fileList = document.getElementById('fileList');
+      fileList.innerHTML = '';
+      currentFilePages = {};
+      var files = this.files;
+      if (files.length === 0) { fileList.classList.add('hidden'); return; }
+      fileList.classList.remove('hidden');
+      fileList.style.marginBottom = '16px';
+      fileList.style.borderTop = '1px solid #eee';
+      fileList.style.paddingTop = '12px';
+
+      for (var i = 0; i < files.length; i++) {
+        var f = files[i];
+        var ext = f.name.split('.').pop().toLowerCase();
+        var isPdf = ext === 'pdf';
+        var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+        var pages = 1;
+        if (isPdf) {
+          pages = 'Auto';
+        } else if (isImage) {
+          pages = 1;
+        } else {
+          pages = '<input type="number" min="1" value="1" style="width:60px;padding:4px;border:1px solid #ddd;border-radius:4px;" data-fname="' + f.name + '" class="page-input" onchange="updatePageCount(this)">';
+        }
+        var typeLabel = isPdf ? 'PDF' : isImage ? 'Image' : 'Doc';
+
+        fileList.innerHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:0.9em;border-bottom:1px solid #f0f0f0;">' +
+          '<span style="flex:1;word-break:break-all;padding-right:8px;">' + f.name + '</span>' +
+          '<span style="white-space:nowrap;color:#888;font-size:0.85em;margin:0 8px;">' + typeLabel + '</span>' +
+          '<span style="white-space:nowrap;">' + pages + ' pg</span>' +
+          '</div>';
+        if (isPdf) currentFilePages[f.name] = 'auto';
+        else if (isImage) currentFilePages[f.name] = 1;
+        else currentFilePages[f.name] = 1;
+      }
+    });
+
+    function updatePageCount(input) {
+      currentFilePages[input.getAttribute('data-fname')] = parseInt(input.value) || 1;
+    }
+
+    document.querySelectorAll('input[name="printType"]').forEach(function(el) {
+      el.addEventListener('change', function() {
+        var bothLabel = document.querySelector('input[name="printSide"][value="both"]').closest('.radio-label');
+        var bothInput = document.querySelector('input[name="printSide"][value="both"]');
+        if (this.value === 'color') {
+          bothLabel.style.opacity = '0.4';
+          bothLabel.style.pointerEvents = 'none';
+          document.querySelector('input[name="printSide"][value="single"]').checked = true;
+        } else {
+          bothLabel.style.opacity = '1';
+          bothLabel.style.pointerEvents = 'auto';
+        }
+      });
+    });
+
+    function showStep(id) {
+      document.querySelectorAll('.card').forEach(function(c) { c.classList.add('hidden'); });
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function uploadFiles() {
+      var name = document.getElementById('customerName').value.trim();
+      var files = document.getElementById('fileInput').files;
+      var printType = document.querySelector('input[name="printType"]:checked').value;
+      var printSide = document.querySelector('input[name="printSide"]:checked').value;
+      var errorEl = document.getElementById('uploadError');
+      errorEl.textContent = '';
+
+      if (!name) { errorEl.textContent = 'Please enter your name'; return; }
+      if (files.length === 0) { errorEl.textContent = 'Please select files'; return; }
+
+      document.getElementById('btnUpload').disabled = true;
+      document.getElementById('btnUpload').textContent = 'Uploading...';
+
+      var formData = new FormData();
+      formData.append('customerName', name);
+      formData.append('printType', printType);
+      formData.append('printSide', printSide);
+      for (var i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+        if (currentFilePages[files[i].name] && currentFilePages[files[i].name] !== 'auto') {
+          formData.append('pageCount_' + files[i].name, currentFilePages[files[i].name]);
+        }
+      }
+
+      fetch('/api/upload', { method: 'POST', body: formData })
+        .then(function(r) {
+          if (!r.ok) { throw new Error('Server returned ' + r.status); }
+          return r.json();
+        })
+        .then(function(data) {
+          if (data.error) {
+            errorEl.textContent = data.error;
+            document.getElementById('btnUpload').disabled = false;
+            document.getElementById('btnUpload').textContent = 'Calculate Price';
+            return;
+          }
+          currentOrderIds = data.orders.map(function(o) { return o.orderId; });
+
+          var orderHtml = '';
+          data.orders.forEach(function(o) {
+            orderHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.9em;">' +
+              '<span style="flex:1;word-break:break-all;padding-right:8px;">' + o.fileName + '</span>' +
+              '<span>' + o.pageCount + ' pg</span>' +
+              '<span style="font-weight:600;margin-left:12px;">₹' + o.price + '</span>' +
+              '</div>';
+          });
+          document.getElementById('summaryOrders').innerHTML = '<div class="summary" style="margin-bottom:12px;"><h3 style="margin-bottom:8px;font-size:1em;">Files (' + data.orders.length + ')</h3>' + orderHtml + '</div>';
+          document.getElementById('summaryName').textContent = data.customerName;
+          document.getElementById('summaryType').textContent = data.printType;
+          document.getElementById('summarySide').textContent = data.printSide;
+          document.getElementById('summaryPrice').textContent = '₹' + data.totalPrice;
+
+          fetch('/api/upi-qr?amount=' + data.totalPrice)
+            .then(function(r) { return r.json(); })
+            .then(function(d) { document.getElementById('qrContainer').innerHTML = '<img src="' + d.qr + '" alt="UPI QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">'; });
+
+          showStep('stepPrice');
+          document.getElementById('btnUpload').disabled = false;
+          document.getElementById('btnUpload').textContent = 'Calculate Price';
+        })
+        .catch(function(err) {
+          console.error('Upload error:', err);
+          errorEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+          document.getElementById('btnUpload').disabled = false;
+          document.getElementById('btnUpload').textContent = 'Calculate Price';
+        });
+    }
+
+    function confirmAllPayment() {
+      if (currentOrderIds.length === 0) return;
+      var btn = document.getElementById('btnPaid');
+      btn.disabled = true;
+      btn.textContent = 'Confirming...';
+
+      var allPaid = currentOrderIds.map(function(id) {
+        return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json(); });
+      });
+
+      Promise.all(allPaid)
+        .then(function(results) {
+          var hasError = results.some(function(r) { return r.error; });
+          if (hasError) {
+            document.getElementById('paymentError').textContent = 'Some orders failed. Contact support.';
+            btn.disabled = false;
+            btn.textContent = 'I Have Paid';
+            return;
+          }
+          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+          showStep('stepStatus');
+          updateStatusDisplay('paid');
+        })
+        .catch(function() {
+          document.getElementById('paymentError').textContent = 'Failed. Try again.';
+          btn.disabled = false;
+          btn.textContent = 'I Have Paid';
+        });
+    }
+
+    function updateStatusDisplay(status) {
+      var badge = document.getElementById('statusBadge');
+      var msg = document.getElementById('statusMessage');
+      var done = document.getElementById('statusDone');
+
+      badge.className = 'status-badge ' + status;
+      done.classList.add('hidden');
+
+      switch (status) {
+        case 'pending':
+          badge.textContent = 'Pending';
+          msg.textContent = 'Waiting for payment confirmation...';
+          break;
+        case 'paid':
+          badge.textContent = 'Paid - Awaiting Approval';
+          msg.textContent = 'Payment received! Admin will review your orders shortly.';
+          break;
+        case 'accepted':
+          badge.textContent = 'Accepted';
+          msg.textContent = '';
+          done.classList.remove('hidden');
+          break;
+        case 'rejected':
+          badge.textContent = 'Rejected';
+          msg.textContent = 'Sorry, some orders were rejected. Contact the store.';
+          break;
+      }
+    }
+
+    function payUPI() {
+      var totalEl = document.getElementById('summaryPrice');
+      var amount = totalEl ? totalEl.textContent.replace(/[^0-9]/g, '') : '';
+      window.location.href = 'upi://pay?pa=8698411983@ibl&pn=ANITA%20SHIVAJI%20KADAM&am=' + amount + '&cu=INR&tn=Printing%20Store';
+    }
+
+    function copyUpiId() {
+      var upiId = '8698411983@ibl';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(upiId).then(function() {
+          var btn = document.querySelector('[onclick="copyUpiId()"]');
+          var orig = btn.textContent;
+          btn.textContent = 'Copied!';
+          btn.style.background = '#28a745';
+          setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2000);
+        });
+      } else {
+        prompt('Copy UPI ID:', upiId);
+      }
+    }
+
+    function checkAllStatus() {
+      if (currentOrderIds.length === 0) return;
+      var checks = currentOrderIds.map(function(id) {
+        return fetch('/api/orders/' + id).then(function(r) { return r.json(); });
+      });
+      Promise.all(checks).then(function(orders) {
+        var allAccepted = orders.every(function(o) { return o.status === 'accepted'; });
+        var anyRejected = orders.some(function(o) { return o.status === 'rejected'; });
+        var allDone = orders.every(function(o) { return o.status === 'accepted' || o.status === 'rejected'; });
+
+        if (allDone) {
+          document.querySelector('#stepStatus .btn-secondary').classList.add('hidden');
+          document.getElementById('stepStartOver').classList.remove('hidden');
+        }
+        if (allAccepted) { updateStatusDisplay('accepted'); return; }
+        if (anyRejected) { updateStatusDisplay('rejected'); return; }
+        updateStatusDisplay('paid');
+      });
+    }
+
+    function startOver() {
+      currentOrderIds = [];
+      currentFilePages = {};
+      document.getElementById('customerName').value = '';
+      document.getElementById('fileInput').value = '';
+      document.getElementById('fileList').innerHTML = '';
+      document.getElementById('fileList').classList.add('hidden');
+      document.querySelector('input[name="printType"][value="bw"]').checked = true;
+      document.querySelector('input[name="printSide"][value="single"]').checked = true;
+      document.getElementById('uploadError').textContent = '';
+      document.getElementById('paymentError').textContent = '';
+      document.querySelector('#stepStatus .btn-secondary').classList.remove('hidden');
+      document.getElementById('stepStartOver').classList.add('hidden');
+      showStep('stepUpload');
+    }
+
+    setInterval(function() {
+      if (currentOrderIds.length > 0 && document.getElementById('stepStatus').classList.contains('hidden') === false) {
+        checkAllStatus();
+      }
+    }, 10000);
+  </script>
+</body>
+</html>

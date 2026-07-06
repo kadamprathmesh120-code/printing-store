@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Printing Store - Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+  <div class="container">
+    <header>
+      <h1>Admin Dashboard</h1>
+      <p>Manage print orders</p>
+    </header>
+
+    <div class="card">
+      <div class="admin-bar">
+        <button class="btn btn-secondary" onclick="fetchOrders()">Refresh Orders</button>
+        <button class="btn btn-secondary" onclick="showQR()">Show QR Code</button>
+      </div>
+      <div class="form-group public-url-group">
+        <label for="publicUrl">Public URL (for customer QR code)</label>
+        <div class="url-input-row">
+          <input type="text" id="publicUrl" placeholder="https://your-domain.com or ngrok URL">
+          <button class="btn btn-sm btn-primary" onclick="savePublicUrl()">Save</button>
+        </div>
+        <small>Get a public URL using <a href="https://ngrok.com" target="_blank">ngrok</a>: run <code>ngrok http 3000</code></small>
+      </div>
+      <div id="printerStatus" class="form-group public-url-group">
+        <label>Printers</label>
+        <p style="color:#155724;background:#d4edda;padding:10px 12px;border-radius:6px;font-size:0.9em;margin-bottom:6px;">
+          B&W: <strong>Kyocera ECOSYS MA4000x KX</strong>
+        </p>
+        <p style="color:#155724;background:#d4edda;padding:10px 12px;border-radius:6px;font-size:0.9em;">
+          Color: <strong>HP Smart Tank 580-590</strong>
+        </p>
+      </div>
+      <div id="qrModal" class="hidden">
+        <div class="qr-display">
+          <h3>Customer QR Code</h3>
+          <div id="qrImage"></div>
+          <p id="qrUrl"></p>
+          <small>Scan to open customer upload page</small>
+          <button class="btn btn-secondary" onclick="document.getElementById('qrModal').classList.add('hidden')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>All Orders</h2>
+      <div class="table-responsive">
+        <table id="ordersTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>File</th>
+              <th>Pages</th>
+              <th>Type</th>
+              <th>Side</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody">
+            <tr><td colspan="9">Loading orders...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fetchOrders() {
+      document.getElementById('ordersBody').innerHTML = '<tr><td colspan="9">Loading...</td></tr>';
+      fetch('/api/admin/orders')
+        .then(r => r.json())
+        .then(orders => {
+          const tbody = document.getElementById('ordersBody');
+          if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9">No orders yet</td></tr>';
+            return;
+          }
+          tbody.innerHTML = orders.map(o => {
+            const date = new Date(o.created_at).toLocaleString();
+            const typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
+            const sideLabel = o.print_side === 'both' ? 'Both' : 'Single';
+            const statusLabel = getStatusLabel(o.status);
+            const actionBtn = getActionButtons(o);
+            return `<tr>
+              <td>${date}</td>
+              <td>${escapeHtml(o.customer_name)}</td>
+              <td>${escapeHtml(o.file_name)}</td>
+              <td>${o.page_count}</td>
+              <td>${typeLabel}</td>
+              <td>${sideLabel}</td>
+              <td>₹${o.price}</td>
+              <td>${statusLabel}</td>
+              <td>${actionBtn}</td>
+            </tr>`;
+          }).join('');
+        })
+        .catch(() => {
+          document.getElementById('ordersBody').innerHTML = '<tr><td colspan="9">Failed to load orders</td></tr>';
+        });
+    }
+
+    function getStatusLabel(status) {
+      const labels = { pending: 'Pending', paid: 'Paid', accepted: 'Accepted', rejected: 'Rejected' };
+      return `<span class="status-badge ${status}">${labels[status] || status}</span>`;
+    }
+
+    function getActionButtons(order) {
+      if (order.status !== 'paid') return '<span class="no-action">-</span>';
+      return `
+        <button class="btn btn-sm btn-success" onclick="acceptOrder('${order.id}')">Accept</button>
+        <button class="btn btn-sm btn-danger" onclick="rejectOrder('${order.id}')">Reject</button>
+      `;
+    }
+
+    function acceptOrder(id) {
+      if (!confirm('Accept this order?')) return;
+      var pw = window.open('', '_blank');
+      pw.document.write('<p style="font-family:sans-serif;text-align:center;margin-top:50px;color:#888;">Printing to Kyocera...</p>');
+      fetch('/api/admin/orders/' + id + '/accept', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) { pw.close(); alert(data.error); return; }
+          fetchOrders();
+          setTimeout(function() { pw.location.href = '/print/' + id; }, 1000);
+        })
+        .catch(function() { pw.close(); alert('Failed'); });
+    }
+
+    function rejectOrder(id) {
+      if (!confirm('Reject this order?')) return;
+      fetch('/api/admin/orders/' + id + '/reject', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          alert(data.message);
+          fetchOrders();
+        })
+        .catch(() => alert('Failed'));
+    }
+
+    function savePublicUrl() {
+      var url = document.getElementById('publicUrl').value.trim();
+      if (url) {
+        localStorage.setItem('publicUrl', url);
+        showQR();
+      }
+    }
+
+    function showQR() {
+      var savedUrl = localStorage.getItem('publicUrl');
+      var apiUrl = '/api/qr';
+      if (savedUrl) {
+        apiUrl += '?url=' + encodeURIComponent(savedUrl);
+      }
+      var modal = document.getElementById('qrModal');
+      var imgDiv = document.getElementById('qrImage');
+      var urlP = document.getElementById('qrUrl');
+      modal.classList.remove('hidden');
+      imgDiv.innerHTML = '<p>Generating QR...</p>';
+
+      fetch(apiUrl)
+        .then(r => r.json())
+        .then(data => {
+          imgDiv.innerHTML = '<img src="' + data.qr + '" alt="QR Code">';
+          urlP.textContent = data.url;
+        })
+        .catch(function() {
+          imgDiv.innerHTML = '<p>Failed to generate QR</p>';
+        });
+    }
+
+    (function loadSavedUrl() {
+      var saved = localStorage.getItem('publicUrl');
+      if (saved) {
+        document.getElementById('publicUrl').value = saved;
+      }
+    })();
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    fetchOrders();
+    setInterval(fetchOrders, 15000);
+  </script>
+</body>
+</html>

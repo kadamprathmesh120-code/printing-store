@@ -1,0 +1,2 @@
+Paste your ngrok URL here, then open the Admin page and save it in the Public URL field.
+Example: https://abc123.ngrok.io
