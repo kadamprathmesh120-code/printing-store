@@ -357,6 +357,15 @@
           }
           currentOrderIds = data.orders.map(function(o) { return o.orderId; });
 
+          if (data.paymentMethod === 'cash') {
+            showStep('stepStatus');
+            updateStatusDisplay('paid');
+            document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+            document.getElementById('btnUpload').disabled = false;
+            document.getElementById('btnUpload').textContent = t('calcPrice');
+            return;
+          }
+
           var orderHtml = '';
           data.orders.forEach(function(o) {
             orderHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.9em;">' +

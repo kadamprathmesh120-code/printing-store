@@ -79,9 +79,10 @@ app.post('/api/upload', (req, res) => {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
+      const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orders = [];
@@ -99,7 +100,7 @@ app.post('/api/upload', (req, res) => {
         const price = printType === 'bw' ? pages * 5 : pages * 10;
         const id = uuidv4();
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod);
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus);
 
         orders.push({
           orderId: id,
