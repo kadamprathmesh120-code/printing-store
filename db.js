@@ -22,8 +22,9 @@ db.exec(`
 
 try {
   db.exec(`ALTER TABLE orders ADD COLUMN print_side TEXT NOT NULL DEFAULT 'single' CHECK(print_side IN ('single', 'both'))`);
-} catch (e) {
-  // column already exists
-}
+} catch (e) {}
+try {
+  db.exec(`ALTER TABLE orders ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'paytm' CHECK(payment_method IN ('paytm', 'cash'))`);
+} catch (e) {}
 
 module.exports = db;

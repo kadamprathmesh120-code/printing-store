@@ -9,90 +9,244 @@
 <body>
   <div class="container">
     <header>
-      <h1>Printing Store</h1>
-      <p>Upload your documents for printing</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h1 data-i18n="storeName">Printing Store</h1>
+          <p data-i18n="storeTagline">Upload your documents for printing</p>
+        </div>
+        <button id="langToggle" onclick="toggleLang()" style="padding:6px 14px;border:2px solid #1a73e8;border-radius:6px;background:white;color:#1a73e8;font-weight:600;cursor:pointer;font-size:0.85em;">मराठी</button>
+      </div>
     </header>
 
     <div id="stepUpload" class="card">
-      <h2>Upload Files</h2>
+      <h2 data-i18n="uploadTitle">Upload Files</h2>
       <div class="form-group">
-        <label for="customerName">Your Name</label>
-        <input type="text" id="customerName" placeholder="Enter your name" required>
+        <label for="customerName" data-i18n="yourName">Your Name</label>
+        <input type="text" id="customerName" data-i18n-placeholder="namePlaceholder" placeholder="Enter your name" required>
       </div>
       <div class="form-group">
-        <label for="fileInput">Choose Files</label>
+        <label for="fileInput" data-i18n="chooseFiles">Choose Files</label>
         <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple required>
-        <small>Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
+        <small data-i18n="fileHint">Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
       </div>
       <div id="fileList" class="hidden"></div>
       <div class="form-group">
-        <label>Print Type</label>
+        <label data-i18n="printType">Print Type</label>
         <div class="radio-group">
           <label class="radio-label">
             <input type="radio" name="printType" value="bw" checked>
-            <span class="radio-box bw">Black & White - ₹5/page</span>
+            <span class="radio-box bw" data-i18n="bwOption">Black & White - ₹5/page</span>
           </label>
           <label class="radio-label">
             <input type="radio" name="printType" value="color">
-            <span class="radio-box color">Color - ₹10/page</span>
+            <span class="radio-box color" data-i18n="colorOption">Color - ₹10/page</span>
           </label>
         </div>
       </div>
       <div class="form-group">
-        <label>Print Side</label>
+        <label data-i18n="printSide">Print Side</label>
         <div class="radio-group">
           <label class="radio-label">
             <input type="radio" name="printSide" value="single" checked>
-            <span class="radio-box bw">Single Side</span>
+            <span class="radio-box bw" data-i18n="singleSide">Single Side</span>
           </label>
           <label class="radio-label">
             <input type="radio" name="printSide" value="both">
-            <span class="radio-box color">Both Sides</span>
+            <span class="radio-box color" data-i18n="bothSides">Both Sides</span>
           </label>
         </div>
       </div>
-      <button id="btnUpload" class="btn btn-primary" onclick="uploadFiles()">Calculate Price</button>
+      <button id="btnUpload" class="btn btn-primary" onclick="uploadFiles()" data-i18n="calcPrice">Calculate Price</button>
       <div id="uploadError" class="error"></div>
     </div>
 
     <div id="stepPrice" class="card hidden">
-      <h2>Order Summary</h2>
+      <h2 data-i18n="orderSummary">Order Summary</h2>
       <div id="summaryOrders"></div>
       <div class="summary">
-        <div class="summary-row"><span>Name:</span><span id="summaryName"></span></div>
-        <div class="summary-row"><span>Type:</span><span id="summaryType"></span></div>
-        <div class="summary-row"><span>Side:</span><span id="summarySide"></span></div>
-        <div class="summary-row total"><span>Total Price:</span><span id="summaryPrice"></span></div>
+        <div class="summary-row"><span data-i18n="nameLabel">Name:</span><span id="summaryName"></span></div>
+        <div class="summary-row"><span data-i18n="typeLabel">Type:</span><span id="summaryType"></span></div>
+        <div class="summary-row"><span data-i18n="sideLabel">Side:</span><span id="summarySide"></span></div>
+        <div class="summary-row total"><span data-i18n="totalLabel">Total Price:</span><span id="summaryPrice"></span></div>
       </div>
-      <h3>Pay via UPI</h3>
-      <p class="paytm-info">Scan QR code to pay</p>
-      <div class="qr-container">
-        <img src="paytm-qr.jpg" alt="Paytm QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">
+
+      <h3 data-i18n="payTitle">Payment Method</h3>
+      <div class="form-group">
+        <div class="radio-group" style="justify-content:center;gap:16px;">
+          <label class="radio-label" style="flex:1;max-width:200px;">
+            <input type="radio" name="paymentMethod" value="paytm" checked onchange="togglePaymentMethod()">
+            <span class="radio-box bw" data-i18n="paytmOption">Paytm (UPI)</span>
+          </label>
+          <label class="radio-label" style="flex:1;max-width:200px;">
+            <input type="radio" name="paymentMethod" value="cash" onchange="togglePaymentMethod()">
+            <span class="radio-box color" data-i18n="cashOption">Cash</span>
+          </label>
+        </div>
       </div>
-      <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;">💡 Please confirm payment so we can start printing right away</p>
-      <button id="btnPaid" class="btn btn-primary" onclick="confirmAllPayment()">I Have Paid</button>
+
+      <div id="paytmSection">
+        <p class="paytm-info" data-i18n="scanQR">Scan QR code to pay</p>
+        <div class="qr-container">
+          <img src="paytm-qr.jpg" alt="Paytm QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">
+        </div>
+        <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
+        <button id="btnPaid" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="paidBtn">I Have Paid</button>
+      </div>
+
+      <div id="cashSection" class="hidden">
+        <p style="text-align:center;color:#155724;background:#d4edda;padding:16px;border-radius:8px;font-size:1em;margin-bottom:8px;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
+        <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="cashNotice">We will accept cash at the counter. Please confirm so we can start printing.</p>
+        <button id="btnCashConfirm" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="cashConfirmBtn">Confirm Cash Payment</button>
+      </div>
+
       <div id="paymentError" class="error"></div>
     </div>
 
     <div id="stepStatus" class="card hidden">
-      <h2>Order Status</h2>
-      <div id="orderIdsDisplay" class="order-id">Order IDs: <span id="orderIdsSpan"></span></div>
-      <div id="statusBadge" class="status-badge pending">Pending</div>
+      <h2 data-i18n="orderStatus">Order Status</h2>
+      <div id="orderIdsDisplay" class="order-id"><span data-i18n="orderIdsLabel">Order IDs:</span> <span id="orderIdsSpan"></span></div>
+      <div id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</div>
       <p id="statusMessage"></p>
-      <button class="btn btn-secondary" onclick="checkAllStatus()">Refresh Status</button>
+      <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus">Refresh Status</button>
       <div id="statusDone" class="hidden">
-        <div class="success-message">All prints ready! Please collect from the counter.</div>
+        <div class="success-message" data-i18n="allReady">All prints ready! Please collect from the counter.</div>
       </div>
     </div>
 
     <div id="stepStartOver" class="card hidden">
-      <button class="btn btn-primary" onclick="startOver()">Upload More Files</button>
+      <button class="btn btn-primary" onclick="startOver()" data-i18n="uploadMore">Upload More Files</button>
     </div>
   </div>
 
   <script>
     let currentOrderIds = [];
     let currentFilePages = {};
+    let currentLang = localStorage.getItem('lang') || 'en';
+
+    const translations = {
+      en: {
+        storeName: 'Printing Store',
+        storeTagline: 'Upload your documents for printing',
+        uploadTitle: 'Upload Files',
+        yourName: 'Your Name',
+        namePlaceholder: 'Enter your name',
+        chooseFiles: 'Choose Files',
+        fileHint: 'Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.',
+        printType: 'Print Type',
+        bwOption: 'Black & White - \u20B95/page',
+        colorOption: 'Color - \u20B910/page',
+        printSide: 'Print Side',
+        singleSide: 'Single Side',
+        bothSides: 'Both Sides',
+        calcPrice: 'Calculate Price',
+        orderSummary: 'Order Summary',
+        nameLabel: 'Name:',
+        typeLabel: 'Type:',
+        sideLabel: 'Side:',
+        totalLabel: 'Total Price:',
+        payTitle: 'Payment Method',
+        paytmOption: 'Paytm (UPI)',
+        cashOption: 'Cash',
+        scanQR: 'Scan QR code to pay',
+        paymentNotice: 'Please confirm payment so we can start printing right away',
+        paidBtn: 'I Have Paid',
+        cashMessage: 'Please pay cash at the counter during pickup.',
+        cashNotice: 'We will accept cash at the counter. Please confirm so we can start printing.',
+        cashConfirmBtn: 'Confirm Cash Payment',
+        orderStatus: 'Order Status',
+        orderIdsLabel: 'Order IDs:',
+        pending: 'Pending',
+        refreshStatus: 'Refresh Status',
+        allReady: 'All prints ready! Please collect from the counter.',
+        uploadMore: 'Upload More Files',
+        uploading: 'Uploading...',
+        confirming: 'Confirming...',
+        enterName: 'Please enter your name',
+        selectFiles: 'Please select files',
+        someFailed: 'Some orders failed. Contact support.',
+        failedTryAgain: 'Failed. Try again.',
+        waitingPayment: 'Waiting for payment confirmation...',
+        paidAwaiting: 'Paid - Awaiting Approval',
+        paymentReceived: 'Payment received! Admin will review your orders shortly.',
+        accepted: 'Accepted',
+        rejected: 'Rejected',
+        rejectedMsg: 'Sorry, some orders were rejected. Contact the store.',
+        filesLabel: 'Files',
+        pg: 'pg'
+      },
+      mr: {
+        storeName: '\u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u094D\u091F\u094B\u0930',
+        storeTagline: '\u0924\u0941\u092E\u091A\u0947 \u0921\u0949\u0915\u094D\u092F\u0941\u092E\u0947\u0902\u091F\u094D\u0938 \u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917\u0938\u093E\u0920\u0940 \u0905\u092A\u0932\u094B\u0921 \u0915\u0930\u093E',
+        uploadTitle: '\u092B\u093E\u092F\u0932 \u0905\u092A\u0932\u094B\u0921 \u0915\u0930\u093E',
+        yourName: '\u0924\u0941\u092E\u091A\u0947 \u0928\u093E\u0935',
+        namePlaceholder: '\u0924\u0941\u092E\u091A\u0947 \u0928\u093E\u0935 \u092A\u094D\u0930\u0935\u093F\u0937\u094D\u091F \u0915\u0930\u093E',
+        chooseFiles: '\u092B\u093E\u092F\u0932 \u0928\u093F\u0935\u0921\u093E',
+        fileHint: '\u092A\u0930\u0935\u093E\u0928\u0917\u0940: PDF, DOC, DOCX, JPG, PNG, TXT (\u092A\u094D\u0930\u0924\u094D\u092F\u0947\u0915\u0940 50MB \u092A\u0930\u094D\u092F\u0902\u0924). PDF \u092A\u0947\u091C \u0906\u092A\u0938\u0918\u0947 \u0913\u0933\u0916\u0932\u0940 \u091C\u093E\u0924\u0940\u0932.',
+        printType: '\u092A\u094D\u0930\u093F\u0902\u091F \u092A\u094D\u0930\u0915\u093E\u0930',
+        bwOption: '\u0915\u0933\u0947 \u092A\u093F\u0922\u0940 - \u20B95/\u092A\u0947\u091C',
+        colorOption: '\u0930\u0902\u0917\u0940\u0928 - \u20B910/\u092A\u0947\u091C',
+        printSide: '\u092A\u094D\u0930\u093F\u0902\u091F \u092C\u093E\u091C\u0942',
+        singleSide: '\u090F\u0915\u092C\u093E\u091C\u0942',
+        bothSides: '\u0926\u094B\u0928\u094D\u0939\u0940 \u092C\u093E\u091C\u0942',
+        calcPrice: '\u0915\u093F\u0902\u092E\u0924 \u092E\u094B\u091C\u093E',
+        orderSummary: '\u0911\u0930\u094D\u0921\u0930 \u0938\u093E\u0930\u093E\u0902\u0936',
+        nameLabel: '\u0928\u093E\u0935:',
+        typeLabel: '\u092A\u094D\u0930\u0915\u093E\u0930:',
+        sideLabel: '\u092C\u093E\u091C\u0942:',
+        totalLabel: '\u090F\u0915\u0942\u0928 \u0915\u093F\u0902\u092E\u0924:',
+        payTitle: '\u092A\u0947\u092E\u0947\u0902\u091F \u092A\u0926\u094D\u0927\u0924',
+        paytmOption: '\u092A\u0947\u091F\u0940\u090F\u092E (UPI)',
+        cashOption: '\u0930\u094B\u0916\u0921',
+        scanQR: '\u092A\u0947\u092E\u0947\u0902\u091F\u0938\u093E\u0920\u0940 QR \u0915\u094B\u0921 \u0938\u094D\u0915\u0947\u0928 \u0915\u0930\u093E',
+        paymentNotice: '\u0915\u0943\u092A\u092F\u093E \u092A\u0947\u092E\u0947\u0902\u091F\u091A\u0940 \u092A\u0941\u0937\u094D\u091F\u0940 \u0915\u0930\u093E \u092E\u094D\u0939\u0923\u091C\u0947 \u0906\u092E\u094D\u0939\u0940 \u0932\u0917\u0947\u091A \u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u0941\u0930\u0942 \u0915\u0930\u0942',
+        paidBtn: '\u092E\u0940 \u092A\u0947\u092E\u0947\u0902\u091F \u0915\u0947\u0932\u0947',
+        cashMessage: '\u0915\u0943\u092A\u092F\u093E \u0917\u094D\u0930\u093E\u0939\u0915 \u0918\u0947\u0923\u094D\u092F\u093E\u0935\u0947\u0933\u0940 \u0915\u093E\u0909\u0902\u091F\u0930\u0935\u0930 \u0930\u094B\u0916\u0921 \u0926\u094D\u092F\u093E.',
+        cashNotice: '\u0906\u092E\u094D\u0939\u0940 \u0915\u093E\u0909\u0902\u091F\u0930\u0935\u0930 \u0930\u094B\u0916\u0921 \u0938\u094D\u0935\u0940\u0915\u093E\u0930 \u0915\u0930\u0942. \u0915\u0943\u092A\u092F\u093E \u092A\u0941\u0937\u094D\u091F\u0940 \u0915\u0930\u093E \u092E\u094D\u0939\u0923\u091C\u0947 \u0906\u092E\u094D\u0939\u0940 \u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u0941\u0930\u0942 \u0915\u0930\u0942.',
+        cashConfirmBtn: '\u0930\u094B\u0916\u0921 \u092A\u0947\u092E\u0947\u0902\u091F\u091A\u0940 \u092A\u0941\u0937\u094D\u091F\u0940 \u0915\u0930\u093E',
+        orderStatus: '\u0911\u0930\u094D\u0921\u0930 \u0938\u094D\u0925\u093F\u0924\u0940',
+        orderIdsLabel: '\u0911\u0930\u094D\u0921\u0930 ID:',
+        pending: '\u092A\u094D\u0930\u0924\u093F\u0915\u094D\u0937\u0947\u0924',
+        refreshStatus: '\u0938\u094D\u0925\u093F\u0924\u0940 \u0924\u093E\u091C\u0940 \u0915\u0930\u093E',
+        allReady: '\u0938\u0930\u094D\u0935 \u092A\u094D\u0930\u093F\u0902\u091F \u0924\u092F\u093E\u0930! \u0915\u0943\u092A\u092F\u093E \u0915\u093E\u0909\u0902\u091F\u0930\u0935\u0930\u0942\u0928 \u0918\u094D\u092F\u093E.',
+        uploadMore: '\u0906\u0923\u0916\u094D\u092F\u093E \u092B\u093E\u092F\u0932 \u0905\u092A\u0932\u094B\u0921 \u0915\u0930\u093E',
+        uploading: '\u0905\u092A\u0932\u094B\u0921 \u0939\u094B\u0924 \u0906\u0939\u0947...',
+        confirming: '\u092A\u0941\u0937\u094D\u091F\u0940 \u0939\u094B\u0924 \u0906\u0939\u0947...',
+        enterName: '\u0915\u0943\u092A\u092F\u093E \u0924\u0941\u092E\u091A\u0947 \u0928\u093E\u0935 \u092A\u094D\u0930\u0935\u093F\u0937\u094D\u091F \u0915\u0930\u093E',
+        selectFiles: '\u0915\u0943\u092A\u092F\u093E \u092B\u093E\u092F\u0932 \u0928\u093F\u0935\u0921\u093E',
+        someFailed: '\u0915\u093E\u0939\u0940 \u0911\u0930\u094D\u0921\u0930 \u0905\u092F\u0936\u0932 \u091D\u093E\u0932\u0947. \u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u093E.',
+        failedTryAgain: '\u0905\u092F\u0936\u0932. \u092A\u0941\u0928\u094D\u0939\u093E \u092A\u094D\u0930\u092F\u0924\u094D\u0928 \u0915\u0930\u093E.',
+        waitingPayment: '\u092A\u0947\u092E\u0947\u0902\u091F \u092A\u0941\u0937\u094D\u091F\u0940\u091A\u0940 \u092A\u094D\u0930\u0924\u093F\u0915\u094D\u0937\u093E...',
+        paidAwaiting: '\u092A\u0947\u092E\u0947\u0902\u091F \u0926\u093F\u0932\u0947 - \u092E\u0902\u091C\u0942\u0930\u0940\u091A\u0940 \u092A\u094D\u0930\u0924\u093F\u0915\u094D\u0937\u093E',
+        paymentReceived: '\u092A\u0947\u092E\u0947\u0902\u091F \u092E\u093F\u0933\u093E\u0932\u0947! \u0905\u0921\u092E\u093F\u0928 \u0932\u0917\u0947\u091A \u0924\u0941\u092E\u091A\u0947 \u0911\u0930\u094D\u0921\u0930 \u0924\u092A\u093E\u0938\u0947\u0932.',
+        accepted: '\u092E\u0902\u091C\u0942\u0930',
+        rejected: '\u0928\u093E\u092E\u0902\u091C\u0942\u0930',
+        rejectedMsg: '\u0915\u094D\u0937\u092E\u093E \u0915\u0930\u093E, \u0915\u093E\u0939\u0940 \u0911\u0930\u094D\u0921\u0930 \u0928\u093E\u092E\u0902\u091C\u0942\u0930 \u091D\u093E\u0932\u0947. \u0938\u094D\u091F\u094B\u0930\u0936\u0940 \u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u093E.',
+        filesLabel: '\u092B\u093E\u092F\u0932',
+        pg: '\u092A\u0947\u091C'
+      }
+    };
+
+    function t(key) {
+      return translations[currentLang][key] || key;
+    }
+
+    function applyLang() {
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        el.textContent = t(el.getAttribute('data-i18n'));
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+      });
+      document.getElementById('langToggle').textContent = currentLang === 'en' ? '\u092E\u0930\u093E\u0920\u0940' : 'EN';
+    }
+
+    function toggleLang() {
+      currentLang = currentLang === 'en' ? 'mr' : 'en';
+      localStorage.setItem('lang', currentLang);
+      applyLang();
+    }
+
+    applyLang();
 
     document.getElementById('fileInput').addEventListener('change', function() {
       var fileList = document.getElementById('fileList');
@@ -123,12 +277,13 @@
         fileList.innerHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:0.9em;border-bottom:1px solid #f0f0f0;">' +
           '<span style="flex:1;word-break:break-all;padding-right:8px;">' + f.name + '</span>' +
           '<span style="white-space:nowrap;color:#888;font-size:0.85em;margin:0 8px;">' + typeLabel + '</span>' +
-          '<span style="white-space:nowrap;">' + pages + ' pg</span>' +
+          '<span style="white-space:nowrap;">' + pages + ' <span data-i18n="pg">pg</span></span>' +
           '</div>';
         if (isPdf) currentFilePages[f.name] = 'auto';
         else if (isImage) currentFilePages[f.name] = 1;
         else currentFilePages[f.name] = 1;
       }
+      applyLang();
     });
 
     function updatePageCount(input) {
@@ -150,6 +305,12 @@
       });
     });
 
+    function togglePaymentMethod() {
+      var method = document.querySelector('input[name="paymentMethod"]:checked').value;
+      document.getElementById('paytmSection').classList.toggle('hidden', method !== 'paytm');
+      document.getElementById('cashSection').classList.toggle('hidden', method !== 'cash');
+    }
+
     function showStep(id) {
       document.querySelectorAll('.card').forEach(function(c) { c.classList.add('hidden'); });
       document.getElementById(id).classList.remove('hidden');
@@ -160,19 +321,21 @@
       var files = document.getElementById('fileInput').files;
       var printType = document.querySelector('input[name="printType"]:checked').value;
       var printSide = document.querySelector('input[name="printSide"]:checked').value;
+      var paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
       var errorEl = document.getElementById('uploadError');
       errorEl.textContent = '';
 
-      if (!name) { errorEl.textContent = 'Please enter your name'; return; }
-      if (files.length === 0) { errorEl.textContent = 'Please select files'; return; }
+      if (!name) { errorEl.textContent = t('enterName'); return; }
+      if (files.length === 0) { errorEl.textContent = t('selectFiles'); return; }
 
       document.getElementById('btnUpload').disabled = true;
-      document.getElementById('btnUpload').textContent = 'Uploading...';
+      document.getElementById('btnUpload').textContent = t('uploading');
 
       var formData = new FormData();
       formData.append('customerName', name);
       formData.append('printType', printType);
       formData.append('printSide', printSide);
+      formData.append('paymentMethod', paymentMethod);
       for (var i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
         if (currentFilePages[files[i].name] && currentFilePages[files[i].name] !== 'auto') {
@@ -189,7 +352,7 @@
           if (data.error) {
             errorEl.textContent = data.error;
             document.getElementById('btnUpload').disabled = false;
-            document.getElementById('btnUpload').textContent = 'Calculate Price';
+            document.getElementById('btnUpload').textContent = t('calcPrice');
             return;
           }
           currentOrderIds = data.orders.map(function(o) { return o.orderId; });
@@ -198,37 +361,36 @@
           data.orders.forEach(function(o) {
             orderHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.9em;">' +
               '<span style="flex:1;word-break:break-all;padding-right:8px;">' + o.fileName + '</span>' +
-              '<span>' + o.pageCount + ' pg</span>' +
-              '<span style="font-weight:600;margin-left:12px;">₹' + o.price + '</span>' +
+              '<span>' + o.pageCount + ' ' + t('pg') + '</span>' +
+              '<span style="font-weight:600;margin-left:12px;">\u20B9' + o.price + '</span>' +
               '</div>';
           });
-          document.getElementById('summaryOrders').innerHTML = '<div class="summary" style="margin-bottom:12px;"><h3 style="margin-bottom:8px;font-size:1em;">Files (' + data.orders.length + ')</h3>' + orderHtml + '</div>';
+          document.getElementById('summaryOrders').innerHTML = '<div class="summary" style="margin-bottom:12px;"><h3 style="margin-bottom:8px;font-size:1em;">' + t('filesLabel') + ' (' + data.orders.length + ')</h3>' + orderHtml + '</div>';
           document.getElementById('summaryName').textContent = data.customerName;
           document.getElementById('summaryType').textContent = data.printType;
           document.getElementById('summarySide').textContent = data.printSide;
-          document.getElementById('summaryPrice').textContent = '₹' + data.totalPrice;
+          document.getElementById('summaryPrice').textContent = '\u20B9' + data.totalPrice;
 
-          fetch('/api/upi-qr?amount=' + data.totalPrice)
-            .then(function(r) { return r.json(); })
-            .then(function(d) { document.getElementById('qrContainer').innerHTML = '<img src="' + d.qr + '" alt="UPI QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">'; });
+          togglePaymentMethod();
 
           showStep('stepPrice');
           document.getElementById('btnUpload').disabled = false;
-          document.getElementById('btnUpload').textContent = 'Calculate Price';
+          document.getElementById('btnUpload').textContent = t('calcPrice');
         })
         .catch(function(err) {
           console.error('Upload error:', err);
           errorEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
           document.getElementById('btnUpload').disabled = false;
-          document.getElementById('btnUpload').textContent = 'Calculate Price';
+          document.getElementById('btnUpload').textContent = t('calcPrice');
         });
     }
 
     function confirmAllPayment() {
       if (currentOrderIds.length === 0) return;
-      var btn = document.getElementById('btnPaid');
+      var method = document.querySelector('input[name="paymentMethod"]:checked').value;
+      var btn = method === 'paytm' ? document.getElementById('btnPaid') : document.getElementById('btnCashConfirm');
       btn.disabled = true;
-      btn.textContent = 'Confirming...';
+      btn.textContent = t('confirming');
 
       var allPaid = currentOrderIds.map(function(id) {
         return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json(); });
@@ -238,9 +400,9 @@
         .then(function(results) {
           var hasError = results.some(function(r) { return r.error; });
           if (hasError) {
-            document.getElementById('paymentError').textContent = 'Some orders failed. Contact support.';
+            document.getElementById('paymentError').textContent = t('someFailed');
             btn.disabled = false;
-            btn.textContent = 'I Have Paid';
+            btn.textContent = method === 'paytm' ? t('paidBtn') : t('cashConfirmBtn');
             return;
           }
           document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
@@ -248,9 +410,9 @@
           updateStatusDisplay('paid');
         })
         .catch(function() {
-          document.getElementById('paymentError').textContent = 'Failed. Try again.';
+          document.getElementById('paymentError').textContent = t('failedTryAgain');
           btn.disabled = false;
-          btn.textContent = 'I Have Paid';
+          btn.textContent = method === 'paytm' ? t('paidBtn') : t('cashConfirmBtn');
         });
     }
 
@@ -264,21 +426,21 @@
 
       switch (status) {
         case 'pending':
-          badge.textContent = 'Pending';
-          msg.textContent = 'Waiting for payment confirmation...';
+          badge.textContent = t('pending');
+          msg.textContent = t('waitingPayment');
           break;
         case 'paid':
-          badge.textContent = 'Paid - Awaiting Approval';
-          msg.textContent = 'Payment received! Admin will review your orders shortly.';
+          badge.textContent = t('paidAwaiting');
+          msg.textContent = t('paymentReceived');
           break;
         case 'accepted':
-          badge.textContent = 'Accepted';
+          badge.textContent = t('accepted');
           msg.textContent = '';
           done.classList.remove('hidden');
           break;
         case 'rejected':
-          badge.textContent = 'Rejected';
-          msg.textContent = 'Sorry, some orders were rejected. Contact the store.';
+          badge.textContent = t('rejected');
+          msg.textContent = t('rejectedMsg');
           break;
       }
     }

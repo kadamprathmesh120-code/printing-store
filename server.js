@@ -73,15 +73,15 @@ app.post('/api/upload', (req, res) => {
         return res.status(400).json({ error: 'No files uploaded' });
       }
 
-      const { customerName, printType, printSide } = req.body;
+      const { customerName, printType, printSide, paymentMethod } = req.body;
 
-      if (!customerName || !printType || !printSide) {
+      if (!customerName || !printType || !printSide || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orders = [];
@@ -99,7 +99,7 @@ app.post('/api/upload', (req, res) => {
         const price = printType === 'bw' ? pages * 5 : pages * 10;
         const id = uuidv4();
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price);
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod);
 
         orders.push({
           orderId: id,
@@ -115,7 +115,8 @@ app.post('/api/upload', (req, res) => {
         totalPrice,
         customerName,
         printType: printType === 'bw' ? 'Black & White' : 'Color',
-        printSide: printSide === 'both' ? 'Both Sides' : 'Single Side'
+        printSide: printSide === 'both' ? 'Both Sides' : 'Single Side',
+        paymentMethod
       });
     } catch (err) {
       console.error('Upload error:', err);

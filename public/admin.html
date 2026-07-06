@@ -59,12 +59,13 @@
               <th>Type</th>
               <th>Side</th>
               <th>Price</th>
+              <th>Payment</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody id="ordersBody">
-            <tr><td colspan="9">Loading orders...</td></tr>
+            <tr><td colspan="10">Loading orders...</td></tr>
           </tbody>
         </table>
       </div>
@@ -73,19 +74,20 @@
 
   <script>
     function fetchOrders() {
-      document.getElementById('ordersBody').innerHTML = '<tr><td colspan="9">Loading...</td></tr>';
+      document.getElementById('ordersBody').innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
       fetch('/api/admin/orders')
         .then(r => r.json())
         .then(orders => {
           const tbody = document.getElementById('ordersBody');
           if (orders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9">No orders yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10">No orders yet</td></tr>';
             return;
           }
           tbody.innerHTML = orders.map(o => {
             const date = new Date(o.created_at).toLocaleString();
             const typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
             const sideLabel = o.print_side === 'both' ? 'Both' : 'Single';
+            const payLabel = o.payment_method === 'cash' ? 'Cash' : 'Paytm';
             const statusLabel = getStatusLabel(o.status);
             const actionBtn = getActionButtons(o);
             return `<tr>
@@ -96,6 +98,7 @@
               <td>${typeLabel}</td>
               <td>${sideLabel}</td>
               <td>₹${o.price}</td>
+              <td>${payLabel}</td>
               <td>${statusLabel}</td>
               <td>${actionBtn}</td>
             </tr>`;
