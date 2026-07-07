@@ -629,84 +629,58 @@
         a4.innerHTML = '<div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>';
         return;
       }
-      var a4W = a4.offsetWidth || 794; // ~210mm at 96dpi
-      var pad = 40; // margin around card
-      var areaW = a4W - pad * 2;
-      var cardRatio = 86 / 54; // 1.5926
-      var maxCardH = 140;
-      var cardW, cardH;
-      if (areaW / cardRatio > maxCardH) {
-        cardH = maxCardH; cardW = cardH * cardRatio;
-      } else {
-        cardW = areaW; cardH = cardW / cardRatio;
-      }
-      if (cardW > areaW) { cardW = areaW; cardH = cardW / cardRatio; }
+      var a4W = a4.offsetWidth || 794;
+      var imgW = Math.round((a4W - 36 * 96 / 25.4) * 0.8);
+      var gap = 10 * 96 / 25.4;
+      var topY = 35 * 96 / 25.4;
+      var loaded = 0, total = (hasFront ? 1 : 0) + (hasBack ? 1 : 0);
 
-      if (hasFront && hasBack) {
-        // Two cards side by side
-        var gap = 24;
-        var pairW = cardW * 2 + gap;
-        var pairH = cardH;
-        if (pairW > areaW) {
-          var scale2 = areaW / pairW;
-          cardW *= scale2; cardH *= scale2;
-          pairW = cardW * 2 + gap; pairH = cardH;
-        }
-        var startX = (a4W - pairW) / 2;
-        var startY = (297*96/25.4 - pairH) / 2; // center vertically on A4
-        if (startY < 60) startY = 60;
-
-        var fEl = document.createElement('img');
-        fEl.src = idcFrontImgSrc;
-        fEl.className = 'idc-preview-img';
-        fEl.style.left = startX + 'px';
-        fEl.style.top = startY + 'px';
-        fEl.style.width = cardW + 'px';
-        fEl.style.height = cardH + 'px';
-        fEl.className = 'idc-preview-img';
-        fEl.dataset.side = 'front';
-        a4.appendChild(fEl);
-
-        var fl = document.createElement('div');
-        fl.className = 'idc-preview-label';
-        fl.textContent = 'Front';
-        fl.style.left = startX + 'px';
-        fl.style.top = (startY - 18) + 'px';
-        a4.appendChild(fl);
-
-        var bEl = document.createElement('img');
-        bEl.src = idcBackImgSrc;
-        bEl.className = 'idc-preview-img';
-        bEl.style.left = (startX + cardW + gap) + 'px';
-        bEl.style.top = startY + 'px';
-        bEl.style.width = cardW + 'px';
-        bEl.style.height = cardH + 'px';
-        bEl.dataset.side = 'back';
-        a4.appendChild(bEl);
-
-        var bl = document.createElement('div');
-        bl.className = 'idc-preview-label';
-        bl.textContent = 'Back';
-        bl.style.left = (startX + cardW + gap) + 'px';
-        bl.style.top = (startY - 18) + 'px';
-        a4.appendChild(bl);
-      } else {
-        // Single card centered
-        var sx = (a4W - cardW) / 2;
-        var sy = (297*96/25.4 - cardH) / 2;
-        if (sy < 60) sy = 60;
+      function doPlace(src, x, y, w, h) {
         var el = document.createElement('img');
-        el.src = hasFront ? idcFrontImgSrc : idcBackImgSrc;
+        el.src = src;
         el.className = 'idc-preview-img';
-        el.style.left = sx + 'px';
-        el.style.top = sy + 'px';
-        el.style.width = cardW + 'px';
-        el.style.height = cardH + 'px';
-        el.dataset.side = hasFront ? 'front' : 'back';
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.width = w + 'px';
+        el.style.height = h + 'px';
         a4.appendChild(el);
       }
 
-      idcAttachDrag();
+      function placeOne(src, topOff) {
+        var tmp = new Image();
+        tmp.onload = function() {
+          var w = imgW;
+          var h = tmp.naturalHeight / tmp.naturalWidth * w;
+          var x = (a4W - w) / 2;
+          doPlace(src, x, topOff, w, h);
+          loaded++;
+          if (loaded === total) idcAttachDrag();
+        };
+        tmp.src = src;
+      }
+
+      if (hasFront && hasBack) {
+        var frontImg = new Image();
+        frontImg.onload = function() {
+          var fH = frontImg.naturalHeight / frontImg.naturalWidth * imgW;
+          var fX = (a4W - imgW) / 2;
+          doPlace(idcFrontImgSrc, fX, topY, imgW, fH);
+          var backTop = topY + fH + gap;
+          var backImg = new Image();
+          backImg.onload = function() {
+            var bH = backImg.naturalHeight / backImg.naturalWidth * imgW;
+            var bX = (a4W - imgW) / 2;
+            doPlace(idcBackImgSrc, bX, backTop, imgW, bH);
+            idcAttachDrag();
+          };
+          backImg.src = idcBackImgSrc;
+        };
+        frontImg.src = idcFrontImgSrc;
+      } else if (hasFront) {
+        placeOne(idcFrontImgSrc, topY);
+      } else if (hasBack) {
+        placeOne(idcBackImgSrc, topY);
+      }
     }
 
     function idcAttachDrag() {
@@ -808,19 +782,6 @@
         ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
       });
 
-      // Draw labels
-      var labels = drop.querySelectorAll('.idc-preview-label');
-      labels.forEach(function(lbl) {
-        var left = parseFloat(lbl.style.left) || 0;
-        var top = parseFloat(lbl.style.top) || 0;
-        ctx.font = 'bold ' + (14 * scale) + 'px sans-serif';
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        var tw = ctx.measureText(lbl.textContent).width;
-        ctx.fillRect(left * scale - 4, top * scale - 2, tw + 8, 20 * scale);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(lbl.textContent, left * scale, top * scale + 14 * scale);
-      });
-
       var link = document.createElement('a');
       link.download = 'idcard_print_preview.png';
       link.href = c.toDataURL('image/png');
@@ -828,36 +789,6 @@
     }
 
     var idcFrontImgSrc = '#', idcBackImgSrc = '#';
-    document.addEventListener('DOMContentLoaded', function() {
-      var fi = document.getElementById('idcFrontInput');
-      var bi = document.getElementById('idcBackInput');
-      fi.addEventListener('change', function() {
-        setTimeout(function() {
-          var img = document.getElementById('idcFrontImg');
-          if (img.src && img.src !== '#') idcFrontImgSrc = img.src;
-          idcUpdatePreview();
-        }, 100);
-      });
-      bi.addEventListener('change', function() {
-        setTimeout(function() {
-          var img = document.getElementById('idcBackImg');
-          if (img.src && img.src !== '#') idcBackImgSrc = img.src;
-          idcUpdatePreview();
-        }, 100);
-      });
-      var obFront = new MutationObserver(function() {
-        var img = document.getElementById('idcFrontImg');
-        if (img.src && img.src !== '#') idcFrontImgSrc = img.src;
-        idcUpdatePreview();
-      });
-      obFront.observe(document.getElementById('idcFrontImg'), { attributes: true, attributeFilter: ['src'] });
-      var obBack = new MutationObserver(function() {
-        var img = document.getElementById('idcBackImg');
-        if (img.src && img.src !== '#') idcBackImgSrc = img.src;
-        idcUpdatePreview();
-      });
-      obBack.observe(document.getElementById('idcBackImg'), { attributes: true, attributeFilter: ['src'] });
-    });
     document.addEventListener('DOMContentLoaded', function() {
       var fi = document.getElementById('idcFrontInput');
       var bi = document.getElementById('idcBackInput');
