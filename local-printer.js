@@ -72,6 +72,16 @@ async function checkAndPrint() {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
         }
 
+        if (order.is_id_copy && order.back_file_path) {
+          var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
+          var backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
+          await downloadFile(backUrl, backLocal);
+          if (isImage) {
+            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + backLocal + '" -printerName "' + printer + '"');
+          }
+          console.log('Printed back:', order.back_file_name, 'to', printer);
+        }
+
         printed[order.id] = true;
         savePrinted();
         console.log('Printed:', order.file_name, 'to', printer);

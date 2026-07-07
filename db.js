@@ -26,4 +26,9 @@ try {
 try {
   db.exec(`ALTER TABLE orders ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'paytm' CHECK(payment_method IN ('paytm', 'cash'))`);
 } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN is_id_copy INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN back_file_name TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN back_file_path TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN back_enabled INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN copies INTEGER NOT NULL DEFAULT 1`); } catch (e) {}
 module.exports = db;

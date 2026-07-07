@@ -592,7 +592,8 @@
     function idcUpload() {
       if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
       var name = document.getElementById('idcName').value.trim() || 'Customer';
-      // Upload each item in queue + current
+      var printType = document.querySelector('input[name="printType"]:checked').value;
+      var paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
       var allItems = idcQueue.slice();
       if (idcFrontFile) {
         allItems.push({
@@ -602,9 +603,44 @@
           backName: idcBackFile ? idcBackFile.name : null
         });
       }
-      // For now, just console log
-      console.log('Upload items:', allItems);
-      alert('Upload ' + allItems.length + ' ID copy items for ' + name);
+      var btn = document.getElementById('idcUploadBtn');
+      btn.disabled = true; btn.textContent = 'Uploading...';
+
+      var uploadOne = function(item, idx) {
+        return new Promise(function(resolve, reject) {
+          var fd = new FormData();
+          fd.append('customerName', name);
+          fd.append('printType', printType);
+          fd.append('printSide', 'single');
+          fd.append('paymentMethod', paymentMethod);
+          fd.append('front', item.front);
+          if (item.back) { fd.append('back', item.back); fd.append('backEnabled', 'true'); }
+          else { fd.append('backEnabled', 'false'); }
+          fetch('/api/upload-id-copy', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { if (d.error) reject(d.error); else resolve(d); })
+            .catch(reject);
+        });
+      };
+
+      var prom = allItems.map(function(item, i) { return uploadOne(item, i); });
+      Promise.all(prom)
+        .then(function(results) {
+          currentOrderIds = results.map(function(r) { return r.orderId; });
+          document.getElementById('summaryOrders').innerHTML = '<div style="text-align:center;color:#28a745;font-weight:600;">✓ ' + results.length + ' ID Copy uploaded</div>';
+          document.getElementById('summaryName').textContent = name;
+          document.getElementById('summaryType').textContent = printType === 'bw' ? 'Black & White' : 'Color';
+          document.getElementById('summarySide').textContent = 'ID Copy 86×54';
+          var total = results.reduce(function(s, r) { return s + r.price; }, 0);
+          document.getElementById('summaryPrice').textContent = '₹' + total;
+          togglePaymentMethod();
+          showStep('stepPrice');
+          btn.disabled = false; btn.textContent = 'Upload & Print';
+        })
+        .catch(function(err) {
+          alert('Upload failed: ' + (err.message || err));
+          btn.disabled = false; btn.textContent = 'Upload & Print';
+        });
     }
 
     const translations = {

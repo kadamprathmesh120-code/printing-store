@@ -210,6 +210,10 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
       if (hasPrinter) {
         const frontPath = path.join(__dirname, 'uploads', order.file_path);
         await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
+        if (order.is_id_copy && order.back_file_path) {
+          const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+          await printFile(backPath, order.back_file_name, printer, order.print_type, order.print_side);
+        }
       }
     } catch (e) {}
 
@@ -257,6 +261,10 @@ app.post('/api/admin/print/:id', async (req, res) => {
 
     const frontPath = path.join(__dirname, 'uploads', order.file_path);
     await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
+    if (order.is_id_copy && order.back_file_path) {
+      const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+      await printFile(backPath, order.back_file_name, printer, order.print_type, order.print_side);
+    }
 
     res.json({ success: true, message: `Sent to printer: ${printer}` });
   } catch (err) {
@@ -277,12 +285,17 @@ app.get('/print/:id', (req, res) => {
     const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
     const isPdf = ext === '.pdf';
     let contentHtml = '';
+    var backHtml = '';
+    if (order.is_id_copy && order.back_file_path) {
+      var backUrl = `/uploads/${order.back_file_path}`;
+      backHtml = `<img src="${backUrl}" id="docBackImg" style="max-width:100%;max-height:100vh;display:block;margin:auto;page-break-before:always">`;
+    }
     if (isPdf) {
       contentHtml = `<embed src="${fileUrl}#view=FitH" type="application/pdf" width="100%" height="100%" id="docEmbed">`;
     } else if (isImage) {
-      contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">`;
+      contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">${backHtml}`;
     } else {
-      contentHtml = `<iframe src="${fileUrl}" width="100%" height="100%" frameborder="0"></iframe>`;
+      contentHtml = `<iframe src="${fileUrl}" width="100%" height="100%" frameborder="0"></iframe>${backHtml}`;
     }
 
     res.send(`<!DOCTYPE html>
@@ -340,6 +353,56 @@ app.get('/api/upi-qr', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to generate UPI QR' });
   }
+});
+
+const idcUpload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }).fields([
+  { name: 'front', maxCount: 1 },
+  { name: 'back', maxCount: 1 }
+]);
+
+app.post('/api/upload-id-copy', (req, res) => {
+  idcUpload(req, res, async function(err) {
+    if (err) {
+      console.error('ID Copy multer error:', err.message);
+      return res.status(400).json({ error: err.message });
+    }
+    try {
+      const frontFile = req.files && req.files.front && req.files.front[0];
+      if (!frontFile) return res.status(400).json({ error: 'Front image required' });
+
+      const { customerName, printType, printSide, paymentMethod, backEnabled } = req.body;
+      if (!customerName || !printType || !paymentMethod) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      if (printType === 'color' && printSide === 'both') {
+        return res.status(400).json({ error: 'Color printing does not support Both Sides' });
+      }
+
+      const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
+      const isBack = backEnabled === 'true' || backEnabled === true;
+      const backFile = isBack && req.files && req.files.back && req.files.back[0] ? req.files.back[0] : null;
+
+      const pages = 1; // ID Copy is 1 sheet
+      const sheets = printType === 'bw' ? 1 : 1;
+      const price = printType === 'bw' ? 5 : 10;
+
+      const id = uuidv4();
+      const stmt = db.prepare(`
+        INSERT INTO orders (id, customer_name, file_name, file_path, back_file_name, back_file_path, back_enabled, page_count, print_type, print_side, price, payment_method, status, is_id_copy, copies)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
+      `);
+      stmt.run(id, customerName, frontFile.originalname, frontFile.filename,
+        backFile ? backFile.originalname : null,
+        backFile ? backFile.filename : null,
+        isBack ? 1 : 0,
+        pages, printType, printSide || 'single', price, paymentMethod, initialStatus);
+
+      res.json({ orderId: id, price, message: `ID Copy uploaded (${isBack ? 'Front+Back' : 'Front only'})` });
+    } catch (err) {
+      console.error('ID Copy upload error:', err);
+      res.status(500).json({ error: 'Server error: ' + err.message });
+    }
+  });
 });
 
 app.use((err, req, res, next) => {
