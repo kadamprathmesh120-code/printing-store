@@ -289,20 +289,6 @@
       if (files.length === 0) { fileList.classList.add('hidden'); return; }
       fileList.classList.remove('hidden');
 
-      // Build crop queue for images
-      cropQueue = [];
-      for (var i = 0; i < files.length; i++) {
-        var ext = files[i].name.split('.').pop().toLowerCase();
-        if (['jpg', 'jpeg', 'png'].includes(ext)) {
-          cropQueue.push({ file: files[i], name: files[i].name });
-        }
-      }
-      cropIndex = 0;
-
-      if (cropQueue.length > 0) {
-        startCropItem();
-        return;
-      }
       showFileList();
     });
 
