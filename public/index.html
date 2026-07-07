@@ -258,6 +258,7 @@
     let cropRect = { x1: 0, y1: 0, x2: 0, y2: 0 };
     let cropDragHandle = null;
     let cropDragStart = null;
+    let activeCardPreset = '';
 
     const translations = {
       en: {
@@ -564,6 +565,30 @@
         ctx.fillRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
         ctx.strokeRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
       });
+
+      if (activeCardPreset) {
+        var cardW = x2 - x1, cardH = y2 - y1;
+        var inset = 6;
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.strokeRect(x1 + inset, y1 + inset, cardW - inset*2, cardH - inset*2);
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.08)';
+        ctx.fillRect(x1 + inset, y1 + inset, cardW - inset*2, cardH - inset*2);
+
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(activeCardPreset, x1 + inset + 4, y1 + inset + 4);
+
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = 'rgba(255,215,0,0.7)';
+        var ratioStr = (cardW / cardH).toFixed(2) + ':1';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(ratioStr, x2 - inset - 4, y2 - inset - 4);
+      }
     }
 
     function getCropHandle(x, y) {
@@ -581,6 +606,7 @@
     }
 
     document.getElementById('cropCanvas').addEventListener('mousedown', function(e) {
+      activeCardPreset = '';
       var pos = getCanvasPos(e);
       var handle = getCropHandle(pos.x, pos.y);
       if (handle) {
@@ -632,7 +658,7 @@
 
     // Touch events for crop
     document.getElementById('cropCanvas').addEventListener('touchstart', function(e) {
-      e.preventDefault(); var pos = getCanvasPos(e.touches[0]); cropDragHandle = getCropHandle(pos.x, pos.y);
+      e.preventDefault(); activeCardPreset = ''; var pos = getCanvasPos(e.touches[0]); cropDragHandle = getCropHandle(pos.x, pos.y);
       if (cropDragHandle) cropDragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
     });
     document.getElementById('cropCanvas').addEventListener('touchmove', function(e) {
@@ -660,6 +686,7 @@
     }
 
     function rotateCrop(deg) {
+      activeCardPreset = '';
       cropRotation = (cropRotation + deg) % 360;
       var canvas = document.getElementById('cropCanvas');
       var ctx = canvas.getContext('2d');
@@ -680,6 +707,7 @@
     }
 
     function autoCropEdge() {
+      activeCardPreset = '';
       var canvas = document.getElementById('cropCanvas');
       var ctx = canvas.getContext('2d');
       var w = canvas.width, h = canvas.height;
@@ -847,6 +875,9 @@
       if (!sel.value) return;
       var ratios = { aadhaar: 85.6/54, pan: 85.6/54, voter: 85.6/54, passport: 125/88 };
       var cardRatio = ratios[sel.value] || 1.585;
+
+      var labels = { aadhaar: 'Aadhaar', pan: 'PAN', voter: 'Voter ID', passport: 'Passport' };
+      activeCardPreset = labels[sel.value] || '';
 
       var auto = smartFindCard(cardRatio);
       if (auto) {
