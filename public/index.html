@@ -410,7 +410,7 @@
       ctx.rotate(cropRotation * Math.PI / 180);
       var dw = (Math.abs(cropRotation) % 180 === 0) ? w : h;
       var dh = (Math.abs(cropRotation) % 180 === 0) ? h : w;
-      ctx.drawImage(cropImg, -dw / 2, -dh / 2, dw, dh);
+      ctx.drawImage(cropImg, -w / 2, -h / 2, w, h);
       ctx.restore();
 
       var x1 = Math.min(cropRect.x1, cropRect.x2);
@@ -576,18 +576,40 @@
           if (edges[y*w + x] > maxEdge) maxEdge = edges[y*w + x];
         }
       }
-      var threshold = maxEdge * 0.15;
-      var minX = w, minY = h, maxX = 0, maxY = 0;
-      for (var y = Math.round(h * 0.1); y < Math.round(h * 0.9); y++) {
-        for (var x = Math.round(w * 0.1); x < Math.round(w * 0.9); x++) {
-          if (edges[y * w + x] > threshold) {
-            if (x < minX) minX = x; if (x > maxX) maxX = x;
-            if (y < minY) minY = y; if (y > maxY) maxY = y;
-          }
+      var threshold = maxEdge * 0.25;
+      var margin = Math.round(Math.min(w, h) * 0.15);
+      // Find outermost edge on each side
+      var leftX = 0, rightX = w - 1, topY = 0, bottomY = h - 1;
+      for (var x = margin; x < w - margin; x++) {
+        var found = false;
+        for (var y = margin; y < h - margin; y++) {
+          if (edges[y * w + x] > threshold) { leftX = x; found = true; break; }
         }
+        if (found) break;
       }
-      if (maxX > minX && maxY > minY) {
-        cropRect = { x1: minX, y1: minY, x2: maxX, y2: maxY };
+      for (var x = w - 1 - margin; x >= margin; x--) {
+        var found = false;
+        for (var y = margin; y < h - margin; y++) {
+          if (edges[y * w + x] > threshold) { rightX = x; found = true; break; }
+        }
+        if (found) break;
+      }
+      for (var y = margin; y < h - margin; y++) {
+        var found = false;
+        for (var x = margin; x < w - margin; x++) {
+          if (edges[y * w + x] > threshold) { topY = y; found = true; break; }
+        }
+        if (found) break;
+      }
+      for (var y = h - 1 - margin; y >= margin; y--) {
+        var found = false;
+        for (var x = margin; x < w - margin; x++) {
+          if (edges[y * w + x] > threshold) { bottomY = y; found = true; break; }
+        }
+        if (found) break;
+      }
+      if (rightX > leftX && bottomY > topY) {
+        cropRect = { x1: leftX, y1: topY, x2: rightX, y2: bottomY };
         drawCropCanvas();
       }
     }
