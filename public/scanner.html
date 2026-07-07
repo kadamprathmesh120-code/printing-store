@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Document Scanner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="scanner-body">
+  <div id="app">
+    <!-- Step 1: Upload & Crop -->
+    <div id="step1" class="scanner-step">
+      <div class="scanner-header">
+        <h1>Document Scanner</h1>
+      </div>
+      <div class="upload-area" id="uploadArea">
+        <p>Tap to upload an image</p>
+        <small>JPG or PNG</small>
+        <input type="file" id="scanInput" accept="image/*" hidden>
+      </div>
+      <div id="cropContainer" class="hidden">
+        <div class="crop-wrapper">
+          <canvas id="cropCanvas"></canvas>
+        </div>
+        <div class="crop-toolbar">
+          <button class="tool-btn" onclick="rotateScan(-90)">↺</button>
+          <button class="tool-btn" onclick="autoCrop()">Auto</button>
+          <button class="tool-btn" onclick="rotateScan(90)">↻</button>
+          <button class="tool-btn confirm-btn" onclick="confirmCrop()">✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Filters -->
+    <div id="step2" class="scanner-step hidden">
+      <div class="scanner-header">
+        <button class="back-btn" onclick="backToStep1()">←</button>
+        <h1>Filters</h1>
+      </div>
+      <div class="preview-container">
+        <canvas id="filterCanvas"></canvas>
+      </div>
+      <div class="thumb-strip" id="thumbStrip"></div>
+      <div class="filter-toolbar">
+        <button class="tool-btn" onclick="rotateScan(-90)">↺</button>
+        <button class="tool-btn" onclick="toggleMarkup()">✏️</button>
+        <button class="tool-btn" onclick="ocrText()">Aa</button>
+        <button class="tool-btn" onclick="addSignature()">🖊</button>
+        <button class="tool-btn confirm-btn" onclick="doneScan()">✓</button>
+      </div>
+      <div id="markupBar" class="hidden markup-bar">
+        <input type="color" id="markupColor" value="#000000">
+        <input type="range" id="markupSize" min="1" max="10" value="3">
+        <button class="tool-btn" onclick="undoMarkup()">↩</button>
+        <button class="tool-btn" onclick="toggleMarkup()">✏️ Done</button>
+      </div>
+    </div>
+
+    <!-- Markup canvas overlay -->
+    <canvas id="markupCanvas" class="hidden"></canvas>
+
+    <!-- Signature Modal -->
+    <div id="sigModal" class="hidden modal-overlay">
+      <div class="modal-content">
+        <h3>Add Signature</h3>
+        <canvas id="sigPad"></canvas>
+        <div class="sig-toolbar">
+          <button class="tool-btn" onclick="clearSig()">Clear</button>
+          <button class="tool-btn confirm-btn" onclick="confirmSig()">✓ Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Output -->
+    <div id="step3" class="scanner-step hidden">
+      <div class="scanner-header">
+        <h1>Final Image</h1>
+      </div>
+      <div class="preview-container">
+        <img id="finalImage" style="width:100%;border-radius:8px;">
+      </div>
+      <div style="padding:16px;">
+        <button class="btn btn-primary" onclick="uploadScan()" style="margin-bottom:8px;">Upload to Print Store</button>
+        <button class="btn btn-secondary" onclick="resetScanner()">Scan Another</button>
+        <div id="scanError" class="error"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let originalImage = null;
+    let croppedImage = null;
+    let processedImage = null;
+    let currentFilter = 'original';
+    let rotation = 0;
+    let markupMode = false;
+    let markupHistory = [];
+    let sigData = null;
+    let activeFile = null;
+
+    // Crop state
+    let cropRect = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    let dragHandle = null;
+    let dragStart = null;
+
+    // Filter definitions
+    const filters = [
+      { id: 'original', label: 'Original' },
+      { id: 'noShadow', label: 'No Shadow' },
+      { id: 'lighten', label: 'Lighten' },
+      { id: 'magic', label: 'Magic Color' },
+      { id: 'grayscale', label: 'Grayscale' },
+      { id: 'bw', label: 'B&W' }
+    ];
+
+    document.getElementById('scanInput').addEventListener('change', function(e) {
+      if (e.target.files && e.target.files[0]) {
+        activeFile = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          var img = new Image();
+          img.onload = function() {
+            originalImage = img;
+            rotation = 0;
+            initCrop();
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+
+    document.getElementById('uploadArea').addEventListener('click', function() {
+      document.getElementById('scanInput').click();
+    });
+    document.getElementById('uploadArea').addEventListener('touchend', function(e) {
+      e.preventDefault();
+      document.getElementById('scanInput').click();
+    });
+
+    function getScaledDims(img, maxW, maxH) {
+      var w = img.width, h = img.height;
+      if (w > maxW) { h = h * maxW / w; w = maxW; }
+      if (h > maxH) { w = w * maxH / h; h = maxH; }
+      return { width: Math.round(w), height: Math.round(h) };
+    }
+
+    function initCrop() {
+      var canvas = document.getElementById('cropCanvas');
+      var container = document.querySelector('.crop-wrapper');
+      var maxW = Math.min(container.clientWidth, 700);
+      var maxH = window.innerHeight * 0.6;
+      var dims = getScaledDims(originalImage, maxW, maxH);
+      canvas.width = dims.width;
+      canvas.height = dims.height;
+      cropRect = { x1: 10, y1: 10, x2: dims.width - 10, y2: dims.height - 10 };
+      drawCrop();
+      document.getElementById('uploadArea').classList.add('hidden');
+      document.getElementById('cropContainer').classList.remove('hidden');
+    }
+
+    function drawCrop() {
+      var canvas = document.getElementById('cropCanvas');
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width, h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(originalImage, 0, 0, w, h);
+
+      // Draw crop rectangle with handles
+      var x1 = Math.min(cropRect.x1, cropRect.x2);
+      var y1 = Math.min(cropRect.y1, cropRect.y2);
+      var x2 = Math.max(cropRect.x1, cropRect.x2);
+      var y2 = Math.max(cropRect.y1, cropRect.y2);
+
+      // Dim outside
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(0, 0, w, y1);
+      ctx.fillRect(0, y2, w, h - y2);
+      ctx.fillRect(0, y1, x1, y2 - y1);
+      ctx.fillRect(x2, y1, w - x2, y2 - y1);
+
+      // Border
+      ctx.strokeStyle = '#1a73e8';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      ctx.setLineDash([]);
+
+      // Corner handles
+      var hs = 14;
+      var corners = [[x1, y1], [x2, y1], [x1, y2], [x2, y2]];
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = '#1a73e8';
+      ctx.lineWidth = 2;
+      corners.forEach(function(p) {
+        ctx.fillRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
+        ctx.strokeRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
+      });
+    }
+
+    function getHandle(x, y) {
+      var x1 = Math.min(cropRect.x1, cropRect.x2);
+      var y1 = Math.min(cropRect.y1, cropRect.y2);
+      var x2 = Math.max(cropRect.x1, cropRect.x2);
+      var y2 = Math.max(cropRect.y1, cropRect.y2);
+      var hs = 20;
+      var corners = [[x1, y1, 'tl'], [x2, y1, 'tr'], [x1, y2, 'bl'], [x2, y2, 'br']];
+      for (var i = 0; i < corners.length; i++) {
+        if (Math.abs(x - corners[i][0]) < hs && Math.abs(y - corners[i][1]) < hs) {
+          return corners[i][2];
+        }
+      }
+      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return 'move';
+      return null;
+    }
+
+    function getCanvasPos(canvas, e) {
+      var rect = canvas.getBoundingClientRect();
+      var clientX, clientY;
+      if (e.touches) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    var cropCanvas = document.getElementById('cropCanvas');
+    cropCanvas.addEventListener('mousedown', onCropDown);
+    cropCanvas.addEventListener('mousemove', onCropMove);
+    cropCanvas.addEventListener('mouseup', onCropUp);
+    cropCanvas.addEventListener('mouseleave', onCropUp);
+    cropCanvas.addEventListener('touchstart', function(e) { e.preventDefault(); onCropDown(e); });
+    cropCanvas.addEventListener('touchmove', function(e) { e.preventDefault(); onCropMove(e); });
+    cropCanvas.addEventListener('touchend', function(e) { e.preventDefault(); onCropUp(e); });
+
+    function onCropDown(e) {
+      var pos = getCanvasPos(cropCanvas, e);
+      var handle = getHandle(pos.x, pos.y);
+      if (handle) {
+        dragHandle = handle;
+        dragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
+        cropCanvas.style.cursor = 'grabbing';
+      }
+    }
+
+    function onCropMove(e) {
+      if (!dragHandle) {
+        var pos = getCanvasPos(cropCanvas, e);
+        var handle = getHandle(pos.x, pos.y);
+        cropCanvas.style.cursor = handle ? (handle === 'move' ? 'move' : 'nwse-resize') : 'default';
+        return;
+      }
+      var pos = getCanvasPos(cropCanvas, e);
+      var dx = pos.x - dragStart.x;
+      var dy = pos.y - dragStart.y;
+      var sx = dragStart, c = cropRect;
+
+      if (dragHandle === 'move') {
+        var rw = c.x2 - c.x1, rh = c.y2 - c.y1;
+        c.x1 = Math.max(0, Math.min(canvas.width - rw, sx.x1 + dx));
+        c.y1 = Math.max(0, Math.min(canvas.height - rh, sx.y1 + dy));
+        c.x2 = c.x1 + rw;
+        c.y2 = c.y1 + rh;
+      } else if (dragHandle === 'tl') {
+        c.x1 = Math.max(0, Math.min(sx.x2 - 20, sx.x1 + dx));
+        c.y1 = Math.max(0, Math.min(sx.y2 - 20, sx.y1 + dy));
+      } else if (dragHandle === 'tr') {
+        c.x2 = Math.min(canvas.width, Math.max(sx.x1 + 20, sx.x2 + dx));
+        c.y1 = Math.max(0, Math.min(sx.y2 - 20, sx.y1 + dy));
+      } else if (dragHandle === 'bl') {
+        c.x1 = Math.max(0, Math.min(sx.x2 - 20, sx.x1 + dx));
+        c.y2 = Math.min(canvas.height, Math.max(sx.y1 + 20, sx.y2 + dy));
+      } else if (dragHandle === 'br') {
+        c.x2 = Math.min(canvas.width, Math.max(sx.x1 + 20, sx.x2 + dx));
+        c.y2 = Math.min(canvas.height, Math.max(sx.y1 + 20, sx.y2 + dy));
+      }
+      drawCrop();
+    }
+
+    function onCropUp(e) {
+      dragHandle = null;
+      dragStart = null;
+      cropCanvas.style.cursor = 'default';
+    }
+
+    function rotateScan(deg) {
+      rotation = (rotation + deg) % 360;
+
+      if (document.getElementById('step2').classList.contains('hidden') === false) {
+        applyFilter();
+        buildThumbnails();
+        return;
+      }
+
+      // Step 1 - rotate canvas
+      var canvas = document.getElementById('cropCanvas');
+      var ctx = canvas.getContext('2d');
+      var tempCanvas = document.createElement('canvas');
+      var tCtx = tempCanvas.getContext('2d');
+
+      if (rotation % 180 !== 0) {
+        tempCanvas.width = canvas.height;
+        tempCanvas.height = canvas.width;
+      } else {
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+      }
+
+      tCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+      tCtx.rotate(deg * Math.PI / 180);
+      tCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+
+      canvas.width = tempCanvas.width;
+      canvas.height = tempCanvas.height;
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      // Update original from temp
+      var finalCanvas = document.createElement('canvas');
+      finalCanvas.width = tempCanvas.width;
+      finalCanvas.height = tempCanvas.height;
+      var fCtx = finalCanvas.getContext('2d');
+      fCtx.drawImage(tempCanvas, 0, 0);
+      finalCanvas.toBlob(function(blob) {
+        var img = new Image();
+        img.onload = function() { originalImage = img; };
+        img.src = URL.createObjectURL(blob);
+      });
+
+      cropRect = { x1: 10, y1: 10, x2: canvas.width - 10, y2: canvas.height - 10 };
+      drawCrop();
+    }
+
+    function autoCrop() {
+      var canvas = document.getElementById('cropCanvas');
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width, h = canvas.height;
+      var imageData = ctx.getImageData(0, 0, w, h);
+      var data = imageData.data;
+
+      // Edge detection with Sobel
+      var gray = new Float32Array(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var idx = (y * w + x) * 4;
+          gray[y * w + x] = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+        }
+      }
+
+      var edges = new Float32Array(w * h);
+      var maxEdge = 0;
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          var gx = -gray[(y-1)*w + (x-1)] + gray[(y-1)*w + (x+1)]
+                   -2*gray[y*w + (x-1)] + 2*gray[y*w + (x+1)]
+                   -gray[(y+1)*w + (x-1)] + gray[(y+1)*w + (x+1)];
+          var gy = -gray[(y-1)*w + (x-1)] -2*gray[(y-1)*w + x] - gray[(y-1)*w + (x+1)]
+                   +gray[(y+1)*w + (x-1)] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + (x+1)];
+          var val = Math.sqrt(gx * gx + gy * gy);
+          edges[y * w + x] = val;
+          if (val > maxEdge) maxEdge = val;
+        }
+      }
+
+      // Threshold
+      var threshold = maxEdge * 0.12;
+      var minX = w, minY = h, maxX = 0, maxY = 0;
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          if (edges[y * w + x] > threshold) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      var margin = 5;
+      cropRect = {
+        x1: Math.max(0, minX - margin),
+        y1: Math.max(0, minY - margin),
+        x2: Math.min(w, maxX + margin),
+        y2: Math.min(h, maxY + margin)
+      };
+      drawCrop();
+    }
+
+    function confirmCrop() {
+      var canvas = document.getElementById('cropCanvas');
+      var ctx = canvas.getContext('2d');
+      var x1 = Math.round(Math.min(cropRect.x1, cropRect.x2));
+      var y1 = Math.round(Math.min(cropRect.y1, cropRect.y2));
+      var x2 = Math.round(Math.max(cropRect.x1, cropRect.x2));
+      var y2 = Math.round(Math.max(cropRect.y1, cropRect.y2));
+
+      if (x2 - x1 < 10 || y2 - y1 < 10) { alert('Crop area too small'); return; }
+
+      var cropCanvas = document.createElement('canvas');
+      cropCanvas.width = x2 - x1;
+      cropCanvas.height = y2 - y1;
+      var cropCtx = cropCanvas.getContext('2d');
+      cropCtx.drawImage(canvas, x1, y1, x2 - x1, y2 - y1, 0, 0, x2 - x1, y2 - y1);
+
+      cropCanvas.toBlob(function(blob) {
+        var img = new Image();
+        img.onload = function() {
+          croppedImage = img;
+          showStep2();
+        };
+        img.src = URL.createObjectURL(blob);
+      });
+    }
+
+    function showStep2() {
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step2').classList.remove('hidden');
+      var canvas = document.getElementById('filterCanvas');
+      var container = document.querySelector('.preview-container');
+      var maxW = Math.min(container.clientWidth, 700);
+      var maxH = window.innerHeight * 0.5;
+      var dims = getScaledDims(croppedImage, maxW, maxH);
+      canvas.width = dims.width;
+      canvas.height = dims.height;
+      currentFilter = 'original';
+      applyFilter();
+      buildThumbnails();
+    }
+
+    function applyFilter(filterId) {
+      var canvas = document.getElementById('filterCanvas');
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(croppedImage, 0, 0, w, h);
+
+      if (!filterId) filterId = currentFilter;
+      else currentFilter = filterId;
+
+      if (filterId === 'original') return;
+
+      var imageData = ctx.getImageData(0, 0, w, h);
+      var d = imageData.data;
+
+      if (filterId === 'noShadow') {
+        // Simple shadow removal: local contrast enhancement
+        var gaussKernel = [1, 2, 1, 2, 4, 2, 1, 2, 1];
+        var gaussSum = 16;
+        var blur = new Float32Array(w * h * 3);
+        for (var y = 1; y < h - 1; y++) {
+          for (var x = 1; x < w - 1; x++) {
+            var idx = (y * w + x) * 4;
+            var r = 0, g = 0, b = 0;
+            for (var ky = -1; ky <= 1; ky++) {
+              for (var kx = -1; kx <= 1; kx++) {
+                var pi = ((y + ky) * w + (x + kx)) * 4;
+                var kw = gaussKernel[(ky+1)*3 + (kx+1)];
+                r += d[pi] * kw;
+                g += d[pi+1] * kw;
+                b += d[pi+2] * kw;
+              }
+            }
+            blur[y*w*3 + x*3] = r / gaussSum;
+            blur[y*w*3 + x*3 + 1] = g / gaussSum;
+            blur[y*w*3 + x*3 + 2] = b / gaussSum;
+          }
+        }
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            var idx = (y * w + x) * 4;
+            var bi = y*w*3 + x*3;
+            d[idx] = Math.max(0, Math.min(255, d[idx] * 1.5 - blur[bi] * 0.5 + 30));
+            d[idx+1] = Math.max(0, Math.min(255, d[idx+1] * 1.5 - blur[bi+1] * 0.5 + 30));
+            d[idx+2] = Math.max(0, Math.min(255, d[idx+2] * 1.5 - blur[bi+2] * 0.5 + 30));
+          }
+        }
+      } else if (filterId === 'lighten') {
+        for (var i = 0; i < d.length; i += 4) {
+          d[i] = Math.min(255, d[i] * 1.3 + 20);
+          d[i+1] = Math.min(255, d[i+1] * 1.3 + 20);
+          d[i+2] = Math.min(255, d[i+2] * 1.3 + 20);
+        }
+      } else if (filterId === 'magic') {
+        // White balance + contrast + sharpen
+        var len = d.length, rSum = 0, gSum = 0, bSum = 0;
+        for (var i = 0; i < len; i += 4) {
+          rSum += d[i]; gSum += d[i+1]; bSum += d[i+2];
+        }
+        var count = len / 4, avg = (rSum + gSum + bSum) / count / 3;
+        var rG = avg / (rSum / count), bG = avg / (bSum / count);
+        for (var i = 0; i < len; i += 4) {
+          var r = d[i] * rG, g = d[i+1], b = d[i+2] * bG;
+          r = (r - 128) * 1.15 + 128;
+          g = (g - 128) * 1.15 + 128;
+          b = (b - 128) * 1.15 + 128;
+          var gray = (r + g + b) / 3;
+          r = gray + (r - gray) * 1.2;
+          g = gray + (g - gray) * 1.2;
+          b = gray + (b - gray) * 1.2;
+          d[i] = Math.max(0, Math.min(255, r * 1.05));
+          d[i+1] = Math.max(0, Math.min(255, g * 1.05));
+          d[i+2] = Math.max(0, Math.min(255, b * 1.05));
+        }
+        ctx.putImageData(imageData, 0, 0);
+        // Sharpen
+        var sharpData = ctx.getImageData(0, 0, w, h);
+        var sd = sharpData.data;
+        var copy = new Uint8ClampedArray(sd);
+        for (var y = 1; y < h - 1; y++) {
+          for (var x = 1; x < w - 1; x++) {
+            var idx = (y * w + x) * 4;
+            for (var c = 0; c < 3; c++) {
+              sd[idx + c] = Math.max(0, Math.min(255,
+                -copy[((y-1)*w + x)*4 + c]
+                -copy[(y*w + (x-1))*4 + c]
+                + 5*copy[(y*w + x)*4 + c]
+                -copy[(y*w + (x+1))*4 + c]
+                -copy[((y+1)*w + x)*4 + c]
+              ));
+            }
+          }
+        }
+        ctx.putImageData(sharpData, 0, 0);
+        return;
+      } else if (filterId === 'grayscale') {
+        for (var i = 0; i < d.length; i += 4) {
+          var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+          d[i] = d[i+1] = d[i+2] = g;
+        }
+      } else if (filterId === 'bw') {
+        for (var i = 0; i < d.length; i += 4) {
+          var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+          var val = g > 128 ? 255 : 0;
+          d[i] = d[i+1] = d[i+2] = val;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      buildThumbnails();
+    }
+
+    function buildThumbnails() {
+      var strip = document.getElementById('thumbStrip');
+      strip.innerHTML = '';
+      filters.forEach(function(f) {
+        var thumb = document.createElement('canvas');
+        thumb.width = 80;
+        thumb.height = 60;
+        var tCtx = thumb.getContext('2d');
+        var canvas = document.getElementById('filterCanvas');
+        tCtx.drawImage(canvas, 0, 0, 80, 60);
+
+        // Apply filter to thumbnail
+        if (f.id !== 'original') {
+          try {
+            var td = tCtx.getImageData(0, 0, 80, 60);
+            var d = td.data;
+            if (f.id === 'noShadow') {
+              for (var i = 0; i < d.length; i += 4) {
+                d[i] = Math.min(255, d[i] * 1.3 - 20);
+                d[i+1] = Math.min(255, d[i+1] * 1.3 - 20);
+                d[i+2] = Math.min(255, d[i+2] * 1.3 - 20);
+              }
+            } else if (f.id === 'lighten') {
+              for (var i = 0; i < d.length; i += 4) {
+                d[i] = Math.min(255, d[i] * 1.3 + 20);
+                d[i+1] = Math.min(255, d[i+1] * 1.3 + 20);
+                d[i+2] = Math.min(255, d[i+2] * 1.3 + 20);
+              }
+            } else if (f.id === 'magic') {
+              for (var i = 0; i < d.length; i += 4) {
+                var gray = (d[i] + d[i+1] + d[i+2]) / 3;
+                d[i] = Math.max(0, Math.min(255, (d[i] - 128) * 1.2 + 128));
+                d[i+1] = Math.max(0, Math.min(255, (d[i+1] - 128) * 1.2 + 128));
+                d[i+2] = Math.max(0, Math.min(255, (d[i+2] - 128) * 1.2 + 128));
+              }
+            } else if (f.id === 'grayscale') {
+              for (var i = 0; i < d.length; i += 4) {
+                var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                d[i] = d[i+1] = d[i+2] = g;
+              }
+            } else if (f.id === 'bw') {
+              for (var i = 0; i < d.length; i += 4) {
+                var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                d[i] = d[i+1] = d[i+2] = g > 128 ? 255 : 0;
+              }
+            }
+            tCtx.putImageData(td, 0, 0);
+          } catch(e) {}
+        }
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'thumb-item' + (f.id === currentFilter ? ' active' : '');
+        wrapper.appendChild(thumb);
+        var label = document.createElement('span');
+        label.textContent = f.label;
+        wrapper.appendChild(label);
+        wrapper.onclick = function() { applyFilter(this.dataset.id); };
+        wrapper.dataset.id = f.id;
+        strip.appendChild(wrapper);
+      });
+    }
+
+    function backToStep1() {
+      document.getElementById('step2').classList.add('hidden');
+      document.getElementById('step1').classList.remove('hidden');
+    }
+
+    function toggleMarkup() {
+      markupMode = !markupMode;
+      document.getElementById('markupBar').classList.toggle('hidden', !markupMode);
+      document.getElementById('markupCanvas').classList.toggle('hidden', !markupMode);
+      if (markupMode) {
+        initMarkup();
+      }
+    }
+
+    var markCtx = null;
+    var markDrawing = false;
+
+    function initMarkup() {
+      var canvas = document.getElementById('markupCanvas');
+      var fCanvas = document.getElementById('filterCanvas');
+      canvas.width = fCanvas.width;
+      canvas.height = fCanvas.height;
+      canvas.style.position = 'absolute';
+      canvas.style.top = fCanvas.offsetTop + 'px';
+      canvas.style.left = fCanvas.offsetLeft + 'px';
+      canvas.style.width = fCanvas.style.width || (fCanvas.width + 'px');
+      canvas.style.height = fCanvas.style.height || (fCanvas.height + 'px');
+      markCtx = canvas.getContext('2d');
+      markCtx.lineCap = 'round';
+      markCtx.lineJoin = 'round';
+      markupHistory = [];
+
+      canvas.onmousedown = function(e) { markDrawing = true; markCtx.beginPath(); var r = canvas.getBoundingClientRect(); markCtx.moveTo(e.clientX - r.left, e.clientY - r.top); };
+      canvas.onmousemove = function(e) { if (!markDrawing) return; var r = canvas.getBoundingClientRect(); markCtx.strokeStyle = document.getElementById('markupColor').value; markCtx.lineWidth = parseInt(document.getElementById('markupSize').value); markCtx.lineTo(e.clientX - r.left, e.clientY - r.top); markCtx.stroke(); };
+      canvas.onmouseup = function() { markDrawing = false; markupHistory.push(canvas.toDataURL()); };
+      canvas.onmouseleave = function() { markDrawing = false; };
+
+      canvas.ontouchstart = function(e) { e.preventDefault(); var t = e.touches[0]; markDrawing = true; markCtx.beginPath(); var r = canvas.getBoundingClientRect(); markCtx.moveTo(t.clientX - r.left, t.clientY - r.top); };
+      canvas.ontouchmove = function(e) { e.preventDefault(); if (!markDrawing) return; var t = e.touches[0]; var r = canvas.getBoundingClientRect(); markCtx.strokeStyle = document.getElementById('markupColor').value; markCtx.lineWidth = parseInt(document.getElementById('markupSize').value); markCtx.lineTo(t.clientX - r.left, t.clientY - r.top); markCtx.stroke(); };
+      canvas.ontouchend = function(e) { e.preventDefault(); markDrawing = false; markupHistory.push(canvas.toDataURL()); };
+    }
+
+    function undoMarkup() {
+      if (markupHistory.length === 0) { markCtx.clearRect(0, 0, markCtx.canvas.width, markCtx.canvas.height); return; }
+      markupHistory.pop();
+      var img = new Image();
+      img.onload = function() {
+        markCtx.clearRect(0, 0, markCtx.canvas.width, markCtx.canvas.height);
+        if (markupHistory.length > 0) {
+          markCtx.drawImage(img, 0, 0);
+        }
+      };
+      if (markupHistory.length > 0) img.src = markupHistory[markupHistory.length - 1];
+    }
+
+    function ocrText() {
+      alert('OCR feature coming soon! Upload the image and we will process it.');
+    }
+
+    function addSignature() {
+      document.getElementById('sigModal').classList.remove('hidden');
+      document.getElementById('sigModal').style.display = 'flex';
+      var pad = document.getElementById('sigPad');
+      pad.width = 300;
+      pad.height = 150;
+      var pCtx = pad.getContext('2d');
+      pCtx.fillStyle = 'white';
+      pCtx.fillRect(0, 0, 300, 150);
+      pCtx.strokeStyle = '#333';
+      pCtx.lineWidth = 2;
+      pCtx.moveTo(10, 75);
+      pCtx.lineTo(290, 75);
+      pCtx.stroke();
+      pCtx.strokeStyle = '#aaa';
+      pCtx.setLineDash([4, 4]);
+      pCtx.font = '14px sans-serif';
+      pCtx.fillStyle = '#ccc';
+      pCtx.textAlign = 'center';
+      pCtx.fillText('Sign here', 150, 70);
+      pCtx.setLineDash([]);
+
+      var sigDrawing = false;
+      pad.onmousedown = function(e) { sigDrawing = true; pCtx.beginPath(); var r = pad.getBoundingClientRect(); pCtx.moveTo(e.clientX - r.left, e.clientY - r.top); };
+      pad.onmousemove = function(e) { if (!sigDrawing) return; var r = pad.getBoundingClientRect(); pCtx.strokeStyle = '#000'; pCtx.lineWidth = 2; pCtx.lineTo(e.clientX - r.left, e.clientY - r.top); pCtx.stroke(); };
+      pad.onmouseup = function() { sigDrawing = false; };
+      pad.ontouchstart = function(e) { e.preventDefault(); sigDrawing = true; var t = e.touches[0]; pCtx.beginPath(); var r = pad.getBoundingClientRect(); pCtx.moveTo(t.clientX - r.left, t.clientY - r.top); };
+      pad.ontouchmove = function(e) { e.preventDefault(); if (!sigDrawing) return; var t = e.touches[0]; var r = pad.getBoundingClientRect(); pCtx.strokeStyle = '#000'; pCtx.lineWidth = 2; pCtx.lineTo(t.clientX - r.left, t.clientY - r.top); pCtx.stroke(); };
+      pad.ontouchend = function(e) { e.preventDefault(); sigDrawing = false; };
+    }
+
+    function clearSig() {
+      var pad = document.getElementById('sigPad');
+      var pCtx = pad.getContext('2d');
+      pCtx.fillStyle = 'white';
+      pCtx.fillRect(0, 0, 300, 150);
+    }
+
+    function confirmSig() {
+      var pad = document.getElementById('sigPad');
+      sigData = pad.toDataURL('image/png');
+      document.getElementById('sigModal').classList.add('hidden');
+      document.getElementById('sigModal').style.display = 'none';
+      // Overlay signature on filter canvas
+      var fCanvas = document.getElementById('filterCanvas');
+      var fCtx = fCanvas.getContext('2d');
+      var sigImg = new Image();
+      sigImg.onload = function() {
+        var sW = fCanvas.width * 0.4;
+        var sH = sigImg.height * (sW / sigImg.width);
+        var sx = fCanvas.width - sW - 20;
+        var sy = fCanvas.height - sH - 20;
+        fCtx.drawImage(sigImg, sx, sy, sW, sH);
+      };
+      sigImg.src = sigData;
+    }
+
+    function doneScan() {
+      markCtx = null;
+      document.getElementById('markupCanvas').classList.add('hidden');
+
+      var fCanvas = document.getElementById('filterCanvas');
+      var finalCanvas = document.createElement('canvas');
+      finalCanvas.width = fCanvas.width;
+      finalCanvas.height = fCanvas.height;
+      var fCtx = finalCanvas.getContext('2d');
+
+      // Draw filter result
+      fCtx.drawImage(fCanvas, 0, 0);
+
+      // Overlay markup if any
+      var mCanvas = document.getElementById('markupCanvas');
+      if (mCanvas.width > 0) {
+        fCtx.drawImage(mCanvas, 0, 0);
+      }
+
+      finalCanvas.toBlob(function(blob) {
+        var url = URL.createObjectURL(blob);
+        document.getElementById('finalImage').src = url;
+        processedImage = blob;
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step3').classList.remove('hidden');
+      });
+    }
+
+    function uploadScan() {
+      if (!processedImage) { document.getElementById('scanError').textContent = 'No image to upload'; return; }
+      var ext = activeFile ? activeFile.name.split('.').pop() : 'jpg';
+      var fileName = 'scan_' + Date.now() + '.' + ext;
+      var file = new File([processedImage], fileName, { type: 'image/' + (ext === 'png' ? 'png' : 'jpeg') });
+
+      var formData = new FormData();
+      formData.append('customerName', 'Scanner User');
+      formData.append('printType', 'color');
+      formData.append('printSide', 'single');
+      formData.append('paymentMethod', 'cash');
+      formData.append('files', file);
+
+      var btn = document.querySelector('#step3 .btn-primary');
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+
+      fetch('/api/upload', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { document.getElementById('scanError').textContent = data.error; btn.disabled = false; btn.textContent = 'Upload to Print Store'; return; }
+          window.location.href = '/?scan=done';
+        })
+        .catch(function() {
+          document.getElementById('scanError').textContent = 'Upload failed. Try again.';
+          btn.disabled = false;
+          btn.textContent = 'Upload to Print Store';
+        });
+    }
+
+    function resetScanner() {
+      originalImage = null;
+      croppedImage = null;
+      processedImage = null;
+      activeFile = null;
+      rotation = 0;
+      currentFilter = 'original';
+      markupMode = false;
+      sigData = null;
+      document.getElementById('step3').classList.add('hidden');
+      document.getElementById('step1').classList.remove('hidden');
+      document.getElementById('cropContainer').classList.add('hidden');
+      document.getElementById('uploadArea').classList.remove('hidden');
+      document.getElementById('scanInput').value = '';
+      document.getElementById('scanError').textContent = '';
+    }
+  </script>
+  <style>
+    .scanner-body { background: #1a1a2e; color: white; min-height: 100vh; }
+    .scanner-body .container { max-width: 100%; padding: 0; }
+    .scanner-step { max-width: 500px; margin: 0 auto; padding: 0; }
+    .scanner-header { display: flex; align-items: center; gap: 12px; padding: 16px; background: #16213e; }
+    .scanner-header h1 { font-size: 1.2em; margin: 0; flex: 1; }
+    .back-btn { background: none; border: none; color: white; font-size: 1.5em; cursor: pointer; padding: 4px 8px; }
+    .upload-area { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: #0f3460; border: 2px dashed #1a73e8; border-radius: 12px; margin: 16px; cursor: pointer; }
+    .upload-area p { font-size: 1.2em; color: #1a73e8; }
+    .upload-area small { color: #888; margin-top: 8px; }
+    .crop-wrapper { margin: 8px; border-radius: 8px; overflow: hidden; background: #000; display: flex; justify-content: center; }
+    .crop-wrapper canvas { display: block; max-width: 100%; }
+    .crop-toolbar, .filter-toolbar { display: flex; justify-content: center; gap: 12px; padding: 12px; flex-wrap: wrap; }
+    .tool-btn { background: #16213e; border: none; color: white; padding: 10px 18px; border-radius: 8px; font-size: 1em; cursor: pointer; }
+    .tool-btn.confirm-btn { background: #28a745; font-weight: 700; padding: 10px 24px; }
+    .preview-container { margin: 8px; border-radius: 8px; overflow: hidden; background: #000; display: flex; justify-content: center; position: relative; }
+    .preview-container canvas { display: block; max-width: 100%; }
+    .thumb-strip { display: flex; gap: 8px; padding: 12px; overflow-x: auto; }
+    .thumb-item { flex-shrink: 0; text-align: center; cursor: pointer; opacity: 0.6; border: 2px solid transparent; border-radius: 8px; padding: 4px; transition: all 0.2s; }
+    .thumb-item.active { opacity: 1; border-color: #1a73e8; background: #0f3460; }
+    .thumb-item canvas { display: block; border-radius: 4px; width: 80px; height: 60px; object-fit: cover; }
+    .thumb-item span { display: block; font-size: 0.65em; color: #aaa; margin-top: 4px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .thumb-item.active span { color: #1a73e8; }
+    .markup-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #16213e; justify-content: center; }
+    .markup-bar input[type="color"] { width: 36px; height: 36px; border: none; border-radius: 4px; cursor: pointer; }
+    .markup-bar input[type="range"] { width: 80px; }
+    #markupCanvas { z-index: 10; cursor: crosshair; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; }
+    .modal-content { background: white; border-radius: 12px; padding: 24px; max-width: 350px; width: 90%; color: #333; }
+    .modal-content h3 { margin-bottom: 12px; }
+    #sigPad { width: 100%; height: 150px; border: 1px solid #ddd; border-radius: 8px; cursor: crosshair; }
+    .sig-toolbar { display: flex; gap: 8px; margin-top: 12px; justify-content: center; }
+    .sig-toolbar .tool-btn { color: #333; background: #f0f0f0; }
+    .sig-toolbar .tool-btn.confirm-btn { background: #28a745; color: white; }
+    .hidden { display: none !important; }
+    @media (max-width: 500px) {
+      .thumb-item canvas { width: 60px; height: 45px; }
+      .thumb-item span { font-size: 0.6em; max-width: 60px; }
+      .crop-toolbar .tool-btn, .filter-toolbar .tool-btn { font-size: 0.85em; padding: 8px 12px; }
+    }
+  </style>
+</body>
+</html>
