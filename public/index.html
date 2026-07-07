@@ -127,10 +127,11 @@
           <canvas id="cropCanvas" style="max-width:100%;max-height:60vh;"></canvas>
         </div>
         <div style="display:flex;justify-content:center;gap:12px;padding:12px;flex-wrap:wrap;">
-          <button style="background:#16213e;border:none;color:white;padding:10px 18px;border-radius:8px;font-size:1em;cursor:pointer;" onclick="rotateCrop(-90)">↺</button>
-          <button style="background:#16213e;border:none;color:white;padding:10px 18px;border-radius:8px;font-size:1em;cursor:pointer;" onclick="autoCropEdge()">Auto</button>
-          <button style="background:#16213e;border:none;color:white;padding:10px 18px;border-radius:8px;font-size:1em;cursor:pointer;" onclick="rotateCrop(90)">↻</button>
-          <button style="background:#28a745;font-weight:700;padding:10px 24px;border:none;color:white;border-radius:8px;font-size:1em;cursor:pointer;" onclick="confirmCrop()">✓ Crop</button>
+          <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="rotateCrop(-90)">↺</button>
+          <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="autoCropEdge()">Auto</button>
+          <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="rotateCrop(90)">↻</button>
+          <button style="background:#1a73e8;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="magicCropImage()">✨ Magic</button>
+          <button style="background:#28a745;font-weight:700;padding:10px 20px;border:none;color:white;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="confirmCrop()">✓ Crop</button>
         </div>
         <div id="cropError" style="color:#dc3545;text-align:center;font-size:0.85em;"></div>
       </div>
@@ -634,6 +635,59 @@
         };
         drawCropCanvas();
       }
+    }
+
+    function magicCropImage() {
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      canvas.width = cropImg.width;
+      canvas.height = cropImg.height;
+      ctx.drawImage(cropImg, 0, 0);
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var d = imageData.data, len = d.length;
+
+      var rSum = 0, gSum = 0, bSum = 0;
+      for (var i = 0; i < len; i += 4) { rSum += d[i]; gSum += d[i+1]; bSum += d[i+2]; }
+      var count = len / 4, avg = (rSum + gSum + bSum) / count / 3;
+      var rG = avg / (rSum / count), bG = avg / (bSum / count);
+
+      for (var i = 0; i < len; i += 4) {
+        var r = d[i] * rG, g = d[i+1], b = d[i+2] * bG;
+        r = (r - 128) * 1.15 + 128; g = (g - 128) * 1.15 + 128; b = (b - 128) * 1.15 + 128;
+        var gray = (r + g + b) / 3;
+        r = gray + (r - gray) * 1.2; g = gray + (g - gray) * 1.2; b = gray + (b - gray) * 1.2;
+        d[i] = Math.max(0, Math.min(255, r * 1.05));
+        d[i+1] = Math.max(0, Math.min(255, g * 1.05));
+        d[i+2] = Math.max(0, Math.min(255, b * 1.05));
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      var w = canvas.width, h = canvas.height;
+      var sharpData = ctx.getImageData(0, 0, w, h);
+      var sd = sharpData.data, copy = new Uint8ClampedArray(sd);
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          var idx = (y * w + x) * 4;
+          for (var c = 0; c < 3; c++) {
+            sd[idx + c] = Math.max(0, Math.min(255,
+              -copy[((y-1)*w + x)*4 + c] - copy[(y*w + (x-1))*4 + c] + 5*copy[(y*w + x)*4 + c]
+              - copy[(y*w + (x+1))*4 + c] - copy[((y+1)*w + x)*4 + c]));
+          }
+        }
+      }
+      ctx.putImageData(sharpData, 0, 0);
+
+      canvas.toBlob(function(blob) {
+        var img = new Image();
+        img.onload = function() {
+          cropImg = img;
+          canvas.width = document.getElementById('cropCanvas').width;
+          canvas.height = document.getElementById('cropCanvas').height;
+          drawCropCanvas();
+          document.getElementById('cropError').textContent = '✨ Magic Color applied';
+        };
+        img.src = URL.createObjectURL(blob);
+      });
     }
 
     function confirmCrop() {
