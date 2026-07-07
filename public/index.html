@@ -65,6 +65,30 @@
         <!-- Queue display -->
         <div id="idcQueue" class="hidden"></div>
 
+        <!-- Print Preview -->
+        <div id="idcPreview" class="hidden" style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-weight:600;font-size:0.95em;">ID Card Print Preview</span>
+            <div style="display:flex;gap:4px;">
+              <button class="preview-btn" onclick="idcPreviewZoom(-0.1)" title="Zoom Out">−</button>
+              <span id="idcPreviewZoomLabel" style="font-size:0.85em;min-width:36px;text-align:center;">100%</span>
+              <button class="preview-btn" onclick="idcPreviewZoom(0.1)" title="Zoom In">+</button>
+              <button class="preview-btn" onclick="idcPreviewFit()" title="Fit to Page">⤡</button>
+              <button class="preview-btn" onclick="idcPreviewOriginal()" title="Original Size">1:1</button>
+            </div>
+          </div>
+          <div id="idcPreviewWrap" style="overflow:auto;background:#e8e8e8;border-radius:8px;padding:16px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
+            <div id="idcA4" style="width:210mm;min-height:297mm;background:white;box-shadow:0 2px 20px rgba(0,0,0,0.15);position:relative;transform-origin:top center;transition:transform 0.15s;overflow:hidden;">
+              <div id="idcA4Drop" style="position:relative;width:100%;height:297mm;">
+                <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding:8px 12px;background:#fff3cd;border-radius:6px;font-size:0.8em;color:#856404;text-align:center;">
+            ⚠️ This is a preview only. Your uploaded file will be printed as shown.
+          </div>
+        </div>
+
         <!-- Actions -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="idcCrop('front')" disabled id="idcCropFront">Crop Front</button>
@@ -588,6 +612,233 @@
       idcQueue.splice(i, 1);
       idcRenderQueue();
     }
+
+    // --- Print Preview ---
+    var idcPreviewScale = 1;
+    var idcPreviewDrag = null;
+
+    function idcUpdatePreview() {
+      var wrap = document.getElementById('idcPreview');
+      wrap.classList.remove('hidden');
+      var a4 = document.getElementById('idcA4Drop');
+      a4.innerHTML = '';
+      var hasFront = idcFrontFile && idcFrontImgSrc && idcFrontImgSrc !== '#';
+      var hasBack = idcBackFile && idcBackImgSrc && idcBackImgSrc !== '#';
+      if (!hasFront && !hasBack) {
+        a4.innerHTML = '<div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>';
+        return;
+      }
+      var a4W = a4.offsetWidth || 794; // ~210mm at 96dpi
+      var pad = 40; // margin around card
+      var areaW = a4W - pad * 2;
+      var cardRatio = 86 / 54; // 1.5926
+      var maxCardH = 140;
+      var cardW, cardH;
+      if (areaW / cardRatio > maxCardH) {
+        cardH = maxCardH; cardW = cardH * cardRatio;
+      } else {
+        cardW = areaW; cardH = cardW / cardRatio;
+      }
+      if (cardW > areaW) { cardW = areaW; cardH = cardW / cardRatio; }
+
+      if (hasFront && hasBack) {
+        // Two cards side by side
+        var gap = 24;
+        var pairW = cardW * 2 + gap;
+        var pairH = cardH;
+        if (pairW > areaW) {
+          var scale2 = areaW / pairW;
+          cardW *= scale2; cardH *= scale2;
+          pairW = cardW * 2 + gap; pairH = cardH;
+        }
+        var startX = (a4W - pairW) / 2;
+        var startY = (297*96/25.4 - pairH) / 2; // center vertically on A4
+        if (startY < 60) startY = 60;
+
+        var fEl = document.createElement('img');
+        fEl.src = idcFrontImgSrc;
+        fEl.className = 'idc-preview-img';
+        fEl.style.left = startX + 'px';
+        fEl.style.top = startY + 'px';
+        fEl.style.width = cardW + 'px';
+        fEl.style.height = cardH + 'px';
+        fEl.className = 'idc-preview-img';
+        fEl.dataset.side = 'front';
+        a4.appendChild(fEl);
+
+        var fl = document.createElement('div');
+        fl.className = 'idc-preview-label';
+        fl.textContent = 'Front';
+        fl.style.left = startX + 'px';
+        fl.style.top = (startY - 18) + 'px';
+        a4.appendChild(fl);
+
+        var bEl = document.createElement('img');
+        bEl.src = idcBackImgSrc;
+        bEl.className = 'idc-preview-img';
+        bEl.style.left = (startX + cardW + gap) + 'px';
+        bEl.style.top = startY + 'px';
+        bEl.style.width = cardW + 'px';
+        bEl.style.height = cardH + 'px';
+        bEl.dataset.side = 'back';
+        a4.appendChild(bEl);
+
+        var bl = document.createElement('div');
+        bl.className = 'idc-preview-label';
+        bl.textContent = 'Back';
+        bl.style.left = (startX + cardW + gap) + 'px';
+        bl.style.top = (startY - 18) + 'px';
+        a4.appendChild(bl);
+      } else {
+        // Single card centered
+        var sx = (a4W - cardW) / 2;
+        var sy = (297*96/25.4 - cardH) / 2;
+        if (sy < 60) sy = 60;
+        var el = document.createElement('img');
+        el.src = hasFront ? idcFrontImgSrc : idcBackImgSrc;
+        el.className = 'idc-preview-img';
+        el.style.left = sx + 'px';
+        el.style.top = sy + 'px';
+        el.style.width = cardW + 'px';
+        el.style.height = cardH + 'px';
+        el.dataset.side = hasFront ? 'front' : 'back';
+        a4.appendChild(el);
+      }
+
+      idcAttachDrag();
+    }
+
+    function idcAttachDrag() {
+      var imgs = document.querySelectorAll('#idcA4Drop .idc-preview-img');
+      imgs.forEach(function(img) {
+        img.addEventListener('mousedown', idcPreviewDragStart);
+        img.addEventListener('touchstart', idcPreviewDragStart, {passive:false});
+      });
+    }
+
+    function idcPreviewDragStart(e) {
+      e.preventDefault();
+      var img = e.currentTarget;
+      var rect = img.getBoundingClientRect();
+      var a4Rect = document.getElementById('idcA4Drop').getBoundingClientRect();
+      var t = e.touches ? e.touches[0] : e;
+      idcPreviewDrag = {
+        el: img,
+        offsetX: (t.clientX - rect.left) / idcPreviewScale,
+        offsetY: (t.clientY - rect.top) / idcPreviewScale,
+        a4Left: a4Rect.left,
+        a4Top: a4Rect.top
+      };
+      img.classList.add('dragging');
+      document.addEventListener('mousemove', idcPreviewDragMove);
+      document.addEventListener('mouseup', idcPreviewDragEnd);
+      document.addEventListener('touchmove', idcPreviewDragMove, {passive:false});
+      document.addEventListener('touchend', idcPreviewDragEnd);
+    }
+
+    function idcPreviewDragMove(e) {
+      if (!idcPreviewDrag) return;
+      e.preventDefault();
+      var t = e.touches ? e.touches[0] : e;
+      var x = (t.clientX - idcPreviewDrag.a4Left) / idcPreviewScale - idcPreviewDrag.offsetX;
+      var y = (t.clientY - idcPreviewDrag.a4Top) / idcPreviewScale - idcPreviewDrag.offsetY;
+      idcPreviewDrag.el.style.left = Math.max(0, x) + 'px';
+      idcPreviewDrag.el.style.top = Math.max(0, y) + 'px';
+    }
+
+    function idcPreviewDragEnd() {
+      if (idcPreviewDrag) {
+        idcPreviewDrag.el.classList.remove('dragging');
+        idcPreviewDrag = null;
+      }
+      document.removeEventListener('mousemove', idcPreviewDragMove);
+      document.removeEventListener('mouseup', idcPreviewDragEnd);
+      document.removeEventListener('touchmove', idcPreviewDragMove);
+      document.removeEventListener('touchend', idcPreviewDragEnd);
+    }
+
+    function idcPreviewZoom(delta) {
+      idcPreviewScale = Math.max(0.3, Math.min(3, idcPreviewScale + delta));
+      document.getElementById('idcA4').style.transform = 'scale(' + idcPreviewScale + ')';
+      document.getElementById('idcPreviewZoomLabel').textContent = Math.round(idcPreviewScale * 100) + '%';
+    }
+
+    function idcPreviewFit() {
+      var wrap = document.getElementById('idcPreviewWrap');
+      var a4 = document.getElementById('idcA4');
+      var wrapW = wrap.clientWidth - 48;
+      var a4W = 210; // mm (will compare as approximate)
+      var scale = Math.min(1, wrapW / (210 / 25.4 * 96));
+      idcPreviewScale = Math.max(0.3, scale);
+      a4.style.transform = 'scale(' + idcPreviewScale + ')';
+      document.getElementById('idcPreviewZoomLabel').textContent = Math.round(idcPreviewScale * 100) + '%';
+    }
+
+    function idcPreviewOriginal() {
+      idcPreviewScale = 1;
+      document.getElementById('idcA4').style.transform = 'scale(1)';
+      document.getElementById('idcPreviewZoomLabel').textContent = '100%';
+    }
+
+    var idcFrontImgSrc = '#', idcBackImgSrc = '#';
+    document.addEventListener('DOMContentLoaded', function() {
+      var fi = document.getElementById('idcFrontInput');
+      var bi = document.getElementById('idcBackInput');
+      fi.addEventListener('change', function() {
+        setTimeout(function() {
+          var img = document.getElementById('idcFrontImg');
+          if (img.src && img.src !== '#') idcFrontImgSrc = img.src;
+          idcUpdatePreview();
+        }, 100);
+      });
+      bi.addEventListener('change', function() {
+        setTimeout(function() {
+          var img = document.getElementById('idcBackImg');
+          if (img.src && img.src !== '#') idcBackImgSrc = img.src;
+          idcUpdatePreview();
+        }, 100);
+      });
+      var obFront = new MutationObserver(function() {
+        var img = document.getElementById('idcFrontImg');
+        if (img.src && img.src !== '#') idcFrontImgSrc = img.src;
+        idcUpdatePreview();
+      });
+      obFront.observe(document.getElementById('idcFrontImg'), { attributes: true, attributeFilter: ['src'] });
+      var obBack = new MutationObserver(function() {
+        var img = document.getElementById('idcBackImg');
+        if (img.src && img.src !== '#') idcBackImgSrc = img.src;
+        idcUpdatePreview();
+      });
+      obBack.observe(document.getElementById('idcBackImg'), { attributes: true, attributeFilter: ['src'] });
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+      var fi = document.getElementById('idcFrontInput');
+      var bi = document.getElementById('idcBackInput');
+      fi.addEventListener('change', function() {
+        setTimeout(function() {
+          var img = document.getElementById('idcFrontImg');
+          if (img.src && img.src !== '#') idcFrontImgSrc = img.src;
+          idcUpdatePreview();
+        }, 100);
+      });
+      bi.addEventListener('change', function() {
+        setTimeout(function() {
+          var img = document.getElementById('idcBackImg');
+          if (img.src && img.src !== '#') idcBackImgSrc = img.src;
+          idcUpdatePreview();
+        }, 100);
+      });
+      // Also listen for crop completion to update preview
+      var observer = new MutationObserver(function() {
+        var fi = document.getElementById('idcFrontImg');
+        var bi = document.getElementById('idcBackImg');
+        if (fi.src && fi.src !== '#') idcFrontImgSrc = fi.src;
+        if (bi.src && bi.src !== '#') idcBackImgSrc = bi.src;
+        idcUpdatePreview();
+      });
+      observer.observe(document.getElementById('idcFrontImg'), { attributes: true, attributeFilter: ['src'] });
+      observer.observe(document.getElementById('idcBackImg'), { attributes: true, attributeFilter: ['src'] });
+    });
 
     function idcUpload() {
       if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
