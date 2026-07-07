@@ -2,5 +2,6 @@ node_modules/
 uploads/
 downloads/
 printing.db
-*.db
+*.db-shm
+*.db-wal
 printed-orders.json
