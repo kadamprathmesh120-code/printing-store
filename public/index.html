@@ -559,9 +559,32 @@
       document.getElementById('idcModal').style.display = 'none';
     }
 
+    function idcResetSlots() {
+      idcFrontFile = null; idcBackFile = null;
+      idcFrontCropped = null; idcBackCropped = null;
+      idcFrontImgSrc = '#'; idcBackImgSrc = '#';
+      document.getElementById('idcFrontImg').classList.add('hidden');
+      document.getElementById('idcFrontImg').src = '#';
+      document.getElementById('idcFrontEmpty').classList.remove('hidden');
+      document.getElementById('idcFront').classList.remove('has-img');
+      document.getElementById('idcBackImg').classList.add('hidden');
+      document.getElementById('idcBackImg').src = '#';
+      document.getElementById('idcBackEmpty').classList.remove('hidden');
+      document.getElementById('idcBack').classList.remove('has-img');
+      document.getElementById('idcCropFront').disabled = true;
+      document.getElementById('idcCropBack').disabled = true;
+      document.getElementById('idcName').value = '';
+      idcUpdatePreview();
+    }
+
+    function idcClear() {
+      idcQueue = [];
+      idcResetSlots();
+      idcRenderQueue();
+    }
+
     function idcAddMore() {
       if (!idcFrontFile) return;
-      // Save current pair to queue
       idcQueue.push({
         front: idcFrontCropped || idcFrontFile,
         back: idcBackCropped || idcBackFile,
@@ -569,17 +592,7 @@
         backName: idcBackFile ? idcBackFile.name : null
       });
       idcRenderQueue();
-      // Reset slots
-      idcFrontFile = null; idcBackFile = null;
-      idcFrontCropped = null; idcBackCropped = null;
-      document.getElementById('idcFrontImg').classList.add('hidden');
-      document.getElementById('idcFrontEmpty').classList.remove('hidden');
-      document.getElementById('idcFront').classList.remove('has-img');
-      document.getElementById('idcBackImg').classList.add('hidden');
-      document.getElementById('idcBackEmpty').classList.remove('hidden');
-      document.getElementById('idcBack').classList.remove('has-img');
-      document.getElementById('idcCropFront').disabled = true;
-      document.getElementById('idcCropBack').disabled = true;
+      idcResetSlots();
     }
 
     function idcRenderQueue() {
@@ -896,11 +909,25 @@
       var prom = allItems.map(function(item, i) { return uploadOne(item, i); });
       Promise.all(prom)
         .then(function(results) {
+          var pf = document.getElementById('idcFrontImg').src;
+          var pb = document.getElementById('idcBackImg').src;
+          var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:8px;">\u2713 ' + results.length + ' ID Copy uploaded</div><div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">';
+          if (pf && pf !== '#') previewHtml += '<div style="text-align:center;"><div style="font-size:0.75em;color:#888;margin-bottom:4px;">Front</div><img src="' + pf + '" style="width:100px;height:auto;border-radius:4px;border:1px solid #ddd;box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>';
+          if (pb && pb !== '#') previewHtml += '<div style="text-align:center;"><div style="font-size:0.75em;color:#888;margin-bottom:4px;">Back</div><img src="' + pb + '" style="width:100px;height:auto;border-radius:4px;border:1px solid #ddd;box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>';
+          previewHtml += '</div>';
+          document.getElementById('summaryOrders').innerHTML = previewHtml;
+          document.getElementById('summaryName').textContent = name;
+          document.getElementById('summaryType').textContent = printType === 'bw' ? 'B&W' : 'Color';
+          document.getElementById('summarySide').textContent = 'ID Copy';
+          document.getElementById('summaryPrice').textContent = '₹' + results.reduce(function(s, r) { return s + r.price; }, 0);
           btn.textContent = '✓ Uploaded';
+          showStep('stepPrice');
           setTimeout(function() {
             idcClear();
+            document.getElementById('summaryOrders').innerHTML = '';
+            showStep('stepUpload');
             btn.disabled = false; btn.textContent = 'Upload & Print';
-          }, 1500);
+          }, 4000);
         })
         .catch(function(err) {
           alert('Upload failed: ' + (err.message || err));
