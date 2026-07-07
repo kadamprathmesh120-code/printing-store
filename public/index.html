@@ -80,7 +80,6 @@
             <button class="preview-btn" onclick="idcPreviewRotate(-90)">↺ L</button>
             <button class="preview-btn" onclick="idcPreviewRotate(90)">↻ R</button>
             <button class="preview-btn" onclick="idcPrintPreview()" style="font-weight:700;">🖨 Print</button>
-            <button class="preview-btn" onclick="idcDownloadPreview()" style="font-weight:700;">⬇</button>
           </div>
           <div id="idcPreviewWrap" style="overflow:auto;background:#e0e0e0;border-radius:8px;padding:20px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
             <div id="idcA4" style="width:100%;max-width:520px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;transform-origin:top center;transition:transform 0.15s;border:1px solid rgba(0,0,0,0.06);border-radius:2px;">
@@ -229,8 +228,6 @@
           <button class="idc-crop-btn" style="background:#28a745;" onclick="idcConfirmCrop()">✓ Crop</button>
         </div>
         <div style="display:flex;justify-content:center;gap:12px;padding:4px 0;">
-          <button style="background:#16213e;border:none;color:white;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcDownload()">⬇ Download</button>
-          <button style="background:#1a73e8;border:none;color:white;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcDownload()">⬇ Download</button>
           <button style="background:#16213e;border:none;color:#aaa;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcCancelCrop()">Close</button>
         </div>
         <div id="idcCropError" style="color:#dc3545;text-align:center;font-size:0.8em;"></div>
@@ -830,48 +827,6 @@
           }
         } catch(e) {}
       }, 100);
-    }
-
-    function idcDownloadPreview() {
-      var drop = document.getElementById('idcA4Drop');
-      var imgs = drop.querySelectorAll('.idc-preview-img');
-      if (imgs.length === 0) return;
-
-      var rect = drop.getBoundingClientRect();
-      var scale = 3;
-      var w = Math.round(rect.width * scale);
-      var h = Math.round(rect.height * scale);
-
-      var c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      var ctx = c.getContext('2d');
-
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, w, h);
-
-      imgs.forEach(function(img) {
-        var left = parseFloat(img.style.left) || 0;
-        var top = parseFloat(img.style.top) || 0;
-        var iw = parseFloat(img.style.width) || 0;
-        var ih = parseFloat(img.style.height) || 0;
-        var rot = idcPreviewRotation || 0;
-        if (rot !== 0) {
-          ctx.save();
-          var cx = (left + iw / 2) * scale;
-          var cy = (top + ih / 2) * scale;
-          ctx.translate(cx, cy);
-          ctx.rotate(rot * Math.PI / 180);
-          ctx.drawImage(img, -iw * scale / 2, -ih * scale / 2, iw * scale, ih * scale);
-          ctx.restore();
-        } else {
-          ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
-        }
-      });
-
-      var link = document.createElement('a');
-      link.download = 'idcard_print_preview.png';
-      link.href = c.toDataURL('image/png');
-      link.click();
     }
 
     var idcFrontImgSrc = '#', idcBackImgSrc = '#';
