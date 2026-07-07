@@ -64,32 +64,12 @@ async function checkAndPrint() {
         var printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
         var isPdf = ext === '.pdf';
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
-        var scale = order.print_scale || 1.0;
-
         if (isPdf) {
           await print(localFile, { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' });
         } else if (isImage) {
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"' + (scale !== 1.0 ? ' -printScale ' + scale : ''));
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
         } else {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
-        }
-
-        // Print back file for ID copy orders
-        if (order.is_id_copy && order.back_enabled && order.back_file_path) {
-          var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
-          var backLocalFile = path.join(DOWNLOAD_DIR, order.back_file_path);
-          try {
-            await downloadFile(backUrl, backLocalFile);
-            var backExt = path.extname(order.back_file_name || '').toLowerCase();
-            if (backExt === '.pdf') {
-              await print(backLocalFile, { printer, silent: true, monochrome: order.print_type === 'bw', side: 'simplex', paperSize: 'A4' });
-            } else {
-              await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + backLocalFile + '" -printerName "' + printer + '"' + (scale !== 1.0 ? ' -printScale ' + scale : ''));
-            }
-            console.log('Printed back:', order.back_file_name, 'to', printer);
-          } catch (backErr) {
-            console.error('Error printing back:', backErr.message);
-          }
         }
 
         printed[order.id] = true;

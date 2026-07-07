@@ -23,114 +23,16 @@
     <div id="stepUpload" class="card">
       <h2 data-i18n="uploadTitle">Upload Files</h2>
 
-      <!-- Mode toggle -->
-      <div class="mode-toggle">
-        <button id="modeRegular" class="mode-btn active" onclick="setUploadMode('regular')" data-i18n="modeRegular">Regular Upload</button>
-        <button id="modeIdCopy" class="mode-btn" onclick="setUploadMode('idcopy')" data-i18n="modeIdCopy">Front & Back ID Copy</button>
+      <div class="form-group">
+        <label for="customerName" data-i18n="yourName">Your Name</label>
+        <input type="text" id="customerName" data-i18n-placeholder="namePlaceholder" placeholder="Enter your name" required>
       </div>
-
-      <!-- Regular upload section -->
-      <div id="regularUploadSection">
-        <div class="form-group">
-          <label for="customerName" data-i18n="yourName">Your Name</label>
-          <input type="text" id="customerName" data-i18n-placeholder="namePlaceholder" placeholder="Enter your name" required>
-        </div>
-        <div class="form-group">
-          <label for="fileInput" data-i18n="chooseFiles">Choose Files</label>
-          <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple required>
-          <small data-i18n="fileHint">Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
-        </div>
-        <div id="fileList" class="hidden"></div>
+      <div class="form-group">
+        <label for="fileInput" data-i18n="chooseFiles">Choose Files</label>
+        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple required>
+        <small data-i18n="fileHint">Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
       </div>
-
-      <!-- ID Copy section -->
-      <div id="idCopySection" class="hidden">
-        <div class="form-group">
-          <label for="idCustomerName" data-i18n="yourName">Your Name</label>
-          <input type="text" id="idCustomerName" data-i18n-placeholder="namePlaceholder" placeholder="Enter your name" required>
-        </div>
-
-        <!-- Front slot -->
-        <div id="frontSlot" class="id-slot">
-          <div class="id-slot-label" data-i18n="frontSide">Front Side</div>
-          <div id="frontPreview" style="display:none;">
-            <img id="frontThumb" class="slot-thumb" src="" alt="Front">
-            <div class="slot-actions">
-              <button class="slot-btn primary" onclick="retakeSlot('front')" data-i18n="retake">Retake</button>
-              <button class="slot-btn secondary" onclick="cropSlot('front')" data-i18n="cropBtn">Crop</button>
-            </div>
-          </div>
-          <div id="frontEmpty">
-            <div class="slot-actions" style="margin-bottom:8px;">
-              <button class="slot-btn primary" onclick="document.getElementById('frontFileInput').click()" data-i18n="chooseImage">Choose Image</button>
-              <button class="slot-btn secondary" onclick="openCamera('front')" data-i18n="camera">📷 Camera</button>
-            </div>
-            <input type="file" id="frontFileInput" accept="image/*" onchange="handleSlotFile(this, 'front')">
-          </div>
-        </div>
-
-        <!-- Back slot -->
-        <div id="backSlot" class="id-slot">
-          <div class="id-slot-label">
-            <span data-i18n="backSide">Back Side</span>
-            <label style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-weight:400;font-size:0.85em;color:#888;cursor:pointer;">
-              <input type="checkbox" id="singleSidedCheck" onchange="toggleSingleSided()">
-              <span data-i18n="singleSided">Single-sided</span>
-            </label>
-          </div>
-          <div id="backPreview" style="display:none;">
-            <img id="backThumb" class="slot-thumb" src="" alt="Back">
-            <div class="slot-actions">
-              <button class="slot-btn primary" onclick="retakeSlot('back')" data-i18n="retake">Retake</button>
-              <button class="slot-btn secondary" onclick="cropSlot('back')" data-i18n="cropBtn">Crop</button>
-            </div>
-          </div>
-          <div id="backEmpty">
-            <div class="slot-actions" style="margin-bottom:8px;">
-              <button class="slot-btn primary" onclick="document.getElementById('backFileInput').click()" data-i18n="chooseImage">Choose Image</button>
-              <button class="slot-btn secondary" onclick="openCamera('back')" data-i18n="camera">📷 Camera</button>
-            </div>
-            <input type="file" id="backFileInput" accept="image/*" onchange="handleSlotFile(this, 'back')">
-          </div>
-        </div>
-      </div>
-
-      <!-- ID Copy layout + copies + print size -->
-      <div id="idCopyOptions" class="form-group hidden">
-        <div style="margin-bottom:12px;">
-          <label data-i18n="printSizeLabel">Print Size</label>
-          <div class="id-layout-group">
-            <label class="radio-label">
-              <input type="radio" name="idPrintSize" value="1.0" checked onchange="updateIdPrice()">
-              <span class="radio-box bw" data-i18n="sizeFull">Full Page</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="idPrintSize" value="0.5" onchange="updateIdPrice()">
-              <span class="radio-box color" data-i18n="sizeHalf">Half Page</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="idPrintSize" value="0.3" onchange="updateIdPrice()">
-              <span class="radio-box color" data-i18n="sizeCard">Card Size</span>
-            </label>
-          </div>
-        </div>
-        <label data-i18n="layout">Layout</label>
-        <div class="id-layout-group">
-          <label class="radio-label">
-            <input type="radio" name="idLayout" value="separate" checked>
-            <span class="radio-box bw" data-i18n="layoutSeparate">Separate sheets</span>
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="idLayout" value="same">
-            <span class="radio-box color" data-i18n="layoutSame">Same sheet</span>
-          </label>
-        </div>
-        <div style="margin-top:10px;">
-          <label data-i18n="copiesLabel">Copies</label>
-          <input type="number" id="idCopiesInput" class="copies-input" value="1" min="1" max="999">
-        </div>
-        <button class="btn btn-primary" style="margin-top:10px;width:100%;" onclick="openPrintPreview()" data-i18n="previewBtn">📄 Preview on A4</button>
-      </div>
+      <div id="fileList" class="hidden"></div>
 
       <div class="form-group">
         <label data-i18n="printType">Print Type</label>
@@ -230,29 +132,9 @@
           <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="rotateCrop(-90)">↺</button>
           <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="autoCropEdge()">Auto</button>
           <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="rotateCrop(90)">↻</button>
-          <select id="cropPreset" style="background:#16213e;color:white;border:none;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onchange="applyCropPreset(this)">
-            <option value="">Card Preset</option>
-            <option value="aadhaar">Aadhaar</option>
-            <option value="pan">PAN</option>
-            <option value="voter">Voter ID</option>
-            <option value="passport">Passport</option>
-          </select>
           <button style="background:#28a745;font-weight:700;padding:8px 18px;border:none;color:white;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="confirmCrop()">✓ Crop</button>
         </div>
         <div id="cropError" style="color:#dc3545;text-align:center;font-size:0.8em;"></div>
-      </div>
-    </div>
-
-    <!-- Print Preview -->
-    <div id="previewModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;">
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;max-width:520px;width:92%;color:white;max-height:90vh;overflow-y:auto;">
-        <h3 style="margin-bottom:8px;" data-i18n="printPreview">Print Preview</h3>
-        <div style="text-align:center;margin-bottom:10px;">
-          <canvas id="previewCanvas" style="max-width:100%;border-radius:4px;"></canvas>
-        </div>
-        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
-          <button style="background:#16213e;border:none;color:#aaa;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="document.getElementById('previewModal').classList.add('hidden');document.getElementById('previewModal').style.display='none';">Close</button>
-        </div>
       </div>
     </div>
 
@@ -272,8 +154,6 @@
     let cropRect = { x1: 0, y1: 0, x2: 0, y2: 0 };
     let cropDragHandle = null;
     let cropDragStart = null;
-    let activeCardPreset = '';
-
     const translations = {
       en: {
         storeName: 'Printing Store',
@@ -325,27 +205,8 @@
         filesLabel: 'Files',
         pg: 'pg',
         sheets: 'sheets',
-        modeRegular: 'Regular Upload',
-        modeIdCopy: 'Front & Back ID Copy',
-        frontSide: 'Front Side',
-        backSide: 'Back Side',
-        singleSided: 'Single-sided',
-        retake: 'Retake',
-        cropBtn: 'Crop',
-        chooseImage: 'Choose Image',
-        camera: '\uD83D\uDCF7 Camera',
-        layout: 'Layout',
-        layoutSeparate: 'Separate sheets',
-        layoutSame: 'Same sheet',
-        copiesLabel: 'Copies',
-        copies: 'copies',
-        selectFront: 'Please upload the Front Side image',
-        printSizeLabel: 'Print Size',
-        sizeFull: 'Full Page',
-        sizeHalf: 'Half Page',
-        sizeCard: 'Card Size',
-        previewBtn: '\uD83D\uDCC4 Preview on A4',
-        printPreview: 'Print Preview',
+
+
       },
       mr: {
         storeName: '\u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u094D\u091F\u094B\u0930',
@@ -397,27 +258,8 @@
         filesLabel: '\u092B\u093E\u092F\u0932',
         pg: '\u092A\u0947\u091C',
         sheets: '\u0936\u0940\u091F',
-        modeRegular: '\u0938\u093E\u092E\u093E\u0928\u094D\u092F \u0905\u092A\u0932\u094B\u0921',
-        modeIdCopy: '\u092B\u094D\u0930\u0902\u091F \u0906\u0923\u093F \u092C\u0948\u0915 ID \u0915\u0949\u092A\u0940',
-        frontSide: '\u092A\u0941\u0922\u0940\u0932 \u092C\u093E\u091C\u0942',
-        backSide: '\u092E\u093E\u0917\u0940\u0932 \u092C\u093E\u091C\u0942',
-        singleSided: '\u092B\u0915\u094D\u0924 \u090F\u0915\u092C\u093E\u091C\u0942',
-        retake: '\u092A\u0941\u0928\u094D\u0939\u093E \u0918\u094D\u092F\u093E',
-        cropBtn: '\u0915\u094D\u0930\u0949\u092A',
-        chooseImage: '\u092B\u094B\u091F\u094B \u0928\u093F\u0935\u0921\u093E',
-        camera: '\u0915\u0945\u092E\u0930\u093E',
-        layout: '\u0932\u0947\u0906\u0909\u091F',
-        layoutSeparate: '\u0938\u094D\u0935\u0938\u094D\u0924 \u0936\u0940\u091F',
-        layoutSame: '\u090F\u0915\u091A \u0936\u0940\u091F\u0935\u0930',
-        copiesLabel: '\u092A\u094D\u0930\u0924\u093F',
-        copies: '\u092A\u094D\u0930\u0924\u093F',
-        selectFront: '\u0915\u0943\u092A\u092F\u093E \u092A\u0941\u0922\u0940\u0932 \u092C\u093E\u091C\u0942\u091A\u093E \u092B\u094B\u091F\u094B \u0928\u093F\u0935\u0921\u093E',
-        printSizeLabel: '\u092A\u094D\u0930\u093F\u0902\u091F \u0906\u0915\u093E\u0930',
-        sizeFull: '\u092A\u0942\u0930\u094D\u0923 \u092A\u093E\u0928',
-        sizeHalf: '\u0905\u0930\u094D\u0927 \u092A\u093E\u0928',
-        sizeCard: '\u0915\u093E\u0930\u094D\u0921 \u0906\u0915\u093E\u0930',
-        previewBtn: '\u092A\u094D\u0930\u093F\u0902\u091F \u092A\u0942\u0930\u094D\u0935\u093E\u0935\u0932\u094B\u0915\u0928',
-        printPreview: '\u092A\u094D\u0930\u093F\u0902\u091F \u092A\u0942\u0930\u094D\u0935\u093E\u0935\u0932\u094B\u0915\u0928',
+
+
       }
     };
 
@@ -583,30 +425,6 @@
         ctx.fillRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
         ctx.strokeRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
       });
-
-      if (activeCardPreset) {
-        var cardW = x2 - x1, cardH = y2 - y1;
-        var inset = 6;
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([]);
-        ctx.strokeRect(x1 + inset, y1 + inset, cardW - inset*2, cardH - inset*2);
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.08)';
-        ctx.fillRect(x1 + inset, y1 + inset, cardW - inset*2, cardH - inset*2);
-
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(activeCardPreset, x1 + inset + 4, y1 + inset + 4);
-
-        ctx.font = '11px sans-serif';
-        ctx.fillStyle = 'rgba(255,215,0,0.7)';
-        var ratioStr = (cardW / cardH).toFixed(2) + ':1';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(ratioStr, x2 - inset - 4, y2 - inset - 4);
-      }
     }
 
     function getCropHandle(x, y) {
@@ -624,7 +442,6 @@
     }
 
     document.getElementById('cropCanvas').addEventListener('mousedown', function(e) {
-      activeCardPreset = '';
       var pos = getCanvasPos(e);
       var handle = getCropHandle(pos.x, pos.y);
       if (handle) {
@@ -676,7 +493,7 @@
 
     // Touch events for crop
     document.getElementById('cropCanvas').addEventListener('touchstart', function(e) {
-      e.preventDefault(); activeCardPreset = ''; var pos = getCanvasPos(e.touches[0]); cropDragHandle = getCropHandle(pos.x, pos.y);
+      e.preventDefault(); var pos = getCanvasPos(e.touches[0]); cropDragHandle = getCropHandle(pos.x, pos.y);
       if (cropDragHandle) cropDragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
     });
     document.getElementById('cropCanvas').addEventListener('touchmove', function(e) {
@@ -704,7 +521,6 @@
     }
 
     function rotateCrop(deg) {
-      activeCardPreset = '';
       cropRotation = (cropRotation + deg) % 360;
       var canvas = document.getElementById('cropCanvas');
       var ctx = canvas.getContext('2d');
@@ -725,7 +541,6 @@
     }
 
     function autoCropEdge() {
-      activeCardPreset = '';
       var canvas = document.getElementById('cropCanvas');
       var ctx = canvas.getContext('2d');
       var w = canvas.width, h = canvas.height;
@@ -807,237 +622,6 @@
       }
     }
 
-    function smartFindCard(cardRatio) {
-      var canvas = document.getElementById('cropCanvas');
-      var ctx = canvas.getContext('2d');
-      var w = canvas.width, h = canvas.height;
-      var imageData = ctx.getImageData(0, 0, w, h);
-      var data = imageData.data;
-
-      var gray = new Float32Array(w * h);
-      for (var y = 0; y < h; y++) {
-        for (var x = 0; x < w; x++) {
-          var idx = y * w + x;
-          gray[idx] = data[idx * 4] * 0.299 + data[idx * 4 + 1] * 0.587 + data[idx * 4 + 2] * 0.114;
-        }
-      }
-
-      var blurred = new Float32Array(w * h);
-      for (var y = 1; y < h - 1; y++) {
-        for (var x = 1; x < w - 1; x++) {
-          blurred[y * w + x] = (gray[(y-1)*w + x-1] + gray[(y-1)*w + x] + gray[(y-1)*w + x+1] +
-                                gray[y*w + x-1]     + gray[y*w + x]     + gray[y*w + x+1] +
-                                gray[(y+1)*w + x-1] + gray[(y+1)*w + x] + gray[(y+1)*w + x+1]) / 9;
-        }
-      }
-
-      var edges = new Float32Array(w * h), maxEdge = 0;
-      for (var y = 1; y < h - 1; y++) {
-        for (var x = 1; x < w - 1; x++) {
-          var gx = -blurred[(y-1)*w + x-1] + blurred[(y-1)*w + x+1] - 2*blurred[y*w + x-1] + 2*blurred[y*w + x+1] - blurred[(y+1)*w + x-1] + blurred[(y+1)*w + x+1];
-          var gy = -blurred[(y-1)*w + x-1] - 2*blurred[(y-1)*w + x] - blurred[(y-1)*w + x+1] + blurred[(y+1)*w + x-1] + 2*blurred[(y+1)*w + x] + blurred[(y+1)*w + x+1];
-          edges[y*w + x] = Math.sqrt(gx * gx + gy * gy);
-          if (edges[y*w + x] > maxEdge) maxEdge = edges[y*w + x];
-        }
-      }
-
-      var threshold = maxEdge * 0.15;
-      var margin = Math.round(Math.min(w, h) * 0.08);
-      var searchEnd = Math.round(Math.min(w, h) * 0.92);
-
-      var leftEdge = [], rightEdge = [], topEdge = [], bottomEdge = [];
-      for (var y = margin; y < searchEnd; y++) {
-        var firstX = -1, lastX = -1;
-        for (var x = margin; x < searchEnd; x++) {
-          if (edges[y * w + x] > threshold) {
-            if (firstX < 0) firstX = x;
-            lastX = x;
-          }
-        }
-        if (firstX >= 0 && lastX > firstX && (lastX - firstX) > w * 0.06) {
-          leftEdge.push(firstX); rightEdge.push(lastX);
-        }
-      }
-      for (var x = margin; x < searchEnd; x++) {
-        var firstY = -1, lastY = -1;
-        for (var y = margin; y < searchEnd; y++) {
-          if (edges[y * w + x] > threshold) {
-            if (firstY < 0) firstY = y;
-            lastY = y;
-          }
-        }
-        if (firstY >= 0 && lastY > firstY && (lastY - firstY) > h * 0.06) {
-          topEdge.push(firstY); bottomEdge.push(lastY);
-        }
-      }
-
-      // Use median for robustness
-      var median = function(arr) {
-        var s = arr.slice().sort(function(a,b){return a-b});
-        return s[Math.floor(s.length/2)];
-      };
-      var pct = function(arr, p) {
-        var s = arr.slice().sort(function(a,b){return a-b});
-        return s[Math.floor(s.length * p / 100)];
-      };
-
-      if (leftEdge.length < 3 || topEdge.length < 3) return null;
-      var l = pct(leftEdge, 10), r = pct(rightEdge, 90);
-      var t = pct(topEdge, 10), b = pct(bottomEdge, 90);
-      if (r - l < w * 0.1 || b - t < h * 0.1) return null;
-
-      return { x1: l, y1: t, x2: r, y2: b };
-    }
-
-    function applyCropPreset(sel) {
-      if (!sel.value) return;
-      var ratios = { aadhaar: 85.6/54, pan: 85.6/54, voter: 85.6/54, passport: 125/88 };
-      var cardRatio = ratios[sel.value] || 1.585;
-
-      var labels = { aadhaar: 'Aadhaar', pan: 'PAN', voter: 'Voter ID', passport: 'Passport' };
-      activeCardPreset = labels[sel.value] || '';
-
-      var auto = smartFindCard(cardRatio);
-      if (auto) {
-        cropRect.x1 = auto.x1; cropRect.y1 = auto.y1;
-        cropRect.x2 = auto.x2; cropRect.y2 = auto.y2;
-      }
-
-      // Constrain to card aspect ratio
-      var cw = cropRect.x2 - cropRect.x1, ch = cropRect.y2 - cropRect.y1;
-      var cx = (cropRect.x1 + cropRect.x2) / 2, cy = (cropRect.y1 + cropRect.y2) / 2;
-      var canvas = document.getElementById('cropCanvas');
-      if (cw / ch > cardRatio) {
-        var newW = cw; var newH = cw / cardRatio;
-      } else {
-        var newH = ch; var newW = ch * cardRatio;
-      }
-      cropRect.x1 = Math.max(0, Math.round(cx - newW / 2));
-      cropRect.y1 = Math.max(0, Math.round(cy - newH / 2));
-      cropRect.x2 = Math.min(canvas.width, Math.round(cx + newW / 2));
-      cropRect.y2 = Math.min(canvas.height, Math.round(cy + newH / 2));
-      sel.value = '';
-      drawCropCanvas();
-    }
-
-    function openPrintPreview() {
-      var frontImg = document.getElementById('frontThumb');
-      if (!frontImg || !frontImg.src || frontImg.src === '') return;
-      var canvas = document.getElementById('previewCanvas');
-      var modal = document.getElementById('previewModal');
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
-
-      var scale = parseFloat(document.querySelector('input[name="idPrintSize"]:checked').value) || 1;
-      var layout = document.querySelector('input[name="idLayout"]:checked').value;
-      var copies = parseInt(document.getElementById('idCopiesInput').value) || 1;
-      var hasBack = idBackCropped && !document.getElementById('singleSidedCheck').checked;
-
-      var dpr = window.devicePixelRatio || 1;
-      var pw = 420, ph = 594;
-      var cardPad = 16;
-
-      var pages = [];
-      if (hasBack && layout === 'same') {
-        pages.push({ front: frontImg, back: document.getElementById('backThumb') });
-      } else {
-        pages.push({ front: frontImg });
-        if (hasBack) pages.push({ front: document.getElementById('backThumb') });
-      }
-
-      var totalW = pw + cardPad * 2;
-      var pageAreaH = pages.length * ph + (pages.length - 1) * 20 + cardPad * 2;
-      canvas.width = Math.round(totalW * dpr);
-      canvas.height = Math.round(pageAreaH * dpr);
-      canvas.style.width = totalW + 'px';
-      canvas.style.height = pageAreaH + 'px';
-
-      var ctx = canvas.getContext('2d');
-      ctx.scale(dpr, dpr);
-      ctx.fillStyle = '#2a2a3e';
-      ctx.fillRect(0, 0, totalW, pageAreaH);
-
-      for (var p = 0; p < pages.length; p++) {
-        var pageX = cardPad, pageY = cardPad + p * (ph + 20);
-        ctx.fillStyle = '#fff';
-        ctx.shadowColor = 'rgba(0,0,0,0.3)';
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        var r = 4;
-        ctx.moveTo(pageX + r, pageY);
-        ctx.lineTo(pageX + pw - r, pageY);
-        ctx.arcTo(pageX + pw, pageY, pageX + pw, pageY + r, r);
-        ctx.lineTo(pageX + pw, pageY + ph - r);
-        ctx.arcTo(pageX + pw, pageY + ph, pageX + pw - r, pageY + ph, r);
-        ctx.lineTo(pageX + r, pageY + ph);
-        ctx.arcTo(pageX, pageY + ph, pageX, pageY + ph - r, r);
-        ctx.lineTo(pageX, pageY + r);
-        ctx.arcTo(pageX, pageY, pageX + r, pageY, r);
-        ctx.closePath();
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        // Draw card on page
-        var drawCard = function(img, cx, cy, cw, ch) {
-          if (!img || !img.src) return;
-          var iw = img.naturalWidth, ih = img.naturalHeight;
-          if (!iw || !ih) return;
-          var imgRatio = iw / ih;
-          var drawW = cw * scale, drawH = drawW / imgRatio;
-          if (drawH > ch * scale) { drawH = ch * scale; drawW = drawH * imgRatio; }
-          var dx = cx - drawW / 2, dy = cy - drawH / 2;
-          ctx.drawImage(img, dx + pageX, dy + pageY, drawW, drawH);
-        };
-
-        var page = pages[p];
-        var cardAreaW = pw - 24, cardAreaH = ph - 24;
-        if (page.front && page.back && layout === 'same') {
-          var halfW = (cardAreaW - 8) / 2;
-          drawCard(page.front, 12 + halfW / 2, ph / 2, halfW, cardAreaH);
-          drawCard(page.back, 12 + halfW + 8 + halfW / 2, ph / 2, halfW, cardAreaH);
-          ctx.fillStyle = 'rgba(0,0,0,0.06)';
-          ctx.fillRect(pageX + 12 + halfW + 4, pageY + 8, 1, cardAreaH);
-          ctx.fillStyle = '#888';
-          ctx.font = '10px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('Front', pageX + 12 + halfW / 2, pageY + ph - 6);
-          ctx.fillText('Back', pageX + 12 + halfW + 8 + halfW / 2, pageY + ph - 6);
-        } else {
-          drawCard(page.front, pw / 2, ph / 2, cardAreaW, cardAreaH);
-        }
-
-        // Copies badge
-        if (copies > 1) {
-          ctx.fillStyle = 'rgba(0,0,0,0.5)';
-          ctx.beginPath();
-          var bx = pageX + pw - 52, by = pageY + 8, bw = 44, bh = 20, br = 10;
-          ctx.moveTo(bx + br, by);
-          ctx.lineTo(bx + bw - br, by);
-          ctx.arcTo(bx + bw, by, bx + bw, by + br, br);
-          ctx.lineTo(bx + bw, by + bh - br);
-          ctx.arcTo(bx + bw, by + bh, bx + bw - br, by + bh, br);
-          ctx.lineTo(bx + br, by + bh);
-          ctx.arcTo(bx, by + bh, bx, by + bh - br, br);
-          ctx.lineTo(bx, by + br);
-          ctx.arcTo(bx, by, bx + br, by, br);
-          ctx.closePath();
-          ctx.fill();
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 11px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('x' + copies, pageX + pw - 30, pageY + 18);
-        }
-
-        // A4 label
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText('A4', pageX + 6, pageY + ph - 4);
-      }
-    }
-
     function confirmCrop() {
       var canvas = document.getElementById('cropCanvas');
       var x1 = Math.round(Math.min(cropRect.x1, cropRect.x2));
@@ -1097,240 +681,7 @@
     }
     // ---- End crop functions ----
 
-    // ---- ID Copy variables & functions ----
-    let idUploadMode = 'regular'; // 'regular' | 'idcopy'
-    let idFrontFile = null;
-    let idBackFile = null;
-    let idFrontCropped = null;
-    let idBackCropped = null;
-    let idFrontRotation = 0;
-    let idBackRotation = 0;
-    let idCropRect = null; // shared crop rect for both sides
-    let idCurrentSlot = null; // 'front' | 'back'
-    const idCopy = {};
 
-    function setUploadMode(mode) {
-      idUploadMode = mode;
-      document.getElementById('modeRegular').classList.toggle('active', mode === 'regular');
-      document.getElementById('modeIdCopy').classList.toggle('active', mode === 'idcopy');
-      document.getElementById('regularUploadSection').classList.toggle('hidden', mode !== 'regular');
-      document.getElementById('idCopySection').classList.toggle('hidden', mode !== 'idcopy');
-      document.getElementById('idCopyOptions').classList.toggle('hidden', mode !== 'idcopy');
-      if (mode === 'idcopy') {
-        // Hide printSide 'both' for ID copy (always single side per image)
-        document.querySelector('input[name="printSide"][value="both"]').closest('.radio-label').classList.add('hidden');
-        document.querySelector('input[name="printSide"][value="single"]').checked = true;
-      } else {
-        var bothLabel = document.querySelector('input[name="printSide"][value="both"]').closest('.radio-label');
-        var printType = document.querySelector('input[name="printType"]:checked').value;
-        if (printType !== 'color') bothLabel.classList.remove('hidden');
-      }
-    }
-
-    function toggleSingleSided() {
-      var checked = document.getElementById('singleSidedCheck').checked;
-      document.getElementById('backSlot').style.opacity = checked ? '0.4' : '1';
-      if (checked) {
-        idBackFile = null;
-        idBackCropped = null;
-        document.getElementById('backPreview').style.display = 'none';
-        document.getElementById('backEmpty').style.display = 'block';
-      }
-    }
-
-    function handleSlotFile(input, slot) {
-      if (!input.files || !input.files[0]) return;
-      var file = input.files[0];
-      if (slot === 'front') {
-        idFrontFile = file;
-        idFrontCropped = file;
-        idFrontRotation = 0;
-        showSlotPreview('front', file);
-        // Auto-start crop for front
-        startIdCrop('front');
-      } else {
-        idBackFile = file;
-        idBackCropped = file;
-        idBackRotation = 0;
-        showSlotPreview('back', file);
-        startIdCrop('back');
-      }
-      input.value = '';
-    }
-
-    function showSlotPreview(slot, file) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var thumb = document.getElementById(slot + 'Thumb');
-        thumb.src = e.target.result;
-        document.getElementById(slot + 'Preview').style.display = 'block';
-        document.getElementById(slot + 'Empty').style.display = 'none';
-        document.getElementById(slot + 'Slot').classList.add('has-image');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function retakeSlot(slot) {
-      if (slot === 'front') {
-        idFrontFile = null;
-        idFrontCropped = null;
-        idFrontRotation = 0;
-        document.getElementById('frontPreview').style.display = 'none';
-        document.getElementById('frontEmpty').style.display = 'block';
-        document.getElementById('frontSlot').classList.remove('has-image');
-      } else {
-        idBackFile = null;
-        idBackCropped = null;
-        idBackRotation = 0;
-        document.getElementById('backPreview').style.display = 'none';
-        document.getElementById('backEmpty').style.display = 'block';
-        document.getElementById('backSlot').classList.remove('has-image');
-        document.getElementById('singleSidedCheck').checked = false;
-        toggleSingleSided();
-      }
-    }
-
-    function openCamera(slot) {
-      var input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment';
-      input.onchange = function() {
-        if (input.files && input.files[0]) handleSlotFile(input, slot);
-      };
-      input.click();
-    }
-
-    // ---- ID Copy Crop ----
-    function startIdCrop(slot) {
-      idCurrentSlot = slot;
-      var file = slot === 'front' ? idFrontFile : idBackFile;
-      if (!file) return;
-
-      var img = new Image();
-      img.onload = function() {
-        // Reuse the existing crop modal
-        cropImg = img;
-        cropOrigFile = file;
-        cropRotation = 0;
-        cropFileName = slot === 'front' ? 'front_' + file.name : 'back_' + file.name;
-        cropQueue = [{ file: file, name: cropFileName }];
-        cropIndex = 0;
-
-        var canvas = document.getElementById('cropCanvas');
-        var modal = document.getElementById('cropModal');
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-
-        var dpr = window.devicePixelRatio || 1;
-        var maxW = modal.clientWidth * 0.9;
-        var maxH = window.innerHeight * 0.6;
-        var w = cropImg.width, h = cropImg.height;
-        if (w > maxW) { h = h * maxW / w; w = maxW; }
-        if (h > maxH) { w = w * maxH / h; h = maxH; }
-
-        canvas.width = Math.round(w * dpr);
-        canvas.height = Math.round(h * dpr);
-        canvas.style.width = Math.round(w) + 'px';
-        canvas.style.height = Math.round(h) + 'px';
-
-        var margin = Math.round(20 * dpr);
-        // If we have saved crop rect from front, apply to back
-        if (slot === 'back' && idCropRect) {
-          // Recalculate with new canvas dimensions if needed
-          var cropH = idCropRect.h * dpr;
-          // Scale to current canvas
-          var sx = canvas.width / idCropRect.canvasW;
-          var sy = canvas.height / idCropRect.canvasH;
-          cropRect = {
-            x1: Math.max(margin, Math.round(idCropRect.x1 * sx)),
-            y1: Math.max(margin, Math.round(idCropRect.y1 * sy)),
-            x2: Math.min(canvas.width - margin, Math.round(idCropRect.x2 * sx)),
-            y2: Math.min(canvas.height - margin, Math.round(idCropRect.y2 * sy))
-          };
-        } else {
-          cropRect = { x1: margin, y1: margin, x2: Math.round(w * dpr) - margin, y2: Math.round(h * dpr) - margin };
-        }
-
-        drawCropCanvas();
-        document.getElementById('cropProgress').textContent = slot === 'front' ? 'Front' : 'Back';
-        document.getElementById('cropError').textContent = '';
-      };
-      img.src = URL.createObjectURL(file);
-    }
-
-    // Override confirmCrop for ID copy mode
-    var origConfirmCrop = confirmCrop;
-    confirmCrop = function() {
-      if (idUploadMode === 'regular') {
-        origConfirmCrop.call(this);
-        return;
-      }
-      // ID copy confirm
-      var canvas = document.getElementById('cropCanvas');
-      var x1 = Math.round(Math.min(cropRect.x1, cropRect.x2));
-      var y1 = Math.round(Math.min(cropRect.y1, cropRect.y2));
-      var x2 = Math.round(Math.max(cropRect.x1, cropRect.x2));
-      var y2 = Math.round(Math.max(cropRect.y1, cropRect.y2));
-      if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('cropError').textContent = 'Crop area too small'; return; }
-
-      // Save crop rect for sync to other side
-      idCropRect = {
-        x1: x1, y1: y1, x2: x2, y2: y2,
-        w: x2 - x1, h: y2 - y1,
-        canvasW: canvas.width, canvasH: canvas.height
-      };
-
-      var iw = cropImg.width, ih = cropImg.height;
-      var fullC = document.createElement('canvas');
-      var fCtx = fullC.getContext('2d');
-      fCtx.imageSmoothingQuality = 'high';
-      if (Math.abs(cropRotation) % 180 !== 0) { fullC.width = ih; fullC.height = iw; }
-      else { fullC.width = iw; fullC.height = ih; }
-      fCtx.save();
-      fCtx.translate(fullC.width / 2, fullC.height / 2);
-      fCtx.rotate(cropRotation * Math.PI / 180);
-      fCtx.drawImage(cropImg, -iw / 2, -ih / 2, iw, ih);
-      fCtx.restore();
-
-      var cw = canvas.width, ch = canvas.height;
-      var sx = fullC.width / cw, sy = fullC.height / ch;
-      var fx1 = Math.round(x1 * sx), fy1 = Math.round(y1 * sy);
-      var fx2 = Math.round(x2 * sx), fy2 = Math.round(y2 * sy);
-      var fw = fx2 - fx1, fh = fy2 - fy1;
-
-      var outC = document.createElement('canvas');
-      outC.width = fw; outC.height = fh;
-      var oCtx = outC.getContext('2d');
-      oCtx.imageSmoothingQuality = 'high';
-      oCtx.drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
-
-      var slot = idCurrentSlot;
-      outC.toBlob(function(blob) {
-        var cf = new File([blob], (slot === 'front' ? idFrontFile.name : idBackFile.name), { type: 'image/png' });
-        if (slot === 'front') {
-          idFrontCropped = cf;
-          idFrontRotation = cropRotation || 0;
-        } else {
-          idBackCropped = cf;
-          idBackRotation = cropRotation || 0;
-        }
-        document.getElementById('cropModal').classList.add('hidden');
-        document.getElementById('cropModal').style.display = 'none';
-        // Refresh preview thumbnail from cropped
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById(slot + 'Thumb').src = e.target.result;
-        };
-        reader.readAsDataURL(cf);
-        // If front just cropped and back exists + not single-sided, start back crop
-        if (slot === 'front' && idBackFile && !document.getElementById('singleSidedCheck').checked) {
-          startIdCrop('back');
-        }
-      }, 'image/png');
-    };
-
-    // ---- End ID Copy variables ----
 
     function updatePageCount(input) {
       currentFilePages[input.getAttribute('data-fname')] = parseInt(input.value) || 1;
@@ -1363,10 +714,6 @@
 
 
     function uploadFiles() {
-      if (idUploadMode === 'idcopy') {
-        uploadIdCopy();
-        return;
-      }
       var name = document.getElementById('customerName').value.trim();
       var files = document.getElementById('fileInput').files;
       var printType = document.querySelector('input[name="printType"]:checked').value;
@@ -1441,110 +788,6 @@
         })
         .catch(function(err) {
           console.error('Upload error:', err);
-          errorEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
-          document.getElementById('btnUpload').disabled = false;
-          document.getElementById('btnUpload').textContent = t('calcPrice');
-        });
-    }
-
-    function uploadIdCopy() {
-      var name = document.getElementById('idCustomerName').value.trim();
-      var printType = document.querySelector('input[name="printType"]:checked').value;
-      var printSide = document.querySelector('input[name="printSide"]:checked').value;
-      var paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-      var errorEl = document.getElementById('uploadError');
-      errorEl.textContent = '';
-
-      if (!name) { errorEl.textContent = t('enterName'); return; }
-      if (!idFrontFile) { errorEl.textContent = t('selectFront'); return; }
-
-      var copies = parseInt(document.getElementById('idCopiesInput').value) || 1;
-      if (copies < 1) copies = 1;
-
-      document.getElementById('btnUpload').disabled = true;
-      document.getElementById('btnUpload').textContent = t('uploading');
-
-      var selectedLayout = document.querySelector('input[name="idLayout"]:checked').value;
-
-      var selectedPrintScale = document.querySelector('input[name="idPrintSize"]:checked').value;
-      if (!selectedPrintScale) selectedPrintScale = '1.0';
-
-      var formData = new FormData();
-      formData.append('customerName', name);
-      formData.append('printType', printType);
-      formData.append('printSide', printSide);
-      formData.append('paymentMethod', paymentMethod);
-      formData.append('copies', copies);
-      formData.append('layout', selectedLayout);
-      formData.append('printScale', selectedPrintScale);
-
-      var frontToUpload = idFrontCropped || idFrontFile;
-      formData.append('front', frontToUpload);
-
-      var hasBack = idBackFile && !document.getElementById('singleSidedCheck').checked;
-      if (hasBack) {
-        var backToUpload = idBackCropped || idBackFile;
-        formData.append('back', backToUpload);
-        formData.append('backEnabled', 'true');
-      } else {
-        formData.append('backEnabled', 'false');
-      }
-
-      fetch('/api/upload-id-copy', { method: 'POST', body: formData })
-        .then(function(r) {
-          if (!r.ok) { throw new Error('Server returned ' + r.status); }
-          return r.json();
-        })
-        .then(function(data) {
-          if (data.error) {
-            errorEl.textContent = data.error;
-            document.getElementById('btnUpload').disabled = false;
-            document.getElementById('btnUpload').textContent = t('calcPrice');
-            return;
-          }
-          currentOrderIds = [data.orderId];
-
-          if (data.paymentMethod === 'cash') {
-            showStep('stepStatus');
-            updateStatusDisplay('paid');
-            document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-            document.getElementById('btnUpload').disabled = false;
-            document.getElementById('btnUpload').textContent = t('calcPrice');
-            return;
-          }
-
-          var frontName = idFrontFile.name;
-          var backName = hasBack ? (idBackFile ? idBackFile.name : 'Back') : null;
-          var orderHtml = '<div class="id-queue-item">' +
-            '<div style="font-weight:700;margin-bottom:8px;color:#6f42c1;font-size:0.9em;">\uD83C\uDFF0 ID Copy</div>' +
-            '<div class="id-queue-thumbs">' +
-            '<div><img src="' + (document.getElementById('frontThumb').src || '') + '"><div class="thumb-label">Front</div></div>';
-          if (hasBack) {
-            orderHtml += '<div><img src="' + (document.getElementById('backThumb').src || '') + '"><div class="thumb-label">Back</div></div>';
-          }
-          orderHtml += '</div>' +
-            '<div style="font-size:0.85em;color:#888;text-align:center;">' + frontName + (backName ? ' + ' + backName : '') + '</div>' +
-            '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.9em;">' +
-            '<span>\u00D7' + copies + ' ' + t('copies') + '</span>' +
-            '<span>' + (data.hasBack ? 'Front + Back' : 'Single-sided') + '</span>' +
-            '<span style="font-weight:700;">\u20B9' + data.price + '</span>' +
-            '</div>' +
-            '</div>';
-
-          document.getElementById('summaryOrders').innerHTML = orderHtml;
-          document.getElementById('summaryName').textContent = data.customerName;
-          document.getElementById('summaryType').textContent = data.printType;
-          document.getElementById('summarySide').textContent = data.printSide + (selectedLayout === 'same' ? ' (Same sheet)' : ' (Separate sheets)');
-          document.getElementById('summaryPrice').textContent = '\u20B9' + data.price;
-
-          togglePaymentMethod();
-
-          showStep('stepPrice');
-          document.getElementById('btnUpload').disabled = false;
-          document.getElementById('btnUpload').textContent = t('calcPrice');
-        })
-        .catch(function(err) {
-          console.error('ID Copy upload error:', err);
           errorEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
           document.getElementById('btnUpload').disabled = false;
           document.getElementById('btnUpload').textContent = t('calcPrice');
@@ -1668,24 +911,6 @@
       document.getElementById('paymentError').textContent = '';
       document.querySelector('#stepStatus .btn-secondary').classList.remove('hidden');
       document.getElementById('stepStartOver').classList.add('hidden');
-      // Reset ID copy
-      idFrontFile = null; idBackFile = null;
-      idFrontCropped = null; idBackCropped = null;
-      idFrontRotation = 0; idBackRotation = 0;
-      idCropRect = null; idCurrentSlot = null;
-      document.getElementById('idCustomerName').value = '';
-      document.getElementById('frontPreview').style.display = 'none';
-      document.getElementById('frontEmpty').style.display = 'block';
-      document.getElementById('frontSlot').classList.remove('has-image');
-      document.getElementById('backPreview').style.display = 'none';
-      document.getElementById('backEmpty').style.display = 'block';
-      document.getElementById('backSlot').classList.remove('has-image');
-      document.getElementById('singleSidedCheck').checked = false;
-      document.getElementById('backSlot').style.opacity = '1';
-      document.getElementById('idCopiesInput').value = '1';
-      document.querySelector('input[name="idLayout"][value="separate"]').checked = true;
-      document.querySelector('input[name="idPrintSize"][value="1.0"]').checked = true;
-      setUploadMode('regular');
       showStep('stepUpload');
     }
 

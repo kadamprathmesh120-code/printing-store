@@ -34,13 +34,6 @@
         </div>
         <small>Get a public URL using <a href="https://ngrok.com" target="_blank">ngrok</a>: run <code>ngrok http 3000</code></small>
       </div>
-      <div class="form-group public-url-group">
-        <label>Settings</label>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 12px;background:#f8f9fa;border-radius:8px;margin-bottom:6px;">
-          <input type="checkbox" id="chargeBackToggle" onchange="toggleChargeBack(this)" style="width:18px;height:18px;">
-          <span style="font-weight:600;font-size:0.95em;">Charge extra for back side in ID Copy (<span id="chargeBackLabel">No</span>)</span>
-        </label>
-      </div>
       <div id="printerStatus" class="form-group public-url-group">
         <label>Printers</label>
         <p style="color:#155724;background:#d4edda;padding:10px 12px;border-radius:6px;font-size:0.9em;margin-bottom:6px;">
@@ -118,16 +111,8 @@
 
             let fileDisplay = escapeHtml(o.file_name);
             let copiesDisplay = '';
-            if (o.is_id_copy) {
-              fileDisplay = '<span class="id-copy-badge">ID Copy</span> ' + escapeHtml(o.file_name);
-              if (o.back_enabled && o.back_file_name) {
-                fileDisplay += '<br><small style="color:#888;">Back: ' + escapeHtml(o.back_file_name) + '</small>';
-              } else {
-                fileDisplay += '<br><small style="color:#888;">Single-sided</small>';
-              }
-              if (o.copies && o.copies > 1) {
-                copiesDisplay = '<br><span style="font-weight:600;color:#1a73e8;">×' + o.copies + ' copies</span>';
-              }
+            if (o.copies && o.copies > 1) {
+              copiesDisplay = '<br><span style="font-weight:600;color:#1a73e8;">×' + o.copies + ' copies</span>';
             }
 
             return `<tr${rowClass}>
@@ -231,32 +216,7 @@
       return div.innerHTML;
     }
 
-    function loadSettings() {
-      fetch('/api/admin/settings')
-        .then(r => r.json())
-        .then(s => {
-          const cb = document.getElementById('chargeBackToggle');
-          cb.checked = s.chargeBack;
-          document.getElementById('chargeBackLabel').textContent = s.chargeBack ? 'Yes' : 'No';
-        })
-        .catch(() => {});
-    }
-
-    function toggleChargeBack(el) {
-      fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chargeBack: el.checked })
-      })
-        .then(r => r.json())
-        .then(s => {
-          document.getElementById('chargeBackLabel').textContent = s.chargeBack ? 'Yes' : 'No';
-        })
-        .catch(() => alert('Failed to save setting'));
-    }
-
     fetchOrders();
-    loadSettings();
     setInterval(fetchOrders, 15000);
   </script>
 </body>

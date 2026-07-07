@@ -131,108 +131,6 @@ app.post('/api/upload', (req, res) => {
   });
 });
 
-// ID Copy upload: receives front (+ optional back) as single order item
-const uploadFields = upload.fields([
-  { name: 'front', maxCount: 1 },
-  { name: 'back', maxCount: 1 }
-]);
-
-app.post('/api/upload-id-copy', (req, res) => {
-  uploadFields(req, res, async function(err) {
-    if (err) {
-      console.error('Multer error:', err.message);
-      return res.status(400).json({ error: err.message });
-    }
-    try {
-      const frontFiles = req.files && req.files['front'];
-      const backFiles = req.files && req.files['back'];
-      if (!frontFiles || frontFiles.length === 0) {
-        return res.status(400).json({ error: 'Front side image is required' });
-      }
-
-      const { customerName, printType, printSide, paymentMethod, copies, layout, backEnabled, printScale } = req.body;
-      if (!customerName || !printType || !printSide || !paymentMethod) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
-      if (printType === 'color' && printSide === 'both') {
-        return res.status(400).json({ error: 'Color printing does not support Both Sides' });
-      }
-
-      const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
-      const id = uuidv4();
-      const frontFile = frontFiles[0];
-      const hasBack = backFiles && backFiles.length > 0 && backEnabled !== 'false';
-      const backFile = hasBack ? backFiles[0] : null;
-
-      const settings = getSettings();
-      const sheets = 1; // 1 sheet per image
-      let price = printType === 'bw' ? sheets * 5 : sheets * 10;
-      if (hasBack && settings.chargeBack) {
-        price += printType === 'bw' ? sheets * 5 : sheets * 10;
-      }
-      price *= parseInt(copies || 1, 10);
-
-      const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, is_id_copy, back_file_name, back_file_path, back_enabled, copies, layout, print_scale)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)
-      `);
-      stmt.run(
-        id, customerName,
-        frontFile.originalname, frontFile.filename,
-        1, printType, printSide, price, paymentMethod, initialStatus,
-        backFile ? backFile.originalname : null,
-        backFile ? backFile.filename : null,
-        hasBack ? 1 : 0,
-        parseInt(copies || 1, 10),
-        layout || 'separate',
-        parseFloat(printScale) || 1.0
-      );
-
-      res.json({
-        orderId: id,
-        price,
-        customerName,
-        printType: printType === 'bw' ? 'Black & White' : 'Color',
-        printSide: printSide === 'both' ? 'Both Sides' : 'Single Side',
-        paymentMethod,
-        copies: parseInt(copies || 1, 10),
-        hasBack,
-        layout: layout || 'separate'
-      });
-    } catch (err) {
-      console.error('ID Copy upload error:', err);
-      res.status(500).json({ error: 'Server error: ' + err.message });
-    }
-  });
-});
-
-// Admin: toggle back charge setting
-const SETTINGS_FILE = path.join(__dirname, 'settings.json');
-function getSettings() {
-  try {
-    if (fs.existsSync(SETTINGS_FILE)) {
-      return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-    }
-  } catch (e) {}
-  return { chargeBack: false };
-}
-function saveSettings(s) {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(s, null, 2));
-}
-
-app.get('/api/admin/settings', (req, res) => {
-  res.json(getSettings());
-});
-
-app.post('/api/admin/settings', (req, res) => {
-  const settings = getSettings();
-  if (typeof req.body.chargeBack === 'boolean') {
-    settings.chargeBack = req.body.chargeBack;
-  }
-  saveSettings(settings);
-  res.json(settings);
-});
-
 app.get('/api/orders/:id', (req, res) => {
   try {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
@@ -272,7 +170,7 @@ app.get('/api/admin/orders', (req, res) => {
   }
 });
 
-async function printFile(filePath, fileName, printer, printType, printSide, printScale) {
+async function printFile(filePath, fileName, printer, printType, printSide) {
   const ext = path.extname(fileName).toLowerCase();
   const isPdf = ext === '.pdf';
   const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
@@ -284,7 +182,7 @@ async function printFile(filePath, fileName, printer, printType, printSide, prin
       paperSize: 'A4'
     });
   } else if (isImage) {
-    await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '"' + (printScale && printScale !== 1.0 ? ' -printScale ' + printScale : ''));
+    await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '"');
   } else {
     await execP('print /D:"' + printer + '" "' + filePath + '"');
   }
@@ -310,15 +208,8 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
       const printers = await getPrinters();
       const hasPrinter = printers.some(function(p) { return p.name === printer; });
       if (hasPrinter) {
-        const scale = order.print_scale || 1.0;
-        // Print front file
         const frontPath = path.join(__dirname, 'uploads', order.file_path);
-        await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, scale);
-        // Print back file if present
-        if (order.is_id_copy && order.back_enabled && order.back_file_path) {
-          const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-          await printFile(backPath, order.back_file_name, printer, order.print_type, order.print_side, scale);
-        }
+        await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
       }
     } catch (e) {}
 
@@ -364,14 +255,8 @@ app.post('/api/admin/print/:id', async (req, res) => {
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
     const printer = req.body.printer || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
 
-    const scale = order.print_scale || 1.0;
     const frontPath = path.join(__dirname, 'uploads', order.file_path);
-    await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, scale);
-
-    if (order.is_id_copy && order.back_enabled && order.back_file_path) {
-      const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-      await printFile(backPath, order.back_file_name, printer, order.print_type, order.print_side, scale);
-    }
+    await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
 
     res.json({ success: true, message: `Sent to printer: ${printer}` });
   } catch (err) {
@@ -386,52 +271,22 @@ app.get('/print/:id', (req, res) => {
     if (!order) return res.status(404).send('Order not found');
 
     const name = escapeHtml(order.customer_name);
-    const copies = order.copies || 1;
-    const isIdCopy = order.is_id_copy;
 
-    let extraInfo = '';
-    if (isIdCopy) {
-      extraInfo = ` | <strong>Front &amp; Back ID Copy</strong> × ${copies}`;
-      if (order.back_enabled && order.back_file_path) {
-        extraInfo += ` | Back: ${escapeHtml(order.back_file_name || '')}`;
-      } else {
-        extraInfo += ` | Single-sided`;
-      }
-    }
-
+    const fileUrl = `/uploads/${order.file_path}`;
+    const ext = path.extname(order.file_name).toLowerCase();
+    const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
+    const isPdf = ext === '.pdf';
     let contentHtml = '';
-    if (isIdCopy) {
-      // Show both front and back
-      const frontUrl = `/uploads/${order.file_path}`;
-      contentHtml = `<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;">
-        <div style="text-align:center;width:100%;max-width:500px;">
-          <h3 style="margin-bottom:8px;">Front</h3>
-          <img src="${frontUrl}" style="max-width:100%;max-height:45vh;border:1px solid #ddd;border-radius:4px;">
-        </div>`;
-      if (order.back_enabled && order.back_file_path) {
-        const backUrl = `/uploads/${order.back_file_path}`;
-        contentHtml += `<div style="text-align:center;width:100%;max-width:500px;">
-          <h3 style="margin-bottom:8px;">Back</h3>
-          <img src="${backUrl}" style="max-width:100%;max-height:45vh;border:1px solid #ddd;border-radius:4px;">
-        </div>`;
-      }
-      contentHtml += `</div>`;
+    if (isPdf) {
+      contentHtml = `<embed src="${fileUrl}#view=FitH" type="application/pdf" width="100%" height="100%" id="docEmbed">`;
+    } else if (isImage) {
+      contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">`;
     } else {
-      const fileUrl = `/uploads/${order.file_path}`;
-      const ext = path.extname(order.file_name).toLowerCase();
-      const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
-      const isPdf = ext === '.pdf';
-      if (isPdf) {
-        contentHtml = `<embed src="${fileUrl}#view=FitH" type="application/pdf" width="100%" height="100%" id="docEmbed">`;
-      } else if (isImage) {
-        contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">`;
-      } else {
-        contentHtml = `<iframe src="${fileUrl}" width="100%" height="100%" frameborder="0"></iframe>`;
-      }
+      contentHtml = `<iframe src="${fileUrl}" width="100%" height="100%" frameborder="0"></iframe>`;
     }
 
     res.send(`<!DOCTYPE html>
-<html><head><title>Print - ${isIdCopy ? 'ID Copy' : escapeHtml(order.file_name)}</title>
+<html><head><title>Print - ${escapeHtml(order.file_name)}</title>
 <style>*{margin:0;padding:0}body{height:100vh;display:flex;flex-direction:column}
 .header{padding:10px;background:#f0f2f5;border-bottom:1px solid #ddd;font-family:sans-serif;font-size:14px;display:flex;justify-content:space-between;align-items:center}
 .content{flex:1;overflow:auto}embed,img,iframe{border:none}
@@ -439,7 +294,7 @@ app.get('/print/:id', (req, res) => {
 @media print{.header{display:none}.content{position:fixed;top:0;left:0;width:100%;height:100%}}
 </style></head>
 <body>
-<div class="header"><span>Customer: <strong>${name}</strong>${extraInfo} | ${order.print_type === 'bw' ? 'B&W' : 'Color'} | ${order.print_side === 'both' ? 'Both Sides' : 'Single Side'} | ₹${order.price}</span>
+<div class="header"><span>Customer: <strong>${name}</strong> | ${order.print_type === 'bw' ? 'B&W' : 'Color'} | ${order.print_side === 'both' ? 'Both Sides' : 'Single Side'} | ₹${order.price}</span>
 <button class="btn-print" onclick="window.print()">Print</button>
 </div>
 <div class="content">${contentHtml}</div>
