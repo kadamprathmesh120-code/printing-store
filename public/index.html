@@ -79,6 +79,7 @@
             <button class="preview-btn" onclick="idcPreviewOriginal()">1:1 Actual</button>
             <button class="preview-btn" onclick="idcPreviewRotate(-90)">↺ L</button>
             <button class="preview-btn" onclick="idcPreviewRotate(90)">↻ R</button>
+            <button class="preview-btn" onclick="idcPrintPreview()" style="font-weight:700;">🖨 Print</button>
             <button class="preview-btn" onclick="idcDownloadPreview()" style="font-weight:700;">⬇</button>
           </div>
           <div id="idcPreviewWrap" style="overflow:auto;background:#e0e0e0;border-radius:8px;padding:20px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
@@ -798,6 +799,44 @@
         img.style.transform = 'rotate(' + idcPreviewRotation + 'deg)';
         img.style.transition = 'transform 0.25s ease';
       });
+    }
+
+    function idcPrintPreview() {
+      var drop = document.getElementById('idcA4Drop');
+      var imgs = drop.querySelectorAll('.idc-preview-img');
+      if (imgs.length === 0) return;
+      var scale = 3;
+      var rect = drop.getBoundingClientRect();
+      var w = Math.round(rect.width * scale);
+      var h = Math.round(rect.height * scale);
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      imgs.forEach(function(img) {
+        var left = parseFloat(img.style.left) || 0;
+        var top = parseFloat(img.style.top) || 0;
+        var iw = parseFloat(img.style.width) || 0;
+        var ih = parseFloat(img.style.height) || 0;
+        var rot = idcPreviewRotation || 0;
+        if (rot !== 0) {
+          ctx.save();
+          var cx = (left + iw / 2) * scale;
+          var cy = (top + ih / 2) * scale;
+          ctx.translate(cx, cy);
+          ctx.rotate(rot * Math.PI / 180);
+          ctx.drawImage(img, -iw * scale / 2, -ih * scale / 2, iw * scale, ih * scale);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
+        }
+      });
+      var pw = window.open('', '_blank');
+      pw.document.write('<!DOCTYPE html><html><head><title>ID Card Print Preview</title><style>*{margin:0;padding:0}body{display:flex;justify-content:center}img{max-width:100%;height:auto}@media print{body{margin:0}img{max-width:100%;height:auto}}</style></head><body>');
+      pw.document.write('<img src="' + c.toDataURL('image/png') + '" onload="window.print()">');
+      pw.document.write('</body></html>');
+      pw.document.close();
     }
 
     function idcDownloadPreview() {
