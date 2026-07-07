@@ -296,23 +296,39 @@ app.get('/print/:id', (req, res) => {
     var backHtml = '';
     if (order.is_id_copy && order.back_file_path) {
       var backUrl = `/uploads/${order.back_file_path}`;
-      backHtml = `<img src="${backUrl}" id="docBackImg" style="max-width:100%;max-height:100vh;display:block;margin:auto;page-break-before:always">`;
+      backHtml = `<img src="${backUrl}" id="docBackImg" style="display:block;margin:12px auto 0;max-width:100%;height:auto;">`;
     }
     if (isPdf) {
       contentHtml = `<embed src="${fileUrl}#view=FitH" type="application/pdf" width="100%" height="100%" id="docEmbed">`;
     } else if (isImage) {
-      contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">${backHtml}`;
+      var isIdCopy = order.is_id_copy && order.back_file_path;
+      if (isIdCopy) {
+        contentHtml = `<div class="idcard-page"><img src="${fileUrl}" id="docImg" class="idcard-img"><div class="idcard-gap"></div>${backHtml}</div>`;
+      } else {
+        contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">${backHtml}`;
+      }
     } else {
       contentHtml = `<iframe src="${fileUrl}" width="100%" height="100%" frameborder="0"></iframe>${backHtml}`;
+    }
+
+    var printStyles = '';
+    if (order.is_id_copy && order.back_file_path) {
+      printStyles = `
+.idcard-page{width:210mm;height:297mm;margin:0 auto;padding:25mm 0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;}
+.idcard-img{max-width:86mm;height:auto;display:block;}
+.idcard-gap{height:30mm;}
+@media print{@page{size:A4;margin:0}body{margin:0}.header{display:none}.content{overflow:visible}}`;
+    } else {
+      printStyles = `.content{flex:1;overflow:auto}embed,img,iframe{border:none}
+@media print{.header{display:none}.content{position:fixed;top:0;left:0;width:100%;height:100%}}`;
     }
 
     res.send(`<!DOCTYPE html>
 <html><head><title>Print - ${escapeHtml(order.file_name)}</title>
 <style>*{margin:0;padding:0}body{height:100vh;display:flex;flex-direction:column}
 .header{padding:10px;background:#f0f2f5;border-bottom:1px solid #ddd;font-family:sans-serif;font-size:14px;display:flex;justify-content:space-between;align-items:center}
-.content{flex:1;overflow:auto}embed,img,iframe{border:none}
 .btn-print{padding:8px 20px;background:#1a73e8;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px}
-@media print{.header{display:none}.content{position:fixed;top:0;left:0;width:100%;height:100%}}
+${printStyles}
 </style></head>
 <body>
 <div class="header"><span>Customer: <strong>${name}</strong> | ${order.print_type === 'bw' ? 'B&W' : 'Color'} | ${order.print_side === 'both' ? 'Both Sides' : 'Single Side'} | ₹${order.price}</span>
