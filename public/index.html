@@ -23,16 +23,56 @@
     <div id="stepUpload" class="card">
       <h2 data-i18n="uploadTitle">Upload Files</h2>
 
-      <div class="form-group">
-        <label for="customerName" data-i18n="yourName">Your Name</label>
-        <input type="text" id="customerName" data-i18n-placeholder="namePlaceholder" placeholder="Enter your name" required>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button id="modeRegular" class="idc-mode-btn active" onclick="setIdMode('regular')">Regular</button>
+        <button id="modeIdCopy" class="idc-mode-btn" onclick="setIdMode('idcopy')">ID Copy 86×54</button>
       </div>
-      <div class="form-group">
-        <label for="fileInput" data-i18n="chooseFiles">Choose Files</label>
-        <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple required>
-        <small data-i18n="fileHint">Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
+
+      <!-- Regular -->
+      <div id="regSection">
+        <div class="form-group">
+          <label for="customerName" data-i18n="yourName">Your Name</label>
+          <input type="text" id="customerName" data-i18n-placeholder="namePlaceholder" placeholder="Enter your name" required>
+        </div>
+        <div class="form-group">
+          <label for="fileInput" data-i18n="chooseFiles">Choose Files</label>
+          <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple required>
+          <small data-i18n="fileHint">Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
+        </div>
+        <div id="fileList" class="hidden"></div>
       </div>
-      <div id="fileList" class="hidden"></div>
+
+      <!-- ID Copy section -->
+      <div id="idcSection" class="hidden">
+        <div class="form-group">
+          <input type="text" id="idcName" placeholder="Your Name" style="width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:1em;">
+        </div>
+
+        <!-- Upload cards -->
+        <div style="display:flex;gap:12px;margin-bottom:12px;">
+          <div id="idcFront" class="idc-card" onclick="document.getElementById('idcFrontInput').click()">
+            <div id="idcFrontEmpty"><span style="font-size:2em;">📷</span><br><span style="font-size:0.85em;">Front</span></div>
+            <img id="idcFrontImg" class="idc-card-img hidden">
+            <input type="file" id="idcFrontInput" accept="image/*" style="display:none" onchange="idcLoad(this,'front')">
+          </div>
+          <div id="idcBack" class="idc-card" onclick="document.getElementById('idcBackInput').click()">
+            <div id="idcBackEmpty"><span style="font-size:2em;">📷</span><br><span style="font-size:0.85em;">Back</span></div>
+            <img id="idcBackImg" class="idc-card-img hidden">
+            <input type="file" id="idcBackInput" accept="image/*" style="display:none" onchange="idcLoad(this,'back')">
+          </div>
+        </div>
+
+        <!-- Queue display -->
+        <div id="idcQueue" class="hidden"></div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="idcCrop('front')" disabled id="idcCropFront">Crop Front</button>
+          <button class="btn btn-primary" onclick="idcCrop('back')" disabled id="idcCropBack">Crop Back</button>
+          <button class="btn btn-secondary" onclick="idcAddMore()" id="idcAddMore">Add More</button>
+          <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn">Upload &amp; Print</button>
+        </div>
+      </div>
 
       <div class="form-group">
         <label data-i18n="printType">Print Type</label>
@@ -138,6 +178,32 @@
       </div>
     </div>
 
+    <!-- ID Copy Crop Modal -->
+    <div id="idcModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:101;display:flex;align-items:center;justify-content:center;">
+      <div style="background:#1a1a2e;border-radius:12px;padding:16px;max-width:540px;width:94%;color:white;">
+        <h3 style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+          <span>ID Copy <span id="idcCropSide">Front</span></span>
+          <span style="font-size:0.75em;color:#FFD700;font-weight:400;">86×54mm</span>
+        </h3>
+        <div style="border-radius:8px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:50vh;position:relative;touch-action:none;">
+          <canvas id="idcCanvas" style="max-width:100%;max-height:50vh;transition:transform 0.3s ease;"></canvas>
+          <div id="idcRatioOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;border:2px dashed rgba(255,215,0,0.5);margin:12px;border-radius:4px;"></div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
+          <button class="idc-crop-btn" onclick="idcRotate(-90)">↺ Rotate</button>
+          <button class="idc-crop-btn" onclick="idcRotate(90)">↻ Rotate</button>
+          <button class="idc-crop-btn" style="background:#dc3545;" onclick="idcResetCrop()">Reset</button>
+          <button class="idc-crop-btn" style="background:#28a745;" onclick="idcConfirmCrop()">✓ Crop</button>
+        </div>
+        <div style="display:flex;justify-content:center;gap:12px;padding:4px 0;">
+          <button style="background:#16213e;border:none;color:white;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcDownload()">⬇ Download</button>
+          <button style="background:#1a73e8;border:none;color:white;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcPrintCurrent()">🖨 Print</button>
+          <button style="background:#16213e;border:none;color:#aaa;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcCancelCrop()">Close</button>
+        </div>
+        <div id="idcCropError" style="color:#dc3545;text-align:center;font-size:0.8em;"></div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -154,6 +220,393 @@
     let cropRect = { x1: 0, y1: 0, x2: 0, y2: 0 };
     let cropDragHandle = null;
     let cropDragStart = null;
+
+    // --- ID Copy ---
+    let idcMode = 'regular';
+    let idcFrontFile = null, idcBackFile = null;
+    let idcFrontCropped = null, idcBackCropped = null;
+    let idcRotation = 0;
+    let idcCurrent = 'front';
+    let idcCropImg = null;
+    let idcCropX1 = 0, idcCropY1 = 0, idcCropX2 = 0, idcCropY2 = 0;
+    let idcDrag = false, idcDragStartX = 0, idcDragStartY = 0;
+    let idcQueue = [];
+    let idcCropX1_s, idcCropY1_s, idcCropX2_s, idcCropY2_s;
+    const IDC_RATIO = 86 / 54; // 1.5926
+
+    function setIdMode(m) {
+      idcMode = m;
+      document.getElementById('modeRegular').classList.toggle('active', m === 'regular');
+      document.getElementById('modeIdCopy').classList.toggle('active', m === 'idcopy');
+      document.getElementById('regSection').classList.toggle('hidden', m !== 'regular');
+      document.getElementById('idcSection').classList.toggle('hidden', m !== 'idcopy');
+    }
+
+    function idcLoad(input, side) {
+      if (!input.files || !input.files[0]) return;
+      var f = input.files[0];
+      if (side === 'front') idcFrontFile = f; else idcBackFile = f;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = document.getElementById('idc' + (side==='front'?'Front':'Back') + 'Img');
+        img.src = e.target.result;
+        img.classList.remove('hidden');
+        document.getElementById('idc' + (side==='front'?'Front':'Back') + 'Empty').classList.add('hidden');
+        document.getElementById('idc' + (side==='front'?'Front':'Back')).classList.add('has-img');
+      };
+      reader.readAsDataURL(f);
+      document.getElementById('idcCropFront').disabled = false;
+      document.getElementById('idcCropBack').disabled = false;
+      input.value = '';
+    }
+
+    function idcCrop(side) {
+      var f = side === 'front' ? idcFrontFile : idcBackFile;
+      if (!f) return;
+      idcCurrent = side;
+      var img = new Image();
+      img.onload = function() {
+        idcCropImg = img;
+        idcRotation = 0;
+        var canvas = document.getElementById('idcCanvas');
+        var modal = document.getElementById('idcModal');
+        modal.classList.remove('hidden'); modal.style.display = 'flex';
+        document.getElementById('idcCropSide').textContent = side.charAt(0).toUpperCase() + side.slice(1);
+        document.getElementById('idcCropError').textContent = '';
+
+        var dpr = window.devicePixelRatio || 1;
+        var mw = modal.clientWidth * 0.92, mh = window.innerHeight * 0.5;
+        var w = img.width, h = img.height;
+        if (w > mw) { h = h * mw / w; w = mw; }
+        if (h > mh) { w = w * mh / h; h = mh; }
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        canvas.style.transform = 'rotate(0deg)';
+
+        // Set crop rect to full image
+        var pad = 20 * dpr;
+        idcCropX1 = pad; idcCropY1 = pad;
+        idcCropX2 = canvas.width - pad; idcCropY2 = canvas.height - pad;
+        idcConstrainRatio();
+        idcDrawCanvas();
+      };
+      img.src = URL.createObjectURL(f);
+    }
+
+    function idcDrawCanvas() {
+      var canvas = document.getElementById('idcCanvas');
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      if (idcCropImg) ctx.drawImage(idcCropImg, -w / 2, -h / 2, w, h);
+      ctx.restore();
+
+      var x1 = Math.min(idcCropX1, idcCropX2), y1 = Math.min(idcCropY1, idcCropY2);
+      var x2 = Math.max(idcCropX1, idcCropX2), y2 = Math.max(idcCropY1, idcCropY2);
+
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(0, 0, w, y1);
+      ctx.fillRect(0, y2, w, h - y2);
+      ctx.fillRect(0, y1, x1, y2 - y1);
+      ctx.fillRect(x2, y1, w - x2, y2 - y1);
+
+      // Gold dashed border for 86x54 ratio
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6,4]);
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      ctx.setLineDash([]);
+
+      // Corner handles
+      var hs = 12;
+      [[x1,y1],[x2,y1],[x1,y2],[x2,y2]].forEach(function(p) {
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2;
+        ctx.fillRect(p[0]-hs/2, p[1]-hs/2, hs, hs);
+        ctx.strokeRect(p[0]-hs/2, p[1]-hs/2, hs, hs);
+      });
+
+      // Size label
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('86×54mm', x1+4, y1+4);
+    }
+
+    function idcConstrainRatio() {
+      var cw = Math.abs(idcCropX2 - idcCropX1), ch = Math.abs(idcCropY2 - idcCropY1);
+      if (cw / ch > IDC_RATIO) {
+        var newW = cw, newH = cw / IDC_RATIO;
+        var cy = (idcCropY1 + idcCropY2) / 2;
+        idcCropY1 = cy - newH / 2; idcCropY2 = cy + newH / 2;
+      } else {
+        var newH = ch, newW = ch * IDC_RATIO;
+        var cx = (idcCropX1 + idcCropX2) / 2;
+        idcCropX1 = cx - newW / 2; idcCropX2 = cx + newW / 2;
+      }
+    }
+
+    function idcGetHandle(x, y) {
+      var hs = 24;
+      var corners = [
+        [idcCropX1, idcCropY1, 'tl'], [idcCropX2, idcCropY1, 'tr'],
+        [idcCropX1, idcCropY2, 'bl'], [idcCropX2, idcCropY2, 'br']
+      ];
+      for (var i = 0; i < corners.length; i++) {
+        if (Math.abs(x - corners[i][0]) < hs && Math.abs(y - corners[i][1]) < hs) return corners[i][2];
+      }
+      var x1=Math.min(idcCropX1,idcCropX2),y1=Math.min(idcCropY1,idcCropY2);
+      var x2=Math.max(idcCropX1,idcCropX2),y2=Math.max(idcCropY1,idcCropY2);
+      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return 'move';
+      return null;
+    }
+
+    function idcCanvasPos(e) {
+      var rect = e.target.getBoundingClientRect();
+      var dpr = window.devicePixelRatio || 1;
+      return { x: (e.clientX - rect.left) * dpr, y: (e.clientY - rect.top) * dpr };
+    }
+
+    document.getElementById('idcCanvas').addEventListener('mousedown', function(e) {
+      var pos = idcCanvasPos(e);
+      var h = idcGetHandle(pos.x, pos.y);
+      if (h) {
+        idcDrag = h; idcDragStartX = pos.x; idcDragStartY = pos.y;
+        idcCropX1_s = idcCropX1; idcCropY1_s = idcCropY1;
+        idcCropX2_s = idcCropX2; idcCropY2_s = idcCropY2;
+      }
+    });
+    document.getElementById('idcCanvas').addEventListener('mousemove', function(e) {
+      if (!idcDrag) { var c = document.getElementById('idcCanvas'); c.style.cursor = idcGetHandle(idcCanvasPos(e).x, idcCanvasPos(e).y) ? 'move' : 'default'; return; }
+      var pos = idcCanvasPos(e);
+      var dx = pos.x - idcDragStartX, dy = pos.y - idcDragStartY;
+      var s = { x1:idcCropX1_s, y1:idcCropY1_s, x2:idcCropX2_s, y2:idcCropY2_s };
+      var c = document.getElementById('idcCanvas');
+      if (idcDrag === 'move') {
+        var rw = s.x2 - s.x1, rh = s.y2 - s.y1;
+        idcCropX1 = Math.max(0, Math.min(c.width - rw, s.x1 + dx));
+        idcCropY1 = Math.max(0, Math.min(c.height - rh, s.y1 + dy));
+        idcCropX2 = idcCropX1 + rw; idcCropY2 = idcCropY1 + rh;
+      } else {
+        // Corner drag - maintain 86x54 ratio
+        var cx = (s.x1 + s.x2) / 2, cy = (s.y1 + s.y2) / 2;
+        if (idcDrag === 'tl') { idcCropX1 = s.x1 + dx; idcCropY1 = s.y1 + dy; }
+        else if (idcDrag === 'tr') { idcCropX2 = s.x2 + dx; idcCropY1 = s.y1 + dy; }
+        else if (idcDrag === 'bl') { idcCropX1 = s.x1 + dx; idcCropY2 = s.y2 + dy; }
+        else if (idcDrag === 'br') { idcCropX2 = s.x2 + dx; idcCropY2 = s.y2 + dy; }
+        // Constrain to ratio
+        var nw = Math.abs(idcCropX2 - idcCropX1), nh = Math.abs(idcCropY2 - idcCropY1);
+        if (nw / nh > IDC_RATIO) { nh = nw / IDC_RATIO; } else { nw = nh * IDC_RATIO; }
+        var ncx = (idcCropX1 + idcCropX2) / 2, ncy = (idcCropY1 + idcCropY2) / 2;
+        idcCropX1 = ncx - nw / 2; idcCropX2 = ncx + nw / 2;
+        idcCropY1 = ncy - nh / 2; idcCropY2 = ncy + nh / 2;
+        // Clamp
+        idcCropX1 = Math.max(0, Math.min(c.width, idcCropX1));
+        idcCropX2 = Math.max(0, Math.min(c.width, idcCropX2));
+        idcCropY1 = Math.max(0, Math.min(c.height, idcCropY1));
+        idcCropY2 = Math.max(0, Math.min(c.height, idcCropY2));
+      }
+      idcDrawCanvas();
+    });
+    document.addEventListener('mouseup', function() { idcDrag = false; });
+
+    // Touch
+    document.getElementById('idcCanvas').addEventListener('touchstart', function(e) {
+      e.preventDefault(); var t = e.touches[0]; var pos = idcCanvasPos(t);
+      var h = idcGetHandle(pos.x, pos.y);
+      if (h) { idcDrag = h; idcDragStartX = pos.x; idcDragStartY = pos.y;
+        idcCropX1_s = idcCropX1; idcCropY1_s = idcCropY1; idcCropX2_s = idcCropX2; idcCropY2_s = idcCropY2; }
+    });
+    document.getElementById('idcCanvas').addEventListener('touchmove', function(e) {
+      e.preventDefault(); if (!idcDrag) return;
+      var t = e.touches[0]; var pos = idcCanvasPos(t);
+      var dx = pos.x - idcDragStartX, dy = pos.y - idcDragStartY;
+      var s = { x1:idcCropX1_s, y1:idcCropY1_s, x2:idcCropX2_s, y2:idcCropY2_s };
+      var c = document.getElementById('idcCanvas');
+      if (idcDrag === 'move') {
+        var rw = s.x2 - s.x1, rh = s.y2 - s.y1;
+        idcCropX1 = Math.max(0, Math.min(c.width - rw, s.x1 + dx));
+        idcCropY1 = Math.max(0, Math.min(c.height - rh, s.y1 + dy));
+        idcCropX2 = idcCropX1 + rw; idcCropY2 = idcCropY1 + rh;
+      } else {
+        if (idcDrag === 'tl') { idcCropX1 = s.x1 + dx; idcCropY1 = s.y1 + dy; }
+        else if (idcDrag === 'tr') { idcCropX2 = s.x2 + dx; idcCropY1 = s.y1 + dy; }
+        else if (idcDrag === 'bl') { idcCropX1 = s.x1 + dx; idcCropY2 = s.y2 + dy; }
+        else if (idcDrag === 'br') { idcCropX2 = s.x2 + dx; idcCropY2 = s.y2 + dy; }
+        var nw = Math.abs(idcCropX2 - idcCropX1), nh = Math.abs(idcCropY2 - idcCropY1);
+        if (nw / nh > IDC_RATIO) { nh = nw / IDC_RATIO; } else { nw = nh * IDC_RATIO; }
+        var ncx = (idcCropX1 + idcCropX2) / 2, ncy = (idcCropY1 + idcCropY2) / 2;
+        idcCropX1 = ncx - nw / 2; idcCropX2 = ncx + nw / 2;
+        idcCropY1 = ncy - nh / 2; idcCropY2 = ncy + nh / 2;
+        idcCropX1 = Math.max(0, Math.min(c.width, idcCropX1));
+        idcCropX2 = Math.max(0, Math.min(c.width, idcCropX2));
+        idcCropY1 = Math.max(0, Math.min(c.height, idcCropY1));
+        idcCropY2 = Math.max(0, Math.min(c.height, idcCropY2));
+      }
+      idcDrawCanvas();
+    });
+    document.getElementById('idcCanvas').addEventListener('touchend', function(e) { e.preventDefault(); idcDrag = false; });
+
+    function idcRotate(deg) {
+      idcRotation = (idcRotation + deg) % 360;
+      var canvas = document.getElementById('idcCanvas');
+      canvas.style.transform = 'rotate(' + idcRotation + 'deg)';
+      // Smooth transition is handled by CSS transition: transform 0.3s ease
+    }
+
+    function idcResetCrop() {
+      var canvas = document.getElementById('idcCanvas');
+      var pad = 20 * (window.devicePixelRatio || 1);
+      idcCropX1 = pad; idcCropY1 = pad;
+      idcCropX2 = canvas.width - pad; idcCropY2 = canvas.height - pad;
+      idcConstrainRatio();
+      idcDrawCanvas();
+    }
+
+    function idcConfirmCrop() {
+      var canvas = document.getElementById('idcCanvas');
+      var dpr = window.devicePixelRatio || 1;
+      var x1 = Math.round(Math.min(idcCropX1, idcCropX2));
+      var y1 = Math.round(Math.min(idcCropY1, idcCropY2));
+      var x2 = Math.round(Math.max(idcCropX1, idcCropX2));
+      var y2 = Math.round(Math.max(idcCropY1, idcCropY2));
+      if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('idcCropError').textContent='Crop too small'; return; }
+
+      var iw = idcCropImg.width, ih = idcCropImg.height;
+      var cw = canvas.width, ch = canvas.height;
+      var sx = iw / cw, sy = ih / ch;
+      var cx1 = Math.round(x1 * (iw / cw)), cy1 = Math.round(y1 * (ih / ch));
+      var cx2 = Math.round(x2 * (iw / cw)), cy2 = Math.round(y2 * (ih / ch));
+
+      var outC = document.createElement('canvas');
+      var fw = cx2 - cx1, fh = cy2 - cy1;
+      // Output at 300 DPI equivalent: 86mm ≈ 1016px, 54mm ≈ 638px
+      var targetW = 1016, targetH = 638;
+      outC.width = targetW; outC.height = targetH;
+      var oCtx = outC.getContext('2d');
+      oCtx.imageSmoothingQuality = 'high';
+
+      // Handle rotation
+      if (idcRotation !== 0) {
+        var tempC = document.createElement('canvas');
+        var rad = idcRotation * Math.PI / 180;
+        var cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+        tempC.width = fw; tempC.height = fh;
+        var tCtx = tempC.getContext('2d');
+        tCtx.drawImage(idcCropImg, cx1, cy1, fw, fh, 0, 0, fw, fh);
+        oCtx.translate(targetW / 2, targetH / 2);
+        oCtx.rotate(rad);
+        oCtx.drawImage(tempC, -fw/2, -fh/2, fw, fh);
+      } else {
+        oCtx.drawImage(idcCropImg, cx1, cy1, fw, fh, 0, 0, targetW, targetH);
+      }
+
+      outC.toBlob(function(blob) {
+        var croppedFile = new File([blob], (idcCurrent==='front'?idcFrontFile.name:idcBackFile.name), {type:'image/png'});
+        if (idcCurrent === 'front') idcFrontCropped = croppedFile; else idcBackCropped = croppedFile;
+
+        // Update thumbnail
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('idc' + (idcCurrent==='front'?'Front':'Back') + 'Img').src = e.target.result;
+        };
+        reader.readAsDataURL(croppedFile);
+
+        document.getElementById('idcModal').classList.add('hidden');
+        document.getElementById('idcModal').style.display = 'none';
+        document.getElementById('idcCropError').textContent = '';
+      }, 'image/png');
+    }
+
+    function idcCancelCrop() {
+      document.getElementById('idcModal').classList.add('hidden');
+      document.getElementById('idcModal').style.display = 'none';
+    }
+
+    function idcDownload() {
+      var canvas = document.getElementById('idcCanvas');
+      var link = document.createElement('a');
+      link.download = 'id_' + idcCurrent + '_86x54.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function idcPrintCurrent() {
+      var f = idcCurrent === 'front' ? (idcFrontCropped || idcFrontFile) : (idcBackCropped || idcBackFile);
+      if (!f) return;
+      var url = URL.createObjectURL(f);
+      var w = window.open(url);
+      if (w) { w.onload = function() { w.print(); }; }
+    }
+
+    function idcAddMore() {
+      if (!idcFrontFile) return;
+      // Save current pair to queue
+      idcQueue.push({
+        front: idcFrontCropped || idcFrontFile,
+        back: idcBackCropped || idcBackFile,
+        frontName: idcFrontFile.name,
+        backName: idcBackFile ? idcBackFile.name : null
+      });
+      idcRenderQueue();
+      // Reset slots
+      idcFrontFile = null; idcBackFile = null;
+      idcFrontCropped = null; idcBackCropped = null;
+      document.getElementById('idcFrontImg').classList.add('hidden');
+      document.getElementById('idcFrontEmpty').classList.remove('hidden');
+      document.getElementById('idcFront').classList.remove('has-img');
+      document.getElementById('idcBackImg').classList.add('hidden');
+      document.getElementById('idcBackEmpty').classList.remove('hidden');
+      document.getElementById('idcBack').classList.remove('has-img');
+      document.getElementById('idcCropFront').disabled = true;
+      document.getElementById('idcCropBack').disabled = true;
+    }
+
+    function idcRenderQueue() {
+      var el = document.getElementById('idcQueue');
+      if (idcQueue.length === 0) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      var html = '<div style="font-weight:600;margin-bottom:8px;">Queue (' + idcQueue.length + ')</div>';
+      for (var i = 0; i < idcQueue.length; i++) {
+        var item = idcQueue[i];
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f8f9fa;border-radius:8px;margin-bottom:6px;">';
+        html += '<span style="font-size:1.2em;">📄</span>';
+        html += '<span style="flex:1;font-size:0.85em;">' + item.frontName + (item.backName ? ' + ' + item.backName : '') + '</span>';
+        html += '<button onclick="idcRemoveQueue(' + i + ')" style="background:red;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;">✕</button>';
+        html += '</div>';
+      }
+      el.innerHTML = html;
+    }
+
+    function idcRemoveQueue(i) {
+      idcQueue.splice(i, 1);
+      idcRenderQueue();
+    }
+
+    function idcUpload() {
+      if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
+      var name = document.getElementById('idcName').value.trim() || 'Customer';
+      // Upload each item in queue + current
+      var allItems = idcQueue.slice();
+      if (idcFrontFile) {
+        allItems.push({
+          front: idcFrontCropped || idcFrontFile,
+          back: idcBackCropped || idcBackFile,
+          frontName: idcFrontFile.name,
+          backName: idcBackFile ? idcBackFile.name : null
+        });
+      }
+      // For now, just console log
+      console.log('Upload items:', allItems);
+      alert('Upload ' + allItems.length + ' ID copy items for ' + name);
+    }
+
     const translations = {
       en: {
         storeName: 'Printing Store',
