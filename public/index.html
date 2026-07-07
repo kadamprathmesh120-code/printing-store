@@ -560,56 +560,78 @@
       var w = canvas.width, h = canvas.height;
       var imageData = ctx.getImageData(0, 0, w, h);
       var data = imageData.data;
+
+      // Grayscale + blur in one pass
+      var blurred = new Float32Array(w * h);
       var gray = new Float32Array(w * h);
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
-          var idx = (y * w + x) * 4;
-          gray[y * w + x] = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+          var idx = (y * w + x);
+          gray[idx] = data[idx * 4] * 0.299 + data[idx * 4 + 1] * 0.587 + data[idx * 4 + 2] * 0.114;
         }
       }
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          blurred[y * w + x] = (gray[(y-1)*w + x-1] + gray[(y-1)*w + x] + gray[(y-1)*w + x+1] +
+                                gray[y*w + x-1]     + gray[y*w + x]     + gray[y*w + x+1] +
+                                gray[(y+1)*w + x-1] + gray[(y+1)*w + x] + gray[(y+1)*w + x+1]) / 9;
+        }
+      }
+
+      // Sobel edge detection
       var edges = new Float32Array(w * h), maxEdge = 0;
       for (var y = 1; y < h - 1; y++) {
         for (var x = 1; x < w - 1; x++) {
-          var gx = -gray[(y-1)*w + x-1] + gray[(y-1)*w + x+1] - 2*gray[y*w + x-1] + 2*gray[y*w + x+1] - gray[(y+1)*w + x-1] + gray[(y+1)*w + x+1];
-          var gy = -gray[(y-1)*w + x-1] - 2*gray[(y-1)*w + x] - gray[(y-1)*w + x+1] + gray[(y+1)*w + x-1] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + x+1];
+          var gx = -blurred[(y-1)*w + x-1] + blurred[(y-1)*w + x+1] - 2*blurred[y*w + x-1] + 2*blurred[y*w + x+1] - blurred[(y+1)*w + x-1] + blurred[(y+1)*w + x+1];
+          var gy = -blurred[(y-1)*w + x-1] - 2*blurred[(y-1)*w + x] - blurred[(y-1)*w + x+1] + blurred[(y+1)*w + x-1] + 2*blurred[(y+1)*w + x] + blurred[(y+1)*w + x+1];
           edges[y*w + x] = Math.sqrt(gx * gx + gy * gy);
           if (edges[y*w + x] > maxEdge) maxEdge = edges[y*w + x];
         }
       }
-      var threshold = maxEdge * 0.25;
-      var margin = Math.round(Math.min(w, h) * 0.15);
-      // Find outermost edge on each side
-      var leftX = 0, rightX = w - 1, topY = 0, bottomY = h - 1;
-      for (var x = margin; x < w - margin; x++) {
-        var found = false;
-        for (var y = margin; y < h - margin; y++) {
-          if (edges[y * w + x] > threshold) { leftX = x; found = true; break; }
+
+      var threshold = maxEdge * 0.2;
+      var margin = Math.round(Math.min(w, h) * 0.1);
+      var searchEnd = Math.round(Math.min(w, h) * 0.9);
+
+      // For each row, find leftmost & rightmost edge pixel
+      // For each column, find topmost & bottommost edge pixel
+      // Average them to get the 4 boundaries
+      var leftSum = 0, rightSum = 0, topSum = 0, bottomSum = 0;
+      var rowCount = 0, colCount = 0;
+
+      for (var y = margin; y < searchEnd; y++) {
+        var firstX = -1, lastX = -1;
+        for (var x = margin; x < searchEnd; x++) {
+          if (edges[y * w + x] > threshold) {
+            if (firstX < 0) firstX = x;
+            lastX = x;
+          }
         }
-        if (found) break;
-      }
-      for (var x = w - 1 - margin; x >= margin; x--) {
-        var found = false;
-        for (var y = margin; y < h - margin; y++) {
-          if (edges[y * w + x] > threshold) { rightX = x; found = true; break; }
+        if (firstX >= 0 && lastX > firstX && (lastX - firstX) > w * 0.08) {
+          leftSum += firstX; rightSum += lastX; rowCount++;
         }
-        if (found) break;
       }
-      for (var y = margin; y < h - margin; y++) {
-        var found = false;
-        for (var x = margin; x < w - margin; x++) {
-          if (edges[y * w + x] > threshold) { topY = y; found = true; break; }
+
+      for (var x = margin; x < searchEnd; x++) {
+        var firstY = -1, lastY = -1;
+        for (var y = margin; y < searchEnd; y++) {
+          if (edges[y * w + x] > threshold) {
+            if (firstY < 0) firstY = y;
+            lastY = y;
+          }
         }
-        if (found) break;
-      }
-      for (var y = h - 1 - margin; y >= margin; y--) {
-        var found = false;
-        for (var x = margin; x < w - margin; x++) {
-          if (edges[y * w + x] > threshold) { bottomY = y; found = true; break; }
+        if (firstY >= 0 && lastY > firstY && (lastY - firstY) > h * 0.08) {
+          topSum += firstY; bottomSum += lastY; colCount++;
         }
-        if (found) break;
       }
-      if (rightX > leftX && bottomY > topY) {
-        cropRect = { x1: leftX, y1: topY, x2: rightX, y2: bottomY };
+
+      if (rowCount > 5 && colCount > 5) {
+        cropRect = {
+          x1: Math.round(leftSum / rowCount),
+          y1: Math.round(topSum / colCount),
+          x2: Math.round(rightSum / rowCount),
+          y2: Math.round(bottomSum / colCount)
+        };
         drawCropCanvas();
       }
     }
