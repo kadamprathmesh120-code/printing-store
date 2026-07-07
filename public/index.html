@@ -146,33 +146,35 @@
         <div class="summary-row total"><span data-i18n="totalLabel">Total Price:</span><span id="summaryPrice"></span></div>
       </div>
 
-      <h3 data-i18n="payTitle">Payment Method</h3>
-      <div class="form-group">
-        <div class="radio-group" style="justify-content:center;gap:16px;">
-          <label class="radio-label" style="flex:1;max-width:200px;">
-            <input type="radio" name="paymentMethod" value="paytm" checked onchange="togglePaymentMethod()">
-            <span class="radio-box bw" data-i18n="paytmOption">Paytm (UPI)</span>
-          </label>
-          <label class="radio-label" style="flex:1;max-width:200px;">
-            <input type="radio" name="paymentMethod" value="cash" onchange="togglePaymentMethod()">
-            <span class="radio-box color" data-i18n="cashOption">Cash</span>
-          </label>
+      <div id="stepPricePayment">
+        <h3 data-i18n="payTitle">Payment Method</h3>
+        <div class="form-group">
+          <div class="radio-group" style="justify-content:center;gap:16px;">
+            <label class="radio-label" style="flex:1;max-width:200px;">
+              <input type="radio" name="paymentMethod" value="paytm" checked onchange="togglePaymentMethod()">
+              <span class="radio-box bw" data-i18n="paytmOption">Paytm (UPI)</span>
+            </label>
+            <label class="radio-label" style="flex:1;max-width:200px;">
+              <input type="radio" name="paymentMethod" value="cash" onchange="togglePaymentMethod()">
+              <span class="radio-box color" data-i18n="cashOption">Cash</span>
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div id="paytmSection">
-        <p class="paytm-info" data-i18n="scanQR">Scan QR code to pay</p>
-        <div class="qr-container">
-          <img src="paytm-qr.jpg" alt="Paytm QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">
+        <div id="paytmSection">
+          <p class="paytm-info" data-i18n="scanQR">Scan QR code to pay</p>
+          <div class="qr-container">
+            <img src="paytm-qr.jpg" alt="Paytm QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">
+          </div>
+          <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
+          <button id="btnPaid" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="paidBtn">I Have Paid</button>
         </div>
-        <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
-        <button id="btnPaid" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="paidBtn">I Have Paid</button>
-      </div>
 
-      <div id="cashSection" class="hidden">
-        <p style="text-align:center;color:#155724;background:#d4edda;padding:16px;border-radius:8px;font-size:1em;margin-bottom:8px;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
-        <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="cashNotice">We will accept cash at the counter. Please confirm so we can start printing.</p>
-        <button id="btnCashConfirm" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="cashConfirmBtn">Confirm Cash Payment</button>
+        <div id="cashSection" class="hidden">
+          <p style="text-align:center;color:#155724;background:#d4edda;padding:16px;border-radius:8px;font-size:1em;margin-bottom:8px;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
+          <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="cashNotice">We will accept cash at the counter. Please confirm so we can start printing.</p>
+          <button id="btnCashConfirm" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="cashConfirmBtn">Confirm Cash Payment</button>
+        </div>
       </div>
 
       <div id="paymentError" class="error"></div>
@@ -842,6 +844,40 @@
       }, 100);
     }
 
+    function idcRenderA4ToImage() {
+      var drop = document.getElementById('idcA4Drop');
+      var imgs = drop.querySelectorAll('.idc-preview-img');
+      if (imgs.length === 0) return null;
+      var rect = drop.getBoundingClientRect();
+      var scale = 2;
+      var w = Math.round(rect.width * scale);
+      var h = Math.round(rect.height * scale);
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      imgs.forEach(function(img) {
+        var left = parseFloat(img.style.left) || 0;
+        var top = parseFloat(img.style.top) || 0;
+        var iw = parseFloat(img.style.width) || 0;
+        var ih = parseFloat(img.style.height) || 0;
+        var rot = idcPreviewRotation || 0;
+        if (rot !== 0) {
+          ctx.save();
+          var cx = (left + iw / 2) * scale;
+          var cy = (top + ih / 2) * scale;
+          ctx.translate(cx, cy);
+          ctx.rotate(rot * Math.PI / 180);
+          ctx.drawImage(img, -iw * scale / 2, -ih * scale / 2, iw * scale, ih * scale);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
+        }
+      });
+      return c.toDataURL('image/png');
+    }
+
     var idcFrontImgSrc = '#', idcBackImgSrc = '#';
     document.addEventListener('DOMContentLoaded', function() {
       var fi = document.getElementById('idcFrontInput');
@@ -909,25 +945,19 @@
       var prom = allItems.map(function(item, i) { return uploadOne(item, i); });
       Promise.all(prom)
         .then(function(results) {
-          var pf = document.getElementById('idcFrontImg').src;
-          var pb = document.getElementById('idcBackImg').src;
-          var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:8px;">\u2713 ' + results.length + ' ID Copy uploaded</div><div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">';
-          if (pf && pf !== '#') previewHtml += '<div style="text-align:center;"><div style="font-size:0.75em;color:#888;margin-bottom:4px;">Front</div><img src="' + pf + '" style="width:100px;height:auto;border-radius:4px;border:1px solid #ddd;box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>';
-          if (pb && pb !== '#') previewHtml += '<div style="text-align:center;"><div style="font-size:0.75em;color:#888;margin-bottom:4px;">Back</div><img src="' + pb + '" style="width:100px;height:auto;border-radius:4px;border:1px solid #ddd;box-shadow:0 1px 4px rgba(0,0,0,0.1);"></div>';
-          previewHtml += '</div>';
+          var a4ImgSrc = idcRenderA4ToImage();
+          var totalPrice = results.reduce(function(s, r) { return s + r.price; }, 0);
+          var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:8px;">\u2713 ' + results.length + ' ID Copy uploaded</div>';
+          if (a4ImgSrc) previewHtml += '<div style="text-align:center;margin-bottom:12px;"><div style="display:inline-block;background:white;border-radius:6px;padding:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1);"><img src="' + a4ImgSrc + '" style="max-width:280px;width:100%;height:auto;border-radius:3px;"></div></div>';
+          previewHtml += '<div style="text-align:center;margin-top:12px;"><button class="btn btn-primary" onclick="idcClear();showStep(\'stepUpload\');document.getElementById(\'stepPricePayment\').classList.remove(\'hidden\');document.getElementById(\'btnUpload\').disabled=false;" style="width:auto;padding:10px 24px;">Upload New</button></div>';
           document.getElementById('summaryOrders').innerHTML = previewHtml;
           document.getElementById('summaryName').textContent = name;
           document.getElementById('summaryType').textContent = printType === 'bw' ? 'B&W' : 'Color';
-          document.getElementById('summarySide').textContent = 'ID Copy';
-          document.getElementById('summaryPrice').textContent = '₹' + results.reduce(function(s, r) { return s + r.price; }, 0);
-          btn.textContent = '✓ Uploaded';
+          document.getElementById('summarySide').textContent = 'ID Copy 86×54';
+          document.getElementById('summaryPrice').textContent = '₹' + totalPrice;
+          document.getElementById('stepPricePayment').classList.add('hidden');
+          btn.disabled = false; btn.textContent = 'Upload & Print';
           showStep('stepPrice');
-          setTimeout(function() {
-            idcClear();
-            document.getElementById('summaryOrders').innerHTML = '';
-            showStep('stepUpload');
-            btn.disabled = false; btn.textContent = 'Upload & Print';
-          }, 4000);
         })
         .catch(function(err) {
           alert('Upload failed: ' + (err.message || err));
