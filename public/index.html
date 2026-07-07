@@ -289,6 +289,20 @@
       if (files.length === 0) { fileList.classList.add('hidden'); return; }
       fileList.classList.remove('hidden');
 
+      // Build crop queue for images
+      cropQueue = [];
+      for (var i = 0; i < files.length; i++) {
+        var ext = files[i].name.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png'].includes(ext)) {
+          cropQueue.push({ file: files[i], name: files[i].name });
+        }
+      }
+      cropIndex = 0;
+
+      if (cropQueue.length > 0) {
+        startCropItem();
+        return;
+      }
       showFileList();
     });
 
@@ -350,14 +364,18 @@
       var modal = document.getElementById('cropModal');
       modal.classList.remove('hidden');
       modal.style.display = 'flex';
-      var maxW = Math.min(modal.clientWidth * 0.85, 460);
-      var maxH = window.innerHeight * 0.55;
+      var dpr = window.devicePixelRatio || 1;
+      var maxW = modal.clientWidth * 0.9;
+      var maxH = window.innerHeight * 0.6;
       var w = cropImg.width, h = cropImg.height;
       if (w > maxW) { h = h * maxW / w; w = maxW; }
       if (h > maxH) { w = w * maxH / h; h = maxH; }
-      canvas.width = Math.round(w);
-      canvas.height = Math.round(h);
-      cropRect = { x1: 10, y1: 10, x2: Math.round(w) - 10, y2: Math.round(h) - 10 };
+      // Set canvas at high internal resolution for sharp preview
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = Math.round(w) + 'px';
+      canvas.style.height = Math.round(h) + 'px';
+      cropRect = { x1: 10 * dpr, y1: 10 * dpr, x2: Math.round(w * dpr) - 10 * dpr, y2: Math.round(h * dpr) - 10 * dpr };
       drawCropCanvas();
       document.getElementById('cropProgress').textContent = (cropIndex + 1) + '/' + cropQueue.length;
       document.getElementById('cropError').textContent = '';
@@ -610,8 +628,10 @@
       if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('cropError').textContent = 'Crop area too small'; return; }
 
       // If no rotation and crop is full image (within small margin), use original file
+      var dpr = window.devicePixelRatio || 1;
+      var margin = Math.round(20 * dpr);
       var cw = canvas.width, ch = canvas.height;
-      var isDefaultCrop = (cropRotation === 0 && x1 <= 15 && y1 <= 15 && x2 >= cw - 15 && y2 >= ch - 15);
+      var isDefaultCrop = (cropRotation === 0 && x1 <= margin && y1 <= margin && x2 >= cw - margin && y2 >= ch - margin);
       if (isDefaultCrop) {
         enhancedFiles[cropFileName] = cropOrigFile;
         document.getElementById('cropModal').classList.add('hidden');
@@ -646,16 +666,15 @@
       var oCtx = outC.getContext('2d');
       oCtx.imageSmoothingQuality = 'high';
       oCtx.drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
-      var ext = cropFileName.split('.').pop();
-      var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+      // Use PNG (lossless) to preserve full quality for cropped output
       outC.toBlob(function(blob) {
-        var cf = new File([blob], cropFileName, { type: mime });
+        var cf = new File([blob], cropFileName, { type: 'image/png' });
         enhancedFiles[cropFileName] = cf;
         document.getElementById('cropModal').classList.add('hidden');
         document.getElementById('cropModal').style.display = 'none';
         cropIndex++;
         startCropItem();
-      }, mime, 1);
+      }, 'image/png');
     }
     // ---- End crop functions ----
 
