@@ -627,7 +627,17 @@
       Promise.all(prom)
         .then(function(results) {
           currentOrderIds = results.map(function(r) { return r.orderId; });
-          document.getElementById('summaryOrders').innerHTML = '<div style="text-align:center;color:#28a745;font-weight:600;">✓ ' + results.length + ' ID Copy uploaded</div>';
+          var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:12px;">\u2713 ' + results.length + ' ID Copy uploaded</div>';
+          for (var i = 0; i < allItems.length; i++) {
+            previewHtml += '<div style="margin-bottom:12px;padding:8px;background:#f9f9f9;border-radius:8px;">';
+            previewHtml += '<div style="display:flex;gap:10px;justify-content:center;">';
+            var pf = document.getElementById('idcFrontImg').src;
+            var pb = document.getElementById('idcBackImg').src;
+            if (pf && pf !== '#') previewHtml += '<div style="text-align:center;"><div style="font-size:0.8em;color:#666;margin-bottom:4px;">Front</div><img src="' + pf + '" style="max-width:120px;max-height:80px;border-radius:4px;border:1px solid #ddd;"></div>';
+            if (pb && pb !== '#') previewHtml += '<div style="text-align:center;"><div style="font-size:0.8em;color:#666;margin-bottom:4px;">Back</div><img src="' + pb + '" style="max-width:120px;max-height:80px;border-radius:4px;border:1px solid #ddd;"></div>';
+            previewHtml += '</div></div>';
+          }
+          document.getElementById('summaryOrders').innerHTML = previewHtml;
           document.getElementById('summaryName').textContent = name;
           document.getElementById('summaryType').textContent = printType === 'bw' ? 'Black & White' : 'Color';
           document.getElementById('summarySide').textContent = 'ID Copy 86×54';
