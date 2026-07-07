@@ -64,22 +64,22 @@ async function checkAndPrint() {
         var printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
         var isPdf = ext === '.pdf';
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
-        if (isPdf) {
+
+        if (order.is_id_copy && order.back_file_path) {
+          // Combine front+back into single A4 image, print once
+          var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
+          var backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
+          await downloadFile(backUrl, backLocal);
+          var combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + localFile + '" -backPath "' + backLocal + '" -outputPath "' + combinedPath + '"');
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '"');
+          console.log('Printed combined ID copy to', printer);
+        } else if (isPdf) {
           await print(localFile, { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' });
         } else if (isImage) {
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
         } else {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
-        }
-
-        if (order.is_id_copy && order.back_file_path) {
-          var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
-          var backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
-          await downloadFile(backUrl, backLocal);
-          if (isImage) {
-            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + backLocal + '" -printerName "' + printer + '"');
-          }
-          console.log('Printed back:', order.back_file_name, 'to', printer);
         }
 
         printed[order.id] = true;

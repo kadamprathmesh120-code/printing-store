@@ -208,11 +208,15 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
       const printers = await getPrinters();
       const hasPrinter = printers.some(function(p) { return p.name === printer; });
       if (hasPrinter) {
-        const frontPath = path.join(__dirname, 'uploads', order.file_path);
-        await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
         if (order.is_id_copy && order.back_file_path) {
+          const frontPath = path.join(__dirname, 'uploads', order.file_path);
           const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-          await printFile(backPath, order.back_file_name, printer, order.print_type, order.print_side);
+          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side);
+        } else {
+          const frontPath = path.join(__dirname, 'uploads', order.file_path);
+          await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
         }
       }
     } catch (e) {}
@@ -259,11 +263,15 @@ app.post('/api/admin/print/:id', async (req, res) => {
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
     const printer = req.body.printer || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
 
-    const frontPath = path.join(__dirname, 'uploads', order.file_path);
-    await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
     if (order.is_id_copy && order.back_file_path) {
+      const frontPath = path.join(__dirname, 'uploads', order.file_path);
       const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-      await printFile(backPath, order.back_file_name, printer, order.print_type, order.print_side);
+      const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+      await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+      await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side);
+    } else {
+      const frontPath = path.join(__dirname, 'uploads', order.file_path);
+      await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
     }
 
     res.json({ success: true, message: `Sent to printer: ${printer}` });
