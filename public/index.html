@@ -658,12 +658,13 @@
 
       var card = idcCardDimensions(a4W, a4H);
       var cardW = card.w, cardH = card.h;
-      var gap = a4H * 0.025; // ~2.5% page height between cards
-      var marginTop = a4H * 0.115; // ~11.5% from top
+      var pxPerMm = a4W / 210;
+      var marginTop = 25 * pxPerMm;
+      var gap = 30 * pxPerMm;
 
       // --- Dimension line: Horizontal "86 mm" above first card ---
-      var dimTop = marginTop - a4H * 0.02;
-      var dimH = a4H * 0.016;
+      var dimTop = marginTop - 8 * pxPerMm;
+      var dimH = 5 * pxPerMm;
       var dimColor = '#888';
 
       var hLeft = (a4W - cardW) / 2;
@@ -679,7 +680,7 @@
       drop.appendChild(hLineEl);
 
       // --- Dimension line: Vertical "54 mm" on the left ---
-      var vLineX = (a4W - cardW) / 2 - a4W * 0.028;
+      var vLineX = (a4W - cardW) / 2 - 10 * pxPerMm;
       var vLineEl = document.createElement('div');
       vLineEl.style.cssText = 'position:absolute;width:0;border-left:1px solid ' + dimColor + ';left:' + vLineX + 'px;top:' + marginTop + 'px;height:' + cardH + 'px;pointer-events:none;';
       vLineEl.innerHTML =
