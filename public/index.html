@@ -230,7 +230,7 @@
         </div>
         <div style="display:flex;justify-content:center;gap:12px;padding:4px 0;">
           <button style="background:#16213e;border:none;color:white;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcDownload()">⬇ Download</button>
-          <button style="background:#1a73e8;border:none;color:white;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcPrintCurrent()">🖨 Print</button>
+          <button style="background:#1a73e8;border:none;color:white;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcDownload()">⬇ Download</button>
           <button style="background:#16213e;border:none;color:#aaa;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcCancelCrop()">Close</button>
         </div>
         <div id="idcCropError" style="color:#dc3545;text-align:center;font-size:0.8em;"></div>
@@ -562,22 +562,6 @@
       document.getElementById('idcModal').style.display = 'none';
     }
 
-    function idcDownload() {
-      var canvas = document.getElementById('idcCanvas');
-      var link = document.createElement('a');
-      link.download = 'id_' + idcCurrent + '_86x54.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-
-    function idcPrintCurrent() {
-      var f = idcCurrent === 'front' ? (idcFrontCropped || idcFrontFile) : (idcBackCropped || idcBackFile);
-      if (!f) return;
-      var url = URL.createObjectURL(f);
-      var w = window.open(url);
-      if (w) { w.onload = function() { w.print(); }; }
-    }
-
     function idcAddMore() {
       if (!idcFrontFile) return;
       // Save current pair to queue
@@ -832,11 +816,20 @@
           ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
         }
       });
-      var pw = window.open('', '_blank');
-      pw.document.write('<!DOCTYPE html><html><head><title>ID Card Print Preview</title><style>*{margin:0;padding:0}body{display:flex;justify-content:center}img{max-width:100%;height:auto}@media print{body{margin:0}img{max-width:100%;height:auto}}</style></head><body>');
-      pw.document.write('<img src="' + c.toDataURL('image/png') + '" onload="window.print()">');
-      pw.document.write('</body></html>');
-      pw.document.close();
+      var iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:-9999px;left:0;width:210mm;height:297mm;border:none;';
+      document.body.appendChild(iframe);
+      iframe.srcdoc = '<!DOCTYPE html><html><head><title>ID Card Print Preview</title><style>*{margin:0;padding:0}body{display:flex;justify-content:center;align-items:center;min-height:297mm}img{max-width:100%;height:auto}</style></head><body><img src="' + c.toDataURL('image/png') + '"></body></html>';
+      var printTimer = setInterval(function() {
+        try {
+          if (iframe.contentDocument && iframe.contentDocument.body && iframe.contentDocument.body.querySelector('img')) {
+            clearInterval(printTimer);
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(function() { document.body.removeChild(iframe); }, 1000);
+          }
+        } catch(e) {}
+      }, 100);
     }
 
     function idcDownloadPreview() {
