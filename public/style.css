@@ -483,20 +483,16 @@ tbody tr:hover {
 
 /* Print Preview styles */
 .preview-btn {
-  background: white; border: 1px solid #ccc; border-radius: 4px;
-  padding: 4px 10px; font-size: 0.85em; cursor: pointer;
-  transition: all 0.15s; line-height: 1.4;
+  background: white; border: 1px solid #bbb; border-radius: 5px;
+  padding: 5px 11px; font-size: 0.82em; cursor: pointer;
+  transition: all 0.12s; line-height: 1.4; color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-.preview-btn:hover { background: #e8f0fe; border-color: #1a73e8; }
-.preview-btn:active { transform: scale(0.95); }
+.preview-btn:hover { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; }
+.preview-btn:active { transform: scale(0.94); }
 
-.idc-preview-img {
-  position: absolute; cursor: grab; user-select: none;
-  border-radius: 3px; box-shadow: 0 1px 6px rgba(0,0,0,0.15);
-  transition: box-shadow 0.15s;
-}
-.idc-preview-img:active { cursor: grabbing; box-shadow: 0 2px 12px rgba(0,0,0,0.25); }
-.idc-preview-img.dragging { cursor: grabbing; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+.idc-preview-img { transition: box-shadow 0.15s; }
+.idc-preview-img:active { box-shadow: 0 2px 12px rgba(0,0,0,0.25); }
 
 @media (max-width: 768px) {
   .container {

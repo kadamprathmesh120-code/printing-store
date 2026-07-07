@@ -67,28 +67,33 @@
 
         <!-- Print Preview -->
         <div id="idcPreview" class="hidden" style="margin-bottom:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-weight:600;font-size:0.95em;">ID Card Print Preview</span>
-            <div style="display:flex;gap:4px;">
-              <button class="preview-btn" onclick="idcPreviewZoom(-0.1)" title="Zoom Out">−</button>
-              <span id="idcPreviewZoomLabel" style="font-size:0.85em;min-width:36px;text-align:center;">100%</span>
-              <button class="preview-btn" onclick="idcPreviewZoom(0.1)" title="Zoom In">+</button>
-              <button class="preview-btn" onclick="idcPreviewFit()" title="Fit to Page">⤡</button>
-              <button class="preview-btn" onclick="idcPreviewOriginal()" title="Original Size">1:1</button>
-              <button class="preview-btn" onclick="idcDownloadPreview()" title="Download Preview" style="font-weight:600;">⬇</button>
-            </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-weight:700;font-size:1.1em;color:#1a1a2e;">A4 Print Preview</div>
+            <div style="font-size:0.85em;color:#666;">Your uploaded ID card will be printed on A4 paper exactly as shown.</div>
           </div>
-          <div id="idcPreviewWrap" style="overflow:auto;background:#e8e8e8;border-radius:8px;padding:16px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
-            <div id="idcA4" style="width:100%;max-width:500px;background:white;box-shadow:0 2px 20px rgba(0,0,0,0.15);position:relative;transform-origin:top center;transition:transform 0.15s;">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:8px;justify-content:center;">
+            <button class="preview-btn" onclick="idcPreviewZoom(-0.15)">− Zoom</button>
+            <span id="idcPreviewZoomLabel" style="font-size:0.85em;min-width:44px;text-align:center;font-weight:600;">100%</span>
+            <button class="preview-btn" onclick="idcPreviewZoom(0.15)">+ Zoom</button>
+            <button class="preview-btn" onclick="idcPreviewFit()">⤡ Fit</button>
+            <button class="preview-btn" onclick="idcPreviewOriginal()">1:1 Actual</button>
+            <button class="preview-btn" onclick="idcPreviewRotate(-90)">↺ L</button>
+            <button class="preview-btn" onclick="idcPreviewRotate(90)">↻ R</button>
+            <button class="preview-btn" onclick="idcDownloadPreview()" style="font-weight:700;">⬇</button>
+          </div>
+          <div id="idcPreviewWrap" style="overflow:auto;background:#e0e0e0;border-radius:8px;padding:20px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
+            <div id="idcA4" style="width:100%;max-width:520px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;transform-origin:top center;transition:transform 0.15s;border:1px solid rgba(0,0,0,0.06);border-radius:2px;">
               <div id="idcA4Aspect" style="width:100%;aspect-ratio:210/297;">
+                <div id="idcA4Printable" style="position:absolute;inset:8%;border:1px dashed #ccc;border-radius:2px;pointer-events:none;"></div>
                 <div id="idcA4Drop" style="position:absolute;inset:0;">
-                  <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>
+                  <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;pointer-events:none;">Upload front/back images<br>to see print preview</div>
+                  <!-- Dimension lines will be drawn here by JS -->
                 </div>
               </div>
             </div>
           </div>
-          <div style="margin-top:8px;padding:8px 12px;background:#fff3cd;border-radius:6px;font-size:0.8em;color:#856404;text-align:center;">
-            ⚠️ This is a preview only. Your uploaded file will be printed as shown.
+          <div style="margin-top:10px;padding:8px 14px;background:#fff8e1;border-radius:6px;font-size:0.78em;color:#8d6e00;text-align:center;border:1px solid #ffe082;">
+            ⚠️ This is a preview only. Your uploaded file will be printed exactly as shown.
           </div>
         </div>
 
@@ -620,78 +625,103 @@
     var idcPreviewScale = 1;
     var idcPreviewDrag = null;
 
+    function idcCardDimensions(a4wPx, a4hPx) {
+      // Card: 86x54mm on A4: 210x297mm
+      var cardRatio = 86 / 54;
+      var cardWpct = 86 / 210; // card width as fraction of A4 width
+      var cardHpct = 54 / 297; // card height as fraction of A4 height
+      var w = a4wPx * cardWpct;
+      var h = a4hPx * cardHpct;
+      return { w: w, h: h, ratio: cardRatio };
+    }
+
     function idcUpdatePreview() {
       var wrap = document.getElementById('idcPreview');
       wrap.classList.remove('hidden');
-      var a4 = document.getElementById('idcA4Drop');
-      a4.innerHTML = '';
+      var drop = document.getElementById('idcA4Drop');
+      var a4 = document.getElementById('idcA4');
+      var a4Aspect = document.getElementById('idcA4Aspect');
       var hasFront = idcFrontFile && idcFrontImgSrc && idcFrontImgSrc !== '#';
       var hasBack = idcBackFile && idcBackImgSrc && idcBackImgSrc !== '#';
-      if (!hasFront && !hasBack) {
-        a4.innerHTML = '<div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>';
-        return;
+      // Remove old images/dimension lines but keep the msg placeholder
+      while (drop.children.length > 0) {
+        var child = drop.children[0];
+        if (child.id === 'idcA4Msg') { child.style.display = (hasFront || hasBack) ? 'none' : ''; drop.appendChild(child); break; }
+        drop.removeChild(child);
       }
-      var rect = a4.getBoundingClientRect();
+      if (!hasFront && !hasBack) return;
+
+      var rect = drop.getBoundingClientRect();
       var a4W = rect.width;
       var a4H = rect.height;
-      var marPct = 8; // ~8% margins on each side → ~84% printable width
-      var useW = a4W * (1 - marPct / 100 * 2);
-      var gapPx = a4H * 0.03; // ~3% of page height between images
-      var topPx = a4H * 0.12; // ~12% from top → ~35mm equivalent
+      if (a4W === 0) { a4W = 520; a4H = 520 * 297 / 210; }
 
-      function doPlace(src, x, y, w, h) {
-        var el = document.createElement('img');
-        el.src = src;
-        el.className = 'idc-preview-img';
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-        el.style.width = w + 'px';
-        el.style.height = h + 'px';
-        a4.appendChild(el);
-      }
+      var card = idcCardDimensions(a4W, a4H);
+      var cardW = card.w, cardH = card.h;
+      var gap = a4H * 0.025; // ~2.5% page height between cards
+      var marginTop = a4H * 0.115; // ~11.5% from top
 
-      function placeOne(src, topOff) {
-        var w = useW;
-        var tmp = new Image();
-        tmp.onload = function() {
-          var h = tmp.naturalHeight / tmp.naturalWidth * w;
-          var x = (a4W - w) / 2;
-          doPlace(src, x, topOff, w, h);
-          idcAttachDrag();
+      // --- Dimension line: Horizontal "86 mm" above first card ---
+      var dimTop = marginTop - a4H * 0.02;
+      var dimH = a4H * 0.016;
+      var dimColor = '#888';
+
+      var hLeft = (a4W - cardW) / 2;
+      var hRight = hLeft + cardW;
+      var hLineY = dimTop + dimH / 2;
+
+      var hLineEl = document.createElement('div');
+      hLineEl.style.cssText = 'position:absolute;height:0;border-top:1px solid ' + dimColor + ';left:' + hLeft + 'px;top:' + hLineY + 'px;width:' + cardW + 'px;pointer-events:none;';
+      hLineEl.innerHTML =
+        '<div style="position:absolute;right:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-right:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div>' +
+        '<div style="position:absolute;left:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-left:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div>' +
+        '<span style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;">86 mm</span>';
+      drop.appendChild(hLineEl);
+
+      // --- Dimension line: Vertical "54 mm" on the left ---
+      var vLineX = (a4W - cardW) / 2 - a4W * 0.028;
+      var vLineEl = document.createElement('div');
+      vLineEl.style.cssText = 'position:absolute;width:0;border-left:1px solid ' + dimColor + ';left:' + vLineX + 'px;top:' + marginTop + 'px;height:' + cardH + 'px;pointer-events:none;';
+      vLineEl.innerHTML =
+        '<div style="position:absolute;bottom:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-bottom:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div>' +
+        '<div style="position:absolute;top:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-top:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div>' +
+        '<span style="position:absolute;top:50%;left:-24px;transform:translateY(-50%) rotate(-90deg);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;transform-origin:center;">54 mm</span>';
+      drop.appendChild(vLineEl);
+
+      var done = 0, total = (hasFront ? 1 : 0) + (hasBack ? 1 : 0);
+      var cardImgs = [];
+
+      function placeCard(src, topOff, side) {
+        var img = new Image();
+        img.onload = function() {
+          var w = cardW, h = cardH;
+          // Fit image into 86x54 while maintaining aspect ratio (letterbox)
+          var iRatio = img.naturalWidth / img.naturalHeight;
+          var cRatio = cardW / cardH;
+          var fw = w, fh = h;
+          if (iRatio > cRatio) { fh = w / iRatio; } else { fw = h * iRatio; }
+          var x = (a4W - fw) / 2;
+          var y = topOff + (h - fh) / 2;
+          var el = document.createElement('img');
+          el.src = src;
+          el.className = 'idc-preview-img';
+          el.style.cssText = 'position:absolute;cursor:grab;user-select:none;border-radius:2px;box-shadow:0 1px 6px rgba(0,0,0,0.12);left:' + x + 'px;top:' + y + 'px;width:' + fw + 'px;height:' + fh + 'px;';
+          el.dataset.side = side;
+          drop.appendChild(el);
+          cardImgs.push(el);
+          done++;
+          if (done === total) {
+            cardImgs.forEach(function(ci) {
+              ci.addEventListener('mousedown', idcPreviewDragStart);
+              ci.addEventListener('touchstart', idcPreviewDragStart, {passive:false});
+            });
+          }
         };
-        tmp.src = src;
+        img.src = src;
       }
 
-      if (hasFront && hasBack) {
-        var frontImg = new Image();
-        frontImg.onload = function() {
-          var fH = frontImg.naturalHeight / frontImg.naturalWidth * useW;
-          var fX = (a4W - useW) / 2;
-          doPlace(idcFrontImgSrc, fX, topPx, useW, fH);
-          var backTop = topPx + fH + gapPx;
-          var backImg = new Image();
-          backImg.onload = function() {
-            var bH = backImg.naturalHeight / backImg.naturalWidth * useW;
-            var bX = (a4W - useW) / 2;
-            doPlace(idcBackImgSrc, bX, backTop, useW, bH);
-            idcAttachDrag();
-          };
-          backImg.src = idcBackImgSrc;
-        };
-        frontImg.src = idcFrontImgSrc;
-      } else if (hasFront) {
-        placeOne(idcFrontImgSrc, topPx);
-      } else if (hasBack) {
-        placeOne(idcBackImgSrc, topPx);
-      }
-    }
-
-    function idcAttachDrag() {
-      var imgs = document.querySelectorAll('#idcA4Drop .idc-preview-img');
-      imgs.forEach(function(img) {
-        img.addEventListener('mousedown', idcPreviewDragStart);
-        img.addEventListener('touchstart', idcPreviewDragStart, {passive:false});
-      });
+      if (hasFront) placeCard(idcFrontImgSrc, marginTop, 'front');
+      if (hasBack) placeCard(idcBackImgSrc, marginTop + cardH + gap, 'back');
     }
 
     function idcPreviewDragStart(e) {
@@ -707,7 +737,7 @@
         a4Left: a4Rect.left,
         a4Top: a4Rect.top
       };
-      img.classList.add('dragging');
+      img.style.cursor = 'grabbing';
       document.addEventListener('mousemove', idcPreviewDragMove);
       document.addEventListener('mouseup', idcPreviewDragEnd);
       document.addEventListener('touchmove', idcPreviewDragMove, {passive:false});
@@ -726,7 +756,7 @@
 
     function idcPreviewDragEnd() {
       if (idcPreviewDrag) {
-        idcPreviewDrag.el.classList.remove('dragging');
+        idcPreviewDrag.el.style.cursor = 'grab';
         idcPreviewDrag = null;
       }
       document.removeEventListener('mousemove', idcPreviewDragMove);
@@ -736,7 +766,7 @@
     }
 
     function idcPreviewZoom(delta) {
-      idcPreviewScale = Math.max(0.3, Math.min(3, idcPreviewScale + delta));
+      idcPreviewScale = Math.max(0.25, Math.min(4, idcPreviewScale + delta));
       document.getElementById('idcA4').style.transform = 'scale(' + idcPreviewScale + ')';
       document.getElementById('idcPreviewZoomLabel').textContent = Math.round(idcPreviewScale * 100) + '%';
     }
@@ -746,9 +776,9 @@
       var a4 = document.getElementById('idcA4');
       var wrapW = wrap.clientWidth - 48;
       var a4W = a4.getBoundingClientRect().width;
-      if (a4W === 0) a4W = 500;
+      if (a4W === 0) a4W = 520;
       var scale = Math.min(1, wrapW / a4W);
-      idcPreviewScale = Math.max(0.3, scale);
+      idcPreviewScale = Math.max(0.25, scale);
       a4.style.transform = 'scale(' + idcPreviewScale + ')';
       document.getElementById('idcPreviewZoomLabel').textContent = Math.round(idcPreviewScale * 100) + '%';
     }
@@ -759,13 +789,23 @@
       document.getElementById('idcPreviewZoomLabel').textContent = '100%';
     }
 
+    var idcPreviewRotation = 0;
+    function idcPreviewRotate(deg) {
+      idcPreviewRotation = (idcPreviewRotation + deg) % 360;
+      var imgs = document.querySelectorAll('#idcA4Drop .idc-preview-img');
+      imgs.forEach(function(img) {
+        img.style.transform = 'rotate(' + idcPreviewRotation + 'deg)';
+        img.style.transition = 'transform 0.25s ease';
+      });
+    }
+
     function idcDownloadPreview() {
       var drop = document.getElementById('idcA4Drop');
       var imgs = drop.querySelectorAll('.idc-preview-img');
       if (imgs.length === 0) return;
 
       var rect = drop.getBoundingClientRect();
-      var scale = 2;
+      var scale = 3;
       var w = Math.round(rect.width * scale);
       var h = Math.round(rect.height * scale);
 
@@ -781,7 +821,18 @@
         var top = parseFloat(img.style.top) || 0;
         var iw = parseFloat(img.style.width) || 0;
         var ih = parseFloat(img.style.height) || 0;
-        ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
+        var rot = idcPreviewRotation || 0;
+        if (rot !== 0) {
+          ctx.save();
+          var cx = (left + iw / 2) * scale;
+          var cy = (top + ih / 2) * scale;
+          ctx.translate(cx, cy);
+          ctx.rotate(rot * Math.PI / 180);
+          ctx.drawImage(img, -iw * scale / 2, -ih * scale / 2, iw * scale, ih * scale);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
+        }
       });
 
       var link = document.createElement('a');
