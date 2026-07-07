@@ -116,12 +116,36 @@
     <div id="stepStartOver" class="card hidden">
       <button class="btn btn-primary" onclick="startOver()" data-i18n="uploadMore">Upload More Files</button>
     </div>
+
+    <div id="magicModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:white;border-radius:12px;max-width:800px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;">
+        <h2 style="margin-bottom:12px;">✨ <span data-i18n="magicTitle">Magic Color Enhancement</span></h2>
+        <p style="color:#666;font-size:0.9em;margin-bottom:16px;" data-i18n="magicDesc">Auto-enhanced colors, brightness, contrast & sharpness.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <p style="text-align:center;font-weight:600;font-size:0.85em;color:#888;margin-bottom:6px;" data-i18n="beforeLabel">Original</p>
+            <img id="magicOriginal" style="width:100%;border-radius:8px;border:2px solid #ddd;">
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <p style="text-align:center;font-weight:600;font-size:0.85em;color:#1a73e8;margin-bottom:6px;" data-i18n="afterLabel">Enhanced</p>
+            <img id="magicEnhanced" style="width:100%;border-radius:8px;border:2px solid #1a73e8;">
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:20px;">
+          <button class="btn btn-primary" onclick="applyMagicColor()" style="flex:1;" data-i18n="applyEnhance">Apply Enhancement</button>
+          <button class="btn btn-secondary" onclick="closeMagicModal()" style="flex:1;" data-i18n="keepOriginal">Keep Original</button>
+        </div>
+        <div id="magicError" class="error"></div>
+      </div>
+    </div>
   </div>
 
   <script>
     let currentOrderIds = [];
     let currentFilePages = {};
     let currentLang = localStorage.getItem('lang') || 'en';
+    let enhancedFiles = {};
+    let magicPendingFile = null;
 
     const translations = {
       en: {
@@ -173,7 +197,14 @@
         rejectedMsg: 'Sorry, some orders were rejected. Contact the store.',
         filesLabel: 'Files',
         pg: 'pg',
-        sheets: 'sheets'
+        sheets: 'sheets',
+        magicTitle: 'Magic Color Enhancement',
+        magicDesc: 'Auto-enhanced colors, brightness, contrast & sharpness.',
+        beforeLabel: 'Original',
+        afterLabel: 'Enhanced',
+        applyEnhance: 'Apply Enhancement',
+        keepOriginal: 'Keep Original',
+        magicBtn: '✨ Magic Color'
       },
       mr: {
         storeName: '\u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u094D\u091F\u094B\u0930',
@@ -224,7 +255,14 @@
         rejectedMsg: '\u0915\u094D\u0937\u092E\u093E \u0915\u0930\u093E, \u0915\u093E\u0939\u0940 \u0911\u0930\u094D\u0921\u0930 \u0928\u093E\u092E\u0902\u091C\u0942\u0930 \u091D\u093E\u0932\u0947. \u0938\u094D\u091F\u094B\u0930\u0936\u0940 \u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u093E.',
         filesLabel: '\u092B\u093E\u092F\u0932',
         pg: '\u092A\u0947\u091C',
-        sheets: '\u0936\u0940\u091F'
+        sheets: '\u0936\u0940\u091F',
+        magicTitle: '\u092E\u0947\u091C\u093F\u0915 \u0915\u0932\u0930 \u0935\u0930\u094D\u0927\u0928',
+        magicDesc: '\u0930\u0902\u0917, \u092C\u094D\u0930\u093E\u0907\u091F\u0928\u0947\u0938, \u0915\u0902\u091F\u094D\u0930\u093E\u0938\u094D\u091F \u0906\u0923\u093F \u0936\u093E\u0930\u094D\u092A\u0928\u0947\u0938 \u0911\u091F\u094B-\u0935\u0930\u094D\u0927\u093F\u0924.',
+        beforeLabel: '\u092E\u0942\u0933',
+        afterLabel: '\u0935\u0930\u094D\u0927\u093F\u0924',
+        applyEnhance: '\u0935\u0930\u094D\u0927\u0928 \u0932\u093E\u0917\u0942 \u0915\u0930\u093E',
+        keepOriginal: '\u092E\u0942\u0933 \u0920\u0947\u0935\u093E',
+        magicBtn: '\u2728 \u092E\u0947\u091C\u093F\u0915 \u0915\u0932\u0930'
       }
     };
 
@@ -254,6 +292,7 @@
       var fileList = document.getElementById('fileList');
       fileList.innerHTML = '';
       currentFilePages = {};
+      enhancedFiles = {};
       var files = this.files;
       if (files.length === 0) { fileList.classList.add('hidden'); return; }
       fileList.classList.remove('hidden');
@@ -275,11 +314,12 @@
           pages = '<input type="number" min="1" value="1" style="width:60px;padding:4px;border:1px solid #ddd;border-radius:4px;" data-fname="' + f.name + '" class="page-input" onchange="updatePageCount(this)">';
         }
         var typeLabel = isPdf ? 'PDF' : isImage ? 'Image' : 'Doc';
+        var magicBtn = isImage ? '<button class="btn btn-sm btn-secondary" onclick="openMagicColor(\'' + f.name.replace(/'/g, "\\'") + '\')" style="font-size:0.75em;padding:4px 8px;margin-left:6px;width:auto;display:inline-block;">✨ <span data-i18n="magicBtn">Magic Color</span></button>' : '';
 
         fileList.innerHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:0.9em;border-bottom:1px solid #f0f0f0;">' +
           '<span style="flex:1;word-break:break-all;padding-right:8px;">' + f.name + '</span>' +
           '<span style="white-space:nowrap;color:#888;font-size:0.85em;margin:0 8px;">' + typeLabel + '</span>' +
-          '<span style="white-space:nowrap;">' + pages + ' <span data-i18n="pg">pg</span></span>' +
+          '<span style="white-space:nowrap;">' + pages + ' <span data-i18n="pg">pg</span>' + magicBtn + '</span>' +
           '</div>';
         if (isPdf) currentFilePages[f.name] = 'auto';
         else if (isImage) currentFilePages[f.name] = 1;
@@ -316,6 +356,115 @@
       document.getElementById(id).classList.remove('hidden');
     }
 
+    function openMagicColor(fileName) {
+      var files = document.getElementById('fileInput').files;
+      var file = null;
+      for (var i = 0; i < files.length; i++) {
+        if (files[i].name === fileName) { file = files[i]; break; }
+      }
+      if (!file) return;
+      magicPendingFile = fileName;
+      var img = new Image();
+      img.onload = function() {
+        document.getElementById('magicOriginal').src = img.src;
+        var canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var data = imageData.data;
+        var len = data.length;
+
+        var rSum = 0, gSum = 0, bSum = 0;
+        for (var i = 0; i < len; i += 4) {
+          rSum += data[i]; gSum += data[i+1]; bSum += data[i+2];
+        }
+        var count = len / 4;
+        var avg = (rSum + gSum + bSum) / count / 3;
+        var rGain = avg / (rSum / count);
+        var gGain = avg / (gSum / count);
+        var bGain = avg / (bSum / count);
+
+        for (var i = 0; i < len; i += 4) {
+          var r = data[i] * rGain;
+          var g = data[i+1] * gGain;
+          var b = data[i+2] * bGain;
+          r = (r - 128) * 1.15 + 128;
+          g = (g - 128) * 1.15 + 128;
+          b = (b - 128) * 1.15 + 128;
+          var gray = (r + g + b) / 3;
+          r = gray + (r - gray) * 1.2;
+          g = gray + (g - gray) * 1.2;
+          b = gray + (b - gray) * 1.2;
+          r *= 1.05; g *= 1.05; b *= 1.05;
+          data[i] = Math.max(0, Math.min(255, r));
+          data[i+1] = Math.max(0, Math.min(255, g));
+          data[i+2] = Math.max(0, Math.min(255, b));
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        var copyData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var copy = copyData.data;
+        var sharpened = new Uint8ClampedArray(copy);
+        for (var y = 1; y < canvas.height - 1; y++) {
+          for (var x = 1; x < canvas.width - 1; x++) {
+            var idx = (y * canvas.width + x) * 4;
+            for (var c = 0; c < 3; c++) {
+              var v = -copy[((y-1)*canvas.width + x)*4 + c]
+                     -copy[(y*canvas.width + (x-1))*4 + c]
+                     + 5*copy[(y*canvas.width + x)*4 + c]
+                     -copy[(y*canvas.width + (x+1))*4 + c]
+                     -copy[((y+1)*canvas.width + x)*4 + c];
+              sharpened[idx + c] = Math.max(0, Math.min(255, v));
+            }
+          }
+        }
+        ctx.putImageData(new ImageData(sharpened, canvas.width, canvas.height), 0, 0);
+
+        var enhancedSrc = canvas.toDataURL('image/jpeg', 0.95);
+        document.getElementById('magicEnhanced').src = enhancedSrc;
+        document.getElementById('magicModal').classList.remove('hidden');
+        document.getElementById('magicModal').style.display = 'flex';
+        document.getElementById('magicError').textContent = '';
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
+    function closeMagicModal() {
+      document.getElementById('magicModal').classList.add('hidden');
+      document.getElementById('magicModal').style.display = 'none';
+      magicPendingFile = null;
+    }
+
+    function applyMagicColor() {
+      var enhancedImg = document.getElementById('magicEnhanced');
+      if (!enhancedImg.src || !magicPendingFile) return;
+      fetch(enhancedImg.src)
+        .then(function(r) { return r.blob(); })
+        .then(function(blob) {
+          var ext = magicPendingFile.split('.').pop();
+          var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+          var enhancedFile = new File([blob], magicPendingFile, { type: mime });
+          enhancedFiles[magicPendingFile] = enhancedFile;
+          var rows = document.getElementById('fileList').querySelectorAll('div');
+          for (var i = 0; i < rows.length; i++) {
+            if (rows[i].textContent.indexOf(magicPendingFile) !== -1) {
+              var badge = document.createElement('span');
+              badge.className = 'enhanced-badge';
+              badge.textContent = '✨ Enhanced';
+              badge.style.cssText = 'color:#1a73e8;font-size:0.75em;font-weight:600;margin-left:4px;';
+              rows[i].querySelector('span:last-child').appendChild(badge);
+              break;
+            }
+          }
+          closeMagicModal();
+        })
+        .catch(function() {
+          document.getElementById('magicError').textContent = 'Enhancement failed. Try again.';
+        });
+    }
+
     function uploadFiles() {
       var name = document.getElementById('customerName').value.trim();
       var files = document.getElementById('fileInput').files;
@@ -337,7 +486,8 @@
       formData.append('printSide', printSide);
       formData.append('paymentMethod', paymentMethod);
       for (var i = 0; i < files.length; i++) {
-        formData.append('files', files[i]);
+        var fileToUpload = enhancedFiles[files[i].name] || files[i];
+        formData.append('files', fileToUpload);
         if (currentFilePages[files[i].name] && currentFilePages[files[i].name] !== 'auto') {
           formData.append('pageCount_' + files[i].name, currentFilePages[files[i].name]);
         }
@@ -500,6 +650,7 @@
     function startOver() {
       currentOrderIds = [];
       currentFilePages = {};
+      enhancedFiles = {};
       document.getElementById('customerName').value = '';
       document.getElementById('fileInput').value = '';
       document.getElementById('fileList').innerHTML = '';
