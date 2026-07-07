@@ -716,28 +716,45 @@
       markCtx = null;
       document.getElementById('markupCanvas').classList.add('hidden');
 
-      var fCanvas = document.getElementById('filterCanvas');
+      var fullW = croppedImage.width, fullH = croppedImage.height;
       var finalCanvas = document.createElement('canvas');
-      finalCanvas.width = fCanvas.width;
-      finalCanvas.height = fCanvas.height;
+      finalCanvas.width = fullW;
+      finalCanvas.height = fullH;
       var fCtx = finalCanvas.getContext('2d');
+      fCtx.imageSmoothingQuality = 'high';
 
-      // Draw filter result
-      fCtx.drawImage(fCanvas, 0, 0);
+      fCtx.drawImage(croppedImage, 0, 0, fullW, fullH);
+      applyFilterToCtx(fCtx, fullW, fullH, currentFilter);
 
-      // Overlay markup if any
       var mCanvas = document.getElementById('markupCanvas');
       if (mCanvas.width > 0) {
-        fCtx.drawImage(mCanvas, 0, 0);
+        fCtx.drawImage(mCanvas, 0, 0, fullW, fullH);
       }
 
-      finalCanvas.toBlob(function(blob) {
-        var url = URL.createObjectURL(blob);
-        document.getElementById('finalImage').src = url;
-        processedImage = blob;
-        document.getElementById('step2').classList.add('hidden');
-        document.getElementById('step3').classList.remove('hidden');
-      });
+      if (sigData) {
+        var sigImg = new Image();
+        sigImg.onload = function() {
+          var sW = fullW * 0.4;
+          var sH = sigImg.height * (sW / sigImg.width);
+          var sx = fullW - sW - 20;
+          var sy = fullH - sH - 20;
+          fCtx.drawImage(sigImg, sx, sy, sW, sH);
+          exportResult();
+        };
+        sigImg.src = sigData;
+      } else {
+        exportResult();
+      }
+
+      function exportResult() {
+        finalCanvas.toBlob(function(blob) {
+          var url = URL.createObjectURL(blob);
+          document.getElementById('finalImage').src = url;
+          processedImage = blob;
+          document.getElementById('step2').classList.add('hidden');
+          document.getElementById('step3').classList.remove('hidden');
+        }, 'image/jpeg', 1);
+      }
     }
 
     function uploadScan() {

@@ -623,12 +623,24 @@
       var y2 = Math.round(Math.max(cropRect.y1, cropRect.y2));
       if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('cropError').textContent = 'Crop area too small'; return; }
 
-      var iw = cropImg.width, ih = cropImg.height;
+      // If no rotation and crop is full image (within small margin), use original file
       var cw = canvas.width, ch = canvas.height;
+      var isDefaultCrop = (cropRotation === 0 && x1 <= 15 && y1 <= 15 && x2 >= cw - 15 && y2 >= ch - 15);
+      if (isDefaultCrop) {
+        enhancedFiles[cropFileName] = cropOrigFile;
+        document.getElementById('cropModal').classList.add('hidden');
+        document.getElementById('cropModal').style.display = 'none';
+        cropIndex++;
+        startCropItem();
+        return;
+      }
+
+      var iw = cropImg.width, ih = cropImg.height;
 
       // Build full-resolution rotated version of cropImg
       var fullC = document.createElement('canvas');
       var fCtx = fullC.getContext('2d');
+      fCtx.imageSmoothingQuality = 'high';
       if (Math.abs(cropRotation) % 180 !== 0) { fullC.width = ih; fullC.height = iw; }
       else { fullC.width = iw; fullC.height = ih; }
       fCtx.save();
@@ -645,7 +657,9 @@
 
       var outC = document.createElement('canvas');
       outC.width = fw; outC.height = fh;
-      outC.getContext('2d').drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
+      var oCtx = outC.getContext('2d');
+      oCtx.imageSmoothingQuality = 'high';
+      oCtx.drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
       var ext = cropFileName.split('.').pop();
       var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
       outC.toBlob(function(blob) {
@@ -655,7 +669,7 @@
         document.getElementById('cropModal').style.display = 'none';
         cropIndex++;
         startCropItem();
-      }, mime, mime === 'image/jpeg' ? 0.95 : undefined);
+      }, mime, 1);
     }
     // ---- End crop functions ----
 
