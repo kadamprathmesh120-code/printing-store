@@ -130,7 +130,6 @@
           <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="rotateCrop(-90)">↺</button>
           <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="autoCropEdge()">Auto</button>
           <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="rotateCrop(90)">↻</button>
-          <button style="background:#1a73e8;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="magicCropImage()">✨ Magic</button>
           <button style="background:#28a745;font-weight:700;padding:10px 20px;border:none;color:white;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="confirmCrop()">✓ Crop</button>
         </div>
         <div id="cropError" style="color:#dc3545;text-align:center;font-size:0.85em;"></div>
@@ -144,7 +143,6 @@
     let currentFilePages = {};
     let currentLang = localStorage.getItem('lang') || 'en';
     let enhancedFiles = {};
-    let magicPendingFile = null;
     let cropQueue = [];
     let cropIndex = 0;
     let cropRotation = 0;
@@ -206,13 +204,6 @@
         filesLabel: 'Files',
         pg: 'pg',
         sheets: 'sheets',
-        magicTitle: 'Magic Color Enhancement',
-        magicDesc: 'Auto-enhanced colors, brightness, contrast & sharpness.',
-        beforeLabel: 'Original',
-        afterLabel: 'Enhanced',
-        applyEnhance: 'Apply Enhancement',
-        keepOriginal: 'Keep Original',
-        magicBtn: '✨ Magic Color'
       },
       mr: {
         storeName: '\u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u094D\u091F\u094B\u0930',
@@ -264,13 +255,6 @@
         filesLabel: '\u092B\u093E\u092F\u0932',
         pg: '\u092A\u0947\u091C',
         sheets: '\u0936\u0940\u091F',
-        magicTitle: '\u092E\u0947\u091C\u093F\u0915 \u0915\u0932\u0930 \u0935\u0930\u094D\u0927\u0928',
-        magicDesc: '\u0930\u0902\u0917, \u092C\u094D\u0930\u093E\u0907\u091F\u0928\u0947\u0938, \u0915\u0902\u091F\u094D\u0930\u093E\u0938\u094D\u091F \u0906\u0923\u093F \u0936\u093E\u0930\u094D\u092A\u0928\u0947\u0938 \u0911\u091F\u094B-\u0935\u0930\u094D\u0927\u093F\u0924.',
-        beforeLabel: '\u092E\u0942\u0933',
-        afterLabel: '\u0935\u0930\u094D\u0927\u093F\u0924',
-        applyEnhance: '\u0935\u0930\u094D\u0927\u0928 \u0932\u093E\u0917\u0942 \u0915\u0930\u093E',
-        keepOriginal: '\u092E\u0942\u0933 \u0920\u0947\u0935\u093E',
-        magicBtn: '\u2728 \u092E\u0947\u091C\u093F\u0915 \u0915\u0932\u0930'
       }
     };
 
@@ -346,20 +330,12 @@
           pages = '<input type="number" min="1" value="1" style="width:60px;padding:4px;border:1px solid #ddd;border-radius:4px;" data-fname="' + f.name + '" class="page-input" onchange="updatePageCount(this)">';
         }
         var typeLabel = isPdf ? 'PDF' : isImage ? 'Image' : 'Doc';
-        var isCropped = enhancedFiles[f.name] ? true : false;
-        var magicBtn = '';
-        if (isImage) {
-          if (isCropped) {
-            magicBtn = '<span style="color:#1a73e8;font-size:0.75em;font-weight:600;margin-left:4px;">✨ Cropped</span>';
-          } else {
-            magicBtn = '<button class="btn btn-sm btn-secondary" onclick="openMagicColor(\'' + f.name.replace(/'/g, "\\'") + '\')" style="font-size:0.75em;padding:4px 8px;margin-left:6px;width:auto;display:inline-block;">✨ <span data-i18n="magicBtn">Magic Color</span></button>';
-          }
-        }
+        var croppedBadge = (isImage && enhancedFiles[f.name]) ? '<span style="color:#1a73e8;font-size:0.75em;font-weight:600;margin-left:4px;">Cropped</span>' : '';
 
         fileList.innerHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:0.9em;border-bottom:1px solid #f0f0f0;">' +
           '<span style="flex:1;word-break:break-all;padding-right:8px;">' + f.name + '</span>' +
           '<span style="white-space:nowrap;color:#888;font-size:0.85em;margin:0 8px;">' + typeLabel + '</span>' +
-          '<span style="white-space:nowrap;">' + pages + ' <span data-i18n="pg">pg</span>' + magicBtn + '</span>' +
+          '<span style="white-space:nowrap;">' + pages + ' <span data-i18n="pg">pg</span>' + croppedBadge + '</span>' +
           '</div>';
         if (isPdf) currentFilePages[f.name] = 'auto';
         else if (isImage) currentFilePages[f.name] = 1;
@@ -637,81 +613,49 @@
       }
     }
 
-    function magicCropImage() {
-      var canvas = document.createElement('canvas');
-      var ctx = canvas.getContext('2d');
-      canvas.width = cropImg.width;
-      canvas.height = cropImg.height;
-      ctx.drawImage(cropImg, 0, 0);
-      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      var d = imageData.data, len = d.length;
 
-      var rSum = 0, gSum = 0, bSum = 0;
-      for (var i = 0; i < len; i += 4) { rSum += d[i]; gSum += d[i+1]; bSum += d[i+2]; }
-      var count = len / 4, avg = (rSum + gSum + bSum) / count / 3;
-      var rG = avg / (rSum / count), bG = avg / (bSum / count);
-
-      for (var i = 0; i < len; i += 4) {
-        var r = d[i] * rG, g = d[i+1], b = d[i+2] * bG;
-        r = (r - 128) * 1.15 + 128; g = (g - 128) * 1.15 + 128; b = (b - 128) * 1.15 + 128;
-        var gray = (r + g + b) / 3;
-        r = gray + (r - gray) * 1.2; g = gray + (g - gray) * 1.2; b = gray + (b - gray) * 1.2;
-        d[i] = Math.max(0, Math.min(255, r * 1.05));
-        d[i+1] = Math.max(0, Math.min(255, g * 1.05));
-        d[i+2] = Math.max(0, Math.min(255, b * 1.05));
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      var w = canvas.width, h = canvas.height;
-      var sharpData = ctx.getImageData(0, 0, w, h);
-      var sd = sharpData.data, copy = new Uint8ClampedArray(sd);
-      for (var y = 1; y < h - 1; y++) {
-        for (var x = 1; x < w - 1; x++) {
-          var idx = (y * w + x) * 4;
-          for (var c = 0; c < 3; c++) {
-            sd[idx + c] = Math.max(0, Math.min(255,
-              -copy[((y-1)*w + x)*4 + c] - copy[(y*w + (x-1))*4 + c] + 5*copy[(y*w + x)*4 + c]
-              - copy[(y*w + (x+1))*4 + c] - copy[((y+1)*w + x)*4 + c]));
-          }
-        }
-      }
-      ctx.putImageData(sharpData, 0, 0);
-
-      canvas.toBlob(function(blob) {
-        var img = new Image();
-        img.onload = function() {
-          cropImg = img;
-          canvas.width = document.getElementById('cropCanvas').width;
-          canvas.height = document.getElementById('cropCanvas').height;
-          drawCropCanvas();
-          document.getElementById('cropError').textContent = '✨ Magic Color applied';
-        };
-        img.src = URL.createObjectURL(blob);
-      });
-    }
 
     function confirmCrop() {
       var canvas = document.getElementById('cropCanvas');
-      var ctx = canvas.getContext('2d');
       var x1 = Math.round(Math.min(cropRect.x1, cropRect.x2));
       var y1 = Math.round(Math.min(cropRect.y1, cropRect.y2));
       var x2 = Math.round(Math.max(cropRect.x1, cropRect.x2));
       var y2 = Math.round(Math.max(cropRect.y1, cropRect.y2));
       if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('cropError').textContent = 'Crop area too small'; return; }
 
+      var iw = cropImg.width, ih = cropImg.height;
+      var cw = canvas.width, ch = canvas.height;
+
+      // Build full-resolution rotated version of cropImg
+      var fullC = document.createElement('canvas');
+      var fCtx = fullC.getContext('2d');
+      if (Math.abs(cropRotation) % 180 !== 0) { fullC.width = ih; fullC.height = iw; }
+      else { fullC.width = iw; fullC.height = ih; }
+      fCtx.save();
+      fCtx.translate(fullC.width / 2, fullC.height / 2);
+      fCtx.rotate(cropRotation * Math.PI / 180);
+      fCtx.drawImage(cropImg, -iw / 2, -ih / 2, iw, ih);
+      fCtx.restore();
+
+      // Scale crop rect from canvas space to full-res space
+      var sx = fullC.width / cw, sy = fullC.height / ch;
+      var fx1 = Math.round(x1 * sx), fy1 = Math.round(y1 * sy);
+      var fx2 = Math.round(x2 * sx), fy2 = Math.round(y2 * sy);
+      var fw = fx2 - fx1, fh = fy2 - fy1;
+
       var outC = document.createElement('canvas');
-      outC.width = x2 - x1; outC.height = y2 - y1;
-      outC.getContext('2d').drawImage(canvas, x1, y1, x2 - x1, y2 - y1, 0, 0, x2 - x1, y2 - y1);
+      outC.width = fw; outC.height = fh;
+      outC.getContext('2d').drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
+      var ext = cropFileName.split('.').pop();
+      var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
       outC.toBlob(function(blob) {
-        var ext = cropFileName.split('.').pop();
-        var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
         var cf = new File([blob], cropFileName, { type: mime });
         enhancedFiles[cropFileName] = cf;
         document.getElementById('cropModal').classList.add('hidden');
         document.getElementById('cropModal').style.display = 'none';
         cropIndex++;
         startCropItem();
-      });
+      }, mime, mime === 'image/jpeg' ? 0.95 : undefined);
     }
     // ---- End crop functions ----
 
@@ -743,114 +687,7 @@
       document.getElementById(id).classList.remove('hidden');
     }
 
-    function openMagicColor(fileName) {
-      var files = document.getElementById('fileInput').files;
-      var file = null;
-      for (var i = 0; i < files.length; i++) {
-        if (files[i].name === fileName) { file = files[i]; break; }
-      }
-      if (!file) return;
-      magicPendingFile = fileName;
-      var img = new Image();
-      img.onload = function() {
-        document.getElementById('magicOriginal').src = img.src;
-        var canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        var data = imageData.data;
-        var len = data.length;
 
-        var rSum = 0, gSum = 0, bSum = 0;
-        for (var i = 0; i < len; i += 4) {
-          rSum += data[i]; gSum += data[i+1]; bSum += data[i+2];
-        }
-        var count = len / 4;
-        var avg = (rSum + gSum + bSum) / count / 3;
-        var rGain = avg / (rSum / count);
-        var gGain = avg / (gSum / count);
-        var bGain = avg / (bSum / count);
-
-        for (var i = 0; i < len; i += 4) {
-          var r = data[i] * rGain;
-          var g = data[i+1] * gGain;
-          var b = data[i+2] * bGain;
-          r = (r - 128) * 1.15 + 128;
-          g = (g - 128) * 1.15 + 128;
-          b = (b - 128) * 1.15 + 128;
-          var gray = (r + g + b) / 3;
-          r = gray + (r - gray) * 1.2;
-          g = gray + (g - gray) * 1.2;
-          b = gray + (b - gray) * 1.2;
-          r *= 1.05; g *= 1.05; b *= 1.05;
-          data[i] = Math.max(0, Math.min(255, r));
-          data[i+1] = Math.max(0, Math.min(255, g));
-          data[i+2] = Math.max(0, Math.min(255, b));
-        }
-        ctx.putImageData(imageData, 0, 0);
-
-        var copyData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        var copy = copyData.data;
-        var sharpened = new Uint8ClampedArray(copy);
-        for (var y = 1; y < canvas.height - 1; y++) {
-          for (var x = 1; x < canvas.width - 1; x++) {
-            var idx = (y * canvas.width + x) * 4;
-            for (var c = 0; c < 3; c++) {
-              var v = -copy[((y-1)*canvas.width + x)*4 + c]
-                     -copy[(y*canvas.width + (x-1))*4 + c]
-                     + 5*copy[(y*canvas.width + x)*4 + c]
-                     -copy[(y*canvas.width + (x+1))*4 + c]
-                     -copy[((y+1)*canvas.width + x)*4 + c];
-              sharpened[idx + c] = Math.max(0, Math.min(255, v));
-            }
-          }
-        }
-        ctx.putImageData(new ImageData(sharpened, canvas.width, canvas.height), 0, 0);
-
-        var enhancedSrc = canvas.toDataURL('image/jpeg', 0.95);
-        document.getElementById('magicEnhanced').src = enhancedSrc;
-        document.getElementById('magicModal').classList.remove('hidden');
-        document.getElementById('magicModal').style.display = 'flex';
-        document.getElementById('magicError').textContent = '';
-      };
-      img.src = URL.createObjectURL(file);
-    }
-
-    function closeMagicModal() {
-      document.getElementById('magicModal').classList.add('hidden');
-      document.getElementById('magicModal').style.display = 'none';
-      magicPendingFile = null;
-    }
-
-    function applyMagicColor() {
-      var enhancedImg = document.getElementById('magicEnhanced');
-      if (!enhancedImg.src || !magicPendingFile) return;
-      fetch(enhancedImg.src)
-        .then(function(r) { return r.blob(); })
-        .then(function(blob) {
-          var ext = magicPendingFile.split('.').pop();
-          var mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-          var enhancedFile = new File([blob], magicPendingFile, { type: mime });
-          enhancedFiles[magicPendingFile] = enhancedFile;
-          var rows = document.getElementById('fileList').querySelectorAll('div');
-          for (var i = 0; i < rows.length; i++) {
-            if (rows[i].textContent.indexOf(magicPendingFile) !== -1) {
-              var badge = document.createElement('span');
-              badge.className = 'enhanced-badge';
-              badge.textContent = '✨ Enhanced';
-              badge.style.cssText = 'color:#1a73e8;font-size:0.75em;font-weight:600;margin-left:4px;';
-              rows[i].querySelector('span:last-child').appendChild(badge);
-              break;
-            }
-          }
-          closeMagicModal();
-        })
-        .catch(function() {
-          document.getElementById('magicError').textContent = 'Enhancement failed. Try again.';
-        });
-    }
 
     function uploadFiles() {
       var name = document.getElementById('customerName').value.trim();

@@ -110,7 +110,6 @@
       { id: 'original', label: 'Original' },
       { id: 'noShadow', label: 'No Shadow' },
       { id: 'lighten', label: 'Lighten' },
-      { id: 'magic', label: 'Magic Color' },
       { id: 'grayscale', label: 'Grayscale' },
       { id: 'bw', label: 'B&W' }
     ];
@@ -419,7 +418,6 @@
 
     function confirmCrop() {
       var canvas = document.getElementById('cropCanvas');
-      var ctx = canvas.getContext('2d');
       var x1 = Math.round(Math.min(cropRect.x1, cropRect.x2));
       var y1 = Math.round(Math.min(cropRect.y1, cropRect.y2));
       var x2 = Math.round(Math.max(cropRect.x1, cropRect.x2));
@@ -427,11 +425,29 @@
 
       if (x2 - x1 < 10 || y2 - y1 < 10) { alert('Crop area too small'); return; }
 
+      var cw = canvas.width, ch = canvas.height;
+      var iw = originalImage.width, ih = originalImage.height;
+
+      // Build full-resolution rotated version of originalImage
+      var fullC = document.createElement('canvas');
+      var fCtx = fullC.getContext('2d');
+      if (Math.abs(rotation) % 180 !== 0) { fullC.width = ih; fullC.height = iw; }
+      else { fullC.width = iw; fullC.height = ih; }
+      fCtx.save();
+      fCtx.translate(fullC.width / 2, fullC.height / 2);
+      fCtx.rotate(rotation * Math.PI / 180);
+      fCtx.drawImage(originalImage, -iw / 2, -ih / 2, iw, ih);
+      fCtx.restore();
+
+      // Scale crop rect to full-res space
+      var sx = fullC.width / cw, sy = fullC.height / ch;
+      var fx1 = Math.round(x1 * sx), fy1 = Math.round(y1 * sy);
+      var fx2 = Math.round(x2 * sx), fy2 = Math.round(y2 * sy);
+      var fw = fx2 - fx1, fh = fy2 - fy1;
+
       var cropCanvas = document.createElement('canvas');
-      cropCanvas.width = x2 - x1;
-      cropCanvas.height = y2 - y1;
-      var cropCtx = cropCanvas.getContext('2d');
-      cropCtx.drawImage(canvas, x1, y1, x2 - x1, y2 - y1, 0, 0, x2 - x1, y2 - y1);
+      cropCanvas.width = fw; cropCanvas.height = fh;
+      cropCanvas.getContext('2d').drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
 
       cropCanvas.toBlob(function(blob) {
         var img = new Image();
@@ -509,45 +525,6 @@
             d[i+1] = Math.min(255, d[i+1] * 1.3 + 20);
             d[i+2] = Math.min(255, d[i+2] * 1.3 + 20);
           }
-        } else if (filterId === 'magic') {
-          var len = d.length, rSum = 0, gSum = 0, bSum = 0;
-          for (var i = 0; i < len; i += 4) {
-            rSum += d[i]; gSum += d[i+1]; bSum += d[i+2];
-          }
-          var count = len / 4, avg = (rSum + gSum + bSum) / count / 3;
-          var rG = avg / (rSum / count), bG = avg / (bSum / count);
-          for (var i = 0; i < len; i += 4) {
-            var r = d[i] * rG, g = d[i+1], b = d[i+2] * bG;
-            r = (r - 128) * 1.15 + 128;
-            g = (g - 128) * 1.15 + 128;
-            b = (b - 128) * 1.15 + 128;
-            var gray = (r + g + b) / 3;
-            r = gray + (r - gray) * 1.2;
-            g = gray + (g - gray) * 1.2;
-            b = gray + (b - gray) * 1.2;
-            d[i] = Math.max(0, Math.min(255, r * 1.05));
-            d[i+1] = Math.max(0, Math.min(255, g * 1.05));
-            d[i+2] = Math.max(0, Math.min(255, b * 1.05));
-          }
-          ctx.putImageData(imageData, 0, 0);
-          var sharpData = ctx.getImageData(0, 0, w, h);
-          var sd = sharpData.data;
-          var copy = new Uint8ClampedArray(sd);
-          for (var y = 1; y < h - 1; y++) {
-            for (var x = 1; x < w - 1; x++) {
-              var idx = (y * w + x) * 4;
-              for (var c = 0; c < 3; c++) {
-                sd[idx + c] = Math.max(0, Math.min(255,
-                  -copy[((y-1)*w + x)*4 + c]
-                  -copy[(y*w + (x-1))*4 + c]
-                  + 5*copy[(y*w + x)*4 + c]
-                  -copy[(y*w + (x+1))*4 + c]
-                  -copy[((y+1)*w + x)*4 + c]
-                ));
-              }
-            }
-          }
-          ctx.putImageData(sharpData, 0, 0);
         } else if (filterId === 'grayscale') {
           for (var i = 0; i < d.length; i += 4) {
             var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
@@ -581,12 +558,6 @@
           d[i] = Math.min(255, d[i] * 1.3 + 20);
           d[i+1] = Math.min(255, d[i+1] * 1.3 + 20);
           d[i+2] = Math.min(255, d[i+2] * 1.3 + 20);
-        }
-      } else if (filterId === 'magic') {
-        for (var i = 0; i < d.length; i += 4) {
-          d[i] = Math.max(0, Math.min(255, (d[i] - 128) * 1.2 + 128));
-          d[i+1] = Math.max(0, Math.min(255, (d[i+1] - 128) * 1.2 + 128));
-          d[i+2] = Math.max(0, Math.min(255, (d[i+2] - 128) * 1.2 + 128));
         }
       } else if (filterId === 'grayscale') {
         for (var i = 0; i < d.length; i += 4) {
