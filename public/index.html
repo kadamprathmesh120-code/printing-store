@@ -129,6 +129,7 @@
           <label data-i18n="copiesLabel">Copies</label>
           <input type="number" id="idCopiesInput" class="copies-input" value="1" min="1" max="999">
         </div>
+        <button class="btn btn-primary" style="margin-top:10px;width:100%;" onclick="openPrintPreview()" data-i18n="previewBtn">📄 Preview on A4</button>
       </div>
 
       <div class="form-group">
@@ -242,6 +243,19 @@
       </div>
     </div>
 
+    <!-- Print Preview -->
+    <div id="previewModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;">
+      <div style="background:#1a1a2e;border-radius:12px;padding:16px;max-width:520px;width:92%;color:white;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-bottom:8px;" data-i18n="printPreview">Print Preview</h3>
+        <div style="text-align:center;margin-bottom:10px;">
+          <canvas id="previewCanvas" style="max-width:100%;border-radius:4px;"></canvas>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+          <button style="background:#16213e;border:none;color:#aaa;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="document.getElementById('previewModal').classList.add('hidden');document.getElementById('previewModal').style.display='none';">Close</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -330,6 +344,8 @@
         sizeFull: 'Full Page',
         sizeHalf: 'Half Page',
         sizeCard: 'Card Size',
+        previewBtn: '\uD83D\uDCC4 Preview on A4',
+        printPreview: 'Print Preview',
       },
       mr: {
         storeName: '\u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u094D\u091F\u094B\u0930',
@@ -400,6 +416,8 @@
         sizeFull: '\u092A\u0942\u0930\u094D\u0923 \u092A\u093E\u0928',
         sizeHalf: '\u0905\u0930\u094D\u0927 \u092A\u093E\u0928',
         sizeCard: '\u0915\u093E\u0930\u094D\u0921 \u0906\u0915\u093E\u0930',
+        previewBtn: '\u092A\u094D\u0930\u093F\u0902\u091F \u092A\u0942\u0930\u094D\u0935\u093E\u0935\u0932\u094B\u0915\u0928',
+        printPreview: '\u092A\u094D\u0930\u093F\u0902\u091F \u092A\u0942\u0930\u094D\u0935\u093E\u0935\u0932\u094B\u0915\u0928',
       }
     };
 
@@ -900,6 +918,124 @@
       cropRect.y2 = Math.min(canvas.height, Math.round(cy + newH / 2));
       sel.value = '';
       drawCropCanvas();
+    }
+
+    function openPrintPreview() {
+      var frontImg = document.getElementById('frontThumb');
+      if (!frontImg || !frontImg.src || frontImg.src === '') return;
+      var canvas = document.getElementById('previewCanvas');
+      var modal = document.getElementById('previewModal');
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+
+      var scale = parseFloat(document.querySelector('input[name="idPrintSize"]:checked').value) || 1;
+      var layout = document.querySelector('input[name="idLayout"]:checked').value;
+      var copies = parseInt(document.getElementById('idCopiesInput').value) || 1;
+      var hasBack = idBackCropped && !document.getElementById('singleSidedCheck').checked;
+
+      var dpr = window.devicePixelRatio || 1;
+      var pw = 420, ph = 594;
+      var cardPad = 16;
+
+      var pages = [];
+      if (hasBack && layout === 'same') {
+        pages.push({ front: frontImg, back: document.getElementById('backThumb') });
+      } else {
+        pages.push({ front: frontImg });
+        if (hasBack) pages.push({ front: document.getElementById('backThumb') });
+      }
+
+      var totalW = pw + cardPad * 2;
+      var pageAreaH = pages.length * ph + (pages.length - 1) * 20 + cardPad * 2;
+      canvas.width = Math.round(totalW * dpr);
+      canvas.height = Math.round(pageAreaH * dpr);
+      canvas.style.width = totalW + 'px';
+      canvas.style.height = pageAreaH + 'px';
+
+      var ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = '#2a2a3e';
+      ctx.fillRect(0, 0, totalW, pageAreaH);
+
+      for (var p = 0; p < pages.length; p++) {
+        var pageX = cardPad, pageY = cardPad + p * (ph + 20);
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        var r = 4;
+        ctx.moveTo(pageX + r, pageY);
+        ctx.lineTo(pageX + pw - r, pageY);
+        ctx.arcTo(pageX + pw, pageY, pageX + pw, pageY + r, r);
+        ctx.lineTo(pageX + pw, pageY + ph - r);
+        ctx.arcTo(pageX + pw, pageY + ph, pageX + pw - r, pageY + ph, r);
+        ctx.lineTo(pageX + r, pageY + ph);
+        ctx.arcTo(pageX, pageY + ph, pageX, pageY + ph - r, r);
+        ctx.lineTo(pageX, pageY + r);
+        ctx.arcTo(pageX, pageY, pageX + r, pageY, r);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Draw card on page
+        var drawCard = function(img, cx, cy, cw, ch) {
+          if (!img || !img.src) return;
+          var iw = img.naturalWidth, ih = img.naturalHeight;
+          if (!iw || !ih) return;
+          var imgRatio = iw / ih;
+          var drawW = cw * scale, drawH = drawW / imgRatio;
+          if (drawH > ch * scale) { drawH = ch * scale; drawW = drawH * imgRatio; }
+          var dx = cx - drawW / 2, dy = cy - drawH / 2;
+          ctx.drawImage(img, dx + pageX, dy + pageY, drawW, drawH);
+        };
+
+        var page = pages[p];
+        var cardAreaW = pw - 24, cardAreaH = ph - 24;
+        if (page.front && page.back && layout === 'same') {
+          var halfW = (cardAreaW - 8) / 2;
+          drawCard(page.front, 12 + halfW / 2, ph / 2, halfW, cardAreaH);
+          drawCard(page.back, 12 + halfW + 8 + halfW / 2, ph / 2, halfW, cardAreaH);
+          ctx.fillStyle = 'rgba(0,0,0,0.06)';
+          ctx.fillRect(pageX + 12 + halfW + 4, pageY + 8, 1, cardAreaH);
+          ctx.fillStyle = '#888';
+          ctx.font = '10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Front', pageX + 12 + halfW / 2, pageY + ph - 6);
+          ctx.fillText('Back', pageX + 12 + halfW + 8 + halfW / 2, pageY + ph - 6);
+        } else {
+          drawCard(page.front, pw / 2, ph / 2, cardAreaW, cardAreaH);
+        }
+
+        // Copies badge
+        if (copies > 1) {
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.beginPath();
+          var bx = pageX + pw - 52, by = pageY + 8, bw = 44, bh = 20, br = 10;
+          ctx.moveTo(bx + br, by);
+          ctx.lineTo(bx + bw - br, by);
+          ctx.arcTo(bx + bw, by, bx + bw, by + br, br);
+          ctx.lineTo(bx + bw, by + bh - br);
+          ctx.arcTo(bx + bw, by + bh, bx + bw - br, by + bh, br);
+          ctx.lineTo(bx + br, by + bh);
+          ctx.arcTo(bx, by + bh, bx, by + bh - br, br);
+          ctx.lineTo(bx, by + br);
+          ctx.arcTo(bx, by, bx + br, by, br);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('x' + copies, pageX + pw - 30, pageY + 18);
+        }
+
+        // A4 label
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('A4', pageX + 6, pageY + ph - 4);
+      }
     }
 
     function confirmCrop() {
