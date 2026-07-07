@@ -97,7 +97,8 @@ app.post('/api/upload', (req, res) => {
 
         if (!pages || pages < 1) pages = 1;
 
-        const price = printType === 'bw' ? pages * 5 : pages * 10;
+        const sheets = printSide === 'both' ? Math.ceil(pages / 2) : pages;
+        const price = printType === 'bw' ? sheets * 5 : sheets * 10;
         const id = uuidv4();
 
         stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus);
@@ -106,6 +107,7 @@ app.post('/api/upload', (req, res) => {
           orderId: id,
           price,
           pageCount: pages,
+          sheets,
           fileName: file.originalname
         });
         totalPrice += price;

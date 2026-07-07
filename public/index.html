@@ -172,7 +172,8 @@
         rejected: 'Rejected',
         rejectedMsg: 'Sorry, some orders were rejected. Contact the store.',
         filesLabel: 'Files',
-        pg: 'pg'
+        pg: 'pg',
+        sheets: 'sheets'
       },
       mr: {
         storeName: '\u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u094D\u091F\u094B\u0930',
@@ -222,7 +223,8 @@
         rejected: '\u0928\u093E\u092E\u0902\u091C\u0942\u0930',
         rejectedMsg: '\u0915\u094D\u0937\u092E\u093E \u0915\u0930\u093E, \u0915\u093E\u0939\u0940 \u0911\u0930\u094D\u0921\u0930 \u0928\u093E\u092E\u0902\u091C\u0942\u0930 \u091D\u093E\u0932\u0947. \u0938\u094D\u091F\u094B\u0930\u0936\u0940 \u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u093E.',
         filesLabel: '\u092B\u093E\u092F\u0932',
-        pg: '\u092A\u0947\u091C'
+        pg: '\u092A\u0947\u091C',
+        sheets: '\u0936\u0940\u091F'
       }
     };
 
@@ -367,10 +369,12 @@
           }
 
           var orderHtml = '';
+          var unitLabel = data.printSide === 'Both Sides' ? t('sheets') : t('pg');
           data.orders.forEach(function(o) {
+            var count = data.printSide === 'Both Sides' ? o.sheets : o.pageCount;
             orderHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.9em;">' +
               '<span style="flex:1;word-break:break-all;padding-right:8px;">' + o.fileName + '</span>' +
-              '<span>' + o.pageCount + ' ' + t('pg') + '</span>' +
+              '<span>' + count + ' ' + unitLabel + '</span>' +
               '<span style="font-weight:600;margin-left:12px;">\u20B9' + o.price + '</span>' +
               '</div>';
           });
