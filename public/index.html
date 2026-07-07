@@ -949,13 +949,13 @@
           var totalPrice = results.reduce(function(s, r) { return s + r.price; }, 0);
           var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:8px;">\u2713 ' + results.length + ' ID Copy uploaded</div>';
           if (a4ImgSrc) previewHtml += '<div style="text-align:center;margin-bottom:12px;"><div style="display:inline-block;background:white;border-radius:6px;padding:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1);"><img src="' + a4ImgSrc + '" style="max-width:280px;width:100%;height:auto;border-radius:3px;"></div></div>';
-          previewHtml += '<div style="text-align:center;margin-top:12px;"><button class="btn btn-primary" onclick="idcClear();showStep(\'stepUpload\');document.getElementById(\'stepPricePayment\').classList.remove(\'hidden\');document.getElementById(\'btnUpload\').disabled=false;" style="width:auto;padding:10px 24px;">Upload New</button></div>';
           document.getElementById('summaryOrders').innerHTML = previewHtml;
           document.getElementById('summaryName').textContent = name;
           document.getElementById('summaryType').textContent = printType === 'bw' ? 'B&W' : 'Color';
           document.getElementById('summarySide').textContent = 'ID Copy 86×54';
           document.getElementById('summaryPrice').textContent = '₹' + totalPrice;
-          document.getElementById('stepPricePayment').classList.add('hidden');
+          document.getElementById('stepPricePayment').classList.remove('hidden');
+          togglePaymentMethod();
           btn.disabled = false; btn.textContent = 'Upload & Print';
           showStep('stepPrice');
         })
