@@ -220,18 +220,25 @@
 
     <!-- Crop Modal -->
     <div id="cropModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;">
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;max-width:500px;width:90%;color:white;">
-        <h3 style="margin-bottom:12px;">Crop Image <span id="cropProgress" style="font-size:0.8em;color:#aaa;"></span></h3>
-        <div style="border-radius:8px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:60vh;">
-          <canvas id="cropCanvas" style="max-width:100%;max-height:60vh;"></canvas>
+      <div style="background:#1a1a2e;border-radius:12px;padding:16px;max-width:520px;width:92%;color:white;">
+        <h3 style="margin-bottom:8px;">Crop <span id="cropProgress" style="font-size:0.8em;color:#aaa;"></span></h3>
+        <div style="border-radius:8px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:55vh;">
+          <canvas id="cropCanvas" style="max-width:100%;max-height:55vh;"></canvas>
         </div>
-        <div style="display:flex;justify-content:center;gap:12px;padding:12px;flex-wrap:wrap;">
-          <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="rotateCrop(-90)">↺</button>
-          <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="autoCropEdge()">Auto</button>
-          <button style="background:#16213e;border:none;color:white;padding:10px 14px;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="rotateCrop(90)">↻</button>
-          <button style="background:#28a745;font-weight:700;padding:10px 20px;border:none;color:white;border-radius:8px;font-size:0.9em;cursor:pointer;" onclick="confirmCrop()">✓ Crop</button>
+        <div style="display:flex;justify-content:center;gap:8px;padding:8px 0;flex-wrap:wrap;">
+          <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="rotateCrop(-90)">↺</button>
+          <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="autoCropEdge()">Auto</button>
+          <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="rotateCrop(90)">↻</button>
+          <select id="cropPreset" style="background:#16213e;color:white;border:none;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onchange="applyCropPreset(this)">
+            <option value="">Card Preset</option>
+            <option value="aadhaar">Aadhaar</option>
+            <option value="pan">PAN</option>
+            <option value="voter">Voter ID</option>
+            <option value="passport">Passport</option>
+          </select>
+          <button style="background:#28a745;font-weight:700;padding:8px 18px;border:none;color:white;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="confirmCrop()">✓ Crop</button>
         </div>
-        <div id="cropError" style="color:#dc3545;text-align:center;font-size:0.85em;"></div>
+        <div id="cropError" style="color:#dc3545;text-align:center;font-size:0.8em;"></div>
       </div>
     </div>
 
@@ -754,7 +761,115 @@
       }
     }
 
+    function smartFindCard(cardRatio) {
+      var canvas = document.getElementById('cropCanvas');
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width, h = canvas.height;
+      var imageData = ctx.getImageData(0, 0, w, h);
+      var data = imageData.data;
 
+      var gray = new Float32Array(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var idx = y * w + x;
+          gray[idx] = data[idx * 4] * 0.299 + data[idx * 4 + 1] * 0.587 + data[idx * 4 + 2] * 0.114;
+        }
+      }
+
+      var blurred = new Float32Array(w * h);
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          blurred[y * w + x] = (gray[(y-1)*w + x-1] + gray[(y-1)*w + x] + gray[(y-1)*w + x+1] +
+                                gray[y*w + x-1]     + gray[y*w + x]     + gray[y*w + x+1] +
+                                gray[(y+1)*w + x-1] + gray[(y+1)*w + x] + gray[(y+1)*w + x+1]) / 9;
+        }
+      }
+
+      var edges = new Float32Array(w * h), maxEdge = 0;
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          var gx = -blurred[(y-1)*w + x-1] + blurred[(y-1)*w + x+1] - 2*blurred[y*w + x-1] + 2*blurred[y*w + x+1] - blurred[(y+1)*w + x-1] + blurred[(y+1)*w + x+1];
+          var gy = -blurred[(y-1)*w + x-1] - 2*blurred[(y-1)*w + x] - blurred[(y-1)*w + x+1] + blurred[(y+1)*w + x-1] + 2*blurred[(y+1)*w + x] + blurred[(y+1)*w + x+1];
+          edges[y*w + x] = Math.sqrt(gx * gx + gy * gy);
+          if (edges[y*w + x] > maxEdge) maxEdge = edges[y*w + x];
+        }
+      }
+
+      var threshold = maxEdge * 0.15;
+      var margin = Math.round(Math.min(w, h) * 0.08);
+      var searchEnd = Math.round(Math.min(w, h) * 0.92);
+
+      var leftEdge = [], rightEdge = [], topEdge = [], bottomEdge = [];
+      for (var y = margin; y < searchEnd; y++) {
+        var firstX = -1, lastX = -1;
+        for (var x = margin; x < searchEnd; x++) {
+          if (edges[y * w + x] > threshold) {
+            if (firstX < 0) firstX = x;
+            lastX = x;
+          }
+        }
+        if (firstX >= 0 && lastX > firstX && (lastX - firstX) > w * 0.06) {
+          leftEdge.push(firstX); rightEdge.push(lastX);
+        }
+      }
+      for (var x = margin; x < searchEnd; x++) {
+        var firstY = -1, lastY = -1;
+        for (var y = margin; y < searchEnd; y++) {
+          if (edges[y * w + x] > threshold) {
+            if (firstY < 0) firstY = y;
+            lastY = y;
+          }
+        }
+        if (firstY >= 0 && lastY > firstY && (lastY - firstY) > h * 0.06) {
+          topEdge.push(firstY); bottomEdge.push(lastY);
+        }
+      }
+
+      // Use median for robustness
+      var median = function(arr) {
+        var s = arr.slice().sort(function(a,b){return a-b});
+        return s[Math.floor(s.length/2)];
+      };
+      var pct = function(arr, p) {
+        var s = arr.slice().sort(function(a,b){return a-b});
+        return s[Math.floor(s.length * p / 100)];
+      };
+
+      if (leftEdge.length < 3 || topEdge.length < 3) return null;
+      var l = pct(leftEdge, 10), r = pct(rightEdge, 90);
+      var t = pct(topEdge, 10), b = pct(bottomEdge, 90);
+      if (r - l < w * 0.1 || b - t < h * 0.1) return null;
+
+      return { x1: l, y1: t, x2: r, y2: b };
+    }
+
+    function applyCropPreset(sel) {
+      if (!sel.value) return;
+      var ratios = { aadhaar: 85.6/54, pan: 85.6/54, voter: 85.6/54, passport: 125/88 };
+      var cardRatio = ratios[sel.value] || 1.585;
+
+      var auto = smartFindCard(cardRatio);
+      if (auto) {
+        cropRect.x1 = auto.x1; cropRect.y1 = auto.y1;
+        cropRect.x2 = auto.x2; cropRect.y2 = auto.y2;
+      }
+
+      // Constrain to card aspect ratio
+      var cw = cropRect.x2 - cropRect.x1, ch = cropRect.y2 - cropRect.y1;
+      var cx = (cropRect.x1 + cropRect.x2) / 2, cy = (cropRect.y1 + cropRect.y2) / 2;
+      var canvas = document.getElementById('cropCanvas');
+      if (cw / ch > cardRatio) {
+        var newW = cw; var newH = cw / cardRatio;
+      } else {
+        var newH = ch; var newW = ch * cardRatio;
+      }
+      cropRect.x1 = Math.max(0, Math.round(cx - newW / 2));
+      cropRect.y1 = Math.max(0, Math.round(cy - newH / 2));
+      cropRect.x2 = Math.min(canvas.width, Math.round(cx + newW / 2));
+      cropRect.y2 = Math.min(canvas.height, Math.round(cy + newH / 2));
+      sel.value = '';
+      drawCropCanvas();
+    }
 
     function confirmCrop() {
       var canvas = document.getElementById('cropCanvas');
