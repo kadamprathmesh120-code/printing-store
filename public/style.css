@@ -457,6 +457,175 @@ tbody tr:hover {
   color: #444;
 }
 
+/* ID Copy styles */
+.id-copy-badge {
+  display: inline-block;
+  background: #6f42c1;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: 700;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-weight: 600;
+  font-size: 0.9em;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
+.mode-btn:hover {
+  border-color: #1a73e8;
+}
+
+.id-slot {
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+  position: relative;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.id-slot.has-image {
+  border-style: solid;
+  border-color: #28a745;
+}
+
+.id-slot-label {
+  font-weight: 700;
+  font-size: 1em;
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.id-slot .slot-thumb {
+  max-width: 180px;
+  max-height: 180px;
+  border-radius: 8px;
+  margin: 8px 0;
+  border: 1px solid #eee;
+}
+
+.id-slot .slot-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.id-slot .slot-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.id-slot .slot-btn.primary {
+  background: #1a73e8;
+  color: white;
+}
+
+.id-slot .slot-btn.danger {
+  background: #dc3545;
+  color: white;
+}
+
+.id-slot .slot-btn.secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.id-slot input[type="file"] {
+  display: none;
+}
+
+.id-queue-item {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.id-queue-thumbs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.id-queue-thumbs img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid #ddd;
+}
+
+.id-queue-thumbs .thumb-label {
+  font-size: 0.7em;
+  color: #888;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.id-layout-group {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.id-layout-group .radio-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.id-layout-group .radio-box {
+  padding: 8px 10px;
+  font-size: 0.85em;
+}
+
+.copies-input {
+  width: 80px;
+  padding: 8px 10px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1em;
+  text-align: center;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 10px;
