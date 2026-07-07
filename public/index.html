@@ -297,12 +297,10 @@
         var bothLabel = document.querySelector('input[name="printSide"][value="both"]').closest('.radio-label');
         var bothInput = document.querySelector('input[name="printSide"][value="both"]');
         if (this.value === 'color') {
-          bothLabel.style.opacity = '0.4';
-          bothLabel.style.pointerEvents = 'none';
+          bothLabel.classList.add('hidden');
           document.querySelector('input[name="printSide"][value="single"]').checked = true;
         } else {
-          bothLabel.style.opacity = '1';
-          bothLabel.style.pointerEvents = 'auto';
+          bothLabel.classList.remove('hidden');
         }
       });
     });

@@ -78,6 +78,9 @@ app.post('/api/upload', (req, res) => {
       if (!customerName || !printType || !printSide || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
+      if (printType === 'color' && printSide === 'both') {
+        return res.status(400).json({ error: 'Color printing does not support Both Sides' });
+      }
 
       const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
       const stmt = db.prepare(`
