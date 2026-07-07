@@ -75,6 +75,7 @@
               <button class="preview-btn" onclick="idcPreviewZoom(0.1)" title="Zoom In">+</button>
               <button class="preview-btn" onclick="idcPreviewFit()" title="Fit to Page">⤡</button>
               <button class="preview-btn" onclick="idcPreviewOriginal()" title="Original Size">1:1</button>
+              <button class="preview-btn" onclick="idcDownloadPreview()" title="Download Preview" style="font-weight:600;">⬇</button>
             </div>
           </div>
           <div id="idcPreviewWrap" style="overflow:auto;background:#e8e8e8;border-radius:8px;padding:16px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
@@ -778,6 +779,52 @@
       idcPreviewScale = 1;
       document.getElementById('idcA4').style.transform = 'scale(1)';
       document.getElementById('idcPreviewZoomLabel').textContent = '100%';
+    }
+
+    function idcDownloadPreview() {
+      var a4 = document.getElementById('idcA4');
+      var drop = document.getElementById('idcA4Drop');
+      var imgs = drop.querySelectorAll('.idc-preview-img');
+      if (imgs.length === 0) return;
+
+      var scale = 2; // 2x for sharp output
+      var w = Math.round(a4.offsetWidth * scale);
+      var h = Math.round(a4.offsetHeight * scale);
+
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var ctx = c.getContext('2d');
+
+      // White background
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw each preview image
+      imgs.forEach(function(img) {
+        var left = parseFloat(img.style.left) || 0;
+        var top = parseFloat(img.style.top) || 0;
+        var iw = parseFloat(img.style.width) || 0;
+        var ih = parseFloat(img.style.height) || 0;
+        ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
+      });
+
+      // Draw labels
+      var labels = drop.querySelectorAll('.idc-preview-label');
+      labels.forEach(function(lbl) {
+        var left = parseFloat(lbl.style.left) || 0;
+        var top = parseFloat(lbl.style.top) || 0;
+        ctx.font = 'bold ' + (14 * scale) + 'px sans-serif';
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        var tw = ctx.measureText(lbl.textContent).width;
+        ctx.fillRect(left * scale - 4, top * scale - 2, tw + 8, 20 * scale);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(lbl.textContent, left * scale, top * scale + 14 * scale);
+      });
+
+      var link = document.createElement('a');
+      link.download = 'idcard_print_preview.png';
+      link.href = c.toDataURL('image/png');
+      link.click();
     }
 
     var idcFrontImgSrc = '#', idcBackImgSrc = '#';
