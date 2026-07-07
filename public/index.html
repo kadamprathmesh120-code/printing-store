@@ -896,35 +896,11 @@
       var prom = allItems.map(function(item, i) { return uploadOne(item, i); });
       Promise.all(prom)
         .then(function(results) {
-          currentOrderIds = results.map(function(r) { return r.orderId; });
-          var pf = document.getElementById('idcFrontImg').src;
-          var pb = document.getElementById('idcBackImg').src;
-          var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:8px;">\u2713 ' + results.length + ' ID Copy uploaded</div>';
-          previewHtml += '<div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:flex-start;">';
-          if (pf && pf !== '#') {
-            previewHtml += '<div style="background:#fff;border-radius:6px;padding:16px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.12);text-align:center;border:1px solid #e0e0e0;min-width:160px;">';
-            previewHtml += '<div style="font-size:0.75em;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px dashed #ddd;padding-bottom:6px;">Front Side</div>';
-            previewHtml += '<div style="background:#fafafa;border-radius:4px;padding:8px;border:1px solid #eee;">';
-            previewHtml += '<img src="' + pf + '" style="width:140px;height:88px;object-fit:contain;display:block;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.1);">';
-            previewHtml += '</div></div>';
-          }
-          if (pb && pb !== '#') {
-            previewHtml += '<div style="background:#fff;border-radius:6px;padding:16px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.12);text-align:center;border:1px solid #e0e0e0;min-width:160px;">';
-            previewHtml += '<div style="font-size:0.75em;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px dashed #ddd;padding-bottom:6px;">Back Side</div>';
-            previewHtml += '<div style="background:#fafafa;border-radius:4px;padding:8px;border:1px solid #eee;">';
-            previewHtml += '<img src="' + pb + '" style="width:140px;height:88px;object-fit:contain;display:block;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,0.1);">';
-            previewHtml += '</div></div>';
-          }
-          previewHtml += '</div>';
-          document.getElementById('summaryOrders').innerHTML = previewHtml;
-          document.getElementById('summaryName').textContent = name;
-          document.getElementById('summaryType').textContent = printType === 'bw' ? 'Black & White' : 'Color';
-          document.getElementById('summarySide').textContent = 'ID Copy 86×54';
-          var total = results.reduce(function(s, r) { return s + r.price; }, 0);
-          document.getElementById('summaryPrice').textContent = '₹' + total;
-          togglePaymentMethod();
-          showStep('stepPrice');
-          btn.disabled = false; btn.textContent = 'Upload & Print';
+          btn.textContent = '✓ Uploaded';
+          setTimeout(function() {
+            idcClear();
+            btn.disabled = false; btn.textContent = 'Upload & Print';
+          }, 1500);
         })
         .catch(function(err) {
           alert('Upload failed: ' + (err.message || err));
