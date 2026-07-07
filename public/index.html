@@ -385,6 +385,8 @@
     function showCropModal() {
       var canvas = document.getElementById('cropCanvas');
       var modal = document.getElementById('cropModal');
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
       var maxW = Math.min(modal.clientWidth * 0.85, 460);
       var maxH = window.innerHeight * 0.55;
       var w = cropImg.width, h = cropImg.height;
@@ -396,8 +398,6 @@
       drawCropCanvas();
       document.getElementById('cropProgress').textContent = (cropIndex + 1) + '/' + cropQueue.length;
       document.getElementById('cropError').textContent = '';
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
     }
 
     function drawCropCanvas() {
