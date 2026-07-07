@@ -102,7 +102,7 @@
           <button class="btn btn-primary" onclick="idcCrop('front')" disabled id="idcCropFront">Crop Front</button>
           <button class="btn btn-primary" onclick="idcCrop('back')" disabled id="idcCropBack">Crop Back</button>
           <button class="btn btn-secondary" onclick="idcAddMore()" id="idcAddMore">Add More</button>
-          <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn">Upload &amp; Print</button>
+          <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn">Calculate Price</button>
         </div>
       </div>
 
@@ -923,7 +923,7 @@
         });
       }
       var btn = document.getElementById('idcUploadBtn');
-      btn.disabled = true; btn.textContent = 'Uploading...';
+      btn.disabled = true; btn.textContent = 'Calculating...';
 
       var uploadOne = function(item, idx) {
         return new Promise(function(resolve, reject) {
@@ -956,12 +956,12 @@
           document.getElementById('summaryPrice').textContent = '₹' + totalPrice;
           document.getElementById('stepPricePayment').classList.remove('hidden');
           togglePaymentMethod();
-          btn.disabled = false; btn.textContent = 'Upload & Print';
+          btn.disabled = false; btn.textContent = 'Calculate Price';
           showStep('stepPrice');
         })
         .catch(function(err) {
           alert('Upload failed: ' + (err.message || err));
-          btn.disabled = false; btn.textContent = 'Upload & Print';
+          btn.disabled = false; btn.textContent = 'Calculate Price';
         });
     }
 
