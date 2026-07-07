@@ -408,7 +408,9 @@
       ctx.save();
       ctx.translate(w / 2, h / 2);
       ctx.rotate(cropRotation * Math.PI / 180);
-      ctx.drawImage(cropImg, -cropImg.width / 2, -cropImg.height / 2, cropImg.width, cropImg.height);
+      var dw = (Math.abs(cropRotation) % 180 === 0) ? w : h;
+      var dh = (Math.abs(cropRotation) % 180 === 0) ? h : w;
+      ctx.drawImage(cropImg, -dw / 2, -dh / 2, dw, dh);
       ctx.restore();
 
       var x1 = Math.min(cropRect.x1, cropRect.x2);
