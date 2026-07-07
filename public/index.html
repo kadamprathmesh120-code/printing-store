@@ -945,6 +945,7 @@
       var prom = allItems.map(function(item, i) { return uploadOne(item, i); });
       Promise.all(prom)
         .then(function(results) {
+          currentOrderIds = results.map(function(r) { return r.orderId; });
           var a4ImgSrc = idcRenderA4ToImage();
           var totalPrice = results.reduce(function(s, r) { return s + r.price; }, 0);
           var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:8px;">\u2713 ' + results.length + ' ID Copy uploaded</div>';
@@ -1609,11 +1610,21 @@
       if (currentOrderIds.length === 0) return;
       var method = document.querySelector('input[name="paymentMethod"]:checked').value;
       var btn = method === 'paytm' ? document.getElementById('btnPaid') : document.getElementById('btnCashConfirm');
+
+      // ID Copy cash: order already paid on server, skip API call
+      if (method === 'cash' && document.getElementById('summarySide').textContent === 'ID Copy 86×54') {
+        document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+        showStep('stepStatus');
+        updateStatusDisplay('paid');
+        return;
+      }
+
       btn.disabled = true;
       btn.textContent = t('confirming');
 
       var allPaid = currentOrderIds.map(function(id) {
-        return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json(); });
+        return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json();
+        });
       });
 
       Promise.all(allPaid)
