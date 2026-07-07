@@ -79,9 +79,11 @@
             </div>
           </div>
           <div id="idcPreviewWrap" style="overflow:auto;background:#e8e8e8;border-radius:8px;padding:16px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
-            <div id="idcA4" style="width:210mm;min-height:297mm;background:white;box-shadow:0 2px 20px rgba(0,0,0,0.15);position:relative;transform-origin:top center;transition:transform 0.15s;overflow:hidden;">
-              <div id="idcA4Drop" style="position:relative;width:100%;height:297mm;">
-                <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>
+            <div id="idcA4" style="width:100%;max-width:500px;background:white;box-shadow:0 2px 20px rgba(0,0,0,0.15);position:relative;transform-origin:top center;transition:transform 0.15s;">
+              <div id="idcA4Aspect" style="width:100%;aspect-ratio:210/297;">
+                <div id="idcA4Drop" style="position:absolute;inset:0;">
+                  <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>
+                </div>
               </div>
             </div>
           </div>
@@ -629,11 +631,13 @@
         a4.innerHTML = '<div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;">Upload front/back images<br>to see print preview</div>';
         return;
       }
-      var a4W = a4.offsetWidth || 794;
-      var imgW = Math.round((a4W - 36 * 96 / 25.4) * 0.8);
-      var gap = 10 * 96 / 25.4;
-      var topY = 35 * 96 / 25.4;
-      var loaded = 0, total = (hasFront ? 1 : 0) + (hasBack ? 1 : 0);
+      var rect = a4.getBoundingClientRect();
+      var a4W = rect.width;
+      var a4H = rect.height;
+      var marPct = 8; // ~8% margins on each side → ~84% printable width
+      var useW = a4W * (1 - marPct / 100 * 2);
+      var gapPx = a4H * 0.03; // ~3% of page height between images
+      var topPx = a4H * 0.12; // ~12% from top → ~35mm equivalent
 
       function doPlace(src, x, y, w, h) {
         var el = document.createElement('img');
@@ -647,14 +651,13 @@
       }
 
       function placeOne(src, topOff) {
+        var w = useW;
         var tmp = new Image();
         tmp.onload = function() {
-          var w = imgW;
           var h = tmp.naturalHeight / tmp.naturalWidth * w;
           var x = (a4W - w) / 2;
           doPlace(src, x, topOff, w, h);
-          loaded++;
-          if (loaded === total) idcAttachDrag();
+          idcAttachDrag();
         };
         tmp.src = src;
       }
@@ -662,24 +665,24 @@
       if (hasFront && hasBack) {
         var frontImg = new Image();
         frontImg.onload = function() {
-          var fH = frontImg.naturalHeight / frontImg.naturalWidth * imgW;
-          var fX = (a4W - imgW) / 2;
-          doPlace(idcFrontImgSrc, fX, topY, imgW, fH);
-          var backTop = topY + fH + gap;
+          var fH = frontImg.naturalHeight / frontImg.naturalWidth * useW;
+          var fX = (a4W - useW) / 2;
+          doPlace(idcFrontImgSrc, fX, topPx, useW, fH);
+          var backTop = topPx + fH + gapPx;
           var backImg = new Image();
           backImg.onload = function() {
-            var bH = backImg.naturalHeight / backImg.naturalWidth * imgW;
-            var bX = (a4W - imgW) / 2;
-            doPlace(idcBackImgSrc, bX, backTop, imgW, bH);
+            var bH = backImg.naturalHeight / backImg.naturalWidth * useW;
+            var bX = (a4W - useW) / 2;
+            doPlace(idcBackImgSrc, bX, backTop, useW, bH);
             idcAttachDrag();
           };
           backImg.src = idcBackImgSrc;
         };
         frontImg.src = idcFrontImgSrc;
       } else if (hasFront) {
-        placeOne(idcFrontImgSrc, topY);
+        placeOne(idcFrontImgSrc, topPx);
       } else if (hasBack) {
-        placeOne(idcBackImgSrc, topY);
+        placeOne(idcBackImgSrc, topPx);
       }
     }
 
@@ -742,8 +745,9 @@
       var wrap = document.getElementById('idcPreviewWrap');
       var a4 = document.getElementById('idcA4');
       var wrapW = wrap.clientWidth - 48;
-      var a4W = 210; // mm (will compare as approximate)
-      var scale = Math.min(1, wrapW / (210 / 25.4 * 96));
+      var a4W = a4.getBoundingClientRect().width;
+      if (a4W === 0) a4W = 500;
+      var scale = Math.min(1, wrapW / a4W);
       idcPreviewScale = Math.max(0.3, scale);
       a4.style.transform = 'scale(' + idcPreviewScale + ')';
       document.getElementById('idcPreviewZoomLabel').textContent = Math.round(idcPreviewScale * 100) + '%';
@@ -756,24 +760,22 @@
     }
 
     function idcDownloadPreview() {
-      var a4 = document.getElementById('idcA4');
       var drop = document.getElementById('idcA4Drop');
       var imgs = drop.querySelectorAll('.idc-preview-img');
       if (imgs.length === 0) return;
 
-      var scale = 2; // 2x for sharp output
-      var w = Math.round(a4.offsetWidth * scale);
-      var h = Math.round(a4.offsetHeight * scale);
+      var rect = drop.getBoundingClientRect();
+      var scale = 2;
+      var w = Math.round(rect.width * scale);
+      var h = Math.round(rect.height * scale);
 
       var c = document.createElement('canvas');
       c.width = w; c.height = h;
       var ctx = c.getContext('2d');
 
-      // White background
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, w, h);
 
-      // Draw each preview image
       imgs.forEach(function(img) {
         var left = parseFloat(img.style.left) || 0;
         var top = parseFloat(img.style.top) || 0;
