@@ -281,7 +281,7 @@ app.post('/api/admin/print/:id', async (req, res) => {
   }
 });
 
-app.get('/print/:id', (req, res) => {
+app.get('/print/:id', async (req, res) => {
   try {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
     if (!order) return res.status(404).send('Order not found');
