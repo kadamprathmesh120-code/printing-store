@@ -292,35 +292,53 @@ app.get('/print/:id', (req, res) => {
     const ext = path.extname(order.file_name).toLowerCase();
     const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
     const isPdf = ext === '.pdf';
-    let contentHtml = '';
-    var backHtml = '';
+
+    // For ID Copy, generate combined A4 image if possible
+    var combinedImgUrl = '';
+    var hasCombined = false;
     if (order.is_id_copy && order.back_file_path) {
-      var backUrl = `/uploads/${order.back_file_path}`;
-      backHtml = `<img src="${backUrl}" id="docBackImg" style="display:block;margin:12px auto 0;max-width:100%;height:auto;">`;
+      var combinedName = 'combined_' + order.file_path;
+      var combinedPath = path.join(__dirname, 'uploads', combinedName);
+      combinedImgUrl = '/uploads/' + combinedName;
+      if (!fs.existsSync(combinedPath)) {
+        try {
+          var frontP = path.join(__dirname, 'uploads', order.file_path);
+          var backP = path.join(__dirname, 'uploads', order.back_file_path);
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontP + '" -backPath "' + backP + '" -outputPath "' + combinedPath + '"');
+        } catch(e){}
+      }
+      hasCombined = fs.existsSync(combinedPath);
     }
+
+    var contentHtml = '';
     if (isPdf) {
       contentHtml = `<embed src="${fileUrl}#view=FitH" type="application/pdf" width="100%" height="100%" id="docEmbed">`;
     } else if (isImage) {
-      var isIdCopy = order.is_id_copy && order.back_file_path;
-      if (isIdCopy) {
-        contentHtml = `<div class="idcard-page"><img src="${fileUrl}" id="docImg" class="idcard-img"><div class="idcard-gap"></div>${backHtml}</div>`;
+      if (hasCombined) {
+        contentHtml = `<div class="a4page"><img src="${combinedImgUrl}" class="a4img"></div>`;
+      } else if (order.is_id_copy && order.back_file_path) {
+        contentHtml = `<div class="idcard-page"><img src="${fileUrl}" id="docImg" class="idcard-img"><div class="idcard-gap"></div><img src="/uploads/${order.back_file_path}" style="display:block;margin:12px auto 0;max-width:86mm;height:auto;"></div>`;
       } else {
-        contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">${backHtml}`;
+        contentHtml = `<img src="${fileUrl}" id="docImg" style="max-width:100%;max-height:100vh;display:block;margin:auto">`;
       }
     } else {
-      contentHtml = `<iframe src="${fileUrl}" width="100%" height="100%" frameborder="0"></iframe>${backHtml}`;
+      contentHtml = `<iframe src="${fileUrl}" width="100%" height="100%" frameborder="0"></iframe>`;
     }
 
-    var printStyles = '';
-    if (order.is_id_copy && order.back_file_path) {
-      printStyles = `
+    var printStyles = '.content{flex:1;overflow:auto}embed,img,iframe{border:none}';
+    if (hasCombined) {
+      printStyles += `
+.a4page{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.a4img{max-width:100%;max-height:100%;display:block;}
+@media print{@page{size:A4;margin:0}body{margin:0}.header{display:none}.content{position:fixed;top:0;left:0;width:100%;height:100%}}`;
+    } else if (order.is_id_copy && order.back_file_path) {
+      printStyles += `
 .idcard-page{width:210mm;height:297mm;margin:0 auto;padding:25mm 0;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;}
 .idcard-img{max-width:86mm;height:auto;display:block;}
 .idcard-gap{height:30mm;}
 @media print{@page{size:A4;margin:0}body{margin:0}.header{display:none}.content{overflow:visible}}`;
     } else {
-      printStyles = `.content{flex:1;overflow:auto}embed,img,iframe{border:none}
-@media print{.header{display:none}.content{position:fixed;top:0;left:0;width:100%;height:100%}}`;
+      printStyles += `@media print{.header{display:none}.content{position:fixed;top:0;left:0;width:100%;height:100%}}`;
     }
 
     res.send(`<!DOCTYPE html>
