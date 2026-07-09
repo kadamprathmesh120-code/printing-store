@@ -5,57 +5,84 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Printing Store - Admin Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="admin-body">
-  <div class="container">
-    <header>
-      <h1>Admin Dashboard</h1>
-      <p>Manage print orders</p>
-    </header>
+<body style="background:#f8faf8;">
 
-    <div id="cashAlert" class="hidden" style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+  <!-- Glass Header -->
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div>
+        <h1 style="background:none;-webkit-text-fill-color:#111827;background-clip:unset;display:flex;align-items:center;gap:8px;">
+          <i data-lucide="shield" style="width:20px;height:20px;color:#16A34A;"></i>
+          Admin Dashboard
+        </h1>
+        <p style="-webkit-text-fill-color:#6b7280;">Manage print orders</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main" style="max-width:1000px;">
+
+    <!-- Cash Alert -->
+    <div id="cashAlert" class="hidden card" style="background:#fffbeb;border:1.5px solid #fde68a;display:none;align-items:center;gap:12px;padding:14px 16px;">
       <span style="font-size:1.5em;">💰</span>
       <div style="flex:1;">
-        <strong id="cashAlertCount" style="font-size:1.1em;">0 Cash orders</strong>
-        <span style="display:block;color:#856404;font-size:0.85em;margin-top:2px;">Customer will pay cash at counter. Accept after collecting payment.</span>
+        <strong id="cashAlertCount" style="font-size:1em;color:#92400e;">0 Cash orders</strong>
+        <span style="display:block;color:#b45309;font-size:0.82em;margin-top:2px;">Customer will pay cash at counter. Accept after collecting payment.</span>
       </div>
     </div>
 
+    <!-- Controls Card -->
     <div class="card">
       <div class="admin-bar">
-        <button class="btn btn-secondary" onclick="fetchOrders()">Refresh Orders</button>
-        <button class="btn btn-secondary" onclick="showQR()">Show QR Code</button>
+        <button class="btn btn-secondary" onclick="fetchOrders()" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+          <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> Refresh Orders
+        </button>
+        <button class="btn btn-secondary" onclick="showQR()" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+          <i data-lucide="qrcode" style="width:16px;height:16px;"></i> Show QR Code
+        </button>
       </div>
+
       <div class="form-group public-url-group">
-        <label for="publicUrl">Public URL (for customer QR code)</label>
+        <label for="publicUrl">Public URL <span style="font-weight:400;color:#9ca3af;">(for customer QR code)</span></label>
         <div class="url-input-row">
           <input type="text" id="publicUrl" placeholder="https://your-domain.com or ngrok URL">
-          <button class="btn btn-sm btn-primary" onclick="savePublicUrl()">Save</button>
+          <button class="btn btn-sm btn-primary" onclick="savePublicUrl()" style="white-space:nowrap;">Save</button>
         </div>
-        <small>Get a public URL using <a href="https://ngrok.com" target="_blank">ngrok</a>: run <code>ngrok http 3000</code></small>
+        <small style="display:block;font-size:0.75em;color:#9ca3af;margin-top:5px;">Get a public URL using <a href="https://ngrok.com" target="_blank" style="color:#16A34A;">ngrok</a>: run <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:0.9em;">ngrok http 3000</code></small>
       </div>
-      <div id="printerStatus" class="form-group public-url-group">
+
+      <div class="form-group">
         <label>Printers</label>
-        <p style="color:#155724;background:#d4edda;padding:10px 12px;border-radius:6px;font-size:0.9em;margin-bottom:6px;">
-          B&W: <strong>Kyocera ECOSYS MA4000x KX</strong>
-        </p>
-        <p style="color:#155724;background:#d4edda;padding:10px 12px;border-radius:6px;font-size:0.9em;">
-          Color: <strong>HP Smart Tank 580-590</strong>
-        </p>
+        <div class="printer-status" style="margin-bottom:6px;">
+          <strong>🖨 B&W:</strong> Kyocera ECOSYS MA4000x KX
+        </div>
+        <div class="printer-status">
+          <strong>🖨 Color:</strong> HP Smart Tank 580-590
+        </div>
       </div>
-      <div id="qrModal" class="hidden">
-        <div class="qr-display">
-          <h3>Customer QR Code</h3>
+
+      <!-- QR Modal -->
+      <div id="qrModal" class="hidden" style="margin-top:12px;">
+        <div class="qr-display" style="background:#f9fafb;border-radius:16px;padding:20px;">
+          <h3 style="font-size:1em;font-weight:600;margin:0 0 12px;color:#1f2937;">Customer QR Code</h3>
           <div id="qrImage"></div>
-          <p id="qrUrl"></p>
-          <small>Scan to open customer upload page</small>
-          <button class="btn btn-secondary" onclick="document.getElementById('qrModal').classList.add('hidden')">Close</button>
+          <p id="qrUrl" style="font-size:0.78em;color:#6b7280;word-break:break-all;margin:8px 0;"></p>
+          <small style="font-size:0.75em;color:#9ca3af;">Scan to open customer upload page</small>
+          <div style="margin-top:12px;">
+            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('qrModal').classList.add('hidden')">Close</button>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Orders Card -->
     <div class="card">
-      <h2>All Orders</h2>
+      <h2 style="display:flex;align-items:center;gap:6px;">
+        <i data-lucide="shopping-bag" style="width:18px;height:18px;color:#16A34A;"></i>
+        All Orders
+      </h2>
       <div class="table-responsive">
         <table id="ordersTable">
           <thead>
@@ -73,31 +100,34 @@
             </tr>
           </thead>
           <tbody id="ordersBody">
-            <tr><td colspan="10">Loading orders...</td></tr>
+            <tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Loading orders...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
+
+  </main>
 
   <script>
     function fetchOrders() {
-      document.getElementById('ordersBody').innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+      document.getElementById('ordersBody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Loading...</td></tr>';
       fetch('/api/admin/orders')
         .then(r => r.json())
         .then(orders => {
           const tbody = document.getElementById('ordersBody');
           if (orders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10">No orders yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">No orders yet</td></tr>';
             return;
           }
           const cashPaid = orders.filter(o => o.payment_method === 'cash' && o.status === 'paid');
           const cashAlert = document.getElementById('cashAlert');
           if (cashPaid.length > 0) {
             cashAlert.classList.remove('hidden');
+            cashAlert.style.display = 'flex';
             document.getElementById('cashAlertCount').textContent = cashPaid.length + ' Cash order' + (cashPaid.length > 1 ? 's' : '') + ' pending';
           } else {
             cashAlert.classList.add('hidden');
+            cashAlert.style.display = 'none';
           }
 
           tbody.innerHTML = orders.map(o => {
@@ -112,7 +142,7 @@
             let fileDisplay = escapeHtml(o.file_name);
             let copiesDisplay = '';
             if (o.copies && o.copies > 1) {
-              copiesDisplay = '<br><span style="font-weight:600;color:#1a73e8;">×' + o.copies + ' copies</span>';
+              copiesDisplay = '<br><span style="font-weight:600;color:#16A34A;">×' + o.copies + ' copies</span>';
             }
 
             return `<tr${rowClass}>
@@ -130,7 +160,7 @@
           }).join('');
         })
         .catch(() => {
-          document.getElementById('ordersBody').innerHTML = '<tr><td colspan="9">Failed to load orders</td></tr>';
+          document.getElementById('ordersBody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Failed to load orders</td></tr>';
         });
     }
 
@@ -190,7 +220,7 @@
       var imgDiv = document.getElementById('qrImage');
       var urlP = document.getElementById('qrUrl');
       modal.classList.remove('hidden');
-      imgDiv.innerHTML = '<p>Generating QR...</p>';
+      imgDiv.innerHTML = '<p style="color:#9ca3af;">Generating QR...</p>';
 
       fetch(apiUrl)
         .then(r => r.json())
@@ -199,7 +229,7 @@
           urlP.textContent = data.url;
         })
         .catch(function() {
-          imgDiv.innerHTML = '<p>Failed to generate QR</p>';
+          imgDiv.innerHTML = '<p style="color:#ef4444;">Failed to generate QR</p>';
         });
     }
 
@@ -218,6 +248,9 @@
 
     fetchOrders();
     setInterval(fetchOrders, 15000);
+
+    // Initialize Lucide icons
+    lucide.createIcons();
   </script>
 </body>
 </html>

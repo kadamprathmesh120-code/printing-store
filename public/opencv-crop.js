@@ -165,129 +165,193 @@ function findQuadCornersPure(data, w, h) {
     return { x: Math.max(0, Math.min(w-1, c.x)), y: Math.max(0, Math.min(h-1, c.y)) };
   }
 
-  var corners = [clampCorner(tl), clampCorner(tr), clampCorner(br), clampCorner(bl)];
+  var rawCorners = [clampCorner(tl), clampCorner(tr), clampCorner(br), clampCorner(bl)];
+
+  // Order corners properly and check convexity
+  rawCorners = orderCorners(rawCorners);
+  if (!isConvex(rawCorners)) return null;
 
   // Check if detected area is reasonable
-  var area = Math.abs((corners[1].x - corners[0].x) * (corners[2].y - corners[0].y) -
-                      (corners[2].x - corners[0].x) * (corners[1].y - corners[0].y));
+  var area = Math.abs((rawCorners[1].x - rawCorners[0].x) * (rawCorners[2].y - rawCorners[0].y) -
+                      (rawCorners[2].x - rawCorners[0].x) * (rawCorners[1].y - rawCorners[0].y));
   var totalArea = w * h;
-  if (area < totalArea * 0.05) return null;
+  if (area < totalArea * 0.03) return null;
 
-  return corners;
+  return rawCorners;
 }
 
 // ---------- OpenCV-based detection ----------
 function detectCornersOpenCV(canvas) {
-  var src = null, gray = null, blurred = null, edges = null;
-  var contours = null, hierarchy = null;
+  var src, gray, blurred, edges, dilated, thresh, kernel, contours, hierarchy;
+  var matsToDelete = [];
+  function m(v) { if (v) matsToDelete.push(v); return v; }
+
   try {
-    src = cv.imread(canvas);
-    gray = new cv.Mat();
-    blurred = new cv.Mat();
-    edges = new cv.Mat();
+    src = m(cv.imread(canvas));
+    gray = m(new cv.Mat());
+    blurred = m(new cv.Mat());
+    edges = m(new cv.Mat());
+    dilated = m(new cv.Mat());
+    thresh = m(new cv.Mat());
 
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    cv.GaussianBlur(gray, blurred, new cv.Size(7, 7), 0);
 
-    // Adaptive threshold for challenging lighting
-    var adaptive = new cv.Mat();
-    cv.adaptiveThreshold(blurred, adaptive, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+    // Strategy 1: Edge-based detection (works for most documents)
+    cv.Canny(blurred, edges, 20, 80);
+    kernel = m(cv.Mat.ones(3, 3, cv.CV_8U));
+    cv.dilate(edges, dilated, kernel);
+    cv.dilate(dilated, dilated, kernel);
 
-    // Canny edge detection
-    cv.Canny(adaptive, edges, 30, 100);
+    contours = m(new cv.MatVector());
+    hierarchy = m(new cv.Mat());
+    cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-    // Dilate to close gaps
-    var kernel = cv.Mat.ones(3, 3, cv.CV_8U);
-    cv.dilate(edges, edges, kernel);
+    var result = findBestQuadrilateral(contours, canvas.width, canvas.height);
+    if (result) return result;
 
-    // Find contours
-    contours = new cv.MatVector();
-    hierarchy = new cv.Mat();
-    cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    // Strategy 2: Region-based detection (low-contrast / solid-background docs)
+    cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+    var meanScalar = cv.mean(thresh);
+    if (meanScalar && meanScalar[0] > 127) cv.bitwise_not(thresh, thresh);
 
-    // Sort by area descending
-    var contourList = [];
-    for (var i = 0; i < contours.size(); i++) {
-      contourList.push({
-        index: i,
-        area: cv.contourArea(contours.get(i))
-      });
-    }
-    contourList.sort(function(a, b) { return b.area - a.area; });
+    contours = m(new cv.MatVector());
+    hierarchy = m(new cv.Mat());
+    cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-    var bestCorners = null;
-    for (var ci = 0; ci < Math.min(contourList.length, 10); ci++) {
-      var cnt = contours.get(contourList[ci].index);
-      var peri = cv.arcLength(cnt, true);
-      var approx = new cv.Mat();
-      cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+    result = findBestQuadrilateral(contours, canvas.width, canvas.height);
+    return result;
 
-      if (approx.rows === 4) {
-        var c = [];
-        for (var j = 0; j < 4; j++) {
-          c.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
-        }
-        // Order corners: TL, TR, BR, BL
-        c.sort(function(a, b) { return a.y - b.y; });
-        var top = [c[0], c[1]];
-        var bottom = [c[2], c[3]];
-        top.sort(function(a, b) { return a.x - b.x; });
-        bottom.sort(function(a, b) { return a.x - b.x; });
-        bestCorners = [top[0], top[1], bottom[1], bottom[0]];
-
-        // Verify area is reasonable
-        var w2 = canvas.width, h2 = canvas.height;
-        var dx1 = bestCorners[1].x - bestCorners[0].x;
-        var dy1 = bestCorners[1].y - bestCorners[0].y;
-        var dx2 = bestCorners[2].x - bestCorners[3].x;
-        var dy2 = bestCorners[2].y - bestCorners[3].y;
-        var cw = Math.max(Math.sqrt(dx1*dx1 + dy1*dy1), Math.sqrt(dx2*dx2 + dy2*dy2));
-        var ch = Math.max(Math.abs(bestCorners[2].y - bestCorners[0].y), Math.abs(bestCorners[3].y - bestCorners[1].y));
-        if (cw > w2 * 0.1 && ch > h2 * 0.1 && cw < w2 * 1.2 && ch < h2 * 1.2) {
-          approx.delete();
-          break;
-        }
-        bestCorners = null;
-      }
-      approx.delete();
-    }
-
-    kernel.delete();
-    adaptive.delete();
-    return bestCorners;
   } finally {
-    if (src) src.delete();
-    if (gray) gray.delete();
-    if (blurred) blurred.delete();
-    if (edges) edges.delete();
-    if (contours) contours.delete();
-    if (hierarchy) hierarchy.delete();
+    for (var i = 0; i < matsToDelete.length; i++) {
+      try { matsToDelete[i].delete(); } catch(e) {}
+    }
   }
 }
 
+function findBestQuadrilateral(contours, imgW, imgH) {
+  var contourList = [];
+  for (var i = 0; i < contours.size(); i++) {
+    contourList.push({ index: i, area: cv.contourArea(contours.get(i)) });
+  }
+  contourList.sort(function(a, b) { return b.area - a.area; });
+
+  for (var ci = 0; ci < Math.min(contourList.length, 30); ci++) {
+    var cnt = contours.get(contourList[ci].index);
+    var area = contourList[ci].area;
+    if (area < imgW * imgH * 0.01) continue;
+
+    var peri = cv.arcLength(cnt, true);
+    var approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, Math.max(0.015 * peri, 8), true);
+
+    if (approx.rows === 4) {
+      var c = [];
+      for (var j = 0; j < 4; j++) {
+        c.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
+      }
+      c = orderCorners(c);
+
+      if (!isConvex(c)) { approx.delete(); continue; }
+
+      var cw = Math.max(distance(c[0], c[1]), distance(c[3], c[2]));
+      var ch = Math.max(distance(c[0], c[3]), distance(c[1], c[2]));
+      if (cw > imgW * 0.04 && ch > imgH * 0.04 && cw < imgW * 1.05 && ch < imgH * 1.05) {
+        approx.delete();
+        return c;
+      }
+    }
+    approx.delete();
+  }
+  return null;
+}
+
+// Order 4 points as TL, TR, BR, BL using centroid angle
+function orderCorners(pts) {
+  if (pts.length !== 4) return pts;
+  var cx = 0, cy = 0;
+  for (var i = 0; i < 4; i++) { cx += pts[i].x; cy += pts[i].y; }
+  cx /= 4; cy /= 4;
+
+  pts.sort(function(a, b) {
+    return Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx);
+  });
+
+  var minSum = Infinity, tlIdx = 0;
+  for (var i = 0; i < 4; i++) {
+    var s = pts[i].x + pts[i].y;
+    if (s < minSum) { minSum = s; tlIdx = i; }
+  }
+
+  var ordered = [];
+  for (var i = 0; i < 4; i++) {
+    ordered.push(pts[(tlIdx + i) % 4]);
+  }
+
+  // Ensure clockwise order: TL, TR, BR, BL
+  var sa = 0;
+  for (var i = 0; i < 4; i++) {
+    var j = (i + 1) % 4;
+    sa += (ordered[i].x * ordered[j].y - ordered[j].x * ordered[i].y);
+  }
+  if (sa < 0) {
+    var temp = ordered[1];
+    ordered[1] = ordered[3];
+    ordered[3] = temp;
+  }
+  return ordered;
+}
+
+// Check if a polygon is convex
+function isConvex(pts) {
+  if (pts.length < 3) return false;
+  var sign = 0;
+  for (var i = 0; i < pts.length; i++) {
+    var j = (i + 1) % pts.length;
+    var k = (i + 2) % pts.length;
+    var cross = (pts[j].x - pts[i].x) * (pts[k].y - pts[j].y) -
+                (pts[j].y - pts[i].y) * (pts[k].x - pts[j].x);
+    if (cross !== 0) {
+      if (sign === 0) sign = cross > 0 ? 1 : -1;
+      else if ((cross > 0 ? 1 : -1) !== sign) return false;
+    }
+  }
+  return true;
+}
+
 // ---------- Main detection entry point ----------
-function detectCorners(canvas, callback) {
-  var w = canvas.width, h = canvas.height;
-  if (w < 10 || h < 10) { callback(null); return; }
+// Runs on original full-resolution image, returns corners in canvas display space
+function detectCorners(callback) {
+  if (!sourceImage) { callback(null); return; }
+  var iw = sourceImage.width, ih = sourceImage.height;
+  if (iw < 10 || ih < 10) { callback(null); return; }
+
+  // Create temp canvas at original image resolution for accurate detection
+  var tempCanvas = document.createElement('canvas');
+  tempCanvas.width = iw;
+  tempCanvas.height = ih;
+  var tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(sourceImage, 0, 0);
 
   loadOpenCV(function(err) {
-    if (err || !ocvReady || !cv.Mat) {
-      // Fallback: pure JS detection
-      var ctx = canvas.getContext('2d');
-      var imageData = ctx.getImageData(0, 0, w, h);
-      var corners = findQuadCornersPure(imageData.data, w, h);
-      callback(corners);
-    } else {
+    var detected = null;
+    if (!err && ocvReady && cv.Mat) {
       try {
-        var corners = detectCornersOpenCV(canvas);
-        callback(corners);
-      } catch(e) {
-        // Fallback
-        var ctx = canvas.getContext('2d');
-        var imageData = ctx.getImageData(0, 0, w, h);
-        var corners = findQuadCornersPure(imageData.data, w, h);
-        callback(corners);
-      }
+        detected = detectCornersOpenCV(tempCanvas);
+      } catch(e) {}
+    }
+    if (!detected) {
+      var imageData = tempCtx.getImageData(0, 0, iw, ih);
+      detected = findQuadCornersPure(imageData.data, iw, ih);
+    }
+    // Convert detected corners from original image space to canvas display space
+    if (detected && detected.length === 4) {
+      var canvasCorners = detected.map(function(c) {
+        return imageToCanvas(c.x, c.y);
+      });
+      callback(canvasCorners);
+    } else {
+      callback(null);
     }
   });
 }
@@ -492,12 +556,41 @@ var containerEl = null;
 var lastPinchDist = 0;
 var snapEnabled = true;
 
+// Display parameters for object-fit:contain rendering
+var displayScale = 1;
+var displayOffsetX = 0;
+var displayOffsetY = 0;
+var displayW = 0;
+var displayH = 0;
+
 function distance(a, b) {
   return Math.sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y));
 }
 
 function clamp(v, min, max) {
   return Math.min(max, Math.max(min, v));
+}
+
+// Compute display parameters for object-fit:contain
+function computeDisplayParams() {
+  var cw = canvasEl.width, ch = canvasEl.height;
+  var iw = sourceImage.width, ih = sourceImage.height;
+  var scaleX = cw / iw, scaleY = ch / ih;
+  displayScale = Math.min(scaleX, scaleY);
+  displayW = iw * displayScale;
+  displayH = ih * displayScale;
+  displayOffsetX = (cw - displayW) / 2;
+  displayOffsetY = (ch - displayH) / 2;
+}
+
+// Convert original image coordinates to canvas display space
+function imageToCanvas(ox, oy) {
+  return { x: displayOffsetX + ox * displayScale, y: displayOffsetY + oy * displayScale };
+}
+
+// Convert canvas display coordinates to original image space
+function canvasToImage(cx, cy) {
+  return { x: (cx - displayOffsetX) / displayScale, y: (cy - displayOffsetY) / displayScale };
 }
 
 // Snap corner to nearest strong edge
@@ -557,17 +650,20 @@ function getEdgeData(canvas) {
 function renderCrop() {
   if (!canvasEl || !sourceImage) return;
   var ctx = canvasEl.getContext('2d');
-  var w = canvasEl.width, h = canvasEl.height;
+  var cw = canvasEl.width, ch = canvasEl.height;
 
-  ctx.clearRect(0, 0, w, h);
+  ctx.clearRect(0, 0, cw, ch);
   ctx.save();
+
+  // Compute display params for object-fit:contain
+  computeDisplayParams();
 
   // Apply zoom and pan
   ctx.translate(panX, panY);
   ctx.scale(zoomLevel, zoomLevel);
 
-  // Draw source image
-  ctx.drawImage(sourceImage, 0, 0, w, h);
+  // Draw source image centered with object-fit:contain (full image visible)
+  ctx.drawImage(sourceImage, displayOffsetX, displayOffsetY, displayW, displayH);
 
   // Draw crop overlay (dim outside the quadrilateral)
   ctx.beginPath();
@@ -579,12 +675,11 @@ function renderCrop() {
 
   ctx.save();
   ctx.clip();
-  // Clear area inside quadrilateral (no dimming)
   ctx.restore();
 
   // Dim outside
   ctx.beginPath();
-  ctx.rect(0, 0, w, h);
+  ctx.rect(0, 0, cw, ch);
   ctx.moveTo(corners[0].x, corners[0].y);
   ctx.lineTo(corners[1].x, corners[1].y);
   ctx.lineTo(corners[2].x, corners[2].y);
@@ -606,21 +701,22 @@ function renderCrop() {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Draw corner handles (circles)
-  var hs = Math.max(12, 20 / zoomLevel);
+  // Draw corner handles (circles) — bigger on touch devices
+  var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  var hs = Math.max(isTouch ? 18 : 12, 22 / zoomLevel);
   var colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A'];
   for (var i = 0; i < 4; i++) {
-    var cx = corners[i].x, cy = corners[i].y;
+    var hx = corners[i].x, hy = corners[i].y;
 
     // Outer glow
     ctx.beginPath();
-    ctx.arc(cx, cy, hs * 1.5, 0, Math.PI * 2);
+    ctx.arc(hx, hy, hs * 1.5, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(26, 115, 232, 0.2)';
     ctx.fill();
 
     // Handle circle
     ctx.beginPath();
-    ctx.arc(cx, cy, hs, 0, Math.PI * 2);
+    ctx.arc(hx, hy, hs, 0, Math.PI * 2);
     ctx.fillStyle = 'white';
     ctx.fill();
     ctx.strokeStyle = colors[i];
@@ -629,7 +725,7 @@ function renderCrop() {
 
     // Inner dot
     ctx.beginPath();
-    ctx.arc(cx, cy, 3 / zoomLevel, 0, Math.PI * 2);
+    ctx.arc(hx, hy, 3 / zoomLevel, 0, Math.PI * 2);
     ctx.fillStyle = colors[i];
     ctx.fill();
   }
@@ -664,9 +760,10 @@ function getTouchPos(e, index) {
   return { x: x, y: y };
 }
 
-// Find which corner handle is near a point
+// Find which corner handle is near a point — larger threshold on touch
 function getCornerHandle(pos, threshold) {
-  threshold = threshold || 25;
+  var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  threshold = threshold || (isTouch ? 40 : 25);
   for (var i = 0; i < corners.length; i++) {
     if (distance(pos, corners[i]) < threshold) return i;
   }
@@ -689,18 +786,22 @@ function isInsideQuad(pos) {
 }
 
 // ---------- Show preview ----------
+// Uses original full-resolution image data for highest quality
 function showPreview() {
-  if (!previewCanvas || !canvasEl || corners.length !== 4) return;
+  if (!previewCanvas || !sourceImage || corners.length !== 4) return;
 
-  var w = canvasEl.width, h = canvasEl.height;
+  var imgW = sourceImage.width, imgH = sourceImage.height;
 
-  // Calculate output dimensions
-  var cw = Math.max(distance(corners[0], corners[1]), distance(corners[3], corners[2]));
-  var ch = Math.max(distance(corners[0], corners[3]), distance(corners[1], corners[2]));
+  // Convert canvas-space corners to original image space
+  var origCorners = corners.map(function(c) {
+    return canvasToImage(c.x, c.y);
+  });
 
+  // Calculate output dimensions in original image space
+  var cw = Math.max(distance(origCorners[0], origCorners[1]), distance(origCorners[3], origCorners[2]));
+  var ch = Math.max(distance(origCorners[0], origCorners[3]), distance(origCorners[1], origCorners[2]));
   if (cw < 10 || ch < 10) return;
 
-  // For ID Copy, use fixed aspect ratio
   if (isIdCopyMode) {
     ch = cw / (86/54);
   }
@@ -715,24 +816,31 @@ function showPreview() {
 
   // Limit preview resolution for performance
   var previewW = outW, previewH = outH;
-  var maxPreviewPx = 1500000; // ~1.5MP max for preview
+  var maxPreviewPx = 1500000;
   if (previewW * previewH > maxPreviewPx) {
     var scale = Math.sqrt(maxPreviewPx / (previewW * previewH));
     previewW = Math.round(previewW * scale);
     previewH = Math.round(previewH * scale);
   }
 
-  // Get source image data
-  var ctx = canvasEl.getContext('2d');
-  var srcData = ctx.getImageData(0, 0, w, h).data;
+  // Get ORIGINAL image pixel data
+  var tempCanvas = document.createElement('canvas');
+  tempCanvas.width = imgW;
+  tempCanvas.height = imgH;
+  var tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(sourceImage, 0, 0);
+  var srcData = tempCtx.getImageData(0, 0, imgW, imgH).data;
 
-  // Apply perspective correction (at preview resolution)
-  var correctedData = applyPerspective(srcData, w, h, corners, previewW, previewH);
+  // Apply perspective correction using original data and original-space corners
+  var correctedData = applyPerspective(srcData, imgW, imgH, origCorners, previewW, previewH);
 
+  // Store full-resolution info for commit
   previewCanvas._fullW = outW;
   previewCanvas._fullH = outH;
   previewCanvas._srcData = srcData;
-  previewCanvas._corners = corners.map(function(c) { return {x:c.x, y:c.y}; });
+  previewCanvas._imgW = imgW;
+  previewCanvas._imgH = imgH;
+  previewCanvas._origCorners = origCorners;
 
   previewCanvas.width = previewW;
   previewCanvas.height = previewH;
@@ -742,6 +850,9 @@ function showPreview() {
   var imageData = pCtx.createImageData(previewW, previewH);
   imageData.data.set(correctedData);
   pCtx.putImageData(imageData, 0, 0);
+
+  // Store unfiltered corrected data before applying filter
+  previewCanvas._unfilteredData = new Uint8ClampedArray(correctedData);
 
   // Apply selected filter to preview
   applyFilter(pCtx, previewW, previewH, selectedFilter);
@@ -780,15 +891,16 @@ function showPreviewModal() {
 }
 
 // ---------- Commit crop result ----------
+// Exports at original full resolution with no quality loss
 function commitCropResult() {
   if (!currentCallback) return;
 
   var fullW = previewCanvas._fullW || previewCanvas.width;
   var fullH = previewCanvas._fullH || previewCanvas.height;
   var srcData = previewCanvas._srcData;
-  var srcCorners = previewCanvas._corners || corners;
-  var w = canvasEl ? canvasEl.width : 0;
-  var h = canvasEl ? canvasEl.height : 0;
+  var origCorners = previewCanvas._origCorners;
+  var imgW = previewCanvas._imgW || (sourceImage ? sourceImage.width : 0);
+  var imgH = previewCanvas._imgH || (sourceImage ? sourceImage.height : 0);
 
   // Generate full-resolution output
   var finalCanvas = document.createElement('canvas');
@@ -797,12 +909,23 @@ function commitCropResult() {
   var fCtx = finalCanvas.getContext('2d');
   fCtx.imageSmoothingQuality = 'high';
 
-  if (srcData && srcCorners.length === 4) {
-    var fullData = applyPerspective(srcData, w, h, srcCorners, fullW, fullH);
+  if (origCorners && origCorners.length === 4 && imgW > 0 && imgH > 0) {
+    // Get fresh original image data if not cached
+    var srcPixels = srcData;
+    if (!srcPixels || srcPixels.length === 0) {
+      var tc = document.createElement('canvas');
+      tc.width = imgW;
+      tc.height = imgH;
+      var tctx = tc.getContext('2d');
+      tctx.drawImage(sourceImage, 0, 0);
+      srcPixels = tctx.getImageData(0, 0, imgW, imgH).data;
+    }
+    var fullData = applyPerspective(srcPixels, imgW, imgH, origCorners, fullW, fullH);
     var imageData = fCtx.createImageData(fullW, fullH);
     imageData.data.set(fullData);
     fCtx.putImageData(imageData, 0, 0);
   } else {
+    // Fallback: draw preview canvas stretched to output size
     fCtx.drawImage(previewCanvas, 0, 0, fullW, fullH);
   }
 
@@ -853,49 +976,50 @@ function openModal(image, idCopy, callback) {
   containerEl = document.getElementById('ocvCropContainer');
   previewCanvas = document.getElementById('ocvPreviewResult');
 
-  // Size the canvas
-  var maxVH = 0.7;
-  var maxW = window.innerWidth * 0.9;
-  var maxH = window.innerHeight * maxVH;
-  var w = image.width, h = image.height;
-  if (w > maxW) { h = h * maxW / w; w = maxW; }
-  if (h > maxH) { w = w * maxH / h; h = maxH; }
+  // Size the canvas to fit within the modal card
+  var cardWidth = Math.min(540, window.innerWidth * 0.94);
+  var availW = cardWidth - 28; // 12px padding * 2 + 4px margin
+  var availH = window.innerHeight * 0.7;
+  var maxW = Math.min(availW, 500);
+  var maxH = Math.min(availH, window.innerHeight * 0.65);
+  var iw = image.width, ih = image.height;
+  var dispW = iw, dispH = ih;
+  if (dispW > maxW) { dispH = dispH * maxW / dispW; dispW = maxW; }
+  if (dispH > maxH) { dispW = dispW * maxH / dispH; dispH = maxH; }
   var dpr = window.devicePixelRatio || 1;
-  canvasEl.width = Math.round(w * dpr);
-  canvasEl.height = Math.round(h * dpr);
-  canvasEl.style.width = Math.round(w) + 'px';
-  canvasEl.style.height = Math.round(h) + 'px';
+  canvasEl.width = Math.round(dispW * dpr);
+  canvasEl.height = Math.round(dispH * dpr);
+  canvasEl.style.width = Math.round(dispW) + 'px';
+  canvasEl.style.height = Math.round(dispH) + 'px';
+
+  // Ensure container centers the canvas
+  containerEl.style.display = 'flex';
+  containerEl.style.alignItems = 'center';
+  containerEl.style.justifyContent = 'center';
+  containerEl.style.width = (availW) + 'px';
+  containerEl.style.height = Math.round(dispH) + 'px';
+
+  // Compute display parameters for object-fit:contain
+  computeDisplayParams();
+
+  // Set default corners to cover entire image
+  var origInset = 0;
+  corners = [
+    imageToCanvas(origInset, origInset),
+    imageToCanvas(iw - origInset, origInset),
+    imageToCanvas(iw - origInset, ih - origInset),
+    imageToCanvas(origInset, ih - origInset)
+  ];
 
   modalEl.classList.remove('hidden');
   modalEl.style.display = 'flex';
 
-  // Show loading indicator
-  var loadingEl = document.getElementById('ocvLoading');
-  if (loadingEl) loadingEl.style.display = 'block';
-  var filterBar = document.getElementById('ocvFilterBar');
-  if (filterBar) filterBar.style.display = 'none';
-
-  // Set default corners (slightly inset from edges)
-  var ins = 15 * dpr;
-  corners = [
-    {x: ins, y: ins},
-    {x: canvasEl.width - ins, y: ins},
-    {x: canvasEl.width - ins, y: canvasEl.height - ins},
-    {x: ins, y: canvasEl.height - ins}
-  ];
-
-  // Draw initial state
+  // Draw initial state (original image, no auto-detect)
   renderCrop();
 
-  // Auto-detect corners
-  detectCorners(canvasEl, function(detected) {
-    if (detected && detected.length === 4) {
-      corners = detected;
-      renderCrop();
-    }
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (filterBar) filterBar.style.display = 'flex';
-  });
+  // Show filter bar immediately
+  var filterBar = document.getElementById('ocvFilterBar');
+  if (filterBar) filterBar.style.display = 'flex';
 }
 
 // ---------- Create modal HTML ----------
@@ -903,17 +1027,17 @@ function createModalHTML() {
   var div = document.createElement('div');
   div.id = 'ocvCropModal';
   div.className = 'hidden';
-  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:100;display:none;align-items:center;justify-content:center;';
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:100;display:none;align-items:center;justify-content:center;overscroll-behavior:none;';
   var isId = isIdCopyMode;
   div.innerHTML =
     '<div style="background:#1a1a2e;border-radius:12px;padding:12px;max-width:540px;width:94%;color:white;max-height:98vh;overflow-y:auto;">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
         '<h3 style="margin:0;font-size:1em;">' + (isId ? 'ID Copy Crop' : 'Crop Document') + ' <span id="ocvCropInfo" style="font-size:0.8em;font-weight:400;color:#aaa;">' + (isId ? '86×54mm' : '') + '</span></h3>' +
-        '<div>' +
+        '<div class="ocv-header-controls">' +
           '<span id="ocvLoading" style="display:none;font-size:0.8em;color:#FFD700;margin-right:8px;">Detecting edges...</span>' +
-          '<button onclick="OCV_CROP.zoomIn()" class="ocv-btn">+</button>' +
-          '<button onclick="OCV_CROP.zoomOut()" class="ocv-btn">−</button>' +
-          '<button onclick="OCV_CROP.resetView()" class="ocv-btn">Fit</button>' +
+          '<button onclick="OCV_CROP.zoomIn()" class="ocv-btn ocv-zoom-btn">+</button>' +
+          '<button onclick="OCV_CROP.zoomOut()" class="ocv-btn ocv-zoom-btn">−</button>' +
+          '<button onclick="OCV_CROP.resetView()" class="ocv-btn ocv-zoom-btn">Fit</button>' +
         '</div>' +
       '</div>' +
       '<div id="ocvCropContainer" style="border-radius:8px;overflow:hidden;background:#000;position:relative;touch-action:none;display:flex;justify-content:center;">' +
@@ -926,15 +1050,16 @@ function createModalHTML() {
         '<button class="ocv-filter-btn" data-filter="bw" onclick="OCV_CROP.setFilter(\'bw\',this)">B&W</button>' +
         '<button class="ocv-filter-btn" data-filter="magic" onclick="OCV_CROP.setFilter(\'magic\',this)">Magic</button>' +
       '</div>' +
-      '<div style="display:flex;gap:8px;justify-content:center;padding:4px 0;">' +
+      '<div class="ocv-toolbar">' +
         '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#16213e;flex:1;">Auto Detect</button>' +
         '<button onclick="OCV_CROP.toggleSnap()" id="ocvSnapBtn" class="ocv-btn" style="background:#16213e;">Snap: ON</button>' +
         '<button onclick="OCV_CROP.rotate(-90)" class="ocv-btn" style="background:#16213e;">↺</button>' +
         '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#16213e;">↻</button>' +
       '</div>' +
-      '<div style="display:flex;gap:8px;justify-content:center;padding:4px 0;">' +
-        '<button onclick="OCV_CROP.cancel()" class="ocv-btn" style="background:#6c757d;flex:1;">Cancel</button>' +
-        '<button onclick="OCV_CROP.showPreview()" class="ocv-btn" style="background:#1a73e8;flex:2;font-weight:700;">Preview & Crop</button>' +
+      '<div class="ocv-action-bar">' +
+        '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel">Cancel</button>' +
+        '<button onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-preview">Preview</button>' +
+        '<button onclick="OCV_CROP.cropDirect()" class="ocv-btn ocv-crop-btn">Crop</button>' +
       '</div>' +
       '<div id="ocvCropError" style="color:#dc3545;text-align:center;font-size:0.8em;padding:2px;"></div>' +
     '</div>';
@@ -1158,6 +1283,88 @@ function hypot(t1, t2) {
   return Math.sqrt(dx*dx + dy*dy);
 }
 
+// ---------- Direct crop (no preview modal) ----------
+function cropDirect() {
+  if (!sourceImage || !currentCallback || corners.length !== 4) return;
+
+  var imgW = sourceImage.width, imgH = sourceImage.height;
+
+  // Convert canvas-space corners to original image space
+  var origCorners = corners.map(function(c) {
+    return canvasToImage(c.x, c.y);
+  });
+
+  // Calculate output dimensions in original image space
+  var cw = Math.max(distance(origCorners[0], origCorners[1]), distance(origCorners[3], origCorners[2]));
+  var ch = Math.max(distance(origCorners[0], origCorners[3]), distance(origCorners[1], origCorners[2]));
+  if (cw < 10 || ch < 10) return;
+
+  if (isIdCopyMode) {
+    ch = cw / (86/54);
+  }
+  var outW = Math.round(cw);
+  var outH = Math.round(ch);
+  if (isIdCopyMode) {
+    outW = 1016;
+    outH = 638;
+  }
+
+  // Get original image pixel data
+  var tempCanvas = document.createElement('canvas');
+  tempCanvas.width = imgW;
+  tempCanvas.height = imgH;
+  var tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(sourceImage, 0, 0);
+  var srcData = tempCtx.getImageData(0, 0, imgW, imgH).data;
+
+  // Apply perspective correction at full resolution
+  var fullData = applyPerspective(srcData, imgW, imgH, origCorners, outW, outH);
+
+  // Create output canvas
+  var finalCanvas = document.createElement('canvas');
+  finalCanvas.width = outW;
+  finalCanvas.height = outH;
+  var fCtx = finalCanvas.getContext('2d');
+  fCtx.imageSmoothingQuality = 'high';
+
+  var imageData = fCtx.createImageData(outW, outH);
+  imageData.data.set(fullData);
+  fCtx.putImageData(imageData, 0, 0);
+
+  // Apply selected filter
+  applyFilter(fCtx, outW, outH, selectedFilter);
+
+  // Export
+  fCtx.canvas.toBlob(function(blob) {
+    if (!blob) return;
+    var fileName = sourceImage && sourceImage.src ? (sourceImage.src.split('/').pop() || 'cropped.png') : 'cropped.png';
+    if (fileName.startsWith('blob:')) fileName = 'cropped_' + Date.now() + '.png';
+    var file = new File([blob], fileName, { type: 'image/png' });
+    currentCallback(file, selectedFilter);
+    closeModal();
+  }, 'image/png', 1);
+}
+
+// ---------- Refresh preview when filter changes ----------
+function refreshPreview() {
+  if (!previewCanvas || !previewCanvas._unfilteredData) return;
+  var previewModal = document.getElementById('ocvPreviewModal');
+  if (!previewModal || previewModal.style.display === 'none') return;
+
+  var w = previewCanvas.width, h = previewCanvas.height;
+  if (w === 0 || h === 0) return;
+
+  var pCtx = previewCanvas.getContext('2d');
+
+  // Restore unfiltered data
+  var imageData = pCtx.createImageData(w, h);
+  imageData.data.set(previewCanvas._unfilteredData);
+  pCtx.putImageData(imageData, 0, 0);
+
+  // Re-apply current filter
+  applyFilter(pCtx, w, h, selectedFilter);
+}
+
 // ---------- Public API ----------
 return {
   loadOpenCV: loadOpenCV,
@@ -1172,13 +1379,14 @@ return {
       b.classList.remove('active');
     });
     if (btn) btn.classList.add('active');
+    refreshPreview();
   },
 
   autoDetect: function() {
-    if (!canvasEl) return;
+    if (!sourceImage) return;
     var loadingEl = document.getElementById('ocvLoading');
     if (loadingEl) loadingEl.style.display = 'block';
-    detectCorners(canvasEl, function(detected) {
+    detectCorners(function(detected) {
       if (detected && detected.length === 4) {
         corners = detected;
         renderCrop();
@@ -1206,6 +1414,10 @@ return {
       };
     }
     renderCrop();
+  },
+
+  cropDirect: function() {
+    cropDirect();
   },
 
   showPreview: function() {

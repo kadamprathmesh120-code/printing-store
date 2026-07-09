@@ -1,31 +1,42 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Printing Store - Upload Your File</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <h1 data-i18n="storeName">Printing Store</h1>
-          <p data-i18n="storeTagline">Upload your documents for printing</p>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button id="langToggle" onclick="toggleLang()" style="padding:6px 14px;border:2px solid #1a73e8;border-radius:6px;background:white;color:#1a73e8;font-weight:600;cursor:pointer;font-size:0.85em;">मराठी</button>
-        </div>
-      </div>
-    </header>
 
-    <div id="stepUpload" class="card">
+  <!-- Glass Header -->
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div>
+        <h1 data-i18n="storeName">Printing Store</h1>
+        <p data-i18n="storeTagline">Upload your documents for printing</p>
+      </div>
+      <button id="langToggle" class="lang-toggle" onclick="toggleLang()">मराठी</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="app-main">
+
+    <!-- Step: Upload -->
+    <div id="stepUpload" class="card fade-in">
       <h2 data-i18n="uploadTitle">Upload Files</h2>
 
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button id="modeRegular" class="idc-mode-btn active" onclick="setIdMode('regular')">Regular</button>
-        <button id="modeIdCopy" class="idc-mode-btn" onclick="setIdMode('idcopy')">ID Copy 86×54</button>
+      <!-- Mode toggle -->
+      <div class="mode-group">
+        <button id="modeRegular" class="mode-btn active" onclick="setIdMode('regular')">
+          <i data-lucide="file-text" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
+          Regular
+        </button>
+        <button id="modeIdCopy" class="mode-btn" onclick="setIdMode('idcopy')">
+          <i data-lucide="credit-card" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
+          ID Copy 86x54
+        </button>
       </div>
 
       <!-- Regular -->
@@ -40,40 +51,72 @@
           <small data-i18n="fileHint">Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
         </div>
         <div id="fileList" class="hidden"></div>
+
+        <div class="form-group">
+          <label data-i18n="printType">Print Type</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="printType" value="bw" checked>
+              <span class="radio-box bw" data-i18n="bwOption">Black & White - ₹5/page</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="printType" value="color">
+              <span class="radio-box color" data-i18n="colorOption">Color - ₹10/page</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label data-i18n="printSide">Print Side</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="printSide" value="single" checked>
+              <span class="radio-box bw" data-i18n="singleSide">Single Side</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="printSide" value="both">
+              <span class="radio-box color" data-i18n="bothSides">Both Sides</span>
+            </label>
+          </div>
+        </div>
+        <button id="btnUpload" class="btn btn-primary" onclick="uploadFiles()" data-i18n="calcPrice">Calculate Price</button>
+        <div id="uploadError" class="error"></div>
       </div>
 
-      <!-- ID Copy section -->
+      <!-- ID Copy -->
       <div id="idcSection" class="hidden">
         <div class="form-group">
-          <input type="text" id="idcName" placeholder="Your Name" style="width:100%;padding:10px 12px;border:2px solid #ddd;border-radius:8px;font-size:1em;">
+          <input type="text" id="idcName" placeholder="Your Name" style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:14px;font-size:0.92em;font-family:inherit;outline:none;">
         </div>
 
-        <!-- Upload cards -->
         <div style="display:flex;gap:12px;margin-bottom:12px;">
           <div id="idcFront" class="idc-card" onclick="document.getElementById('idcFrontInput').click()">
-            <div id="idcFrontEmpty"><span style="font-size:2em;">📷</span><br><span style="font-size:0.85em;">Front</span></div>
+            <div id="idcFrontEmpty" class="idc-card-empty">
+              <span class="icon">📷</span>
+              <span>Front</span>
+            </div>
             <img id="idcFrontImg" class="idc-card-img hidden">
             <input type="file" id="idcFrontInput" accept="image/*" style="display:none" onchange="idcLoad(this,'front')">
           </div>
           <div id="idcBack" class="idc-card" onclick="document.getElementById('idcBackInput').click()">
-            <div id="idcBackEmpty"><span style="font-size:2em;">📷</span><br><span style="font-size:0.85em;">Back</span></div>
+            <div id="idcBackEmpty" class="idc-card-empty">
+              <span class="icon">📷</span>
+              <span>Back</span>
+            </div>
             <img id="idcBackImg" class="idc-card-img hidden">
             <input type="file" id="idcBackInput" accept="image/*" style="display:none" onchange="idcLoad(this,'back')">
           </div>
         </div>
 
-        <!-- Queue display -->
         <div id="idcQueue" class="hidden"></div>
 
-        <!-- Print Preview -->
         <div id="idcPreview" class="hidden" style="margin-bottom:12px;">
           <div style="margin-bottom:12px;">
-            <div style="font-weight:700;font-size:1.1em;color:#1a1a2e;">A4 Print Preview</div>
-            <div style="font-size:0.85em;color:#666;">Your uploaded ID card will be printed on A4 paper exactly as shown.</div>
+            <div style="font-weight:700;font-size:1em;color:#111827;">A4 Print Preview</div>
+            <div style="font-size:0.78em;color:#6b7280;">Your uploaded ID card will be printed on A4 paper exactly as shown.</div>
           </div>
           <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:8px;justify-content:center;">
             <button class="preview-btn" onclick="idcPreviewZoom(-0.15)">− Zoom</button>
-            <span id="idcPreviewZoomLabel" style="font-size:0.85em;min-width:44px;text-align:center;font-weight:600;">100%</span>
+            <span id="idcPreviewZoomLabel" style="font-size:0.82em;min-width:44px;text-align:center;font-weight:600;">100%</span>
             <button class="preview-btn" onclick="idcPreviewZoom(0.15)">+ Zoom</button>
             <button class="preview-btn" onclick="idcPreviewFit()">⤡ Fit</button>
             <button class="preview-btn" onclick="idcPreviewOriginal()">1:1 Actual</button>
@@ -81,65 +124,35 @@
             <button class="preview-btn" onclick="idcPreviewRotate(90)">↻ R</button>
             <button class="preview-btn" onclick="idcPrintPreview()" style="font-weight:700;">🖨 Print</button>
           </div>
-          <div id="idcPreviewWrap" style="overflow:auto;background:#e0e0e0;border-radius:8px;padding:20px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
+          <div id="idcPreviewWrap" style="overflow:auto;background:#e0e0e0;border-radius:12px;padding:20px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
             <div id="idcA4" style="width:100%;max-width:520px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;transform-origin:top center;transition:transform 0.15s;border:1px solid rgba(0,0,0,0.06);border-radius:2px;">
               <div id="idcA4Aspect" style="width:100%;aspect-ratio:210/297;">
                 <div id="idcA4Printable" style="position:absolute;inset:8%;border:1px dashed #ccc;border-radius:2px;pointer-events:none;"></div>
                 <div id="idcA4Drop" style="position:absolute;inset:0;">
                   <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;pointer-events:none;">Upload front/back images<br>to see print preview</div>
-                  <!-- Dimension lines will be drawn here by JS -->
                 </div>
               </div>
             </div>
           </div>
-          <div style="margin-top:10px;padding:8px 14px;background:#fff8e1;border-radius:6px;font-size:0.78em;color:#8d6e00;text-align:center;border:1px solid #ffe082;">
+          <div style="margin-top:10px;padding:8px 14px;background:#fffbeb;border-radius:10px;font-size:0.75em;color:#92400e;text-align:center;border:1px solid #fde68a;">
             ⚠️ This is a preview only. Your uploaded file will be printed exactly as shown.
           </div>
         </div>
 
-        <!-- Actions -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="idcCrop('front')" disabled id="idcCropFront">Crop Front</button>
-          <button class="btn btn-primary" onclick="idcCrop('back')" disabled id="idcCropBack">Crop Back</button>
-          <button class="btn btn-secondary" onclick="idcAddMore()" id="idcAddMore">Add More</button>
-          <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn">Calculate Price</button>
+          <button class="btn btn-secondary" onclick="idcCrop('front')" disabled id="idcCropFront" style="flex:1;">Crop Front</button>
+          <button class="btn btn-secondary" onclick="idcCrop('back')" disabled id="idcCropBack" style="flex:1;">Crop Back</button>
+          <button class="btn btn-secondary" onclick="idcAddMore()" id="idcAddMore" style="flex:1;">Add More</button>
+          <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn" style="flex:100%;">Calculate Price</button>
         </div>
       </div>
-
-      <div class="form-group">
-        <label data-i18n="printType">Print Type</label>
-        <div class="radio-group">
-          <label class="radio-label">
-            <input type="radio" name="printType" value="bw" checked>
-            <span class="radio-box bw" data-i18n="bwOption">Black & White - ₹5/page</span>
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="printType" value="color">
-            <span class="radio-box color" data-i18n="colorOption">Color - ₹10/page</span>
-          </label>
-        </div>
-      </div>
-      <div class="form-group">
-        <label data-i18n="printSide">Print Side</label>
-        <div class="radio-group">
-          <label class="radio-label">
-            <input type="radio" name="printSide" value="single" checked>
-            <span class="radio-box bw" data-i18n="singleSide">Single Side</span>
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="printSide" value="both">
-            <span class="radio-box color" data-i18n="bothSides">Both Sides</span>
-          </label>
-        </div>
-      </div>
-      <button id="btnUpload" class="btn btn-primary" onclick="uploadFiles()" data-i18n="calcPrice">Calculate Price</button>
-      <div id="uploadError" class="error"></div>
     </div>
 
-    <div id="stepPrice" class="card hidden">
+    <!-- Step: Order Summary -->
+    <div id="stepPrice" class="card hidden fade-in">
       <h2 data-i18n="orderSummary">Order Summary</h2>
       <div id="summaryOrders"></div>
-      <div class="summary">
+      <div class="summary-box" style="margin-bottom:16px;">
         <div class="summary-row"><span data-i18n="nameLabel">Name:</span><span id="summaryName"></span></div>
         <div class="summary-row"><span data-i18n="typeLabel">Type:</span><span id="summaryType"></span></div>
         <div class="summary-row"><span data-i18n="sideLabel">Side:</span><span id="summarySide"></span></div>
@@ -147,14 +160,14 @@
       </div>
 
       <div id="stepPricePayment">
-        <h3 data-i18n="payTitle">Payment Method</h3>
+        <h3 style="font-size:0.92em;font-weight:600;margin:0 0 12px;color:#1f2937;" data-i18n="payTitle">Payment Method</h3>
         <div class="form-group">
-          <div class="radio-group" style="justify-content:center;gap:16px;">
-            <label class="radio-label" style="flex:1;max-width:200px;">
+          <div class="radio-group" style="justify-content:center;gap:12px;">
+            <label class="radio-label" style="flex:1;max-width:180px;">
               <input type="radio" name="paymentMethod" value="paytm" checked onchange="togglePaymentMethod()">
               <span class="radio-box bw" data-i18n="paytmOption">Paytm (UPI)</span>
             </label>
-            <label class="radio-label" style="flex:1;max-width:200px;">
+            <label class="radio-label" style="flex:1;max-width:180px;">
               <input type="radio" name="paymentMethod" value="cash" onchange="togglePaymentMethod()">
               <span class="radio-box color" data-i18n="cashOption">Cash</span>
             </label>
@@ -164,15 +177,15 @@
         <div id="paytmSection">
           <p class="paytm-info" data-i18n="scanQR">Scan QR code to pay</p>
           <div class="qr-container">
-            <img src="paytm-qr.jpg" alt="Paytm QR" style="max-width:250px;border:1px solid #ddd;border-radius:8px;">
+            <img src="paytm-qr.jpg" alt="Paytm QR">
           </div>
-          <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
+          <p style="text-align:center;color:#92400e;background:#fffbeb;padding:10px 14px;border-radius:12px;font-size:0.82em;margin-bottom:10px;border:1px solid #fde68a;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
           <button id="btnPaid" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="paidBtn">I Have Paid</button>
         </div>
 
         <div id="cashSection" class="hidden">
-          <p style="text-align:center;color:#155724;background:#d4edda;padding:16px;border-radius:8px;font-size:1em;margin-bottom:8px;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
-          <p style="text-align:center;color:#856404;background:#fff3cd;padding:10px;border-radius:8px;font-size:0.85em;margin-bottom:8px;" data-i18n="cashNotice">We will accept cash at the counter. Please confirm so we can start printing.</p>
+          <p style="text-align:center;color:#065f46;background:#d1fae5;padding:14px 16px;border-radius:12px;font-size:0.92em;margin-bottom:10px;border:1px solid #a7f3d0;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
+          <p style="text-align:center;color:#92400e;background:#fffbeb;padding:10px 14px;border-radius:12px;font-size:0.82em;margin-bottom:10px;border:1px solid #fde68a;" data-i18n="cashNotice">We will accept cash at the counter. Please confirm so we can start printing.</p>
           <button id="btnCashConfirm" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="cashConfirmBtn">Confirm Cash Payment</button>
         </div>
       </div>
@@ -180,62 +193,73 @@
       <div id="paymentError" class="error"></div>
     </div>
 
-    <div id="stepStatus" class="card hidden">
+    <!-- Step: Status -->
+    <div id="stepStatus" class="card hidden fade-in">
       <h2 data-i18n="orderStatus">Order Status</h2>
-      <div id="orderIdsDisplay" class="order-id"><span data-i18n="orderIdsLabel">Order IDs:</span> <span id="orderIdsSpan"></span></div>
-      <div id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</div>
-      <p id="statusMessage"></p>
+      <div class="order-id"><span data-i18n="orderIdsLabel">Order IDs:</span> <span id="orderIdsSpan"></span></div>
+      <div style="text-align:center;margin:16px 0;">
+        <span id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</span>
+      </div>
+      <p id="statusMessage" style="text-align:center;font-size:0.88em;color:#6b7280;"></p>
       <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus">Refresh Status</button>
-      <div id="statusDone" class="hidden">
+      <div id="statusDone" class="hidden" style="margin-top:12px;">
         <div class="success-message" data-i18n="allReady">All prints ready! Please collect from the counter.</div>
       </div>
     </div>
 
-    <div id="stepStartOver" class="card hidden">
+    <!-- Step: Start Over -->
+    <div id="stepStartOver" class="card hidden fade-in" style="text-align:center;">
       <button class="btn btn-primary" onclick="startOver()" data-i18n="uploadMore">Upload More Files</button>
     </div>
 
-    <!-- Crop Modal -->
-    <div id="cropModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;">
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;max-width:520px;width:92%;color:white;">
-        <h3 style="margin-bottom:8px;">Crop <span id="cropProgress" style="font-size:0.8em;color:#aaa;"></span></h3>
-        <div style="border-radius:8px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:55vh;">
-          <canvas id="cropCanvas" style="max-width:100%;max-height:55vh;"></canvas>
-        </div>
-        <div style="display:flex;justify-content:center;gap:8px;padding:8px 0;flex-wrap:wrap;">
-          <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="rotateCrop(-90)">↺</button>
-          <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="autoCropEdge()">Auto</button>
-          <button style="background:#16213e;border:none;color:white;padding:8px 12px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="rotateCrop(90)">↻</button>
-          <button style="background:#28a745;font-weight:700;padding:8px 18px;border:none;color:white;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="confirmCrop()">✓ Crop</button>
-        </div>
-        <div id="cropError" style="color:#dc3545;text-align:center;font-size:0.8em;"></div>
-      </div>
-    </div>
+  </main>
 
-    <!-- ID Copy Crop Modal -->
-    <div id="idcModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:101;display:flex;align-items:center;justify-content:center;">
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;max-width:540px;width:94%;color:white;">
-        <h3 style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-          <span>ID Copy <span id="idcCropSide">Front</span></span>
-          <span style="font-size:0.75em;color:#FFD700;font-weight:400;">86×54mm</span>
-        </h3>
-        <div style="border-radius:8px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:50vh;position:relative;touch-action:none;">
-          <canvas id="idcCanvas" style="max-width:100%;max-height:50vh;transition:transform 0.3s ease;"></canvas>
-          <div id="idcRatioOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;border:2px dashed rgba(255,215,0,0.5);margin:12px;border-radius:4px;"></div>
-        </div>
-        <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
-          <button class="idc-crop-btn" onclick="idcRotate(-90)">↺ Rotate</button>
-          <button class="idc-crop-btn" onclick="idcRotate(90)">↻ Rotate</button>
-          <button class="idc-crop-btn" style="background:#dc3545;" onclick="idcResetCrop()">Reset</button>
-          <button class="idc-crop-btn" style="background:#28a745;" onclick="idcConfirmCrop()">✓ Crop</button>
-        </div>
-        <div style="display:flex;justify-content:center;gap:12px;padding:4px 0;">
-          <button style="background:#16213e;border:none;color:#aaa;padding:8px 16px;border-radius:6px;font-size:0.85em;cursor:pointer;" onclick="idcCancelCrop()">Close</button>
-        </div>
-        <div id="idcCropError" style="color:#dc3545;text-align:center;font-size:0.8em;"></div>
-      </div>
-    </div>
+  <!-- Sticky Bottom -->
+  <div class="sticky-bottom" id="stickyBottom">
+    <button class="btn btn-primary" onclick="document.getElementById('btnUpload').click()" id="stickyCalcBtn" data-i18n="calcPrice">Calculate Price</button>
+  </div>
 
+  <!-- Crop Modal (Regular) -->
+  <div id="cropModal" class="crop-overlay" style="display:none;">
+    <div class="crop-card">
+      <h3 style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Crop <span id="cropProgress" style="font-size:0.8em;color:#aaa;"></span></span>
+      </h3>
+      <div style="border-radius:10px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:55vh;">
+        <canvas id="cropCanvas" style="max-width:100%;max-height:55vh;"></canvas>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
+        <button class="idc-crop-btn" onclick="rotateCrop(-90)">↺</button>
+        <button class="idc-crop-btn" onclick="autoCropEdge()">Auto</button>
+        <button class="idc-crop-btn" onclick="rotateCrop(90)">↻</button>
+        <button class="idc-crop-btn" style="background:#059669;" onclick="confirmCrop()">✓ Crop</button>
+      </div>
+      <div id="cropError" style="color:#ef4444;text-align:center;font-size:0.8em;"></div>
+    </div>
+  </div>
+
+  <!-- ID Copy Crop Modal -->
+  <div id="idcModal" class="crop-overlay" style="display:none;z-index:101;">
+    <div class="crop-card" style="max-width:540px;width:94%;">
+      <h3 style="display:flex;justify-content:space-between;align-items:center;">
+        <span>ID Copy <span id="idcCropSide">Front</span></span>
+        <span style="font-size:0.75em;color:#FFD700;font-weight:400;">86x54mm</span>
+      </h3>
+      <div style="border-radius:10px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:50vh;position:relative;touch-action:none;">
+        <canvas id="idcCanvas" style="max-width:100%;max-height:50vh;transition:transform 0.3s ease;"></canvas>
+        <div id="idcRatioOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;border:2px dashed rgba(255,215,0,0.5);margin:12px;border-radius:4px;"></div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
+        <button class="idc-crop-btn" onclick="idcRotate(-90)">↺ Rotate</button>
+        <button class="idc-crop-btn" onclick="idcRotate(90)">↻ Rotate</button>
+        <button class="idc-crop-btn" style="background:#ef4444;" onclick="idcResetCrop()">Reset</button>
+        <button class="idc-crop-btn" style="background:#059669;" onclick="idcConfirmCrop()">✓ Crop</button>
+      </div>
+      <div style="display:flex;justify-content:center;gap:12px;padding:4px 0;">
+        <button style="background:#1f2937;border:none;color:#aaa;padding:8px 16px;border-radius:8px;font-size:0.82em;cursor:pointer;font-family:inherit;" onclick="idcCancelCrop()">Close</button>
+      </div>
+      <div id="idcCropError" style="color:#ef4444;text-align:center;font-size:0.8em;"></div>
+    </div>
   </div>
 
   <script>
@@ -264,7 +288,7 @@
     let idcDrag = false, idcDragStartX = 0, idcDragStartY = 0;
     let idcQueue = [];
     let idcCropX1_s, idcCropY1_s, idcCropX2_s, idcCropY2_s;
-    const IDC_RATIO = 86 / 54; // 1.5926
+    const IDC_RATIO = 86 / 54;
 
     function setIdMode(m) {
       idcMode = m;
@@ -272,6 +296,14 @@
       document.getElementById('modeIdCopy').classList.toggle('active', m === 'idcopy');
       document.getElementById('regSection').classList.toggle('hidden', m !== 'regular');
       document.getElementById('idcSection').classList.toggle('hidden', m !== 'idcopy');
+      var stickyBtn = document.getElementById('stickyCalcBtn');
+      if (m === 'idcopy') {
+        stickyBtn.textContent = document.getElementById('idcUploadBtn').textContent || 'Calculate Price';
+        stickyBtn.onclick = function() { document.getElementById('idcUploadBtn').click(); };
+      } else {
+        if (typeof translations !== 'undefined') stickyBtn.textContent = translations[currentLang].calcPrice || 'Calculate Price';
+        stickyBtn.onclick = function() { document.getElementById('btnUpload').click(); };
+      }
     }
 
     function idcLoad(input, side) {
@@ -300,7 +332,6 @@
       img.onload = function() {
         idcCropImg = img;
         idcRotation = 0;
-        // Use OCV_CROP if available
         if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
           OCV_CROP.openModal(img, true, function(croppedFile, filter) {
             if (!croppedFile) return;
@@ -314,7 +345,6 @@
           });
           return;
         }
-        // Fallback to old modal
         var canvas = document.getElementById('idcCanvas');
         var modal = document.getElementById('idcModal');
         modal.classList.remove('hidden'); modal.style.display = 'flex';
@@ -360,14 +390,12 @@
       ctx.fillRect(0, y1, x1, y2 - y1);
       ctx.fillRect(x2, y1, w - x2, y2 - y1);
 
-      // Gold dashed border for 86x54 ratio
       ctx.strokeStyle = '#FFD700';
       ctx.lineWidth = 2;
       ctx.setLineDash([6,4]);
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
       ctx.setLineDash([]);
 
-      // Corner handles
       var hs = 12;
       [[x1,y1],[x2,y1],[x1,y2],[x2,y2]].forEach(function(p) {
         ctx.fillStyle = 'white';
@@ -377,7 +405,6 @@
         ctx.strokeRect(p[0]-hs/2, p[1]-hs/2, hs, hs);
       });
 
-      // Size label
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'left';
@@ -418,7 +445,6 @@
       var dpr = window.devicePixelRatio || 1;
       return { x: (e.clientX - rect.left) * dpr, y: (e.clientY - rect.top) * dpr };
     }
-
     document.getElementById('idcCanvas').addEventListener('mousedown', function(e) {
       var pos = idcCanvasPos(e);
       var h = idcGetHandle(pos.x, pos.y);
@@ -440,19 +466,16 @@
         idcCropY1 = Math.max(0, Math.min(c.height - rh, s.y1 + dy));
         idcCropX2 = idcCropX1 + rw; idcCropY2 = idcCropY1 + rh;
       } else {
-        // Corner drag - maintain 86x54 ratio
         var cx = (s.x1 + s.x2) / 2, cy = (s.y1 + s.y2) / 2;
         if (idcDrag === 'tl') { idcCropX1 = s.x1 + dx; idcCropY1 = s.y1 + dy; }
         else if (idcDrag === 'tr') { idcCropX2 = s.x2 + dx; idcCropY1 = s.y1 + dy; }
         else if (idcDrag === 'bl') { idcCropX1 = s.x1 + dx; idcCropY2 = s.y2 + dy; }
         else if (idcDrag === 'br') { idcCropX2 = s.x2 + dx; idcCropY2 = s.y2 + dy; }
-        // Constrain to ratio
         var nw = Math.abs(idcCropX2 - idcCropX1), nh = Math.abs(idcCropY2 - idcCropY1);
         if (nw / nh > IDC_RATIO) { nh = nw / IDC_RATIO; } else { nw = nh * IDC_RATIO; }
         var ncx = (idcCropX1 + idcCropX2) / 2, ncy = (idcCropY1 + idcCropY2) / 2;
         idcCropX1 = ncx - nw / 2; idcCropX2 = ncx + nw / 2;
         idcCropY1 = ncy - nh / 2; idcCropY2 = ncy + nh / 2;
-        // Clamp
         idcCropX1 = Math.max(0, Math.min(c.width, idcCropX1));
         idcCropX2 = Math.max(0, Math.min(c.width, idcCropX2));
         idcCropY1 = Math.max(0, Math.min(c.height, idcCropY1));
@@ -462,7 +485,6 @@
     });
     document.addEventListener('mouseup', function() { idcDrag = false; });
 
-    // Touch
     document.getElementById('idcCanvas').addEventListener('touchstart', function(e) {
       e.preventDefault(); var t = e.touches[0]; var pos = idcCanvasPos(t);
       var h = idcGetHandle(pos.x, pos.y);
@@ -503,7 +525,6 @@
       idcRotation = (idcRotation + deg) % 360;
       var canvas = document.getElementById('idcCanvas');
       canvas.style.transform = 'rotate(' + idcRotation + 'deg)';
-      // Smooth transition is handled by CSS transition: transform 0.3s ease
     }
 
     function idcResetCrop() {
@@ -526,23 +547,19 @@
 
       var iw = idcCropImg.width, ih = idcCropImg.height;
       var cw = canvas.width, ch = canvas.height;
-      var sx = iw / cw, sy = ih / ch;
       var cx1 = Math.round(x1 * (iw / cw)), cy1 = Math.round(y1 * (ih / ch));
       var cx2 = Math.round(x2 * (iw / cw)), cy2 = Math.round(y2 * (ih / ch));
 
       var outC = document.createElement('canvas');
       var fw = cx2 - cx1, fh = cy2 - cy1;
-      // Output at 300 DPI equivalent: 86mm ≈ 1016px, 54mm ≈ 638px
       var targetW = 1016, targetH = 638;
       outC.width = targetW; outC.height = targetH;
       var oCtx = outC.getContext('2d');
       oCtx.imageSmoothingQuality = 'high';
 
-      // Handle rotation
       if (idcRotation !== 0) {
         var tempC = document.createElement('canvas');
         var rad = idcRotation * Math.PI / 180;
-        var cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
         tempC.width = fw; tempC.height = fh;
         var tCtx = tempC.getContext('2d');
         tCtx.drawImage(idcCropImg, cx1, cy1, fw, fh, 0, 0, fw, fh);
@@ -557,7 +574,6 @@
         var croppedFile = new File([blob], (idcCurrent==='front'?idcFrontFile.name:idcBackFile.name), {type:'image/png'});
         if (idcCurrent === 'front') idcFrontCropped = croppedFile; else idcBackCropped = croppedFile;
 
-        // Update thumbnail
         var reader = new FileReader();
         reader.onload = function(e) {
           document.getElementById('idc' + (idcCurrent==='front'?'Front':'Back') + 'Img').src = e.target.result;
@@ -615,13 +631,13 @@
       var el = document.getElementById('idcQueue');
       if (idcQueue.length === 0) { el.classList.add('hidden'); return; }
       el.classList.remove('hidden');
-      var html = '<div style="font-weight:600;margin-bottom:8px;">Queue (' + idcQueue.length + ')</div>';
+      var html = '<div style="font-weight:600;margin-bottom:8px;font-size:0.85em;color:#374151;">Queue (' + idcQueue.length + ')</div>';
       for (var i = 0; i < idcQueue.length; i++) {
         var item = idcQueue[i];
-        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f8f9fa;border-radius:8px;margin-bottom:6px;">';
+        html += '<div class="queue-item">';
         html += '<span style="font-size:1.2em;">📄</span>';
-        html += '<span style="flex:1;font-size:0.85em;">' + item.frontName + (item.backName ? ' + ' + item.backName : '') + '</span>';
-        html += '<button onclick="idcRemoveQueue(' + i + ')" style="background:red;color:white;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;">✕</button>';
+        html += '<span style="flex:1;font-size:0.82em;color:#374151;">' + item.frontName + (item.backName ? ' + ' + item.backName : '') + '</span>';
+        html += '<button onclick="idcRemoveQueue(' + i + ')" class="queue-remove">✕</button>';
         html += '</div>';
       }
       el.innerHTML = html;
@@ -632,15 +648,13 @@
       idcRenderQueue();
     }
 
-    // --- Print Preview ---
     var idcPreviewScale = 1;
     var idcPreviewDrag = null;
 
     function idcCardDimensions(a4wPx, a4hPx) {
-      // Card: 86x54mm on A4: 210x297mm
       var cardRatio = 86 / 54;
-      var cardWpct = 86 / 210; // card width as fraction of A4 width
-      var cardHpct = 54 / 297; // card height as fraction of A4 height
+      var cardWpct = 86 / 210;
+      var cardHpct = 54 / 297;
       var w = a4wPx * cardWpct;
       var h = a4hPx * cardHpct;
       return { w: w, h: h, ratio: cardRatio };
@@ -654,7 +668,6 @@
       var a4Aspect = document.getElementById('idcA4Aspect');
       var hasFront = idcFrontFile && idcFrontImgSrc && idcFrontImgSrc !== '#';
       var hasBack = idcBackFile && idcBackImgSrc && idcBackImgSrc !== '#';
-      // Remove old images/dimension lines but keep the msg placeholder
       while (drop.children.length > 0) {
         var child = drop.children[0];
         if (child.id === 'idcA4Msg') { child.style.display = (hasFront || hasBack) ? 'none' : ''; drop.appendChild(child); break; }
@@ -673,31 +686,21 @@
       var marginTop = 25 * pxPerMm;
       var gap = 30 * pxPerMm;
 
-      // --- Dimension line: Horizontal "86 mm" above first card ---
       var dimTop = marginTop - 8 * pxPerMm;
       var dimH = 5 * pxPerMm;
       var dimColor = '#888';
 
       var hLeft = (a4W - cardW) / 2;
-      var hRight = hLeft + cardW;
-      var hLineY = dimTop + dimH / 2;
 
       var hLineEl = document.createElement('div');
-      hLineEl.style.cssText = 'position:absolute;height:0;border-top:1px solid ' + dimColor + ';left:' + hLeft + 'px;top:' + hLineY + 'px;width:' + cardW + 'px;pointer-events:none;';
-      hLineEl.innerHTML =
-        '<div style="position:absolute;right:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-right:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div>' +
-        '<div style="position:absolute;left:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-left:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div>' +
-        '<span style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;">86 mm</span>';
+      hLineEl.style.cssText = 'position:absolute;height:0;border-top:1px solid ' + dimColor + ';left:' + hLeft + 'px;top:' + (dimTop + dimH/2) + 'px;width:' + cardW + 'px;pointer-events:none;';
+      hLineEl.innerHTML = '<div style="position:absolute;right:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-right:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><div style="position:absolute;left:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-left:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><span style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;">86 mm</span>';
       drop.appendChild(hLineEl);
 
-      // --- Dimension line: Vertical "54 mm" on the left ---
       var vLineX = (a4W - cardW) / 2 - 10 * pxPerMm;
       var vLineEl = document.createElement('div');
       vLineEl.style.cssText = 'position:absolute;width:0;border-left:1px solid ' + dimColor + ';left:' + vLineX + 'px;top:' + marginTop + 'px;height:' + cardH + 'px;pointer-events:none;';
-      vLineEl.innerHTML =
-        '<div style="position:absolute;bottom:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-bottom:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div>' +
-        '<div style="position:absolute;top:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-top:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div>' +
-        '<span style="position:absolute;top:50%;left:-24px;transform:translateY(-50%) rotate(-90deg);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;transform-origin:center;">54 mm</span>';
+      vLineEl.innerHTML = '<div style="position:absolute;bottom:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-bottom:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><div style="position:absolute;top:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-top:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><span style="position:absolute;top:50%;left:-24px;transform:translateY(-50%) rotate(-90deg);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;transform-origin:center;">54 mm</span>';
       drop.appendChild(vLineEl);
 
       var done = 0, total = (hasFront ? 1 : 0) + (hasBack ? 1 : 0);
@@ -707,7 +710,6 @@
         var img = new Image();
         img.onload = function() {
           var w = cardW, h = cardH;
-          // Fit image into 86x54 while maintaining aspect ratio (letterbox)
           var iRatio = img.naturalWidth / img.naturalHeight;
           var cRatio = cardW / cardH;
           var fw = w, fh = h;
@@ -717,7 +719,7 @@
           var el = document.createElement('img');
           el.src = src;
           el.className = 'idc-preview-img';
-          el.style.cssText = 'position:absolute;cursor:grab;user-select:none;border-radius:2px;box-shadow:0 1px 6px rgba(0,0,0,0.12);left:' + x + 'px;top:' + y + 'px;width:' + fw + 'px;height:' + fh + 'px;';
+          el.style.cssText = 'position:absolute;cursor:grab;user-select:none;border-radius:3px;box-shadow:0 1px 8px rgba(0,0,0,0.1);left:' + x + 'px;top:' + y + 'px;width:' + fw + 'px;height:' + fh + 'px;';
           el.dataset.side = side;
           drop.appendChild(el);
           cardImgs.push(el);
@@ -910,7 +912,6 @@
           idcUpdatePreview();
         }, 100);
       });
-      // Also listen for crop completion to update preview
       var observer = new MutationObserver(function() {
         var fi = document.getElementById('idcFrontImg');
         var bi = document.getElementById('idcBackImg');
@@ -921,7 +922,6 @@
       observer.observe(document.getElementById('idcFrontImg'), { attributes: true, attributeFilter: ['src'] });
       observer.observe(document.getElementById('idcBackImg'), { attributes: true, attributeFilter: ['src'] });
     });
-
     function idcUpload() {
       if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
       var name = document.getElementById('idcName').value.trim() || 'Customer';
@@ -962,8 +962,8 @@
           currentOrderIds = results.map(function(r) { return r.orderId; });
           var a4ImgSrc = idcRenderA4ToImage();
           var totalPrice = results.reduce(function(s, r) { return s + r.price; }, 0);
-          var previewHtml = '<div style="text-align:center;color:#28a745;font-weight:600;margin-bottom:8px;">\u2713 ' + results.length + ' ID Copy uploaded</div>';
-          if (a4ImgSrc) previewHtml += '<div style="text-align:center;margin-bottom:12px;"><div style="display:inline-block;background:white;border-radius:6px;padding:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1);"><img src="' + a4ImgSrc + '" style="max-width:280px;width:100%;height:auto;border-radius:3px;"></div></div>';
+          var previewHtml = '<div style="text-align:center;color:#059669;font-weight:600;margin-bottom:8px;">✓ ' + results.length + ' ID Copy uploaded</div>';
+          if (a4ImgSrc) previewHtml += '<div style="text-align:center;margin-bottom:12px;"><div style="display:inline-block;background:white;border-radius:12px;padding:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);"><img src="' + a4ImgSrc + '" style="max-width:260px;width:100%;height:auto;border-radius:4px;"></div></div>';
           document.getElementById('summaryOrders').innerHTML = previewHtml;
           document.getElementById('summaryName').textContent = name;
           document.getElementById('summaryType').textContent = printType === 'bw' ? 'B&W' : 'Color';
@@ -990,8 +990,8 @@
         chooseFiles: 'Choose Files',
         fileHint: 'Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.',
         printType: 'Print Type',
-        bwOption: 'Black & White - \u20B95/page',
-        colorOption: 'Color - \u20B910/page',
+        bwOption: 'Black & White - ₹5/page',
+        colorOption: 'Color - ₹10/page',
         printSide: 'Print Side',
         singleSide: 'Single Side',
         bothSides: 'Both Sides',
@@ -1031,61 +1031,57 @@
         filesLabel: 'Files',
         pg: 'pg',
         sheets: 'sheets',
-
-
       },
       mr: {
-        storeName: '\u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u094D\u091F\u094B\u0930',
-        storeTagline: '\u0924\u0941\u092E\u091A\u0947 \u0921\u0949\u0915\u094D\u092F\u0941\u092E\u0947\u0902\u091F\u094D\u0938 \u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917\u0938\u093E\u0920\u0940 \u0905\u092A\u0932\u094B\u0921 \u0915\u0930\u093E',
-        uploadTitle: '\u092B\u093E\u092F\u0932 \u0905\u092A\u0932\u094B\u0921 \u0915\u0930\u093E',
-        yourName: '\u0924\u0941\u092E\u091A\u0947 \u0928\u093E\u0935',
-        namePlaceholder: '\u0924\u0941\u092E\u091A\u0947 \u0928\u093E\u0935 \u092A\u094D\u0930\u0935\u093F\u0937\u094D\u091F \u0915\u0930\u093E',
-        chooseFiles: '\u092B\u093E\u092F\u0932 \u0928\u093F\u0935\u0921\u093E',
-        fileHint: '\u092A\u0930\u0935\u093E\u0928\u0917\u0940: PDF, DOC, DOCX, JPG, PNG, TXT (\u092A\u094D\u0930\u0924\u094D\u092F\u0947\u0915\u0940 50MB \u092A\u0930\u094D\u092F\u0902\u0924). PDF \u092A\u0947\u091C \u0906\u092A\u0938\u0918\u0947 \u0913\u0933\u0916\u0932\u0940 \u091C\u093E\u0924\u0940\u0932.',
-        printType: '\u092A\u094D\u0930\u093F\u0902\u091F \u092A\u094D\u0930\u0915\u093E\u0930',
-        bwOption: '\u0915\u0933\u0947 \u092A\u093F\u0922\u0940 - \u20B95/\u092A\u0947\u091C',
-        colorOption: '\u0930\u0902\u0917\u0940\u0928 - \u20B910/\u092A\u0947\u091C',
-        printSide: '\u092A\u094D\u0930\u093F\u0902\u091F \u092C\u093E\u091C\u0942',
-        singleSide: '\u090F\u0915\u092C\u093E\u091C\u0942',
-        bothSides: '\u0926\u094B\u0928\u094D\u0939\u0940 \u092C\u093E\u091C\u0942',
-        calcPrice: '\u0915\u093F\u0902\u092E\u0924 \u092E\u094B\u091C\u093E',
-        orderSummary: '\u0911\u0930\u094D\u0921\u0930 \u0938\u093E\u0930\u093E\u0902\u0936',
-        nameLabel: '\u0928\u093E\u0935:',
-        typeLabel: '\u092A\u094D\u0930\u0915\u093E\u0930:',
-        sideLabel: '\u092C\u093E\u091C\u0942:',
-        totalLabel: '\u090F\u0915\u0942\u0928 \u0915\u093F\u0902\u092E\u0924:',
-        payTitle: '\u092A\u0947\u092E\u0947\u0902\u091F \u092A\u0926\u094D\u0927\u0924',
-        paytmOption: '\u092A\u0947\u091F\u0940\u090F\u092E (UPI)',
-        cashOption: '\u0930\u094B\u0916\u0921',
-        scanQR: '\u092A\u0947\u092E\u0947\u0902\u091F\u0938\u093E\u0920\u0940 QR \u0915\u094B\u0921 \u0938\u094D\u0915\u0947\u0928 \u0915\u0930\u093E',
-        paymentNotice: '\u0915\u0943\u092A\u092F\u093E \u092A\u0947\u092E\u0947\u0902\u091F\u091A\u0940 \u092A\u0941\u0937\u094D\u091F\u0940 \u0915\u0930\u093E \u092E\u094D\u0939\u0923\u091C\u0947 \u0906\u092E\u094D\u0939\u0940 \u0932\u0917\u0947\u091A \u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u0941\u0930\u0942 \u0915\u0930\u0942',
-        paidBtn: '\u092E\u0940 \u092A\u0947\u092E\u0947\u0902\u091F \u0915\u0947\u0932\u0947',
-        cashMessage: '\u0915\u0943\u092A\u092F\u093E \u0917\u094D\u0930\u093E\u0939\u0915 \u0918\u0947\u0923\u094D\u092F\u093E\u0935\u0947\u0933\u0940 \u0915\u093E\u0909\u0902\u091F\u0930\u0935\u0930 \u0930\u094B\u0916\u0921 \u0926\u094D\u092F\u093E.',
-        cashNotice: '\u0906\u092E\u094D\u0939\u0940 \u0915\u093E\u0909\u0902\u091F\u0930\u0935\u0930 \u0930\u094B\u0916\u0921 \u0938\u094D\u0935\u0940\u0915\u093E\u0930 \u0915\u0930\u0942. \u0915\u0943\u092A\u092F\u093E \u092A\u0941\u0937\u094D\u091F\u0940 \u0915\u0930\u093E \u092E\u094D\u0939\u0923\u091C\u0947 \u0906\u092E\u094D\u0939\u0940 \u092A\u094D\u0930\u093F\u0902\u091F\u093F\u0902\u0917 \u0938\u0941\u0930\u0942 \u0915\u0930\u0942.',
-        cashConfirmBtn: '\u0930\u094B\u0916\u0921 \u092A\u0947\u092E\u0947\u0902\u091F\u091A\u0940 \u092A\u0941\u0937\u094D\u091F\u0940 \u0915\u0930\u093E',
-        orderStatus: '\u0911\u0930\u094D\u0921\u0930 \u0938\u094D\u0925\u093F\u0924\u0940',
-        orderIdsLabel: '\u0911\u0930\u094D\u0921\u0930 ID:',
-        pending: '\u092A\u094D\u0930\u0924\u093F\u0915\u094D\u0937\u0947\u0924',
-        refreshStatus: '\u0938\u094D\u0925\u093F\u0924\u0940 \u0924\u093E\u091C\u0940 \u0915\u0930\u093E',
-        allReady: '\u0938\u0930\u094D\u0935 \u092A\u094D\u0930\u093F\u0902\u091F \u0924\u092F\u093E\u0930! \u0915\u0943\u092A\u092F\u093E \u0915\u093E\u0909\u0902\u091F\u0930\u0935\u0930\u0942\u0928 \u0918\u094D\u092F\u093E.',
-        uploadMore: '\u0906\u0923\u0916\u094D\u092F\u093E \u092B\u093E\u092F\u0932 \u0905\u092A\u0932\u094B\u0921 \u0915\u0930\u093E',
-        uploading: '\u0905\u092A\u0932\u094B\u0921 \u0939\u094B\u0924 \u0906\u0939\u0947...',
-        confirming: '\u092A\u0941\u0937\u094D\u091F\u0940 \u0939\u094B\u0924 \u0906\u0939\u0947...',
-        enterName: '\u0915\u0943\u092A\u092F\u093E \u0924\u0941\u092E\u091A\u0947 \u0928\u093E\u0935 \u092A\u094D\u0930\u0935\u093F\u0937\u094D\u091F \u0915\u0930\u093E',
-        selectFiles: '\u0915\u0943\u092A\u092F\u093E \u092B\u093E\u092F\u0932 \u0928\u093F\u0935\u0921\u093E',
-        someFailed: '\u0915\u093E\u0939\u0940 \u0911\u0930\u094D\u0921\u0930 \u0905\u092F\u0936\u0932 \u091D\u093E\u0932\u0947. \u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u093E.',
-        failedTryAgain: '\u0905\u092F\u0936\u0932. \u092A\u0941\u0928\u094D\u0939\u093E \u092A\u094D\u0930\u092F\u0924\u094D\u0928 \u0915\u0930\u093E.',
-        waitingPayment: '\u092A\u0947\u092E\u0947\u0902\u091F \u092A\u0941\u0937\u094D\u091F\u0940\u091A\u0940 \u092A\u094D\u0930\u0924\u093F\u0915\u094D\u0937\u093E...',
-        paidAwaiting: '\u092A\u0947\u092E\u0947\u0902\u091F \u0926\u093F\u0932\u0947 - \u092E\u0902\u091C\u0942\u0930\u0940\u091A\u0940 \u092A\u094D\u0930\u0924\u093F\u0915\u094D\u0937\u093E',
-        paymentReceived: '\u092A\u0947\u092E\u0947\u0902\u091F \u092E\u093F\u0933\u093E\u0932\u0947! \u0905\u0921\u092E\u093F\u0928 \u0932\u0917\u0947\u091A \u0924\u0941\u092E\u091A\u0947 \u0911\u0930\u094D\u0921\u0930 \u0924\u092A\u093E\u0938\u0947\u0932.',
-        accepted: '\u092E\u0902\u091C\u0942\u0930',
-        rejected: '\u0928\u093E\u092E\u0902\u091C\u0942\u0930',
-        rejectedMsg: '\u0915\u094D\u0937\u092E\u093E \u0915\u0930\u093E, \u0915\u093E\u0939\u0940 \u0911\u0930\u094D\u0921\u0930 \u0928\u093E\u092E\u0902\u091C\u0942\u0930 \u091D\u093E\u0932\u0947. \u0938\u094D\u091F\u094B\u0930\u0936\u0940 \u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u093E.',
-        filesLabel: '\u092B\u093E\u092F\u0932',
-        pg: '\u092A\u0947\u091C',
-        sheets: '\u0936\u0940\u091F',
-
-
+        storeName: 'प्रिंटिंग स्टोर',
+        storeTagline: 'तुमचे डॉक्युमेंट्स प्रिंटिंगसाठी अपलोड करा',
+        uploadTitle: 'फायल अपलोड करा',
+        yourName: 'तुमचे नाव',
+        namePlaceholder: 'तुमचे नाव प्रविष्ट करा',
+        chooseFiles: 'फायल निवडा',
+        fileHint: 'परवानगी: PDF, DOC, DOCX, JPG, PNG, TXT (प्रत्येकी 50MB पर्यंत). PDF पेज आपसघे ओळखली जातील.',
+        printType: 'प्रिंट प्रकार',
+        bwOption: 'काळे पिढी - ₹5/पेज',
+        colorOption: 'रंगीन - ₹10/पेज',
+        printSide: 'प्रिंट बाजू',
+        singleSide: 'एकबाजू',
+        bothSides: 'दोन्ही बाजू',
+        calcPrice: 'किंमत मोजा',
+        orderSummary: 'ऑर्डर सारांश',
+        nameLabel: 'नाव:',
+        typeLabel: 'प्रकार:',
+        sideLabel: 'बाजू:',
+        totalLabel: 'एकूण किंमत:',
+        payTitle: 'पेमेंट पद्धत',
+        paytmOption: 'पेटीएम (UPI)',
+        cashOption: 'रोखड',
+        scanQR: 'पेमेंटसाठी QR कोड स्केन करा',
+        paymentNotice: 'कृपया पेमेंटची पुष्टी करा म्हणजे आम्ही लगेच प्रिंटिंग सुरू करू',
+        paidBtn: 'मी पेमेंट केले',
+        cashMessage: 'कृपया ग्राहक घेण्यावेळी काउंटरवर रोखड द्या.',
+        cashNotice: 'आम्ही काउंटरवर रोखड स्वीकार करू. कृपया पुष्टी करा म्हणजे आम्ही प्रिंटिंग सुरू करू.',
+        cashConfirmBtn: 'रोखड पेमेंटची पुष्टी करा',
+        orderStatus: 'ऑर्डर स्थिती',
+        orderIdsLabel: 'ऑर्डर ID:',
+        pending: 'प्रतिक्षेत',
+        refreshStatus: 'स्थिती ताजी करा',
+        allReady: 'सर्व प्रिंट तयार! कृपया काउंटरवरून घ्या.',
+        uploadMore: 'आणखीन फायल अपलोड करा',
+        uploading: 'अपलोड होत आहे...',
+        confirming: 'पुष्टी होत आहे...',
+        enterName: 'कृपया तुमचे नाव प्रविष्ट करा',
+        selectFiles: 'कृपया फायल निवडा',
+        someFailed: 'काही ऑर्डर अयशल झाले. संपर्क करा.',
+        failedTryAgain: 'अयशल. पुन्हा प्रयत्न करा.',
+        waitingPayment: 'पेमेंट पुष्टीची प्रतिक्षा...',
+        paidAwaiting: 'पेमेंट दिले - मंजूरीची प्रतिक्षा',
+        paymentReceived: 'पेमेंट मिळाले! अडमिन लगेच तुमचे ऑर्डर तपासेल.',
+        accepted: 'मंजूर',
+        rejected: 'नामंजूर',
+        rejectedMsg: 'क्षमा करा, काही ऑर्डर नामंजूर झाले. स्टोरशी संपर्क करा.',
+        filesLabel: 'फायल',
+        pg: 'पेज',
+        sheets: 'शीट',
       }
     };
 
@@ -1100,7 +1096,7 @@
       document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
         el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
       });
-      document.getElementById('langToggle').textContent = currentLang === 'en' ? '\u092E\u0930\u093E\u0920\u0940' : 'EN';
+      document.getElementById('langToggle').textContent = currentLang === 'en' ? 'मराठी' : 'EN';
     }
 
     function toggleLang() {
@@ -1120,7 +1116,6 @@
       if (files.length === 0) { fileList.classList.add('hidden'); return; }
       fileList.classList.remove('hidden');
 
-      // Build crop queue for images
       cropQueue = [];
       for (var i = 0; i < files.length; i++) {
         var ext = files[i].name.split('.').pop().toLowerCase();
@@ -1141,8 +1136,7 @@
       var fileList = document.getElementById('fileList');
       fileList.innerHTML = '';
       fileList.style.marginBottom = '16px';
-      fileList.style.borderTop = '1px solid #eee';
-      fileList.style.paddingTop = '12px';
+      fileList.style.paddingTop = '4px';
       var files = document.getElementById('fileInput').files;
       if (files.length === 0) { fileList.classList.add('hidden'); return; }
       fileList.classList.remove('hidden');
@@ -1153,20 +1147,21 @@
         var isPdf = ext === 'pdf';
         var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
         var pages = 1;
-        if (isPdf) {
-          pages = 'Auto';
-        } else if (isImage) {
-          pages = 1;
-        } else {
-          pages = '<input type="number" min="1" value="1" style="width:60px;padding:4px;border:1px solid #ddd;border-radius:4px;" data-fname="' + f.name + '" class="page-input" onchange="updatePageCount(this)">';
+        if (isPdf) { pages = 'Auto'; }
+        else if (isImage) { pages = 1; }
+        else {
+          pages = '<input type="number" min="1" value="1" style="width:58px;padding:5px 6px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:0.8em;font-family:inherit;" data-fname="' + f.name + '" class="page-input" onchange="updatePageCount(this)">';
         }
         var typeLabel = isPdf ? 'PDF' : isImage ? 'Image' : 'Doc';
-        var croppedBadge = (isImage && enhancedFiles[f.name]) ? '<span style="color:#1a73e8;font-size:0.75em;font-weight:600;margin-left:4px;">Cropped</span>' : '';
+        var badgeClass = isPdf ? 'file-badge-pdf' : isImage ? 'file-badge-image' : 'file-badge-doc';
+        var croppedBadge = (isImage && enhancedFiles[f.name]) ? '<span class="file-badge-cropped">Cropped</span>' : '';
 
-        fileList.innerHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:0.9em;border-bottom:1px solid #f0f0f0;">' +
-          '<span style="flex:1;word-break:break-all;padding-right:8px;">' + f.name + '</span>' +
-          '<span style="white-space:nowrap;color:#888;font-size:0.85em;margin:0 8px;">' + typeLabel + '</span>' +
-          '<span style="white-space:nowrap;">' + pages + ' <span data-i18n="pg">pg</span>' + croppedBadge + '</span>' +
+        fileList.innerHTML += '<div class="file-item">' +
+          '<span class="file-icon">' + (isPdf ? '📄' : isImage ? '🖼' : '📝') + '</span>' +
+          '<div class="file-info">' +
+            '<div class="file-name">' + f.name + '</div>' +
+            '<div class="file-meta"><span class="file-badge ' + badgeClass + '">' + typeLabel + '</span> ' + pages + ' <span data-i18n="pg">pg</span>' + croppedBadge + '</div>' +
+          '</div>' +
           '</div>';
         if (isPdf) currentFilePages[f.name] = 'auto';
         else if (isImage) currentFilePages[f.name] = 1;
@@ -1175,7 +1170,6 @@
       applyLang();
     }
 
-    // ---- Crop functions ----
     function startCropItem() {
       if (cropIndex >= cropQueue.length) { showFileList(); return; }
       var item = cropQueue[cropIndex];
@@ -1185,12 +1179,9 @@
       var img = new Image();
       img.onload = function() {
         cropImg = img;
-        // Use OCV_CROP if available, fallback to old modal
         if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
           OCV_CROP.openModal(img, false, function(croppedFile, filter) {
-            if (croppedFile) {
-              enhancedFiles[cropFileName] = croppedFile;
-            }
+            if (croppedFile) { enhancedFiles[cropFileName] = croppedFile; }
             cropIndex++;
             startCropItem();
           });
@@ -1212,7 +1203,6 @@
       var w = cropImg.width, h = cropImg.height;
       if (w > maxW) { h = h * maxW / w; w = maxW; }
       if (h > maxH) { w = w * maxH / h; h = maxH; }
-      // Set canvas at high internal resolution for sharp preview
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       canvas.style.width = Math.round(w) + 'px';
@@ -1231,8 +1221,6 @@
       ctx.save();
       ctx.translate(w / 2, h / 2);
       ctx.rotate(cropRotation * Math.PI / 180);
-      var dw = (Math.abs(cropRotation) % 180 === 0) ? w : h;
-      var dh = (Math.abs(cropRotation) % 180 === 0) ? h : w;
       ctx.drawImage(cropImg, -w / 2, -h / 2, w, h);
       ctx.restore();
 
@@ -1277,7 +1265,6 @@
       if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return 'move';
       return null;
     }
-
     document.getElementById('cropCanvas').addEventListener('mousedown', function(e) {
       var pos = getCanvasPos(e);
       var handle = getCropHandle(pos.x, pos.y);
@@ -1328,7 +1315,6 @@
       cropDragHandle = null; cropDragStart = null;
     });
 
-    // Touch events for crop
     document.getElementById('cropCanvas').addEventListener('touchstart', function(e) {
       e.preventDefault(); var pos = getCanvasPos(e.touches[0]); cropDragHandle = getCropHandle(pos.x, pos.y);
       if (cropDragHandle) cropDragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
@@ -1384,7 +1370,6 @@
       var imageData = ctx.getImageData(0, 0, w, h);
       var data = imageData.data;
 
-      // Grayscale + blur in one pass
       var blurred = new Float32Array(w * h);
       var gray = new Float32Array(w * h);
       for (var y = 0; y < h; y++) {
@@ -1401,7 +1386,6 @@
         }
       }
 
-      // Sobel edge detection
       var edges = new Float32Array(w * h), maxEdge = 0;
       for (var y = 1; y < h - 1; y++) {
         for (var x = 1; x < w - 1; x++) {
@@ -1416,9 +1400,6 @@
       var margin = Math.round(Math.min(w, h) * 0.1);
       var searchEnd = Math.round(Math.min(w, h) * 0.9);
 
-      // For each row, find leftmost & rightmost edge pixel
-      // For each column, find topmost & bottommost edge pixel
-      // Average them to get the 4 boundaries
       var leftSum = 0, rightSum = 0, topSum = 0, bottomSum = 0;
       var rowCount = 0, colCount = 0;
 
@@ -1467,7 +1448,6 @@
       var y2 = Math.round(Math.max(cropRect.y1, cropRect.y2));
       if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('cropError').textContent = 'Crop area too small'; return; }
 
-      // If no rotation and crop is full image (within small margin), use original file
       var dpr = window.devicePixelRatio || 1;
       var margin = Math.round(20 * dpr);
       var cw = canvas.width, ch = canvas.height;
@@ -1483,7 +1463,6 @@
 
       var iw = cropImg.width, ih = cropImg.height;
 
-      // Build full-resolution rotated version of cropImg
       var fullC = document.createElement('canvas');
       var fCtx = fullC.getContext('2d');
       fCtx.imageSmoothingQuality = 'high';
@@ -1495,7 +1474,6 @@
       fCtx.drawImage(cropImg, -iw / 2, -ih / 2, iw, ih);
       fCtx.restore();
 
-      // Scale crop rect from canvas space to full-res space
       var sx = fullC.width / cw, sy = fullC.height / ch;
       var fx1 = Math.round(x1 * sx), fy1 = Math.round(y1 * sy);
       var fx2 = Math.round(x2 * sx), fy2 = Math.round(y2 * sy);
@@ -1506,7 +1484,6 @@
       var oCtx = outC.getContext('2d');
       oCtx.imageSmoothingQuality = 'high';
       oCtx.drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
-      // Use PNG (lossless) to preserve full quality for cropped output
       outC.toBlob(function(blob) {
         var cf = new File([blob], cropFileName, { type: 'image/png' });
         enhancedFiles[cropFileName] = cf;
@@ -1516,9 +1493,6 @@
         startCropItem();
       }, 'image/png');
     }
-    // ---- End crop functions ----
-
-
 
     function updatePageCount(input) {
       currentFilePages[input.getAttribute('data-fname')] = parseInt(input.value) || 1;
@@ -1527,7 +1501,6 @@
     document.querySelectorAll('input[name="printType"]').forEach(function(el) {
       el.addEventListener('change', function() {
         var bothLabel = document.querySelector('input[name="printSide"][value="both"]').closest('.radio-label');
-        var bothInput = document.querySelector('input[name="printSide"][value="both"]');
         if (this.value === 'color') {
           bothLabel.classList.add('hidden');
           document.querySelector('input[name="printSide"][value="single"]').checked = true;
@@ -1547,8 +1520,6 @@
       document.querySelectorAll('.card').forEach(function(c) { c.classList.add('hidden'); });
       document.getElementById(id).classList.remove('hidden');
     }
-
-
 
     function uploadFiles() {
       var name = document.getElementById('customerName').value.trim();
@@ -1605,17 +1576,17 @@
           var unitLabel = data.printSide === 'Both Sides' ? t('sheets') : t('pg');
           data.orders.forEach(function(o) {
             var count = data.printSide === 'Both Sides' ? o.sheets : o.pageCount;
-            orderHtml += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:0.9em;">' +
-              '<span style="flex:1;word-break:break-all;padding-right:8px;">' + o.fileName + '</span>' +
-              '<span>' + count + ' ' + unitLabel + '</span>' +
-              '<span style="font-weight:600;margin-left:12px;">\u20B9' + o.price + '</span>' +
+            orderHtml += '<div class="file-item">' +
+              '<span class="file-name" style="flex:1;">' + o.fileName + '</span>' +
+              '<span style="font-size:0.82em;color:#6b7280;margin:0 8px;">' + count + ' ' + unitLabel + '</span>' +
+              '<span style="font-weight:700;color:#16A34A;">₹' + o.price + '</span>' +
               '</div>';
           });
-          document.getElementById('summaryOrders').innerHTML = '<div class="summary" style="margin-bottom:12px;"><h3 style="margin-bottom:8px;font-size:1em;">' + t('filesLabel') + ' (' + data.orders.length + ')</h3>' + orderHtml + '</div>';
+          document.getElementById('summaryOrders').innerHTML = '<div class="summary-box" style="margin-bottom:12px;"><h3 style="margin-bottom:8px;font-size:0.92em;color:#1f2937;">' + t('filesLabel') + ' (' + data.orders.length + ')</h3>' + orderHtml + '</div>';
           document.getElementById('summaryName').textContent = data.customerName;
           document.getElementById('summaryType').textContent = data.printType;
           document.getElementById('summarySide').textContent = data.printSide;
-          document.getElementById('summaryPrice').textContent = '\u20B9' + data.totalPrice;
+          document.getElementById('summaryPrice').textContent = '₹' + data.totalPrice;
 
           togglePaymentMethod();
 
@@ -1636,7 +1607,6 @@
       var method = document.querySelector('input[name="paymentMethod"]:checked').value;
       var btn = method === 'paytm' ? document.getElementById('btnPaid') : document.getElementById('btnCashConfirm');
 
-      // ID Copy cash: order already paid on server, skip API call
       if (method === 'cash' && document.getElementById('summarySide').textContent === 'ID Copy 86×54') {
         document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
         showStep('stepStatus');
@@ -1648,8 +1618,7 @@
       btn.textContent = t('confirming');
 
       var allPaid = currentOrderIds.map(function(id) {
-        return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json();
-        });
+        return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json(); });
       });
 
       Promise.all(allPaid)
@@ -1714,7 +1683,7 @@
           var btn = document.querySelector('[onclick="copyUpiId()"]');
           var orig = btn.textContent;
           btn.textContent = 'Copied!';
-          btn.style.background = '#28a745';
+          btn.style.background = '#059669';
           setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2000);
         });
       } else {
@@ -1766,6 +1735,8 @@
         checkAllStatus();
       }
     }, 10000);
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   </script>
   <script src="opencv-crop.js"></script>
 </body>
