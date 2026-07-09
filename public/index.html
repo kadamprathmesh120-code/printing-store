@@ -300,6 +300,21 @@
       img.onload = function() {
         idcCropImg = img;
         idcRotation = 0;
+        // Use OCV_CROP if available
+        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
+          OCV_CROP.openModal(img, true, function(croppedFile, filter) {
+            if (!croppedFile) return;
+            if (idcCurrent === 'front') idcFrontCropped = croppedFile; else idcBackCropped = croppedFile;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              document.getElementById('idc' + (idcCurrent==='front'?'Front':'Back') + 'Img').src = e.target.result;
+            };
+            reader.readAsDataURL(croppedFile);
+            document.getElementById('idcCropError').textContent = '';
+          });
+          return;
+        }
+        // Fallback to old modal
         var canvas = document.getElementById('idcCanvas');
         var modal = document.getElementById('idcModal');
         modal.classList.remove('hidden'); modal.style.display = 'flex';
@@ -317,7 +332,6 @@
         canvas.style.height = h + 'px';
         canvas.style.transform = 'rotate(0deg)';
 
-        // Set crop rect to full image
         var pad = 20 * dpr;
         idcCropX1 = pad; idcCropY1 = pad;
         idcCropX2 = canvas.width - pad; idcCropY2 = canvas.height - pad;
@@ -1171,7 +1185,18 @@
       var img = new Image();
       img.onload = function() {
         cropImg = img;
-        showCropModal();
+        // Use OCV_CROP if available, fallback to old modal
+        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
+          OCV_CROP.openModal(img, false, function(croppedFile, filter) {
+            if (croppedFile) {
+              enhancedFiles[cropFileName] = croppedFile;
+            }
+            cropIndex++;
+            startCropItem();
+          });
+        } else {
+          showCropModal();
+        }
       };
       img.src = URL.createObjectURL(item.file);
     }
@@ -1742,5 +1767,6 @@
       }
     }, 10000);
   </script>
+  <script src="opencv-crop.js"></script>
 </body>
 </html>
