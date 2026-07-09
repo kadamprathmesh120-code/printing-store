@@ -434,6 +434,62 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   .sticky-bottom { padding:10px 12px 14px; }
 }
 
+/* --- Notification Toast --- */
+.toast-container {
+  position:fixed; top:16px; right:16px; z-index:9999;
+  display:flex; flex-direction:column; gap:8px;
+  max-width:360px; width:calc(100% - 32px);
+  pointer-events:none;
+}
+.toast {
+  background:#fff; border-radius:14px; padding:14px 16px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+  display:flex; align-items:flex-start; gap:12px;
+  transform:translateX(120%); opacity:0;
+  transition:transform .35s cubic-bezier(.22,1,.36,1), opacity .3s ease-out;
+  pointer-events:auto;
+  border-left:3px solid #16A34A;
+}
+.toast.show { transform:translateX(0); opacity:1; }
+.toast-icon { font-size:1.4em; flex-shrink:0; margin-top:1px; }
+.toast-body { flex:1; min-width:0; }
+.toast-title { font-size:0.85em; font-weight:700; color:#111827; margin-bottom:3px; }
+.toast-detail { font-size:0.82em; color:#374151; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.toast-time { font-size:0.7em; color:#9ca3af; margin-top:3px; }
+
+/* --- Highlight Animation --- */
+@keyframes highlightNew {
+  0% { background:rgba(22,163,74,0.12); }
+  70% { background:rgba(22,163,74,0.06); }
+  100% { background:transparent; }
+}
+.order-new { animation:highlightNew 3s ease-out; }
+
+/* --- Settings Toggle --- */
+.settings-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 0 0; border-top:1px solid #f3f4f6; margin-top:14px;
+}
+.toggle-label {
+  display:flex; align-items:center; gap:8px;
+  font-size:0.85em; font-weight:600; color:#374151;
+}
+.toggle-switch { cursor:pointer; user-select:none; }
+.toggle-track {
+  display:block; width:44px; height:24px;
+  background:#d1d5db; border-radius:12px;
+  position:relative; transition:background .25s;
+}
+.toggle-thumb {
+  display:block; width:20px; height:20px;
+  background:#fff; border-radius:50%;
+  position:absolute; top:2px; left:2px;
+  transition:transform .25s cubic-bezier(.22,1,.36,1);
+  box-shadow:0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-switch.active .toggle-track { background:#16A34A; }
+.toggle-switch.active .toggle-thumb { transform:translateX(20px); }
+
 /* ============================================
    OCV CROP STYLES (kept intact)
    ============================================ */

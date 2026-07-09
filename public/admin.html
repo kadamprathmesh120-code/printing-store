@@ -73,8 +73,18 @@
           <div style="margin-top:12px;">
             <button class="btn btn-sm btn-secondary" onclick="document.getElementById('qrModal').classList.add('hidden')">Close</button>
           </div>
-        </div>
       </div>
+
+      <!-- Settings Row -->
+      <div class="settings-row">
+        <span class="toggle-label"><i data-lucide="bell" style="width:16px;height:16px;"></i> Notification Sound</span>
+        <label class="toggle-switch active" id="soundToggle">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+      </div>
+
+    </div>
+
     </div>
 
     <!-- Orders Card -->
@@ -108,12 +118,85 @@
 
   </main>
 
+  <div class="toast-container" id="toastContainer"></div>
+
   <script>
+    var knownOrderIds = new Set();
+    var soundEnabled = localStorage.getItem('notifSound') !== 'off';
+    var isFirstLoad = true;
+    var pendingNewIds = [];
+
+    try {
+      var saved = sessionStorage.getItem('knownOrderIds');
+      if (saved) { JSON.parse(saved).forEach(function(id) { knownOrderIds.add(id); }); }
+    } catch(e) {}
+
+    function playNotificationSound() {
+      if (!soundEnabled) return;
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var g = ctx.createGain();
+        g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.25, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+        var o1 = ctx.createOscillator();
+        o1.frequency.setValueAtTime(830, ctx.currentTime);
+        o1.type = 'sine';
+        o1.connect(g);
+        o1.start(ctx.currentTime);
+        o1.stop(ctx.currentTime + 0.1);
+
+        var o2 = ctx.createOscillator();
+        o2.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+        o2.type = 'sine';
+        o2.connect(g);
+        o2.start(ctx.currentTime + 0.1);
+        o2.stop(ctx.currentTime + 0.3);
+
+        setTimeout(function() { ctx.close(); }, 600);
+      } catch(e) {}
+    }
+
+    function showNotification(customerName, fileName, time) {
+      var container = document.getElementById('toastContainer');
+      var toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = '<div class="toast-icon">📄</div><div class="toast-body"><div class="toast-title">New Print Order</div><div class="toast-detail">' + escapeHtml(customerName) + '</div><div class="toast-detail" style="font-weight:400;color:#6b7280;font-size:0.78em;">' + escapeHtml(fileName) + '</div><div class="toast-time">' + time + '</div></div>';
+      container.appendChild(toast);
+      requestAnimationFrame(function() { toast.classList.add('show'); });
+      setTimeout(function() {
+        toast.classList.remove('show');
+        setTimeout(function() { toast.remove(); }, 350);
+      }, 5000);
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem('notifSound', soundEnabled ? 'on' : 'off');
+      document.getElementById('soundToggle').classList.toggle('active', soundEnabled);
+    }
+
     function fetchOrders() {
-      document.getElementById('ordersBody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Loading...</td></tr>';
       fetch('/api/admin/orders')
         .then(r => r.json())
         .then(orders => {
+          var newOrders = [];
+          if (!isFirstLoad) {
+            newOrders = orders.filter(function(o) { return !knownOrderIds.has(o.id); });
+          }
+          orders.forEach(function(o) { knownOrderIds.add(o.id); });
+          try { sessionStorage.setItem('knownOrderIds', JSON.stringify(Array.from(knownOrderIds))); } catch(e) {}
+
+          if (newOrders.length > 0) {
+            playNotificationSound();
+            pendingNewIds = newOrders.map(function(o) { return o.id; });
+            newOrders.reverse().forEach(function(o) {
+              showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
+            });
+          }
+          isFirstLoad = false;
+
           const tbody = document.getElementById('ordersBody');
           if (orders.length === 0) {
             tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">No orders yet</td></tr>';
@@ -137,7 +220,9 @@
             const payLabel = o.payment_method === 'cash' ? '<span class="cash-badge">Cash</span>' : '<span class="paytm-badge">Paytm</span>';
             const statusLabel = getStatusLabel(o.status);
             const actionBtn = getActionButtons(o);
-            const rowClass = o.payment_method === 'cash' && o.status === 'paid' ? ' class="cash-row"' : '';
+            var rowClass = o.payment_method === 'cash' && o.status === 'paid' ? 'cash-row' : '';
+            if (pendingNewIds.indexOf(o.id) !== -1) rowClass += ' order-new';
+            rowClass = rowClass ? ' class="' + rowClass.trim() + '"' : '';
 
             let fileDisplay = escapeHtml(o.file_name);
             let copiesDisplay = '';
@@ -158,9 +243,11 @@
               <td>${actionBtn}</td>
             </tr>`;
           }).join('');
+          pendingNewIds = [];
         })
-        .catch(() => {
-          document.getElementById('ordersBody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Failed to load orders</td></tr>';
+        .catch(function() {
+          var tbody = document.getElementById('ordersBody');
+          if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Failed to load orders</td></tr>';
         });
     }
 
@@ -246,8 +333,10 @@
       return div.innerHTML;
     }
 
+    document.getElementById('soundToggle').addEventListener('click', toggleSound);
+
     fetchOrders();
-    setInterval(fetchOrders, 15000);
+    setInterval(fetchOrders, 8000);
 
     // Initialize Lucide icons
     lucide.createIcons();
