@@ -303,7 +303,7 @@
             const date = new Date(o.created_at).toLocaleString();
             const typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
             const sideLabel = o.print_side === 'both' ? 'Both' : 'Single';
-            const payLabel = o.payment_method === 'cash' ? '<span class="cash-badge">Cash</span>' : '<span class="paytm-badge">Paytm</span>';
+            const payLabel = o.payment_method === 'cash' ? '<span class="cash-badge">Cash</span>' : '<span class="razorpay-badge">Razorpay</span>';
             const statusLabel = getStatusLabel(o.status);
             const actionBtn = getActionButtons(o);
             var rowClass = o.payment_method === 'cash' && o.status === 'paid' ? 'cash-row' : '';

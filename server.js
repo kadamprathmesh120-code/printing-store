@@ -8,11 +8,19 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 const { print: printPdf, getPrinters } = require('pdf-to-printer');
 const pdfParse = require('pdf-parse');
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
 const db = require('./db');
 const execP = promisify(exec);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Razorpay config — use env vars in production
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_TCEWIXuK88Wqs1',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'H5QS92PlVOvLdqsFuuRROorF'
+});
 
 const storage = multer.diskStorage({
   destination: path.join(__dirname, 'uploads'),
@@ -165,6 +173,70 @@ app.post('/api/orders/:id/confirm-payment', (req, res) => {
 
     res.json({ success: true, message: 'Payment confirmed. Waiting for admin approval.' });
   } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Razorpay: create an order for the total amount
+app.post('/api/create-razorpay-order', (req, res) => {
+  try {
+    const { amount, orderIds } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+
+    const options = {
+      amount: Math.round(amount * 100), // paise
+      currency: 'INR',
+      receipt: 'order_' + Date.now(),
+      payment_capture: 1
+    };
+
+    razorpay.orders.create(options, (err, order) => {
+      if (err) {
+        console.error('Razorpay create order error:', err);
+        return res.status(500).json({ error: 'Failed to create Razorpay order' });
+      }
+      // Store razorpay_order_id on each order row so we can verify later
+      if (Array.isArray(orderIds)) {
+        const stmt = db.prepare('UPDATE orders SET razorpay_order_id = ? WHERE id = ?');
+        for (const oid of orderIds) {
+          stmt.run(order.id, oid);
+        }
+      }
+      res.json({ razorpayOrderId: order.id, amount: options.amount, currency: options.currency });
+    });
+  } catch (err) {
+    console.error('Razorpay order error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Razorpay: verify payment signature and mark orders paid
+app.post('/api/verify-razorpay-payment', (req, res) => {
+  try {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature, orderIds } = req.body;
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({ error: 'Missing payment details' });
+    }
+
+    // Verify signature
+    const body = razorpayOrderId + '|' + razorpayPaymentId;
+    const expectedSig = crypto.createHmac('sha256', razorpay.key_secret).update(body).digest('hex');
+
+    if (expectedSig !== razorpaySignature) {
+      return res.status(400).json({ error: 'Payment verification failed (signature mismatch)' });
+    }
+
+    // Mark all associated orders as paid
+    if (Array.isArray(orderIds)) {
+      const stmt = db.prepare('UPDATE orders SET status = ?, razorpay_order_id = ? WHERE id = ? AND status = ?');
+      for (const oid of orderIds) {
+        stmt.run('paid', razorpayOrderId, oid, 'pending');
+      }
+    }
+
+    res.json({ success: true, message: 'Payment verified. Orders confirmed.' });
+  } catch (err) {
+    console.error('Razorpay verify error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

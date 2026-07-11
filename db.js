@@ -4,6 +4,7 @@ const path = require('path');
 const db = new Database(path.join(__dirname, 'printing.db'));
 
 db.pragma('journal_mode = WAL');
+db.pragma('ignore_check_constraints = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS orders (
@@ -24,8 +25,9 @@ try {
   db.exec(`ALTER TABLE orders ADD COLUMN print_side TEXT NOT NULL DEFAULT 'single' CHECK(print_side IN ('single', 'both'))`);
 } catch (e) {}
 try {
-  db.exec(`ALTER TABLE orders ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'paytm' CHECK(payment_method IN ('paytm', 'cash'))`);
+  db.exec(`ALTER TABLE orders ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'razorpay' CHECK(payment_method IN ('razorpay', 'cash'))`);
 } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN razorpay_order_id TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN is_id_copy INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN back_file_name TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN back_file_path TEXT`); } catch (e) {}

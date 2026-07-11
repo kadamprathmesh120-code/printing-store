@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     body { font-family:'Inter',-apple-system,sans-serif; }
   </style>
@@ -198,59 +199,36 @@
 
       <div class="bottom-bar">
         <button class="btn btn-secondary" onclick="showStep('stepSettings')" data-i18n="back">Back</button>
-        <button class="btn btn-primary" onclick="goToPayment()"><span data-i18n="nextPayment">Continue to Payment</span> →</button>
       </div>
-    </div>
 
-    <!-- Step 5: Payment -->
-    <div id="stepPayment" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepReview')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
-      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="payment">Payment</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="paymentDesc">Select payment method and confirm your order</p>
-
-      <div id="paymentFilesList" class="review-items" style="margin-bottom:12px;"></div>
-
-      <div class="summary-card" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;">
-        <div class="summary-row total" style="border-bottom:none;">
-          <span class="sr-label" data-i18n="totalAmount">Total Amount</span>
-          <span class="sr-value" id="paymentTotal" style="font-size:1.2em;font-weight:800;color:#16A34A;">₹0</span>
+      <!-- Razorpay Payment Card -->
+      <div class="razorpay-payment-card">
+        <div class="rpc-header">
+          <div class="rpc-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Pay with Razorpay</span>
+          </div>
+          <div class="rpc-badge">Recommended</div>
+        </div>
+        <div class="rpc-body">
+          <div class="rpc-amount">
+            <span class="rpc-amount-label">Total Amount</span>
+            <span class="rpc-amount-value" id="reviewTotalPriceRazorpay">₹0</span>
+          </div>
+          <div class="rpc-methods">
+            <span>💳 Cards</span><span>📱 UPI</span><span>🏦 Net Banking</span><span>👛 Wallets</span>
+          </div>
+          <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            Pay ₹<span id="btnRazorpayAmount">0</span>
+          </button>
+        </div>
+        <div class="rpc-footer">
+          <span>🔒 Secured by Razorpay</span>
+          <button class="rpc-cash-btn" onclick="payWithCash()">Pay with Cash instead</button>
         </div>
       </div>
-
-      <h3 style="font-size:0.85em;font-weight:600;color:#374151;margin:0 0 10px;" data-i18n="payTitle">Payment Method</h3>
-      <div class="payment-option selected" onclick="selectPayment(this,'paytm')">
-        <div class="po-icon upi"><i data-lucide="smartphone"></i></div>
-        <span class="po-label" data-i18n="paytmOption">Paytm (UPI)</span>
-        <div class="po-radio"></div>
-      </div>
-      <div class="payment-option" onclick="selectPayment(this,'cash')">
-        <div class="po-icon cash"><i data-lucide="banknote"></i></div>
-        <span class="po-label" data-i18n="cashOption">Cash</span>
-        <div class="po-radio"></div>
-      </div>
-
-      <div id="paytmSection">
-        <p style="text-align:center;font-size:0.85em;color:#6b7280;margin:16px 0 12px;" data-i18n="scanQR">Scan QR code to pay</p>
-        <div class="qr-container">
-          <img src="paytm-qr.jpg" alt="Paytm QR">
-        </div>
-        <p style="text-align:center;font-size:0.82em;color:#92400e;background:#fffbeb;padding:10px 14px;border-radius:12px;margin-bottom:10px;border:1px solid #fde68a;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
-        <div style="display:flex;gap:10px;margin-top:10px;">
-          <button class="btn btn-secondary" onclick="payUPI()" data-i18n="payNow">Pay Now</button>
-          <button id="btnPaid" class="btn btn-primary" onclick="confirmOrder('paytm')" data-i18n="paidBtn">I Have Paid</button>
-        </div>
-      </div>
-
-      <div id="cashSection" class="hidden">
-        <p style="text-align:center;color:#065f46;background:#d1fae5;padding:14px 16px;border-radius:12px;font-size:0.92em;margin:16px 0 10px;border:1px solid #a7f3d0;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
-        <button id="btnCashConfirm" class="btn btn-primary" onclick="confirmOrder('cash')" data-i18n="confirmOrderBtn">Confirm Order</button>
-      </div>
-
       <div id="paymentError" class="error"></div>
-
-      <div class="bottom-bar" style="margin-top:16px;">
-        <button class="btn btn-secondary" onclick="showStep('stepReview')" data-i18n="back">Back</button>
-      </div>
     </div>
 
     <!-- Step 6: Status (used for both old and new flow) -->
@@ -636,21 +614,13 @@
       document.getElementById('reviewCopies').textContent = copiesCount;
       document.getElementById('reviewPageRange').textContent = selectedPageRange === 'all' ? 'All Pages' : selectedPageRange;
       document.getElementById('reviewTotalPrice').textContent = '\u20B9' + totalPrice;
+      document.getElementById('reviewTotalPriceRazorpay').textContent = '\u20B9' + totalPrice;
+      document.getElementById('btnRazorpayAmount').textContent = totalPrice;
 
       showStep('stepReview');
     }
 
-    var selectedPaymentMethod = 'paytm';
-
-    function selectPayment(el, method) {
-      document.querySelectorAll('.payment-option').forEach(function(p) { p.classList.remove('selected'); });
-      el.classList.add('selected');
-      selectedPaymentMethod = method;
-      document.getElementById('paytmSection').classList.toggle('hidden', method !== 'paytm');
-      document.getElementById('cashSection').classList.toggle('hidden', method !== 'cash');
-    }
-
-    function goToPayment() {
+    function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
@@ -658,50 +628,20 @@
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
-      // Render file preview at payment
-      var pl = document.getElementById('paymentFilesList');
-      pl.innerHTML = '';
-      for (var pi = 0; pi < selectedFiles.length; pi++) {
-        var psf = selectedFiles[pi];
-        var pf = psf.file;
-        var pext = pf.name.split('.').pop().toLowerCase();
-        var pisPdf = pext === 'pdf';
-        var pisImg = ['jpg', 'jpeg', 'png'].includes(pext);
-        var pthumb = pisPdf ? 'pdf' : pisImg ? 'image' : 'doc';
-        var picon = pisPdf ? 'P' : pisImg ? 'I' : 'D';
-        pl.innerHTML += '' +
-          '<div class="review-item">' +
-            '<div class="ri-thumb ' + pthumb + '">' + picon + '</div>' +
-            '<div class="ri-info">' +
-              '<div class="ri-name">' + pf.name + '</div>' +
-              '<div class="ri-meta">' + formatSize(pf.size) + '</div>' +
-            '</div>' +
-          '</div>';
-      }
-      document.getElementById('paymentTotal').textContent = '\u20B9' + updatePrice();
-      showStep('stepPayment');
-    }
-
-    function confirmOrder(method) {
-      var name = document.getElementById('reviewName').value.trim();
-      if (!name) {
-        document.getElementById('paymentError').textContent = t('enterName');
-        return;
-      }
       if (selectedFiles.length === 0) {
-        document.getElementById('paymentError').textContent = t('selectFiles');
+        document.getElementById('paymentError').textContent = 'No files selected.';
         return;
       }
 
-      var btn = method === 'paytm' ? document.getElementById('btnPaid') : document.getElementById('btnCashConfirm');
+      var btn = document.getElementById('btnRazorpayReview');
       btn.disabled = true;
-      btn.textContent = t('uploading');
+      btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
 
       var formData = new FormData();
       formData.append('customerName', name);
       formData.append('printType', selectedPrintType);
       formData.append('printSide', selectedPrintSide);
-      formData.append('paymentMethod', method);
+      formData.append('paymentMethod', 'razorpay');
       formData.append('mobileNumber', document.getElementById('reviewMobile').value.trim());
       formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
       formData.append('orientation', selectedOrientation);
@@ -725,34 +665,128 @@
           if (data.error) {
             document.getElementById('paymentError').textContent = data.error;
             btn.disabled = false;
-            btn.textContent = method === 'paytm' ? t('paidBtn') : t('confirmOrderBtn');
+            btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
             return;
           }
           currentOrderIds = data.orders.map(function(o) { return o.orderId; });
-          // For UPI, confirm payment automatically since user clicked "I Have Paid"
-          if (method === 'paytm') {
-            btn.textContent = t('confirming');
-            var confirms = currentOrderIds.map(function(id) {
-              return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json(); });
-            });
-            return Promise.all(confirms).then(function() {
-              document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-              showStep('stepStatus');
-              updateStatusDisplay('paid');
-              btn.disabled = false;
-              btn.textContent = t('paidBtn');
-            });
-          }
-          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-          showStep('stepStatus');
-          updateStatusDisplay('paid');
-          btn.disabled = false;
-          btn.textContent = t('confirmOrderBtn');
+
+          btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
+          fetch('/api/create-razorpay-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: data.totalPrice, orderIds: currentOrderIds })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(rpData) {
+            if (rpData.error) { throw new Error(rpData.error); }
+            var options = {
+              key: 'rzp_test_TCEWIXuK88Wqs1',
+              amount: rpData.amount,
+              currency: rpData.currency,
+              name: 'Printing Store',
+              description: 'Order #' + currentOrderIds[0].slice(0,8),
+              order_id: rpData.razorpayOrderId,
+              handler: function(payment) {
+                fetch('/api/verify-razorpay-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    razorpayOrderId: payment.razorpay_order_id,
+                    razorpayPaymentId: payment.razorpay_payment_id,
+                    razorpaySignature: payment.razorpay_signature,
+                    orderIds: currentOrderIds
+                  })
+                })
+                .then(function(vr) { return vr.json(); })
+                .then(function(vrData) {
+                  if (vrData.error) {
+                    document.getElementById('paymentError').textContent = 'Payment verification failed: ' + vrData.error;
+                    btn.disabled = false;
+                    btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
+                    return;
+                  }
+                  document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+                  showStep('stepStatus');
+                  updateStatusDisplay('paid');
+                });
+              },
+              modal: {
+                ondismiss: function() {
+                  btn.disabled = false;
+                  btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
+                }
+              },
+              prefill: {
+                name: name,
+                contact: document.getElementById('reviewMobile').value.trim() || ''
+              },
+              theme: { color: '#7c3aed' }
+            };
+            var rzp = new Razorpay(options);
+            rzp.open();
+          })
+          .catch(function(err) {
+            document.getElementById('paymentError').textContent = 'Razorpay error: ' + (err.message || 'Try again.');
+            btn.disabled = false;
+            btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
+          });
         })
         .catch(function(err) {
           document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
           btn.disabled = false;
-          btn.textContent = method === 'paytm' ? t('paidBtn') : t('confirmOrderBtn');
+          btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">0</span>';
+        });
+    }
+
+    function payWithCash() {
+      var name = document.getElementById('reviewName').value.trim();
+      if (!name) {
+        document.getElementById('reviewName').style.borderColor = '#ef4444';
+        document.getElementById('reviewName').focus();
+        return;
+      }
+      document.getElementById('reviewName').style.borderColor = '';
+      if (selectedFiles.length === 0) {
+        document.getElementById('paymentError').textContent = 'No files selected.';
+        return;
+      }
+
+      var formData = new FormData();
+      formData.append('customerName', name);
+      formData.append('printType', selectedPrintType);
+      formData.append('printSide', selectedPrintSide);
+      formData.append('paymentMethod', 'cash');
+      formData.append('mobileNumber', document.getElementById('reviewMobile').value.trim());
+      formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
+      formData.append('orientation', selectedOrientation);
+      formData.append('copies', copiesCount);
+      formData.append('pageRange', selectedPageRange);
+
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
+        formData.append('files', fileToUpload);
+        if (selectedFiles[i].pages && selectedFiles[i].pages !== 'auto') {
+          formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
+        }
+      }
+
+      fetch('/api/upload', { method: 'POST', body: formData })
+        .then(function(r) {
+          if (!r.ok) { throw new Error('Server returned ' + r.status); }
+          return r.json();
+        })
+        .then(function(data) {
+          if (data.error) {
+            document.getElementById('paymentError').textContent = data.error;
+            return;
+          }
+          currentOrderIds = data.orders.map(function(o) { return o.orderId; });
+          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+          showStep('stepStatus');
+          updateStatusDisplay('paid');
+        })
+        .catch(function(err) {
+          document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
         });
     }
 
@@ -1401,7 +1435,7 @@
       if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
       var name = document.getElementById('idcName').value.trim() || 'Customer';
       var printType = selectedPrintType;
-      var paymentMethod = selectedPaymentMethod;
+      var paymentMethod = 'cash';
       var allItems = idcQueue.slice();
       if (idcFrontFile) {
         allItems.push({
@@ -1497,12 +1531,7 @@
         paymentDesc: 'Select payment method and confirm your order',
         totalAmount: 'Total Amount',
         payTitle: 'Payment Method',
-        paytmOption: 'Paytm (UPI)',
         cashOption: 'Cash',
-        scanQR: 'Scan QR code to pay',
-        paymentNotice: 'Please confirm payment so we can start printing right away',
-        paidBtn: 'I Have Paid',
-        payNow: 'Pay Now',
         cashMessage: 'Please pay cash at the counter during pickup.',
         confirmOrderBtn: 'Confirm Order',
         orderStatus: 'Order Status',
@@ -1569,12 +1598,7 @@
         paymentDesc: 'पेमेंट पद्धत निवडा आणि ऑर्डरची पुष्टी करा',
         totalAmount: 'एकूण रक्कम',
         payTitle: 'पेमेंट पद्धत',
-        paytmOption: 'पेटीएम (UPI)',
         cashOption: 'रोख',
-        scanQR: 'पेमेंटसाठी QR कोड स्केन करा',
-        paymentNotice: 'कृपया पेमेंटची पुष्टी करा म्हणजे आम्ही लगेच प्रिंटिंग सुरू करू',
-        paidBtn: 'मी पेमेंट केले',
-        payNow: 'आता पैसे द्या',
         cashMessage: 'कृपया ग्राहक घेण्यावेळी काउंटरवर रोख द्या.',
         confirmOrderBtn: 'ऑर्डरची पुष्टी करा',
         orderStatus: 'ऑर्डर स्थिती',
@@ -1694,27 +1718,6 @@
       }
     }
 
-    function payUPI() {
-      var totalEl = document.getElementById('paymentTotal');
-      var amount = totalEl ? totalEl.textContent.replace(/[^0-9]/g, '') : '';
-      window.location.href = 'upi://pay?pa=8698411983@ibl&pn=ANITA%20SHIVAJI%20KADAM&am=' + amount + '&cu=INR&tn=Printing%20Store';
-    }
-
-    function copyUpiId() {
-      var upiId = '8698411983@ibl';
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(upiId).then(function() {
-          var btn = document.querySelector('[onclick="copyUpiId()"]');
-          var orig = btn.textContent;
-          btn.textContent = 'Copied!';
-          btn.style.background = '#059669';
-          setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2000);
-        });
-      } else {
-        prompt('Copy UPI ID:', upiId);
-      }
-    }
-
     function checkAllStatus() {
       if (currentOrderIds.length === 0) return;
       var checks = currentOrderIds.map(function(id) {
@@ -1819,6 +1822,7 @@
     function drawCropCanvas() {
       var canvas = document.getElementById('cropCanvas');
       var ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
       var w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
       ctx.save();
@@ -2051,10 +2055,9 @@
       var y2 = Math.round(Math.max(cropRect.y1, cropRect.y2));
       if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('cropError').textContent = 'Crop area too small'; return; }
 
-      var dpr = window.devicePixelRatio || 1;
-      var margin = Math.round(20 * dpr);
       var cw = canvas.width, ch = canvas.height;
-      var isDefaultCrop = (cropRotation === 0 && x1 <= margin && y1 <= margin && x2 >= cw - margin && y2 >= ch - margin);
+      var closeEnough = Math.round(Math.min(cw, ch) * 0.02);
+      var isDefaultCrop = (cropRotation === 0 && x1 <= closeEnough && y1 <= closeEnough && x2 >= cw - closeEnough && y2 >= ch - closeEnough);
       if (isDefaultCrop) {
         enhancedFiles[cropFileName] = cropOrigFile;
         document.getElementById('cropModal').classList.add('hidden');
@@ -2085,16 +2088,19 @@
       var outC = document.createElement('canvas');
       outC.width = fw; outC.height = fh;
       var oCtx = outC.getContext('2d');
-      oCtx.imageSmoothingQuality = 'high';
+      oCtx.imageSmoothingEnabled = false;
       oCtx.drawImage(fullC, fx1, fy1, fw, fh, 0, 0, fw, fh);
       outC.toBlob(function(blob) {
-        var cf = new File([blob], cropFileName, { type: 'image/png' });
+        var outputType = 'image/png';
+        var cropExt = cropFileName.split('.').pop().toLowerCase();
+        if (cropExt === 'jpg' || cropExt === 'jpeg') outputType = 'image/jpeg';
+        var cf = new File([blob], cropFileName, { type: outputType });
         enhancedFiles[cropFileName] = cf;
         document.getElementById('cropModal').classList.add('hidden');
         document.getElementById('cropModal').style.display = 'none';
         cropIndex++;
         startCropItem();
-      }, 'image/png');
+      }, outputType, outputType === 'image/jpeg' ? 0.95 : undefined);
     }
 
     function showFileList() {

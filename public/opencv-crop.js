@@ -908,6 +908,7 @@ function commitCropResult() {
   finalCanvas.height = fullH;
   var fCtx = finalCanvas.getContext('2d');
   fCtx.imageSmoothingQuality = 'high';
+  fCtx.imageSmoothingEnabled = false;
 
   if (origCorners && origCorners.length === 4 && imgW > 0 && imgH > 0) {
     // Get fresh original image data if not cached
@@ -917,6 +918,8 @@ function commitCropResult() {
       tc.width = imgW;
       tc.height = imgH;
       var tctx = tc.getContext('2d');
+      tctx.imageSmoothingEnabled = false;
+      tctx.imageSmoothingQuality = 'high';
       tctx.drawImage(sourceImage, 0, 0);
       srcPixels = tctx.getImageData(0, 0, imgW, imgH).data;
     }
@@ -924,22 +927,27 @@ function commitCropResult() {
     var imageData = fCtx.createImageData(fullW, fullH);
     imageData.data.set(fullData);
     fCtx.putImageData(imageData, 0, 0);
-  } else {
-    // Fallback: draw preview canvas stretched to output size
-    fCtx.drawImage(previewCanvas, 0, 0, fullW, fullH);
+  } else if (sourceImage) {
+    fCtx.imageSmoothingEnabled = true;
+    fCtx.drawImage(sourceImage, 0, 0, fullW, fullH);
   }
 
   // Apply filter at full resolution
   applyFilter(fCtx, fullW, fullH, selectedFilter);
 
+  var outType = 'image/png';
+  var srcName = sourceImage && sourceImage.src ? sourceImage.src.split('/').pop() : 'cropped.png';
+  var srcExt = srcName.split('.').pop().toLowerCase();
+  if (srcExt === 'jpg' || srcExt === 'jpeg') outType = 'image/jpeg';
+
   fCtx.canvas.toBlob(function(blob) {
     if (!blob) return;
     var fileName = sourceImage && sourceImage.src ? (sourceImage.src.split('/').pop() || 'cropped.png') : 'cropped.png';
     if (fileName.startsWith('blob:')) fileName = 'cropped_' + Date.now() + '.png';
-    var file = new File([blob], fileName, { type: 'image/png' });
+    var file = new File([blob], fileName, { type: outType });
     currentCallback(file, selectedFilter);
     closeModal();
-  }, 'image/png', 1);
+  }, outType, outType === 'image/jpeg' ? 0.95 : undefined);
 }
 
 // ---------- Close modal ----------
@@ -1335,14 +1343,19 @@ function cropDirect() {
   applyFilter(fCtx, outW, outH, selectedFilter);
 
   // Export
+  var outType = 'image/png';
+  var srcName = sourceImage && sourceImage.src ? sourceImage.src.split('/').pop() : 'cropped.png';
+  var srcExt = srcName.split('.').pop().toLowerCase();
+  if (srcExt === 'jpg' || srcExt === 'jpeg') outType = 'image/jpeg';
+
   fCtx.canvas.toBlob(function(blob) {
     if (!blob) return;
     var fileName = sourceImage && sourceImage.src ? (sourceImage.src.split('/').pop() || 'cropped.png') : 'cropped.png';
     if (fileName.startsWith('blob:')) fileName = 'cropped_' + Date.now() + '.png';
-    var file = new File([blob], fileName, { type: 'image/png' });
+    var file = new File([blob], fileName, { type: outType });
     currentCallback(file, selectedFilter);
     closeModal();
-  }, 'image/png', 1);
+  }, outType, outType === 'image/jpeg' ? 0.95 : undefined);
 }
 
 // ---------- Refresh preview when filter changes ----------

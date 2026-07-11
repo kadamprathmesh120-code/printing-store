@@ -364,8 +364,82 @@ body {
   content:''; width:10px; height:10px; border-radius:50%;
   background:#16A34A;
 }
-.po-icon.upi { background:#d1fae5; color:#059669; }
 .po-icon.cash { background:#fef3c7; color:#d97706; }
+.po-icon.razorpay { background:#ede9fe; color:#7c3aed; }
+
+/* --- Razorpay Payment Card (on Review page) --- */
+.razorpay-payment-card {
+  margin-top:20px;
+  background:linear-gradient(135deg,#f5f3ff,#ede9fe);
+  border:1.5px solid #c4b5fd;
+  border-radius:20px;
+  overflow:hidden;
+}
+.rpc-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; background:rgba(255,255,255,0.6);
+  border-bottom:1px solid #ddd6fe;
+}
+.rpc-logo {
+  display:flex; align-items:center; gap:8px;
+  font-weight:700; font-size:0.92em; color:#5b21b6;
+}
+.rpc-badge {
+  font-size:0.65em; font-weight:700; text-transform:uppercase;
+  background:#7c3aed; color:#fff; padding:3px 10px; border-radius:20px;
+  letter-spacing:0.3px;
+}
+.rpc-body {
+  padding:18px;
+}
+.rpc-amount {
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-bottom:14px;
+}
+.rpc-amount-label {
+  font-size:0.82em; color:#6d28d9; font-weight:500;
+}
+.rpc-amount-value {
+  font-size:1.6em; font-weight:800; color:#4c1d95;
+}
+.rpc-methods {
+  display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;
+}
+.rpc-methods span {
+  font-size:0.72em; background:rgba(255,255,255,0.7);
+  padding:4px 10px; border-radius:20px; color:#5b21b6;
+  border:1px solid #ddd6fe;
+}
+.rpc-btn {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:14px; border:none; border-radius:14px;
+  background:linear-gradient(135deg,#7c3aed,#6d28d9);
+  color:#fff; font-size:1em; font-weight:700;
+  cursor:pointer; transition:all .15s;
+}
+.rpc-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(124,58,237,0.35); }
+.rpc-btn:active { transform:scale(0.98); }
+.rpc-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none; }
+.rpc-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 18px; background:rgba(255,255,255,0.5);
+  border-top:1px solid #ddd6fe;
+  font-size:0.72em; color:#6d28d9;
+}
+.rpc-cash-btn {
+  background:none; border:none; color:#7c3aed;
+  font-size:0.85em; font-weight:600; cursor:pointer;
+  text-decoration:underline; text-underline-offset:2px;
+  padding:4px;
+}
+.rpc-cash-btn:hover { color:#5b21b6; }
+.rpc-spinner {
+  display:inline-block; width:16px; height:16px;
+  border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff; border-radius:50%;
+  animation:rpc-spin .6s linear infinite;
+}
+@keyframes rpc-spin { to { transform:rotate(360deg); } }
 
 /* --- QR Modal (reuse existing) --- */
 .qr-modal .modal-body { text-align:center; }
@@ -629,8 +703,6 @@ body {
   box-shadow:0 2px 12px rgba(0,0,0,0.08);
 }
 
-.paytm-info { text-align:center; font-size:0.88em; color:#6b7280; margin-bottom:8px; }
-
 /* --- ID Copy Cards --- */
 .idc-card {
   flex:1; border:2px dashed #d1d5db; border-radius:16px;
@@ -721,9 +793,9 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   display:inline-block; padding:2px 8px; border-radius:10px;
   font-size:0.7em; font-weight:600; background:#fef3c7; color:#b45309;
 }
-.paytm-badge {
+.razorpay-badge {
   display:inline-block; padding:2px 8px; border-radius:10px;
-  font-size:0.7em; font-weight:600; background:#dbeafe; color:#2563eb;
+  font-size:0.7em; font-weight:600; background:#ede9fe; color:#7c3aed;
 }
 .no-action { color:#d1d5db; }
 
