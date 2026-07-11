@@ -4,8 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Printing Store - Upload Your File</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family:'Inter',-apple-system,sans-serif; }
+  </style>
 </head>
 <body>
 
@@ -28,67 +34,273 @@
   <!-- Main -->
   <main class="app-main">
 
-    <!-- Step: Upload -->
-    <div id="stepUpload" class="card fade-in">
-      <h2 data-i18n="uploadTitle">Upload Files</h2>
-
-      <!-- Mode toggle -->
-      <div class="mode-group">
-        <button id="modeRegular" class="mode-btn active" onclick="setIdMode('regular')">
-          <i data-lucide="file-text" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
-          Regular
-        </button>
-        <button id="modeIdCopy" class="mode-btn" onclick="setIdMode('idcopy')">
-          <i data-lucide="credit-card" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
-          ID Copy 86x54
-        </button>
+    <!-- Step 1: Home -->
+    <div id="stepHome" class="step active">
+      <button class="home-upload-btn" onclick="openUploadSheet()">
+        <div class="icon-wrap"><i data-lucide="upload"></i></div>
+        <div class="label" data-i18n="uploadFile">Upload File</div>
+        <div class="sublabel" data-i18n="uploadSub">PDF, DOC, DOCX, JPG, PNG</div>
+      </button>
+      <div class="format-row">
+        <span class="format-badge">PDF</span>
+        <span class="format-badge">DOC</span>
+        <span class="format-badge">DOCX</span>
+        <span class="format-badge">JPG</span>
+        <span class="format-badge">PNG</span>
       </div>
-
-      <!-- Regular -->
-      <div id="regSection">
-        <div class="form-group">
-          <label for="customerName" data-i18n="yourName">Your Name</label>
-          <input type="text" id="customerName" data-i18n-placeholder="namePlaceholder" placeholder="Enter your name" required>
+      <div class="service-grid">
+        <div class="service-card" onclick="openUploadSheet()">
+          <div class="sc-icon green"><i data-lucide="printer"></i></div>
+          <div class="sc-label" data-i18n="docPrint">Document Printing</div>
+          <div class="sc-desc" data-i18n="docPrintDesc">PDF, DOC, images</div>
         </div>
-        <div class="form-group">
-          <label for="fileInput" data-i18n="chooseFiles">Choose Files</label>
-          <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple required>
-          <small data-i18n="fileHint">Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.</small>
+        <div class="service-card" onclick="startIdCopy()">
+          <div class="sc-icon blue"><i data-lucide="credit-card"></i></div>
+          <div class="sc-label" data-i18n="idCopy">ID Card Copy</div>
+          <div class="sc-desc" data-i18n="idCopyDesc">86×54 mm</div>
         </div>
-        <div id="fileList" class="hidden"></div>
+      </div>
+    </div>
 
-        <div class="form-group">
-          <label data-i18n="printType">Print Type</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="printType" value="bw" checked>
-              <span class="radio-box bw" data-i18n="bwOption">Black & White - ₹5/page</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="printType" value="color">
-              <span class="radio-box color" data-i18n="colorOption">Color - ₹10/page</span>
-            </label>
+    <!-- Upload Sheet (Bottom Sheet) -->
+    <div id="uploadSheet" class="bottom-sheet">
+      <div class="sheet-backdrop" onclick="closeUploadSheet()"></div>
+      <div class="sheet-content">
+        <div class="sheet-handle"></div>
+        <div class="sheet-option" onclick="pickFiles()">
+          <div class="sheet-icon files"><i data-lucide="file-text"></i></div>
+          <div>
+            <div class="sheet-label" data-i18n="chooseFiles">Choose Files</div>
+            <div class="sheet-sublabel" data-i18n="fileHint">PDF, DOC, DOCX, JPG, PNG</div>
           </div>
         </div>
-        <div class="form-group">
-          <label data-i18n="printSide">Print Side</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="printSide" value="single" checked>
-              <span class="radio-box bw" data-i18n="singleSide">Single Side</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="printSide" value="both">
-              <span class="radio-box color" data-i18n="bothSides">Both Sides</span>
-            </label>
+        <div class="sheet-option" onclick="openCamera()">
+          <div class="sheet-icon camera"><i data-lucide="camera"></i></div>
+          <div>
+            <div class="sheet-label" data-i18n="takePhoto">Take Photo</div>
+            <div class="sheet-sublabel" data-i18n="photoHint">Use camera to capture document</div>
           </div>
         </div>
-        <button id="btnUpload" class="btn btn-primary" onclick="uploadFiles()" data-i18n="calcPrice">Calculate Price</button>
-        <div id="uploadError" class="error"></div>
+      </div>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="display:none" onchange="onFilesSelected(this.files)">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="onFilesSelected(this.files)">
+
+    <!-- Upload Progress Overlay -->
+    <div id="uploadProgressOverlay" class="progress-overlay hidden">
+      <div class="progress-card">
+        <div class="progress-spinner"></div>
+        <p class="progress-text" data-i18n="processingFiles">Processing your files...</p>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <p class="progress-percent" id="progressPercent">0%</p>
+      </div>
+    </div>
+
+    <!-- Step 2: Files View -->
+    <div id="stepFiles" class="step hidden">
+      <button class="back-btn" onclick="goHome()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
+      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="uploadedFiles">Uploaded Files</h2>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="filesCountLabel"><span id="fileCountDisplay">0</span> file(s) selected</p>
+      <div id="fileCardsContainer" class="file-cards"></div>
+      <div class="bottom-bar">
+        <button class="btn btn-secondary" onclick="openUploadSheet()"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></button>
+        <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Print Settings -->
+    <div id="stepSettings" class="step hidden">
+      <button class="back-btn" onclick="showStep('stepFiles')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
+      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="printSettings">Print Settings</h2>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="settingsDesc">Configure how you want your documents printed</p>
+
+      <div class="settings-section">
+        <h3><i data-lucide="copy" style="width:16px;height:16px;"></i> <span data-i18n="copies">Copies</span></h3>
+        <div class="setting-row">
+          <span class="setting-label" data-i18n="numberOfCopies">Number of copies</span>
+          <div class="counter-group">
+            <button class="counter-btn" onclick="changeCopies(-1)">−</button>
+            <span class="counter-value" id="copiesValue">1</span>
+            <button class="counter-btn" onclick="changeCopies(1)">+</button>
+          </div>
+        </div>
       </div>
 
-      <!-- ID Copy -->
-      <div id="idcSection" class="hidden">
+      <div class="settings-section">
+        <h3><i data-lucide="droplets" style="width:16px;height:16px;"></i> <span data-i18n="printType">Print Type</span></h3>
+        <div class="pill-group">
+          <button class="pill-option selected" data-value="bw" onclick="selectPill(this,'printType')"><span data-i18n="bwOption">B&W - ₹5/page</span></button>
+          <button class="pill-option" data-value="color" onclick="selectPill(this,'printType')"><span data-i18n="colorOption">Color - ₹10/page</span></button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3><i data-lucide="layout" style="width:16px;height:16px;"></i> <span data-i18n="printSide">Print Side</span></h3>
+        <div class="pill-group">
+          <button class="pill-option selected" data-value="single" onclick="selectPill(this,'printSide')"><span data-i18n="singleSide">Single Side</span></button>
+          <button class="pill-option" data-value="both" onclick="selectPill(this,'printSide')"><span data-i18n="bothSides">Both Sides</span></button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3><i data-lucide="smartphone" style="width:16px;height:16px;"></i> <span data-i18n="orientation">Orientation</span></h3>
+        <div class="pill-group">
+          <button class="pill-option selected" data-value="portrait" onclick="selectPill(this,'orientation')"><span data-i18n="portrait">Portrait</span></button>
+          <button class="pill-option" data-value="landscape" onclick="selectPill(this,'orientation')"><span data-i18n="landscape">Landscape</span></button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3><i data-lucide="hash" style="width:16px;height:16px;"></i> <span data-i18n="pageRange">Page Range</span></h3>
+        <div class="setting-row" style="border-bottom:none;padding-bottom:0;">
+          <span class="setting-label" data-i18n="pagesToPrint">Pages to print</span>
+          <input type="text" id="pageRangeInput" value="all" style="width:120px;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:0.82em;font-family:inherit;text-align:center;outline:none;" onchange="updatePrice()" onfocus="if(this.value==='all')this.value=''">
+        </div>
+        <p style="font-size:0.7em;color:#9ca3af;margin:6px 0 0;" data-i18n="pageRangeHint">Leave "all" or specify e.g. 1-5, 1,3,5</p>
+      </div>
+
+      <div class="live-price">
+        <div>
+          <div class="lp-label" data-i18n="estimatedTotal">Estimated Total</div>
+          <div style="font-size:0.75em;opacity:0.8;" id="priceBreakdown"></div>
+        </div>
+        <div class="lp-amount" id="livePriceDisplay">₹0</div>
+      </div>
+
+      <div class="bottom-bar">
+        <button class="btn btn-secondary" onclick="showStep('stepFiles')" data-i18n="back">Back</button>
+        <button class="btn btn-primary" onclick="goToReview()"><span data-i18n="nextReview">Next: Review</span> →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Review Order -->
+    <div id="stepReview" class="step hidden">
+      <button class="back-btn" onclick="showStep('stepSettings')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
+      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="reviewOrder">Review Order</h2>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="reviewDesc">Please check your order details before confirming</p>
+
+      <div class="review-items" id="reviewItems"></div>
+
+      <div class="summary-card">
+        <div class="summary-row">
+          <span class="sr-label"><i data-lucide="droplets" style="width:14px;height:14px;"></i> <span data-i18n="printType">Print Type</span></span>
+          <span class="sr-value" id="reviewPrintType">B&W</span>
+        </div>
+        <div class="summary-row">
+          <span class="sr-label"><i data-lucide="layout" style="width:14px;height:14px;"></i> <span data-i18n="printSide">Print Side</span></span>
+          <span class="sr-value" id="reviewPrintSide">Single Side</span>
+        </div>
+        <div class="summary-row">
+          <span class="sr-label"><i data-lucide="smartphone" style="width:14px;height:14px;"></i> <span data-i18n="orientation">Orientation</span></span>
+          <span class="sr-value" id="reviewOrientation">Portrait</span>
+        </div>
+        <div class="summary-row">
+          <span class="sr-label"><i data-lucide="copy" style="width:14px;height:14px;"></i> <span data-i18n="copies">Copies</span></span>
+          <span class="sr-value" id="reviewCopies">1</span>
+        </div>
+        <div class="summary-row" style="border-bottom:none;">
+          <span class="sr-label"><i data-lucide="hash" style="width:14px;height:14px;"></i> <span data-i18n="pageRange">Page Range</span></span>
+          <span class="sr-value" id="reviewPageRange">All</span>
+        </div>
+        <div class="summary-total">
+          <span class="st-label"><span data-i18n="totalPrice">Total Price</span></span>
+          <span class="st-value" id="reviewTotalPrice">₹0</span>
+        </div>
+      </div>
+
+      <div class="contact-form">
+        <input type="text" id="reviewName" data-i18n-placeholder="namePlaceholder" placeholder="Your Name" required>
+        <input type="tel" id="reviewMobile" data-i18n-placeholder="mobilePlaceholder" placeholder="Mobile Number (optional)">
+        <textarea id="reviewNotes" data-i18n-placeholder="notesPlaceholder" placeholder="Any notes or instructions (optional)"></textarea>
+      </div>
+
+      <div class="bottom-bar">
+        <button class="btn btn-secondary" onclick="showStep('stepSettings')" data-i18n="back">Back</button>
+        <button class="btn btn-primary" onclick="goToPayment()"><span data-i18n="nextPayment">Continue to Payment</span> →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Payment -->
+    <div id="stepPayment" class="step hidden">
+      <button class="back-btn" onclick="showStep('stepReview')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
+      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="payment">Payment</h2>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="paymentDesc">Select payment method and confirm your order</p>
+
+      <div class="summary-card" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;">
+        <div class="summary-row">
+          <span class="sr-label" data-i18n="files">Files</span>
+          <span class="sr-value" id="paymentFileCount">0</span>
+        </div>
+        <div class="summary-row total" style="border-bottom:none;">
+          <span class="sr-label" data-i18n="totalAmount">Total Amount</span>
+          <span class="sr-value" id="paymentTotal" style="font-size:1.2em;font-weight:800;color:#16A34A;">₹0</span>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.85em;font-weight:600;color:#374151;margin:0 0 10px;" data-i18n="payTitle">Payment Method</h3>
+      <div class="payment-option selected" onclick="selectPayment(this,'paytm')">
+        <div class="po-icon upi"><i data-lucide="smartphone"></i></div>
+        <span class="po-label" data-i18n="paytmOption">Paytm (UPI)</span>
+        <div class="po-radio"></div>
+      </div>
+      <div class="payment-option" onclick="selectPayment(this,'cash')">
+        <div class="po-icon cash"><i data-lucide="banknote"></i></div>
+        <span class="po-label" data-i18n="cashOption">Cash</span>
+        <div class="po-radio"></div>
+      </div>
+
+      <div id="paytmSection">
+        <p style="text-align:center;font-size:0.85em;color:#6b7280;margin:16px 0 12px;" data-i18n="scanQR">Scan QR code to pay</p>
+        <div class="qr-container">
+          <img src="paytm-qr.jpg" alt="Paytm QR">
+        </div>
+        <p style="text-align:center;font-size:0.82em;color:#92400e;background:#fffbeb;padding:10px 14px;border-radius:12px;margin-bottom:10px;border:1px solid #fde68a;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button class="btn btn-secondary" onclick="payUPI()" data-i18n="payNow">Pay Now</button>
+          <button id="btnPaid" class="btn btn-primary" onclick="confirmOrder('paytm')" data-i18n="paidBtn">I Have Paid</button>
+        </div>
+      </div>
+
+      <div id="cashSection" class="hidden">
+        <p style="text-align:center;color:#065f46;background:#d1fae5;padding:14px 16px;border-radius:12px;font-size:0.92em;margin:16px 0 10px;border:1px solid #a7f3d0;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
+        <button id="btnCashConfirm" class="btn btn-primary" onclick="confirmOrder('cash')" data-i18n="confirmOrderBtn">Confirm Order</button>
+      </div>
+
+      <div id="paymentError" class="error"></div>
+
+      <div class="bottom-bar" style="margin-top:16px;">
+        <button class="btn btn-secondary" onclick="showStep('stepReview')" data-i18n="back">Back</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Status (used for both old and new flow) -->
+    <div id="stepStatus" class="step hidden">
+      <h2 data-i18n="orderStatus">Order Status</h2>
+      <div class="order-id"><span data-i18n="orderIdsLabel">Order IDs:</span> <span id="orderIdsSpan"></span></div>
+      <div style="text-align:center;margin:16px 0;">
+        <span id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</span>
+      </div>
+      <p id="statusMessage" style="text-align:center;font-size:0.88em;color:#6b7280;"></p>
+      <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus">Refresh Status</button>
+      <div id="statusDone" class="hidden" style="margin-top:12px;">
+        <div class="success-message" data-i18n="allReady">All prints ready! Please collect from the counter.</div>
+      </div>
+    </div>
+
+    <!-- Step: Start Over -->
+    <div id="stepStartOver" class="step hidden" style="text-align:center;">
+      <button class="btn btn-primary" onclick="startOver()" data-i18n="uploadMore">Upload More Files</button>
+    </div>
+
+    <!-- ID Copy section (hidden until ID card mode activated) -->
+    <div id="idCopySection" class="hidden" style="display:none;">
+      <div class="card fade-in" style="max-width:560px;margin:0 auto;">
+        <button class="back-btn" onclick="exitIdCopy()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="backToHome">Back</span></button>
+        <h2 data-i18n="idCopyTitle">ID Card Copy</h2>
+        <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="idCopyDesc">86×54 mm ID card printing</p>
+
         <div class="form-group">
           <input type="text" id="idcName" placeholder="Your Name" style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:14px;font-size:0.92em;font-family:inherit;outline:none;">
         </div>
@@ -114,7 +326,7 @@
 
         <div id="idcQueue" class="hidden"></div>
 
-        <div id="idcPreview" class="hidden" style="margin-bottom:12px;">
+        <div id="idcPreview" class="hidden">
           <div style="margin-bottom:12px;">
             <div style="font-weight:700;font-size:1em;color:#111827;">A4 Print Preview</div>
             <div style="font-size:0.78em;color:#6b7280;">Your uploaded ID card will be printed on A4 paper exactly as shown.</div>
@@ -153,76 +365,7 @@
       </div>
     </div>
 
-    <!-- Step: Order Summary -->
-    <div id="stepPrice" class="card hidden fade-in">
-      <h2 data-i18n="orderSummary">Order Summary</h2>
-      <div id="summaryOrders"></div>
-      <div class="summary-box" style="margin-bottom:16px;">
-        <div class="summary-row"><span data-i18n="nameLabel">Name:</span><span id="summaryName"></span></div>
-        <div class="summary-row"><span data-i18n="typeLabel">Type:</span><span id="summaryType"></span></div>
-        <div class="summary-row"><span data-i18n="sideLabel">Side:</span><span id="summarySide"></span></div>
-        <div class="summary-row total"><span data-i18n="totalLabel">Total Price:</span><span id="summaryPrice"></span></div>
-      </div>
-
-      <div id="stepPricePayment">
-        <h3 style="font-size:0.92em;font-weight:600;margin:0 0 12px;color:#1f2937;" data-i18n="payTitle">Payment Method</h3>
-        <div class="form-group">
-          <div class="radio-group" style="justify-content:center;gap:12px;">
-            <label class="radio-label" style="flex:1;max-width:180px;">
-              <input type="radio" name="paymentMethod" value="paytm" checked onchange="togglePaymentMethod()">
-              <span class="radio-box bw" data-i18n="paytmOption">Paytm (UPI)</span>
-            </label>
-            <label class="radio-label" style="flex:1;max-width:180px;">
-              <input type="radio" name="paymentMethod" value="cash" onchange="togglePaymentMethod()">
-              <span class="radio-box color" data-i18n="cashOption">Cash</span>
-            </label>
-          </div>
-        </div>
-
-        <div id="paytmSection">
-          <p class="paytm-info" data-i18n="scanQR">Scan QR code to pay</p>
-          <div class="qr-container">
-            <img src="paytm-qr.jpg" alt="Paytm QR">
-          </div>
-          <p style="text-align:center;color:#92400e;background:#fffbeb;padding:10px 14px;border-radius:12px;font-size:0.82em;margin-bottom:10px;border:1px solid #fde68a;" data-i18n="paymentNotice">Please confirm payment so we can start printing right away</p>
-          <button id="btnPaid" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="paidBtn">I Have Paid</button>
-        </div>
-
-        <div id="cashSection" class="hidden">
-          <p style="text-align:center;color:#065f46;background:#d1fae5;padding:14px 16px;border-radius:12px;font-size:0.92em;margin-bottom:10px;border:1px solid #a7f3d0;" data-i18n="cashMessage">Please pay cash at the counter during pickup.</p>
-          <p style="text-align:center;color:#92400e;background:#fffbeb;padding:10px 14px;border-radius:12px;font-size:0.82em;margin-bottom:10px;border:1px solid #fde68a;" data-i18n="cashNotice">We will accept cash at the counter. Please confirm so we can start printing.</p>
-          <button id="btnCashConfirm" class="btn btn-primary" onclick="confirmAllPayment()" data-i18n="cashConfirmBtn">Confirm Cash Payment</button>
-        </div>
-      </div>
-
-      <div id="paymentError" class="error"></div>
-    </div>
-
-    <!-- Step: Status -->
-    <div id="stepStatus" class="card hidden fade-in">
-      <h2 data-i18n="orderStatus">Order Status</h2>
-      <div class="order-id"><span data-i18n="orderIdsLabel">Order IDs:</span> <span id="orderIdsSpan"></span></div>
-      <div style="text-align:center;margin:16px 0;">
-        <span id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</span>
-      </div>
-      <p id="statusMessage" style="text-align:center;font-size:0.88em;color:#6b7280;"></p>
-      <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus">Refresh Status</button>
-      <div id="statusDone" class="hidden" style="margin-top:12px;">
-        <div class="success-message" data-i18n="allReady">All prints ready! Please collect from the counter.</div>
-      </div>
-    </div>
-
-    <!-- Step: Start Over -->
-    <div id="stepStartOver" class="card hidden fade-in" style="text-align:center;">
-      <button class="btn btn-primary" onclick="startOver()" data-i18n="uploadMore">Upload More Files</button>
-    </div>
-
   </main>
-
-  <!-- Sticky Bottom -->
-  <div class="sticky-bottom" id="stickyBottom">
-    <button class="btn btn-primary" onclick="document.getElementById('btnUpload').click()" id="stickyCalcBtn" data-i18n="calcPrice">Calculate Price</button>
-  </div>
 
   <!-- Crop Modal (Regular) -->
   <div id="cropModal" class="crop-overlay" style="display:none;">
@@ -268,48 +411,382 @@
   </div>
 
   <script>
-    let currentOrderIds = [];
-    let currentFilePages = {};
-    let currentLang = localStorage.getItem('lang') || 'en';
-    let enhancedFiles = {};
-    let cropQueue = [];
-    let cropIndex = 0;
-    let cropRotation = 0;
-    let cropImg = null;
-    let cropOrigFile = null;
-    let cropFileName = '';
-    let cropRect = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    let cropDragHandle = null;
-    let cropDragStart = null;
+    var currentOrderIds = [];
+    var currentFilePages = {};
+    var currentLang = localStorage.getItem('lang') || 'en';
+    var enhancedFiles = {};
+    var cropQueue = [];
+    var cropIndex = 0;
+    var cropRotation = 0;
+    var cropImg = null;
+    var cropOrigFile = null;
+    var cropFileName = '';
+    var cropRect = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    var cropDragHandle = null;
+    var cropDragStart = null;
+
+    // New flow state
+    var selectedFiles = [];
+    var copiesCount = 1;
+    var selectedPrintType = 'bw';
+    var selectedPrintSide = 'single';
+    var selectedOrientation = 'portrait';
+    var selectedPageRange = 'all';
 
     // --- ID Copy ---
-    let idcMode = 'regular';
-    let idcFrontFile = null, idcBackFile = null;
-    let idcFrontCropped = null, idcBackCropped = null;
-    let idcRotation = 0;
-    let idcCurrent = 'front';
-    let idcCropImg = null;
-    let idcCropX1 = 0, idcCropY1 = 0, idcCropX2 = 0, idcCropY2 = 0;
-    let idcDrag = false, idcDragStartX = 0, idcDragStartY = 0;
-    let idcQueue = [];
-    let idcCropX1_s, idcCropY1_s, idcCropX2_s, idcCropY2_s;
-    const IDC_RATIO = 86 / 54;
+    var idcMode = 'regular';
+    var idcFrontFile = null, idcBackFile = null;
+    var idcFrontCropped = null, idcBackCropped = null;
+    var idcRotation = 0;
+    var idcCurrent = 'front';
+    var idcCropImg = null;
+    var idcCropX1 = 0, idcCropY1 = 0, idcCropX2 = 0, idcCropY2 = 0;
+    var idcDrag = false, idcDragStartX = 0, idcDragStartY = 0;
+    var idcQueue = [];
+    var idcCropX1_s, idcCropY1_s, idcCropX2_s, idcCropY2_s;
+    var IDC_RATIO = 86 / 54;
 
-    function setIdMode(m) {
-      idcMode = m;
-      document.getElementById('modeRegular').classList.toggle('active', m === 'regular');
-      document.getElementById('modeIdCopy').classList.toggle('active', m === 'idcopy');
-      document.getElementById('regSection').classList.toggle('hidden', m !== 'regular');
-      document.getElementById('idcSection').classList.toggle('hidden', m !== 'idcopy');
-      var stickyBtn = document.getElementById('stickyCalcBtn');
-      if (m === 'idcopy') {
-        stickyBtn.textContent = document.getElementById('idcUploadBtn').textContent || 'Calculate Price';
-        stickyBtn.onclick = function() { document.getElementById('idcUploadBtn').click(); };
-      } else {
-        if (typeof translations !== 'undefined') stickyBtn.textContent = translations[currentLang].calcPrice || 'Calculate Price';
-        stickyBtn.onclick = function() { document.getElementById('btnUpload').click(); };
+    // --- New Flow Functions ---
+
+    function openUploadSheet() {
+      document.getElementById('uploadSheet').classList.add('open');
+    }
+    function closeUploadSheet() {
+      document.getElementById('uploadSheet').classList.remove('open');
+    }
+
+    function pickFiles() {
+      closeUploadSheet();
+      document.getElementById('fileInput').click();
+    }
+
+    function openCamera() {
+      closeUploadSheet();
+      document.getElementById('cameraInput').click();
+    }
+
+    function onFilesSelected(files) {
+      if (!files || files.length === 0) return;
+      showProgress('Processing your files...', 0);
+
+      var total = files.length;
+      var processed = 0;
+
+      function processNext() {
+        if (processed >= total) {
+          hideProgress();
+          renderFileCards();
+          showStep('stepFiles');
+          return;
+        }
+        var f = files[processed];
+        var ext = f.name.split('.').pop().toLowerCase();
+        var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+
+        if (isImage) {
+          var img = new Image();
+          img.onload = function() {
+            enhancedFiles[f.name] = f;
+            selectedFiles.push({ file: f, pages: 1, imageWidth: img.naturalWidth, imageHeight: img.naturalHeight });
+            processed++;
+            updateProgress(processed / total * 100);
+            processNext();
+          };
+          img.onerror = function() {
+            selectedFiles.push({ file: f, pages: 1 });
+            processed++;
+            updateProgress(processed / total * 100);
+            processNext();
+          };
+          img.src = URL.createObjectURL(f);
+        } else {
+          selectedFiles.push({ file: f, pages: f.name.endsWith('.pdf') ? 'auto' : 1 });
+          processed++;
+          updateProgress(processed / total * 100);
+          processNext();
+        }
+      }
+      processNext();
+    }
+
+    function renderFileCards() {
+      var container = document.getElementById('fileCardsContainer');
+      container.innerHTML = '';
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var sf = selectedFiles[i];
+        var f = sf.file;
+        var ext = f.name.split('.').pop().toLowerCase();
+        var isPdf = ext === 'pdf';
+        var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+        var thumbClass = isPdf ? 'pdf' : isImage ? 'image' : 'doc';
+        var iconText = isPdf ? 'P' : isImage ? 'I' : 'D';
+        var pagesDisplay = f.name.endsWith('.pdf') ? 'PDF' : isImage ? (sf.imageWidth ? sf.imageWidth+'×'+sf.imageHeight : 'Image') : 'Doc';
+
+        container.innerHTML += '' +
+          '<div class="file-card">' +
+            '<div class="file-thumb ' + thumbClass + '">' + iconText + '</div>' +
+            '<div class="file-info">' +
+              '<div class="fi-name">' + f.name + '</div>' +
+              '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + '</div>' +
+            '</div>' +
+            '<div class="file-actions">' +
+              '<button class="file-btn danger" onclick="removeFile(' + i + ')" title="Remove"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>' +
+            '</div>' +
+          '</div>';
+      }
+      document.getElementById('fileCountDisplay').textContent = selectedFiles.length;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      renderFileCards();
+      if (selectedFiles.length === 0) {
+        showStep('stepHome');
       }
     }
+
+    function goHome() {
+      selectedFiles = [];
+      copiesCount = 1;
+      selectedPrintType = 'bw';
+      selectedPrintSide = 'single';
+      selectedOrientation = 'portrait';
+      selectedPageRange = 'all';
+      document.getElementById('pageRangeInput').value = 'all';
+      document.getElementById('copiesValue').textContent = '1';
+      showStep('stepHome');
+    }
+
+    function showProgress(text, pct) {
+      var ov = document.getElementById('uploadProgressOverlay');
+      ov.classList.remove('hidden');
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressPercent').textContent = Math.round(pct) + '%';
+    }
+
+    function updateProgress(pct) {
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressPercent').textContent = Math.round(pct) + '%';
+    }
+
+    function hideProgress() {
+      document.getElementById('uploadProgressOverlay').classList.add('hidden');
+    }
+
+    function changeCopies(delta) {
+      copiesCount = Math.max(1, Math.min(99, copiesCount + delta));
+      document.getElementById('copiesValue').textContent = copiesCount;
+      updatePrice();
+    }
+
+    function selectPill(el, group) {
+      var parent = el.parentNode;
+      parent.querySelectorAll('.pill-option').forEach(function(p) { p.classList.remove('selected'); });
+      el.classList.add('selected');
+      if (group === 'printType') {
+        selectedPrintType = el.getAttribute('data-value');
+        var bothPills = document.querySelector('#stepSettings .pill-group:nth-child(2) .pill-option[data-value="both"]');
+        if (bothPills) {
+          if (selectedPrintType === 'color') {
+            bothPills.classList.add('hidden');
+            if (selectedPrintSide === 'both') {
+              selectPill(document.querySelector('#stepSettings .pill-group:nth-child(2) .pill-option[data-value="single"]'), 'printSide');
+            }
+          } else {
+            bothPills.classList.remove('hidden');
+          }
+        }
+      } else if (group === 'printSide') {
+        selectedPrintSide = el.getAttribute('data-value');
+      } else if (group === 'orientation') {
+        selectedOrientation = el.getAttribute('data-value');
+      }
+      updatePrice();
+    }
+
+    function updatePrice() {
+      var pageRange = document.getElementById('pageRangeInput').value.trim() || 'all';
+      selectedPageRange = pageRange;
+
+      var totalPages = 0;
+      var totalSheets = 0;
+
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var sf = selectedFiles[i];
+        var p = sf.pages;
+        if (p === 'auto') p = 1;
+        if (!p || p < 1) p = 1;
+        var sheets = selectedPrintSide === 'both' ? Math.ceil(p / 2) : p;
+        totalPages += p;
+        totalSheets += sheets;
+      }
+
+      var perPage = selectedPrintType === 'bw' ? 5 : 10;
+      var basePrice = totalSheets * perPage;
+      var totalPrice = basePrice * copiesCount;
+
+      document.getElementById('livePriceDisplay').textContent = '\u20B9' + totalPrice;
+      document.getElementById('priceBreakdown').textContent = totalSheets + ' sheet(s) × \u20B9' + perPage + ' × ' + copiesCount + ' copy(ies)';
+
+      return totalPrice;
+    }
+
+    function goToSettings() {
+      document.getElementById('copiesValue').textContent = copiesCount;
+      updatePrice();
+      showStep('stepSettings');
+    }
+
+    function goToReview() {
+      var totalPrice = updatePrice();
+
+      // Render file review items
+      var ri = document.getElementById('reviewItems');
+      ri.innerHTML = '';
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var sf = selectedFiles[i];
+        var f = sf.file;
+        var ext = f.name.split('.').pop().toLowerCase();
+        var isPdf = ext === 'pdf';
+        var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+        var thumbClass = isPdf ? 'pdf' : isImage ? 'image' : 'doc';
+        var iconText = isPdf ? 'P' : isImage ? 'I' : 'D';
+        var pagesInfo = sf.pages === 'auto' ? 'PDF' : (sf.pages || 1) + ' pg';
+
+        ri.innerHTML += '' +
+          '<div class="review-item">' +
+            '<div class="ri-thumb ' + thumbClass + '">' + iconText + '</div>' +
+            '<div class="ri-info">' +
+              '<div class="ri-name">' + f.name + '</div>' +
+              '<div class="ri-meta">' + pagesInfo + '</div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      // Fill summary
+      document.getElementById('reviewPrintType').textContent = selectedPrintType === 'bw' ? 'Black & White' : 'Color';
+      document.getElementById('reviewPrintSide').textContent = selectedPrintSide === 'both' ? 'Both Sides' : 'Single Side';
+      document.getElementById('reviewOrientation').textContent = selectedOrientation === 'portrait' ? 'Portrait' : 'Landscape';
+      document.getElementById('reviewCopies').textContent = copiesCount;
+      document.getElementById('reviewPageRange').textContent = selectedPageRange === 'all' ? 'All Pages' : selectedPageRange;
+      document.getElementById('reviewTotalPrice').textContent = '\u20B9' + totalPrice;
+
+      showStep('stepReview');
+    }
+
+    var selectedPaymentMethod = 'paytm';
+
+    function selectPayment(el, method) {
+      document.querySelectorAll('.payment-option').forEach(function(p) { p.classList.remove('selected'); });
+      el.classList.add('selected');
+      selectedPaymentMethod = method;
+      document.getElementById('paytmSection').classList.toggle('hidden', method !== 'paytm');
+      document.getElementById('cashSection').classList.toggle('hidden', method !== 'cash');
+    }
+
+    function goToPayment() {
+      var name = document.getElementById('reviewName').value.trim();
+      if (!name) {
+        document.getElementById('reviewName').style.borderColor = '#ef4444';
+        document.getElementById('reviewName').focus();
+        return;
+      }
+      document.getElementById('reviewName').style.borderColor = '';
+      document.getElementById('paymentFileCount').textContent = selectedFiles.length + ' file(s)';
+      document.getElementById('paymentTotal').textContent = '\u20B9' + updatePrice();
+      showStep('stepPayment');
+    }
+
+    function confirmOrder(method) {
+      var name = document.getElementById('reviewName').value.trim();
+      if (!name) {
+        document.getElementById('paymentError').textContent = t('enterName');
+        return;
+      }
+      if (selectedFiles.length === 0) {
+        document.getElementById('paymentError').textContent = t('selectFiles');
+        return;
+      }
+
+      var btn = method === 'paytm' ? document.getElementById('btnPaid') : document.getElementById('btnCashConfirm');
+      btn.disabled = true;
+      btn.textContent = t('uploading');
+
+      var formData = new FormData();
+      formData.append('customerName', name);
+      formData.append('printType', selectedPrintType);
+      formData.append('printSide', selectedPrintSide);
+      formData.append('paymentMethod', method);
+      formData.append('mobileNumber', document.getElementById('reviewMobile').value.trim());
+      formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
+      formData.append('orientation', selectedOrientation);
+      formData.append('copies', copiesCount);
+      formData.append('pageRange', selectedPageRange);
+
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
+        formData.append('files', fileToUpload);
+        if (selectedFiles[i].pages && selectedFiles[i].pages !== 'auto') {
+          formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
+        }
+      }
+
+      fetch('/api/upload', { method: 'POST', body: formData })
+        .then(function(r) {
+          if (!r.ok) { throw new Error('Server returned ' + r.status); }
+          return r.json();
+        })
+        .then(function(data) {
+          if (data.error) {
+            document.getElementById('paymentError').textContent = data.error;
+            btn.disabled = false;
+            btn.textContent = method === 'paytm' ? t('paidBtn') : t('confirmOrderBtn');
+            return;
+          }
+          currentOrderIds = data.orders.map(function(o) { return o.orderId; });
+          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+          showStep('stepStatus');
+          updateStatusDisplay(method === 'cash' ? 'paid' : 'pending');
+          btn.disabled = false;
+          btn.textContent = method === 'paytm' ? t('paidBtn') : t('confirmOrderBtn');
+        })
+        .catch(function(err) {
+          document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+          btn.disabled = false;
+          btn.textContent = method === 'paytm' ? t('paidBtn') : t('confirmOrderBtn');
+        });
+    }
+
+    // --- ID Copy Flow ---
+    function startIdCopy() {
+      idcMode = 'idcopy';
+      setIdModeDisplay();
+    }
+
+    function exitIdCopy() {
+      idcMode = 'regular';
+      idcClear();
+      document.getElementById('idCopySection').classList.add('hidden');
+      document.getElementById('idCopySection').style.display = 'none';
+      showStep('stepHome');
+    }
+
+    function setIdModeDisplay() {
+      document.getElementById('stepHome').classList.remove('active');
+      document.getElementById('stepHome').style.display = 'none';
+      var idc = document.getElementById('idCopySection');
+      idc.classList.remove('hidden');
+      idc.style.display = 'block';
+    }
+
+    // --- Existing ID Copy functions (preserved) ---
 
     function idcLoad(input, side) {
       if (!input.files || !input.files[0]) return;
@@ -927,11 +1404,12 @@
       observer.observe(document.getElementById('idcFrontImg'), { attributes: true, attributeFilter: ['src'] });
       observer.observe(document.getElementById('idcBackImg'), { attributes: true, attributeFilter: ['src'] });
     });
+
     function idcUpload() {
       if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
       var name = document.getElementById('idcName').value.trim() || 'Customer';
-      var printType = document.querySelector('input[name="printType"]:checked').value;
-      var paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+      var printType = selectedPrintType;
+      var paymentMethod = selectedPaymentMethod;
       var allItems = idcQueue.slice();
       if (idcFrontFile) {
         allItems.push({
@@ -967,17 +1445,10 @@
           currentOrderIds = results.map(function(r) { return r.orderId; });
           var a4ImgSrc = idcRenderA4ToImage();
           var totalPrice = results.reduce(function(s, r) { return s + r.price; }, 0);
-          var previewHtml = '<div style="text-align:center;color:#059669;font-weight:600;margin-bottom:8px;">✓ ' + results.length + ' ID Copy uploaded</div>';
-          if (a4ImgSrc) previewHtml += '<div style="text-align:center;margin-bottom:12px;"><div style="display:inline-block;background:white;border-radius:12px;padding:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);"><img src="' + a4ImgSrc + '" style="max-width:260px;width:100%;height:auto;border-radius:4px;"></div></div>';
-          document.getElementById('summaryOrders').innerHTML = previewHtml;
-          document.getElementById('summaryName').textContent = name;
-          document.getElementById('summaryType').textContent = printType === 'bw' ? 'B&W' : 'Color';
-          document.getElementById('summarySide').textContent = 'ID Copy 86×54';
-          document.getElementById('summaryPrice').textContent = '₹' + totalPrice;
-          document.getElementById('stepPricePayment').classList.remove('hidden');
-          togglePaymentMethod();
+          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+          showStep('stepStatus');
+          updateStatusDisplay('paid');
           btn.disabled = false; btn.textContent = 'Calculate Price';
-          showStep('stepPrice');
         })
         .catch(function(err) {
           alert('Upload failed: ' + (err.message || err));
@@ -985,36 +1456,63 @@
         });
     }
 
-    const translations = {
+    // --- Translations ---
+    var translations = {
       en: {
         storeName: 'Printing Store',
         storeTagline: 'Upload your documents for printing',
-        uploadTitle: 'Upload Files',
-        yourName: 'Your Name',
-        namePlaceholder: 'Enter your name',
+        uploadFile: 'Upload File',
+        uploadSub: 'PDF, DOC, DOCX, JPG, PNG',
+        docPrint: 'Document Printing',
+        docPrintDesc: 'PDF, DOC, images',
+        idCopy: 'ID Card Copy',
+        idCopyDesc: '86×54 mm',
         chooseFiles: 'Choose Files',
-        fileHint: 'Allowed: PDF, DOC, DOCX, JPG, PNG, TXT (Max 50MB each). PDF pages auto-detected.',
+        fileHint: 'PDF, DOC, DOCX, JPG, PNG',
+        takePhoto: 'Take Photo',
+        photoHint: 'Use camera to capture document',
+        processingFiles: 'Processing your files...',
+        uploadedFiles: 'Uploaded Files',
+        filesCountLabel: 'file(s) selected',
+        addMore: 'Add More',
+        nextSettings: 'Next: Settings',
+        printSettings: 'Print Settings',
+        settingsDesc: 'Configure how you want your documents printed',
+        copies: 'Copies',
+        numberOfCopies: 'Number of copies',
         printType: 'Print Type',
-        bwOption: 'Black & White - ₹5/page',
+        bwOption: 'B&W - ₹5/page',
         colorOption: 'Color - ₹10/page',
         printSide: 'Print Side',
         singleSide: 'Single Side',
         bothSides: 'Both Sides',
-        calcPrice: 'Calculate Price',
-        orderSummary: 'Order Summary',
-        nameLabel: 'Name:',
-        typeLabel: 'Type:',
-        sideLabel: 'Side:',
-        totalLabel: 'Total Price:',
+        orientation: 'Orientation',
+        portrait: 'Portrait',
+        landscape: 'Landscape',
+        pageRange: 'Page Range',
+        pagesToPrint: 'Pages to print',
+        pageRangeHint: 'Leave "all" or specify e.g. 1-5, 1,3,5',
+        estimatedTotal: 'Estimated Total',
+        nextReview: 'Next: Review',
+        reviewOrder: 'Review Order',
+        reviewDesc: 'Please check your order details before confirming',
+        totalPrice: 'Total Price',
+        namePlaceholder: 'Your Name',
+        mobilePlaceholder: 'Mobile Number (optional)',
+        notesPlaceholder: 'Any notes or instructions (optional)',
+        nextPayment: 'Continue to Payment',
+        payment: 'Payment',
+        paymentDesc: 'Select payment method and confirm your order',
+        totalAmount: 'Total Amount',
         payTitle: 'Payment Method',
         paytmOption: 'Paytm (UPI)',
         cashOption: 'Cash',
         scanQR: 'Scan QR code to pay',
         paymentNotice: 'Please confirm payment so we can start printing right away',
         paidBtn: 'I Have Paid',
+        payNow: 'Pay Now',
         cashMessage: 'Please pay cash at the counter during pickup.',
-        cashNotice: 'We will accept cash at the counter. Please confirm so we can start printing.',
-        cashConfirmBtn: 'Confirm Cash Payment',
+        confirmOrderBtn: 'Confirm Order',
         orderStatus: 'Order Status',
         orderIdsLabel: 'Order IDs:',
         pending: 'Pending',
@@ -1027,45 +1525,66 @@
         selectFiles: 'Please select files',
         someFailed: 'Some orders failed. Contact support.',
         failedTryAgain: 'Failed. Try again.',
-        waitingPayment: 'Waiting for payment confirmation...',
-        paidAwaiting: 'Paid - Awaiting Approval',
-        paymentReceived: 'Payment received! Admin will review your orders shortly.',
-        accepted: 'Accepted',
-        rejected: 'Rejected',
-        rejectedMsg: 'Sorry, some orders were rejected. Contact the store.',
-        filesLabel: 'Files',
-        pg: 'pg',
-        sheets: 'sheets',
+        back: 'Back',
+        backToHome: 'Back to Home',
+        idCopyTitle: 'ID Card Copy',
+        idCopyDesc: '86×54 mm ID card printing',
       },
       mr: {
         storeName: 'प्रिंटिंग स्टोर',
         storeTagline: 'तुमचे डॉक्युमेंट्स प्रिंटिंगसाठी अपलोड करा',
-        uploadTitle: 'फायल अपलोड करा',
-        yourName: 'तुमचे नाव',
-        namePlaceholder: 'तुमचे नाव प्रविष्ट करा',
+        uploadFile: 'फायल अपलोड करा',
+        uploadSub: 'PDF, DOC, DOCX, JPG, PNG',
+        docPrint: 'डॉक्युमेंट प्रिंटिंग',
+        docPrintDesc: 'PDF, DOC, इमेज',
+        idCopy: 'आयडी कार्ड कॉपी',
+        idCopyDesc: '८६×५४ मिमी',
         chooseFiles: 'फायल निवडा',
-        fileHint: 'परवानगी: PDF, DOC, DOCX, JPG, PNG, TXT (प्रत्येकी 50MB पर्यंत). PDF पेज आपसघे ओळखली जातील.',
+        fileHint: 'PDF, DOC, DOCX, JPG, PNG',
+        takePhoto: 'फोटो घ्या',
+        photoHint: 'डॉक्युमेंट कॅप्चर करण्यासाठी कॅमेरा वापरा',
+        processingFiles: 'फायल प्रक्रिया होत आहे...',
+        uploadedFiles: 'अपलोड केलेल्या फायल',
+        filesCountLabel: 'फायल निवडल्या',
+        addMore: 'आणखी जोडा',
+        nextSettings: 'पुढे: सेटिंग्ज',
+        printSettings: 'प्रिंट सेटिंग्ज',
+        settingsDesc: 'तुमचे डॉक्युमेंट कसे प्रिंट करायचे ते कॉन्फिगर करा',
+        copies: 'प्रती',
+        numberOfCopies: 'प्रतींची संख्या',
         printType: 'प्रिंट प्रकार',
-        bwOption: 'काळे पिढी - ₹5/पेज',
-        colorOption: 'रंगीन - ₹10/पेज',
+        bwOption: 'काळे-पांढरे - ₹५/पेज',
+        colorOption: 'रंगीत - ₹१०/पेज',
         printSide: 'प्रिंट बाजू',
         singleSide: 'एकबाजू',
         bothSides: 'दोन्ही बाजू',
-        calcPrice: 'किंमत मोजा',
-        orderSummary: 'ऑर्डर सारांश',
-        nameLabel: 'नाव:',
-        typeLabel: 'प्रकार:',
-        sideLabel: 'बाजू:',
-        totalLabel: 'एकूण किंमत:',
+        orientation: 'दिशा',
+        portrait: 'पोर्ट्रेट',
+        landscape: 'लँडस्केप',
+        pageRange: 'पेज श्रेणी',
+        pagesToPrint: 'प्रिंट करण्यासाठी पेज',
+        pageRangeHint: '"सर्व" ठेवा किंवा निर्दिष्ट करा जसे १-५, १,३,५',
+        estimatedTotal: 'अंदाजे एकूण',
+        nextReview: 'पुढे: पुनरावलोकन',
+        reviewOrder: 'ऑर्डरचे पुनरावलोकन',
+        reviewDesc: 'कृपया पुष्टी करण्यापूर्वी तुमचे ऑर्डर तपासा',
+        totalPrice: 'एकूण किंमत',
+        namePlaceholder: 'तुमचे नाव',
+        mobilePlaceholder: 'मोबाईल नंबर (पर्यायी)',
+        notesPlaceholder: 'कोणतीही नोंद किंवा सूचना (पर्यायी)',
+        nextPayment: 'पेमेंटवर जा',
+        payment: 'पेमेंट',
+        paymentDesc: 'पेमेंट पद्धत निवडा आणि ऑर्डरची पुष्टी करा',
+        totalAmount: 'एकूण रक्कम',
         payTitle: 'पेमेंट पद्धत',
         paytmOption: 'पेटीएम (UPI)',
-        cashOption: 'रोखड',
+        cashOption: 'रोख',
         scanQR: 'पेमेंटसाठी QR कोड स्केन करा',
         paymentNotice: 'कृपया पेमेंटची पुष्टी करा म्हणजे आम्ही लगेच प्रिंटिंग सुरू करू',
         paidBtn: 'मी पेमेंट केले',
-        cashMessage: 'कृपया ग्राहक घेण्यावेळी काउंटरवर रोखड द्या.',
-        cashNotice: 'आम्ही काउंटरवर रोखड स्वीकार करू. कृपया पुष्टी करा म्हणजे आम्ही प्रिंटिंग सुरू करू.',
-        cashConfirmBtn: 'रोखड पेमेंटची पुष्टी करा',
+        payNow: 'आता पैसे द्या',
+        cashMessage: 'कृपया ग्राहक घेण्यावेळी काउंटरवर रोख द्या.',
+        confirmOrderBtn: 'ऑर्डरची पुष्टी करा',
         orderStatus: 'ऑर्डर स्थिती',
         orderIdsLabel: 'ऑर्डर ID:',
         pending: 'प्रतिक्षेत',
@@ -1078,15 +1597,10 @@
         selectFiles: 'कृपया फायल निवडा',
         someFailed: 'काही ऑर्डर अयशल झाले. संपर्क करा.',
         failedTryAgain: 'अयशल. पुन्हा प्रयत्न करा.',
-        waitingPayment: 'पेमेंट पुष्टीची प्रतिक्षा...',
-        paidAwaiting: 'पेमेंट दिले - मंजूरीची प्रतिक्षा',
-        paymentReceived: 'पेमेंट मिळाले! अडमिन लगेच तुमचे ऑर्डर तपासेल.',
-        accepted: 'मंजूर',
-        rejected: 'नामंजूर',
-        rejectedMsg: 'क्षमा करा, काही ऑर्डर नामंजूर झाले. स्टोरशी संपर्क करा.',
-        filesLabel: 'फायल',
-        pg: 'पेज',
-        sheets: 'शीट',
+        back: 'मागे',
+        backToHome: 'मुखपृष्ठावर परत',
+        idCopyTitle: 'आयडी कार्ड कॉपी',
+        idCopyDesc: '८६×५४ मिमी आयडी कार्ड प्रिंटिंग',
       }
     };
 
@@ -1112,68 +1626,109 @@
 
     applyLang();
 
+    // --- Crop (Regular) ---
+
     document.getElementById('fileInput').addEventListener('change', function() {
-      var fileList = document.getElementById('fileList');
-      fileList.innerHTML = '';
-      currentFilePages = {};
-      enhancedFiles = {};
-      var files = this.files;
-      if (files.length === 0) { fileList.classList.add('hidden'); return; }
-      fileList.classList.remove('hidden');
-
-      cropQueue = [];
-      for (var i = 0; i < files.length; i++) {
-        var ext = files[i].name.split('.').pop().toLowerCase();
-        if (['jpg', 'jpeg', 'png'].includes(ext)) {
-          cropQueue.push({ file: files[i], name: files[i].name });
-        }
-      }
-      cropIndex = 0;
-
-      if (cropQueue.length > 0) {
-        startCropItem();
-        return;
-      }
-      showFileList();
+      // Handled by onFilesSelected which is called from onchange
     });
 
-    function showFileList() {
-      var fileList = document.getElementById('fileList');
-      fileList.innerHTML = '';
-      fileList.style.marginBottom = '16px';
-      fileList.style.paddingTop = '4px';
-      var files = document.getElementById('fileInput').files;
-      if (files.length === 0) { fileList.classList.add('hidden'); return; }
-      fileList.classList.remove('hidden');
-
-      for (var i = 0; i < files.length; i++) {
-        var f = files[i];
-        var ext = f.name.split('.').pop().toLowerCase();
-        var isPdf = ext === 'pdf';
-        var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
-        var pages = 1;
-        if (isPdf) { pages = 'Auto'; }
-        else if (isImage) { pages = 1; }
-        else {
-          pages = '<input type="number" min="1" value="1" style="width:58px;padding:5px 6px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:0.8em;font-family:inherit;" data-fname="' + f.name + '" class="page-input" onchange="updatePageCount(this)">';
-        }
-        var typeLabel = isPdf ? 'PDF' : isImage ? 'Image' : 'Doc';
-        var badgeClass = isPdf ? 'file-badge-pdf' : isImage ? 'file-badge-image' : 'file-badge-doc';
-        var croppedBadge = (isImage && enhancedFiles[f.name]) ? '<span class="file-badge-cropped">Cropped</span>' : '';
-
-        fileList.innerHTML += '<div class="file-item">' +
-          '<span class="file-icon">' + (isPdf ? '📄' : isImage ? '🖼' : '📝') + '</span>' +
-          '<div class="file-info">' +
-            '<div class="file-name">' + f.name + '</div>' +
-            '<div class="file-meta"><span class="file-badge ' + badgeClass + '">' + typeLabel + '</span> ' + pages + ' <span data-i18n="pg">pg</span>' + croppedBadge + '</div>' +
-          '</div>' +
-          '</div>';
-        if (isPdf) currentFilePages[f.name] = 'auto';
-        else if (isImage) currentFilePages[f.name] = 1;
-        else currentFilePages[f.name] = 1;
+    function showStep(id) {
+      document.querySelectorAll('.step').forEach(function(c) { c.classList.remove('active'); c.style.display = 'none'; });
+      var el = document.getElementById(id);
+      if (el) {
+        el.classList.add('active');
+        el.style.display = 'block';
       }
-      applyLang();
     }
+
+    // --- Existing functions used by both old and new flow ---
+
+    function updateStatusDisplay(status) {
+      var badge = document.getElementById('statusBadge');
+      var msg = document.getElementById('statusMessage');
+      var done = document.getElementById('statusDone');
+
+      badge.className = 'status-badge ' + status;
+      done.classList.add('hidden');
+
+      switch (status) {
+        case 'pending':
+          badge.textContent = t('pending');
+          msg.textContent = t('pendingMsg') || 'Waiting for payment confirmation...';
+          break;
+        case 'paid':
+          badge.textContent = 'Paid - Awaiting Approval';
+          msg.textContent = 'Payment received! Admin will review your orders shortly.';
+          break;
+        case 'accepted':
+          badge.textContent = 'Accepted';
+          msg.textContent = '';
+          done.classList.remove('hidden');
+          break;
+        case 'rejected':
+          badge.textContent = 'Rejected';
+          msg.textContent = 'Sorry, some orders were rejected. Contact the store.';
+          break;
+      }
+    }
+
+    function payUPI() {
+      var totalEl = document.getElementById('paymentTotal');
+      var amount = totalEl ? totalEl.textContent.replace(/[^0-9]/g, '') : '';
+      window.location.href = 'upi://pay?pa=8698411983@ibl&pn=ANITA%20SHIVAJI%20KADAM&am=' + amount + '&cu=INR&tn=Printing%20Store';
+    }
+
+    function copyUpiId() {
+      var upiId = '8698411983@ibl';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(upiId).then(function() {
+          var btn = document.querySelector('[onclick="copyUpiId()"]');
+          var orig = btn.textContent;
+          btn.textContent = 'Copied!';
+          btn.style.background = '#059669';
+          setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2000);
+        });
+      } else {
+        prompt('Copy UPI ID:', upiId);
+      }
+    }
+
+    function checkAllStatus() {
+      if (currentOrderIds.length === 0) return;
+      var checks = currentOrderIds.map(function(id) {
+        return fetch('/api/orders/' + id).then(function(r) { return r.json(); });
+      });
+      Promise.all(checks).then(function(orders) {
+        var allAccepted = orders.every(function(o) { return o.status === 'accepted'; });
+        var anyRejected = orders.some(function(o) { return o.status === 'rejected'; });
+        var allDone = orders.every(function(o) { return o.status === 'accepted' || o.status === 'rejected'; });
+
+        if (allDone) {
+          document.querySelector('#stepStatus .btn-secondary') && (document.querySelector('#stepStatus .btn-secondary').classList.add('hidden'));
+          document.getElementById('stepStartOver').classList.remove('hidden');
+        }
+        if (allAccepted) { updateStatusDisplay('accepted'); return; }
+        if (anyRejected) { updateStatusDisplay('rejected'); return; }
+        updateStatusDisplay('paid');
+      });
+    }
+
+    function startOver() {
+      currentOrderIds = [];
+      selectedFiles = [];
+      enhancedFiles = {};
+      copiesCount = 1;
+      selectedPrintType = 'bw';
+      selectedPrintSide = 'single';
+      selectedOrientation = 'portrait';
+      selectedPageRange = 'all';
+      document.getElementById('fileInput').value = '';
+      document.querySelector('#stepStatus .btn-secondary') && (document.querySelector('#stepStatus .btn-secondary').classList.remove('hidden'));
+      document.getElementById('stepStartOver').classList.add('hidden');
+      goHome();
+    }
+
+    // --- Crop Regular (same as before) ---
 
     function startCropItem() {
       if (cropIndex >= cropQueue.length) { showFileList(); return; }
@@ -1499,245 +2054,17 @@
       }, 'image/png');
     }
 
-    function updatePageCount(input) {
-      currentFilePages[input.getAttribute('data-fname')] = parseInt(input.value) || 1;
+    function showFileList() {
+      // Not used in new flow (files are displayed via file cards)
     }
 
-    document.querySelectorAll('input[name="printType"]').forEach(function(el) {
-      el.addEventListener('change', function() {
-        var bothLabel = document.querySelector('input[name="printSide"][value="both"]').closest('.radio-label');
-        if (this.value === 'color') {
-          bothLabel.classList.add('hidden');
-          document.querySelector('input[name="printSide"][value="single"]').checked = true;
-        } else {
-          bothLabel.classList.remove('hidden');
-        }
-      });
-    });
-
-    function togglePaymentMethod() {
-      var method = document.querySelector('input[name="paymentMethod"]:checked').value;
-      document.getElementById('paytmSection').classList.toggle('hidden', method !== 'paytm');
-      document.getElementById('cashSection').classList.toggle('hidden', method !== 'cash');
-    }
-
-    function showStep(id) {
-      document.querySelectorAll('.card').forEach(function(c) { c.classList.add('hidden'); });
-      document.getElementById(id).classList.remove('hidden');
-    }
-
-    function uploadFiles() {
-      var name = document.getElementById('customerName').value.trim();
-      var files = document.getElementById('fileInput').files;
-      var printType = document.querySelector('input[name="printType"]:checked').value;
-      var printSide = document.querySelector('input[name="printSide"]:checked').value;
-      var paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-      var errorEl = document.getElementById('uploadError');
-      errorEl.textContent = '';
-
-      if (!name) { errorEl.textContent = t('enterName'); return; }
-      if (files.length === 0) { errorEl.textContent = t('selectFiles'); return; }
-
-      document.getElementById('btnUpload').disabled = true;
-      document.getElementById('btnUpload').textContent = t('uploading');
-
-      var formData = new FormData();
-      formData.append('customerName', name);
-      formData.append('printType', printType);
-      formData.append('printSide', printSide);
-      formData.append('paymentMethod', paymentMethod);
-      for (var i = 0; i < files.length; i++) {
-        var fileToUpload = enhancedFiles[files[i].name] || files[i];
-        formData.append('files', fileToUpload);
-        if (currentFilePages[files[i].name] && currentFilePages[files[i].name] !== 'auto') {
-          formData.append('pageCount_' + files[i].name, currentFilePages[files[i].name]);
-        }
-      }
-
-      fetch('/api/upload', { method: 'POST', body: formData })
-        .then(function(r) {
-          if (!r.ok) { throw new Error('Server returned ' + r.status); }
-          return r.json();
-        })
-        .then(function(data) {
-          if (data.error) {
-            errorEl.textContent = data.error;
-            document.getElementById('btnUpload').disabled = false;
-            document.getElementById('btnUpload').textContent = t('calcPrice');
-            return;
-          }
-          currentOrderIds = data.orders.map(function(o) { return o.orderId; });
-
-          if (data.paymentMethod === 'cash') {
-            showStep('stepStatus');
-            updateStatusDisplay('paid');
-            document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-            document.getElementById('btnUpload').disabled = false;
-            document.getElementById('btnUpload').textContent = t('calcPrice');
-            return;
-          }
-
-          var orderHtml = '';
-          var unitLabel = data.printSide === 'Both Sides' ? t('sheets') : t('pg');
-          data.orders.forEach(function(o) {
-            var count = data.printSide === 'Both Sides' ? o.sheets : o.pageCount;
-            orderHtml += '<div class="file-item">' +
-              '<span class="file-name" style="flex:1;">' + o.fileName + '</span>' +
-              '<span style="font-size:0.82em;color:#6b7280;margin:0 8px;">' + count + ' ' + unitLabel + '</span>' +
-              '<span style="font-weight:700;color:#16A34A;">₹' + o.price + '</span>' +
-              '</div>';
-          });
-          document.getElementById('summaryOrders').innerHTML = '<div class="summary-box" style="margin-bottom:12px;"><h3 style="margin-bottom:8px;font-size:0.92em;color:#1f2937;">' + t('filesLabel') + ' (' + data.orders.length + ')</h3>' + orderHtml + '</div>';
-          document.getElementById('summaryName').textContent = data.customerName;
-          document.getElementById('summaryType').textContent = data.printType;
-          document.getElementById('summarySide').textContent = data.printSide;
-          document.getElementById('summaryPrice').textContent = '₹' + data.totalPrice;
-
-          togglePaymentMethod();
-
-          showStep('stepPrice');
-          document.getElementById('btnUpload').disabled = false;
-          document.getElementById('btnUpload').textContent = t('calcPrice');
-        })
-        .catch(function(err) {
-          console.error('Upload error:', err);
-          errorEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
-          document.getElementById('btnUpload').disabled = false;
-          document.getElementById('btnUpload').textContent = t('calcPrice');
-        });
-    }
-
-    function confirmAllPayment() {
-      if (currentOrderIds.length === 0) return;
-      var method = document.querySelector('input[name="paymentMethod"]:checked').value;
-      var btn = method === 'paytm' ? document.getElementById('btnPaid') : document.getElementById('btnCashConfirm');
-
-      if (method === 'cash' && document.getElementById('summarySide').textContent === 'ID Copy 86×54') {
-        document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-        showStep('stepStatus');
-        updateStatusDisplay('paid');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = t('confirming');
-
-      var allPaid = currentOrderIds.map(function(id) {
-        return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json(); });
-      });
-
-      Promise.all(allPaid)
-        .then(function(results) {
-          var hasError = results.some(function(r) { return r.error; });
-          if (hasError) {
-            document.getElementById('paymentError').textContent = t('someFailed');
-            btn.disabled = false;
-            btn.textContent = method === 'paytm' ? t('paidBtn') : t('cashConfirmBtn');
-            return;
-          }
-          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-          showStep('stepStatus');
-          updateStatusDisplay('paid');
-        })
-        .catch(function() {
-          document.getElementById('paymentError').textContent = t('failedTryAgain');
-          btn.disabled = false;
-          btn.textContent = method === 'paytm' ? t('paidBtn') : t('cashConfirmBtn');
-        });
-    }
-
-    function updateStatusDisplay(status) {
-      var badge = document.getElementById('statusBadge');
-      var msg = document.getElementById('statusMessage');
-      var done = document.getElementById('statusDone');
-
-      badge.className = 'status-badge ' + status;
-      done.classList.add('hidden');
-
-      switch (status) {
-        case 'pending':
-          badge.textContent = t('pending');
-          msg.textContent = t('waitingPayment');
-          break;
-        case 'paid':
-          badge.textContent = t('paidAwaiting');
-          msg.textContent = t('paymentReceived');
-          break;
-        case 'accepted':
-          badge.textContent = t('accepted');
-          msg.textContent = '';
-          done.classList.remove('hidden');
-          break;
-        case 'rejected':
-          badge.textContent = t('rejected');
-          msg.textContent = t('rejectedMsg');
-          break;
-      }
-    }
-
-    function payUPI() {
-      var totalEl = document.getElementById('summaryPrice');
-      var amount = totalEl ? totalEl.textContent.replace(/[^0-9]/g, '') : '';
-      window.location.href = 'upi://pay?pa=8698411983@ibl&pn=ANITA%20SHIVAJI%20KADAM&am=' + amount + '&cu=INR&tn=Printing%20Store';
-    }
-
-    function copyUpiId() {
-      var upiId = '8698411983@ibl';
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(upiId).then(function() {
-          var btn = document.querySelector('[onclick="copyUpiId()"]');
-          var orig = btn.textContent;
-          btn.textContent = 'Copied!';
-          btn.style.background = '#059669';
-          setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 2000);
-        });
-      } else {
-        prompt('Copy UPI ID:', upiId);
-      }
-    }
-
-    function checkAllStatus() {
-      if (currentOrderIds.length === 0) return;
-      var checks = currentOrderIds.map(function(id) {
-        return fetch('/api/orders/' + id).then(function(r) { return r.json(); });
-      });
-      Promise.all(checks).then(function(orders) {
-        var allAccepted = orders.every(function(o) { return o.status === 'accepted'; });
-        var anyRejected = orders.some(function(o) { return o.status === 'rejected'; });
-        var allDone = orders.every(function(o) { return o.status === 'accepted' || o.status === 'rejected'; });
-
-        if (allDone) {
-          document.querySelector('#stepStatus .btn-secondary').classList.add('hidden');
-          document.getElementById('stepStartOver').classList.remove('hidden');
-        }
-        if (allAccepted) { updateStatusDisplay('accepted'); return; }
-        if (anyRejected) { updateStatusDisplay('rejected'); return; }
-        updateStatusDisplay('paid');
-      });
-    }
-
-    function startOver() {
-      currentOrderIds = [];
-      currentFilePages = {};
-      enhancedFiles = {};
-      cropQueue = [];
-      cropIndex = 0;
-      document.getElementById('customerName').value = '';
-      document.getElementById('fileInput').value = '';
-      document.getElementById('fileList').innerHTML = '';
-      document.getElementById('fileList').classList.add('hidden');
-      document.querySelector('input[name="printType"][value="bw"]').checked = true;
-      document.querySelector('input[name="printSide"][value="single"]').checked = true;
-      document.getElementById('uploadError').textContent = '';
-      document.getElementById('paymentError').textContent = '';
-      document.querySelector('#stepStatus .btn-secondary').classList.remove('hidden');
-      document.getElementById('stepStartOver').classList.add('hidden');
-      showStep('stepUpload');
-    }
-
+    // Status auto-check interval
     setInterval(function() {
-      if (currentOrderIds.length > 0 && document.getElementById('stepStatus').classList.contains('hidden') === false) {
-        checkAllStatus();
+      if (currentOrderIds.length > 0) {
+        var statusStep = document.getElementById('stepStatus');
+        if (statusStep && statusStep.classList.contains('active')) {
+          checkAllStatus();
+        }
       }
     }, 10000);
 

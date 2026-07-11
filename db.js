@@ -32,4 +32,8 @@ try { db.exec(`ALTER TABLE orders ADD COLUMN back_file_path TEXT`); } catch (e) 
 try { db.exec(`ALTER TABLE orders ADD COLUMN back_enabled INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN copies INTEGER NOT NULL DEFAULT 1`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN printer_name TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN mobile_number TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN order_notes TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN orientation TEXT NOT NULL DEFAULT 'portrait'`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN page_range TEXT DEFAULT 'all'`); } catch (e) {}
 module.exports = db;

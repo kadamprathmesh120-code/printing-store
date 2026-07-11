@@ -73,7 +73,7 @@ app.post('/api/upload', (req, res) => {
         return res.status(400).json({ error: 'No files uploaded' });
       }
 
-      const { customerName, printType, printSide, paymentMethod } = req.body;
+      const { customerName, printType, printSide, paymentMethod, mobileNumber, orderNotes, orientation, copies, pageRange } = req.body;
 
       if (!customerName || !printType || !printSide || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -82,10 +82,11 @@ app.post('/api/upload', (req, res) => {
         return res.status(400).json({ error: 'Color printing does not support Both Sides' });
       }
 
+      const copyCount = parseInt(copies) || 1;
       const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orders = [];
@@ -101,17 +102,19 @@ app.post('/api/upload', (req, res) => {
         if (!pages || pages < 1) pages = 1;
 
         const sheets = printSide === 'both' ? Math.ceil(pages / 2) : pages;
-        const price = printType === 'bw' ? sheets * 5 : sheets * 10;
+        const basePrice = printType === 'bw' ? sheets * 5 : sheets * 10;
+        const price = basePrice * copyCount;
         const id = uuidv4();
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus);
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all');
 
         orders.push({
           orderId: id,
           price,
           pageCount: pages,
           sheets,
-          fileName: file.originalname
+          fileName: file.originalname,
+          copies: copyCount
         });
         totalPrice += price;
       }
@@ -120,6 +123,11 @@ app.post('/api/upload', (req, res) => {
         orders,
         totalPrice,
         customerName,
+        mobileNumber,
+        orderNotes,
+        orientation,
+        copies: copyCount,
+        pageRange,
         printType: printType === 'bw' ? 'Black & White' : 'Color',
         printSide: printSide === 'both' ? 'Both Sides' : 'Single Side',
         paymentMethod
