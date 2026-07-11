@@ -303,6 +303,8 @@
 
     function fetchOrders() {
       showProgress(30);
+      // Hide loading overlay after 8s even if fetch hangs
+      setTimeout(function() { hideLoading(); }, 8000);
       fetch('/api/admin/orders')
         .then(r => r.json())
         .then(orders => {
