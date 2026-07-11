@@ -37,10 +37,9 @@
     <!-- Step 1: Home -->
     <div id="stepHome" class="step active">
       <div class="home-grid">
-        <label class="home-btn doc" style="position:relative;overflow:hidden;">
+        <label class="home-btn doc" for="fileInput">
           <div class="hb-icon"><i data-lucide="upload"></i></div>
           <div class="hb-label" data-i18n="uploadFile">Upload</div>
-          <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0" onchange="onFilesSelected(this.files)">
         </label>
         <button class="home-btn idc" onclick="startIdCopy()">
           <div class="hb-icon"><i data-lucide="id-card"></i></div>
@@ -54,19 +53,19 @@
       <div class="sheet-backdrop" onclick="closeUploadSheet()"></div>
       <div class="sheet-content">
         <div class="sheet-handle"></div>
-        <label class="sheet-option" style="position:relative;overflow:hidden;" onclick="closeUploadSheet()">
+        <label class="sheet-option" for="cameraInput" onclick="closeUploadSheet()">
           <div class="sheet-icon camera"><i data-lucide="camera"></i></div>
           <div>
             <div class="sheet-label" data-i18n="takePhoto">Take Photo</div>
             <div class="sheet-sublabel" data-i18n="photoHint">Use camera to capture document</div>
           </div>
-          <input type="file" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0" onchange="onFilesSelected(this.files)">
         </label>
       </div>
     </div>
 
-    <!-- Camera input (accessed via label) -->
-    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="onFilesSelected(this.files)">
+    <!-- Hidden file inputs (positioned off-screen — NOT display:none — for reliable label[for] activation on all browsers) -->
+    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
 
     <!-- Upload Progress Overlay -->
     <div id="uploadProgressOverlay" class="progress-overlay hidden">
@@ -85,9 +84,7 @@
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="filesCountLabel"><span id="fileCountDisplay">0</span> file(s) selected</p>
       <div id="fileCardsContainer" class="file-cards"></div>
       <div class="bottom-bar">
-        <label class="btn btn-secondary" style="flex:1;text-align:center;cursor:pointer;position:relative;overflow:hidden;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span>
-          <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0" onchange="onFilesSelected(this.files)">
-        </label>
+        <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></label>
         <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
       </div>
     </div>
