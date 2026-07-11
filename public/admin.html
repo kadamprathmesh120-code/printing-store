@@ -215,7 +215,9 @@
       { name: 'KONICA MINOLTA 205i(36', label: 'Konica Minolta' },
       { name: 'Kyocera ECOSYS MA4000x KX', label: 'Kyocera' }
     ];
-    var bwIndex = parseInt(localStorage.getItem('bwPrinterIndex')) || 0;
+    var bwIndex = 0;
+    try { var saved = parseInt(localStorage.getItem('bwPrinterIndex')); if (saved === 0 || saved === 1) bwIndex = saved; } catch(e) {}
+    if (bwIndex !== 0 && bwIndex !== 1) { bwIndex = 0; localStorage.removeItem('bwPrinterIndex'); }
 
     function getBwPrinter() { return bwPrinters[bwIndex].name; }
 
