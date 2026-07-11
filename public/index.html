@@ -1754,8 +1754,8 @@
     function openCrop(index) {
       try {
         var sf = selectedFiles[index];
-        if (!sf) { alert('No file at index ' + index); return; }
-        cropQueue = [sf.file];
+        if (!sf) return;
+        cropQueue = [{ name: sf.file.name, file: sf.file }];
         cropIndex = 0;
         enhancedFiles = {};
         startCropItem();
