@@ -1754,7 +1754,8 @@
     function openCrop(index) {
       try {
         var sf = selectedFiles[index];
-        if (!sf) return;
+        if (!sf || !sf.file) { alert('File not found'); return; }
+        if (!(sf.file instanceof Blob)) { alert('Invalid file type: ' + typeof sf.file); return; }
         cropQueue = [{ name: sf.file.name, file: sf.file }];
         cropIndex = 0;
         enhancedFiles = {};
@@ -1773,6 +1774,7 @@
         return;
       }
       var item = cropQueue[cropIndex];
+      if (!item || !item.file || !(item.file instanceof Blob)) { alert('startCropItem: invalid file at index ' + cropIndex); return; }
       cropFileName = item.name;
       cropOrigFile = item.file;
       cropRotation = 0;
