@@ -479,8 +479,8 @@
               '<div class="fi-name">' + escapeHtml(f.name) + '</div>' +
               '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + '</div>' +
             '</div>' +
-            '<div class="file-actions">' +
-              (isImage ? '<button class="file-btn" onclick="openCrop(' + i + ')" title="Crop"><i data-lucide="crop" style="width:16px;height:16px;"></i></button>' : '') +
+            '<div class="file-actions" style="gap:8px;">' +
+              (isImage ? '<button class="file-btn crop-btn" onclick="openCrop(' + i + ')" title="Crop Image" style="background:#e8f5e9;color:#16A34A;width:auto;padding:0 12px;font-size:0.78em;font-weight:600;gap:4px;"><i data-lucide="crop" style="width:18px;height:18px;"></i> Crop</button>' : '') +
               '<button class="file-btn danger" onclick="removeFile(' + i + ')" title="Remove"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>' +
             '</div>' +
           '</div>';
@@ -1752,12 +1752,14 @@
     // --- Crop Regular (same as before) ---
 
     function openCrop(index) {
-      var sf = selectedFiles[index];
-      if (!sf) return;
-      cropQueue = [sf.file];
-      cropIndex = 0;
-      enhancedFiles = {};
-      startCropItem();
+      try {
+        var sf = selectedFiles[index];
+        if (!sf) { alert('No file at index ' + index); return; }
+        cropQueue = [sf.file];
+        cropIndex = 0;
+        enhancedFiles = {};
+        startCropItem();
+      } catch(e) { alert('Crop error: ' + e.message); }
     }
 
     function startCropItem() {
