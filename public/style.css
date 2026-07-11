@@ -75,8 +75,12 @@ body {
   border-radius:22px;
 }
 .hero-previews {
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-  gap:12px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:12px; justify-items:center;
+}
+
+@media (min-width:500px) {
+  .hero-previews { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); }
 }
 .hero-preview-item {
   aspect-ratio:1; border-radius:16px; overflow:hidden;
