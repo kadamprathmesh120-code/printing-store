@@ -1641,6 +1641,7 @@
 
     function renderHero() {
       var el = document.getElementById('heroContainer');
+      alert('renderHero called. selectedFiles=' + selectedFiles.length);
       if (window._heroUrls) {
         window._heroUrls.forEach(function(u) { URL.revokeObjectURL(u); });
       }
