@@ -207,11 +207,9 @@
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="payment">Payment</h2>
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="paymentDesc">Select payment method and confirm your order</p>
 
+      <div id="paymentFilesList" class="review-items" style="margin-bottom:12px;"></div>
+
       <div class="summary-card" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;">
-        <div class="summary-row">
-          <span class="sr-label" data-i18n="files">Files</span>
-          <span class="sr-value" id="paymentFileCount">0</span>
-        </div>
         <div class="summary-row total" style="border-bottom:none;">
           <span class="sr-label" data-i18n="totalAmount">Total Amount</span>
           <span class="sr-value" id="paymentTotal" style="font-size:1.2em;font-weight:800;color:#16A34A;">₹0</span>
@@ -646,7 +644,26 @@
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
-      document.getElementById('paymentFileCount').textContent = selectedFiles.length + ' file(s)';
+      // Render file preview at payment
+      var pl = document.getElementById('paymentFilesList');
+      pl.innerHTML = '';
+      for (var pi = 0; pi < selectedFiles.length; pi++) {
+        var psf = selectedFiles[pi];
+        var pf = psf.file;
+        var pext = pf.name.split('.').pop().toLowerCase();
+        var pisPdf = pext === 'pdf';
+        var pisImg = ['jpg', 'jpeg', 'png'].includes(pext);
+        var pthumb = pisPdf ? 'pdf' : pisImg ? 'image' : 'doc';
+        var picon = pisPdf ? 'P' : pisImg ? 'I' : 'D';
+        pl.innerHTML += '' +
+          '<div class="review-item">' +
+            '<div class="ri-thumb ' + pthumb + '">' + picon + '</div>' +
+            '<div class="ri-info">' +
+              '<div class="ri-name">' + pf.name + '</div>' +
+              '<div class="ri-meta">' + formatSize(pf.size) + '</div>' +
+            '</div>' +
+          '</div>';
+      }
       document.getElementById('paymentTotal').textContent = '\u20B9' + updatePrice();
       showStep('stepPayment');
     }
