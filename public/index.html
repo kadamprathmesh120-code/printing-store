@@ -36,29 +36,28 @@
 
     <!-- Step 1: Home -->
     <div id="stepHome" class="step active">
-      <button class="home-upload-btn" onclick="openUploadSheet()">
-        <div class="icon-wrap"><i data-lucide="upload"></i></div>
-        <div class="label" data-i18n="uploadFile">Upload File</div>
-        <div class="sublabel" data-i18n="uploadSub">PDF, DOC, DOCX, JPG, PNG</div>
-      </button>
+      <div class="home-grid">
+        <button class="home-btn doc" onclick="pickFiles()">
+          <div class="hb-icon"><i data-lucide="printer"></i></div>
+          <div>
+            <div class="hb-label" data-i18n="docPrint">Document</div>
+            <div class="hb-sublabel" data-i18n="docPrintDesc">PDF, DOC, DOCX, JPG, PNG</div>
+          </div>
+        </button>
+        <button class="home-btn idc" onclick="startIdCopy()">
+          <div class="hb-icon"><i data-lucide="id-card"></i></div>
+          <div>
+            <div class="hb-label" data-i18n="idCopy">Aadhar / PAN Card</div>
+            <div class="hb-sublabel" data-i18n="idCopyDesc">86×54 mm ID card copy</div>
+          </div>
+        </button>
+      </div>
       <div class="format-row">
         <span class="format-badge">PDF</span>
         <span class="format-badge">DOC</span>
         <span class="format-badge">DOCX</span>
         <span class="format-badge">JPG</span>
         <span class="format-badge">PNG</span>
-      </div>
-      <div class="service-grid">
-        <div class="service-card" onclick="openUploadSheet()">
-          <div class="sc-icon green"><i data-lucide="printer"></i></div>
-          <div class="sc-label" data-i18n="docPrint">Document Printing</div>
-          <div class="sc-desc" data-i18n="docPrintDesc">PDF, DOC, images</div>
-        </div>
-        <div class="service-card" onclick="startIdCopy()">
-          <div class="sc-icon blue"><i data-lucide="id-card"></i></div>
-          <div class="sc-label" data-i18n="idCopy">Aadhar / PAN Card Copy</div>
-          <div class="sc-desc" data-i18n="idCopyDesc">86×54 mm ID card print</div>
-        </div>
       </div>
     </div>
 
@@ -67,13 +66,6 @@
       <div class="sheet-backdrop" onclick="closeUploadSheet()"></div>
       <div class="sheet-content">
         <div class="sheet-handle"></div>
-        <div class="sheet-option" onclick="pickFiles()">
-          <div class="sheet-icon files"><i data-lucide="file-text"></i></div>
-          <div>
-            <div class="sheet-label" data-i18n="chooseFiles">Choose Files</div>
-            <div class="sheet-sublabel" data-i18n="fileHint">PDF, DOC, DOCX, JPG, PNG</div>
-          </div>
-        </div>
         <div class="sheet-option" onclick="openCamera()">
           <div class="sheet-icon camera"><i data-lucide="camera"></i></div>
           <div>
@@ -105,7 +97,7 @@
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="filesCountLabel"><span id="fileCountDisplay">0</span> file(s) selected</p>
       <div id="fileCardsContainer" class="file-cards"></div>
       <div class="bottom-bar">
-        <button class="btn btn-secondary" onclick="openUploadSheet()"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></button>
+        <button class="btn btn-secondary" onclick="pickFiles()"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></button>
         <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
       </div>
     </div>
