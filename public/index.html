@@ -85,7 +85,9 @@
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="filesCountLabel"><span id="fileCountDisplay">0</span> file(s) selected</p>
       <div id="fileCardsContainer" class="file-cards"></div>
       <div class="bottom-bar">
-        <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></label>
+        <label class="btn btn-secondary" style="flex:1;text-align:center;cursor:pointer;position:relative;overflow:hidden;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span>
+          <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0" onchange="onFilesSelected(this.files)">
+        </label>
         <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
       </div>
     </div>
