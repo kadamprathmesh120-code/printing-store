@@ -307,6 +307,7 @@
       fetch('/api/admin/orders')
         .then(r => r.json())
         .then(orders => {
+          if (!Array.isArray(orders)) { updateAnalytics([]); showProgress(100); hideLoading(); return; }
           var newOrders = [];
           if (!isFirstLoad) {
             newOrders = orders.filter(function(o) { return !knownOrderIds.has(o.id); });
@@ -325,9 +326,13 @@
           }
           isFirstLoad = false;
 
+          updateAnalytics(orders);
+
           const tbody = document.getElementById('ordersBody');
           if (orders.length === 0) {
             tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">No orders yet</td></tr>';
+            showProgress(100);
+            hideLoading();
             return;
           }
           const cashPaid = orders.filter(o => o.payment_method === 'cash' && o.status === 'paid');
@@ -378,7 +383,6 @@
             </tr>`;
           }).join('');
           pendingNewIds = [];
-          updateAnalytics(orders);
           showProgress(100);
           hideLoading();
         })
