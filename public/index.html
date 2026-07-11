@@ -730,11 +730,25 @@
             return;
           }
           currentOrderIds = data.orders.map(function(o) { return o.orderId; });
+          // For UPI, confirm payment automatically since user clicked "I Have Paid"
+          if (method === 'paytm') {
+            btn.textContent = t('confirming');
+            var confirms = currentOrderIds.map(function(id) {
+              return fetch('/api/orders/' + id + '/confirm-payment', { method: 'POST' }).then(function(r) { return r.json(); });
+            });
+            return Promise.all(confirms).then(function() {
+              document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+              showStep('stepStatus');
+              updateStatusDisplay('paid');
+              btn.disabled = false;
+              btn.textContent = t('paidBtn');
+            });
+          }
           document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
           showStep('stepStatus');
-          updateStatusDisplay(method === 'cash' ? 'paid' : 'pending');
+          updateStatusDisplay('paid');
           btn.disabled = false;
-          btn.textContent = method === 'paytm' ? t('paidBtn') : t('confirmOrderBtn');
+          btn.textContent = t('confirmOrderBtn');
         })
         .catch(function(err) {
           document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
