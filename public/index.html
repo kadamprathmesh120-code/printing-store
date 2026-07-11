@@ -436,21 +436,25 @@
 
     function onFilesSelected(files) {
       if (!files || files.length === 0) return;
-      try {
-        showProgress('Uploading files...', 10);
+      showProgress('Uploading files...', 10);
 
-        for (var i = 0; i < files.length; i++) {
-          selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
-        }
-
-        setTimeout(function() {
-          hideProgress();
-          renderFileCards();
-          showStep('stepFiles');
-        }, 400);
-      } catch(e) {
-        alert('Error: ' + e.message);
+      for (var i = 0; i < files.length; i++) {
+        selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
       }
+      if (typeof console !== 'undefined') console.log('Files selected:', files.length, 'selectedFiles:', selectedFiles.length);
+
+      setTimeout(function() {
+        try {
+          hideProgress();
+          if (typeof console !== 'undefined') console.log('renderFileCards...');
+          renderFileCards();
+          if (typeof console !== 'undefined') console.log('showStep stepFiles...');
+          showStep('stepFiles');
+          if (typeof console !== 'undefined') console.log('Done.');
+        } catch(e) {
+          alert('Error in upload: ' + e.message);
+        }
+      }, 400);
     }
 
     function renderFileCards() {
