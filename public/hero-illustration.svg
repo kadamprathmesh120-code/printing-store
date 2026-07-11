@@ -1,0 +1,332 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0fdf4"/>
+      <stop offset="50%" stop-color="#dcfce7"/>
+      <stop offset="100%" stop-color="#bbf7d0"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="printerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fed7aa"/>
+      <stop offset="100%" stop-color="#fdba74"/>
+    </linearGradient>
+    <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+    <linearGradient id="phoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+    <linearGradient id="paperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <linearGradient id="iconBg1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+    <linearGradient id="iconBg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="iconBg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="iconBg4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <filter id="shadow1" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#16a34a" flood-opacity="0.15"/>
+    </filter>
+    <filter id="shadow2" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+    <filter id="shadow3" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.08"/>
+    </filter>
+    <filter id="glowGreen">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" rx="32" fill="url(#bgGrad)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="680" cy="80" r="60" fill="#16a34a" opacity="0.04"/>
+  <circle cx="120" cy="520" r="80" fill="#16a34a" opacity="0.04"/>
+  <circle cx="400" cy="300" r="200" fill="#16a34a" opacity="0.02"/>
+
+  <!-- Grid dots -->
+  <g fill="#16a34a" opacity="0.06">
+    <circle cx="50" cy="50" r="2"/><circle cx="150" cy="50" r="2"/><circle cx="250" cy="50" r="2"/>
+    <circle cx="350" cy="50" r="2"/><circle cx="450" cy="50" r="2"/><circle cx="550" cy="50" r="2"/>
+    <circle cx="650" cy="50" r="2"/><circle cx="750" cy="50" r="2"/>
+    <circle cx="50" cy="150" r="2"/><circle cx="150" cy="150" r="2"/><circle cx="350" cy="150" r="2"/>
+    <circle cx="550" cy="150" r="2"/><circle cx="650" cy="150" r="2"/><circle cx="750" cy="150" r="2"/>
+    <circle cx="50" cy="250" r="2"/><circle cx="250" cy="250" r="2"/><circle cx="450" cy="250" r="2"/>
+    <circle cx="650" cy="250" r="2"/><circle cx="50" cy="350" r="2"/><circle cx="150" cy="350" r="2"/>
+    <circle cx="350" cy="350" r="2"/><circle cx="550" cy="350" r="2"/><circle cx="750" cy="350" r="2"/>
+    <circle cx="50" cy="450" r="2"/><circle cx="250" cy="450" r="2"/><circle cx="450" cy="450" r="2"/>
+    <circle cx="650" cy="450" r="2"/><circle cx="50" cy="550" r="2"/><circle cx="150" cy="550" r="2"/>
+    <circle cx="350" cy="550" r="2"/><circle cx="550" cy="550" r="2"/><circle cx="750" cy="550" r="2"/>
+  </g>
+
+  <!-- Ground / Floor -->
+  <ellipse cx="400" cy="550" rx="340" ry="16" fill="#16a34a" opacity="0.08"/>
+
+  <!-- ============== MULTIFUNCTION PRINTER (Right side) ============== -->
+  <g filter="url(#shadow2)" transform="translate(480, 320)">
+    <!-- Main body -->
+    <rect x="0" y="40" width="220" height="170" rx="16" fill="url(#printerGrad)" stroke="#cbd5e1" stroke-width="1.5"/>
+    <!-- Scanner lid -->
+    <rect x="0" y="20" width="220" height="28" rx="10" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1.5"/>
+    <!-- Scanner glass -->
+    <rect x="12" y="24" width="196" height="20" rx="6" fill="#0ea5e9" opacity="0.15"/>
+    <!-- Control panel -->
+    <rect x="60" y="48" width="100" height="44" rx="8" fill="#1e293b"/>
+    <!-- Screen on panel -->
+    <rect x="66" y="54" width="60" height="20" rx="4" fill="#16a34a"/>
+    <text x="96" y="67" text-anchor="middle" fill="#fff" font-size="7" font-family="sans-serif" font-weight="600">READY</text>
+    <!-- Panel buttons -->
+    <circle cx="140" cy="62" r="4" fill="#ef4444"/>
+    <circle cx="152" cy="62" r="4" fill="#22c55e"/>
+    <rect x="66" y="78" width="88" height="8" rx="4" fill="#334155"/>
+    <!-- Paper tray -->
+    <rect x="20" y="160" width="180" height="44" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+    <!-- Paper in tray -->
+    <rect x="24" y="164" width="172" height="4" rx="2" fill="#fff"/>
+    <rect x="24" y="170" width="172" height="4" rx="2" fill="#f8fafc"/>
+    <rect x="24" y="176" width="172" height="4" rx="2" fill="#fff"/>
+    <rect x="24" y="182" width="172" height="4" rx="2" fill="#f8fafc"/>
+    <!-- Output tray -->
+    <rect x="10" y="130" width="200" height="22" rx="6" fill="#cbd5e1"/>
+    <!-- Output paper -->
+    <rect x="14" y="132" width="60" height="18" rx="4" fill="#fff" transform="rotate(-5, 44, 141)"/>
+    <rect x="78" y="132" width="60" height="18" rx="4" fill="#fff" transform="rotate(3, 108, 141)"/>
+    <!-- Legs -->
+    <rect x="10" y="210" width="20" height="14" rx="4" fill="#94a3b8"/>
+    <rect x="190" y="210" width="20" height="14" rx="4" fill="#94a3b8"/>
+    <!-- Brand label -->
+    <rect x="80" y="112" width="60" height="12" rx="6" fill="#16a34a"/>
+    <text x="110" y="121" text-anchor="middle" fill="#fff" font-size="7" font-family="sans-serif" font-weight="700">XEROX</text>
+  </g>
+
+  <!-- ============== SHOP ASSISTANT (Left side) ============== -->
+  <g filter="url(#shadow2)" transform="translate(140, 180)">
+    <!-- Shadow under feet -->
+    <ellipse cx="100" cy="380" rx="55" ry="8" fill="#16a34a" opacity="0.1"/>
+
+    <!-- Legs -->
+    <rect x="75" y="290" width="22" height="90" rx="8" fill="#1e293b"/>
+    <rect x="103" y="290" width="22" height="90" rx="8" fill="#1e293b"/>
+    <!-- Shoes -->
+    <rect x="68" y="360" width="32" height="18" rx="10" fill="#0f172a"/>
+    <rect x="100" y="360" width="32" height="18" rx="10" fill="#0f172a"/>
+
+    <!-- Body / T-shirt -->
+    <rect x="60" y="142" width="80" height="152" rx="18" fill="url(#shirtGrad)"/>
+
+    <!-- T-shirt text label -->
+    <rect x="68" y="200" width="64" height="36" rx="6" fill="#fff" opacity="0.9"/>
+    <text x="100" y="215" text-anchor="middle" fill="#15803d" font-size="10" font-family="sans-serif" font-weight="800">KADAM</text>
+    <text x="100" y="228" text-anchor="middle" fill="#15803d" font-size="8" font-family="sans-serif" font-weight="700">XEROX</text>
+
+    <!-- Collar -->
+    <path d="M80,142 Q100,130 120,142" fill="none" stroke="#15803d" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Left arm -->
+    <rect x="20" y="155" width="44" height="20" rx="10" fill="url(#shirtGrad)" transform="rotate(-15, 42, 165)"/>
+    <!-- Left hand (holding phone) -->
+    <circle cx="38" cy="195" r="12" fill="url(#skinGrad)"/>
+
+    <!-- Right arm -->
+    <rect x="136" y="155" width="44" height="20" rx="10" fill="url(#shirtGrad)" transform="rotate(10, 158, 165)"/>
+    <!-- Right hand -->
+    <circle cx="185" cy="180" r="12" fill="url(#skinGrad)"/>
+
+    <!-- Head -->
+    <circle cx="100" cy="98" r="52" fill="url(#skinGrad)"/>
+
+    <!-- Hair -->
+    <ellipse cx="100" cy="65" rx="54" ry="30" fill="#1e293b"/>
+    <ellipse cx="100" cy="68" rx="48" ry="24" fill="#0f172a"/>
+    <!-- Hair side -->
+    <path d="M50,75 Q48,100 52,120" stroke="#1e293b" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path d="M150,75 Q152,100 148,120" stroke="#1e293b" stroke-width="10" fill="none" stroke-linecap="round"/>
+
+    <!-- Face features -->
+    <!-- Eyes -->
+    <ellipse cx="82" cy="90" rx="5" ry="6" fill="#fff"/>
+    <ellipse cx="118" cy="90" rx="5" ry="6" fill="#fff"/>
+    <circle cx="84" cy="91" r="3" fill="#1e293b"/>
+    <circle cx="120" cy="91" r="3" fill="#1e293b"/>
+    <!-- Eyebrows -->
+    <path d="M74,80 Q82,75 90,80" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+    <path d="M110,80 Q118,75 126,80" fill="none" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+    <!-- Smile -->
+    <path d="M85,108 Q100,122 115,108" fill="none" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Cheeks -->
+    <circle cx="72" cy="106" r="8" fill="#fca5a5" opacity="0.3"/>
+    <circle cx="128" cy="106" r="8" fill="#fca5a5" opacity="0.3"/>
+    <!-- Nose -->
+    <path d="M100,96 Q104,104 100,106" fill="none" stroke="#fdba74" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- ============== PHONE in left hand ============== -->
+    <g transform="translate(-10, 175)">
+      <rect x="18" y="0" width="38" height="64" rx="8" fill="url(#phoneGrad)" filter="url(#shadow3)"/>
+      <!-- Phone screen -->
+      <rect x="21" y="4" width="32" height="46" rx="4" fill="url(#screenGrad)"/>
+      <!-- Checkmark -->
+      <circle cx="37" cy="20" r="7" fill="#fff" opacity="0.3"/>
+      <path d="M32,20 L35,23 L42,17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Upload text -->
+      <text x="37" y="36" text-anchor="middle" fill="#fff" font-size="4.5" font-family="sans-serif" font-weight="600">Upload</text>
+      <text x="37" y="42" text-anchor="middle" fill="#fff" font-size="4.5" font-family="sans-serif" font-weight="600">Complete</text>
+      <!-- Home button -->
+      <circle cx="37" cy="56" r="3" fill="none" stroke="#475569" stroke-width="1"/>
+    </g>
+
+    <!-- ID Card hanging from neck -->
+    <path d="M85,142 L85,175" stroke="#94a3b8" stroke-width="1.5"/>
+    <path d="M115,142 L115,175" stroke="#94a3b8" stroke-width="1.5"/>
+    <rect x="80" y="170" width="40" height="28" rx="4" fill="#fff" filter="url(#shadow3)"/>
+    <rect x="84" y="174" width="32" height="6" rx="2" fill="#16a34a"/>
+    <rect x="88" y="184" width="24" height="10" rx="2" fill="#e2e8f0"/>
+    <circle cx="100" cy="189" r="3" fill="#16a34a"/>
+  </g>
+
+  <!-- ============== FLYING PAPER SHEETS ============== -->
+  <g filter="url(#shadow3)">
+    <!-- Paper 1 -->
+    <g transform="translate(380, 100) rotate(-12)">
+      <rect x="0" y="0" width="44" height="56" rx="4" fill="url(#paperGrad)"/>
+      <rect x="8" y="8" width="28" height="4" rx="2" fill="#cbd5e1"/>
+      <rect x="8" y="16" width="28" height="4" rx="2" fill="#e2e8f0"/>
+      <rect x="8" y="24" width="20" height="4" rx="2" fill="#e2e8f0"/>
+      <rect x="30" y="40" width="8" height="8" rx="2" fill="#16a34a"/>
+    </g>
+    <!-- Paper 2 -->
+    <g transform="translate(440, 70) rotate(8)">
+      <rect x="0" y="0" width="40" height="52" rx="4" fill="url(#paperGrad)"/>
+      <rect x="7" y="7" width="26" height="4" rx="2" fill="#cbd5e1"/>
+      <rect x="7" y="15" width="26" height="4" rx="2" fill="#e2e8f0"/>
+      <rect x="7" y="23" width="18" height="4" rx="2" fill="#e2e8f0"/>
+      <rect x="27" y="38" width="7" height="7" rx="2" fill="#16a34a"/>
+    </g>
+    <!-- Paper 3 -->
+    <g transform="translate(340, 50) rotate(20)">
+      <rect x="0" y="0" width="36" height="48" rx="4" fill="url(#paperGrad)"/>
+      <rect x="6" y="6" width="24" height="4" rx="2" fill="#cbd5e1"/>
+      <rect x="6" y="14" width="24" height="4" rx="2" fill="#e2e8f0"/>
+      <rect x="6" y="22" width="16" height="4" rx="2" fill="#e2e8f0"/>
+    </g>
+  </g>
+
+  <!-- ============== FLOATING FILE FORMAT ICONS ============== -->
+  <!-- PDF Icon -->
+  <g transform="translate(560, 80)" filter="url(#shadow2)">
+    <rect x="0" y="0" width="56" height="64" rx="12" fill="url(#iconBg1)"/>
+    <text x="28" y="24" text-anchor="middle" fill="#fff" font-size="10" font-family="sans-serif" font-weight="800">PDF</text>
+    <rect x="10" y="32" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="38" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="44" width="24" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <!-- File icon -->
+    <rect x="20" y="52" width="16" height="6" rx="3" fill="#fff" opacity="0.2"/>
+  </g>
+
+  <!-- JPG Icon -->
+  <g transform="translate(640, 140)" filter="url(#shadow2)">
+    <rect x="0" y="0" width="56" height="64" rx="12" fill="url(#iconBg2)"/>
+    <text x="28" y="24" text-anchor="middle" fill="#fff" font-size="10" font-family="sans-serif" font-weight="800">JPG</text>
+    <rect x="10" y="32" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="38" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="44" width="24" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <!-- Image icon -->
+    <circle cx="28" cy="54" r="5" fill="#fff" opacity="0.2"/>
+  </g>
+
+  <!-- DOC Icon -->
+  <g transform="translate(560, 180)" filter="url(#shadow2)">
+    <rect x="0" y="0" width="56" height="64" rx="12" fill="url(#iconBg3)"/>
+    <text x="28" y="24" text-anchor="middle" fill="#fff" font-size="10" font-family="sans-serif" font-weight="800">DOC</text>
+    <rect x="10" y="32" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="38" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="44" width="24" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="20" y="52" width="16" height="6" rx="3" fill="#fff" opacity="0.2"/>
+  </g>
+
+  <!-- PNG Icon -->
+  <g transform="translate(640, 260)" filter="url(#shadow2)">
+    <rect x="0" y="0" width="56" height="64" rx="12" fill="url(#iconBg4)"/>
+    <text x="28" y="24" text-anchor="middle" fill="#fff" font-size="10" font-family="sans-serif" font-weight="800">PNG</text>
+    <rect x="10" y="32" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="38" width="36" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <rect x="10" y="44" width="24" height="3" rx="1.5" fill="#fff" opacity="0.4"/>
+    <circle cx="28" cy="54" r="5" fill="#fff" opacity="0.2"/>
+  </g>
+
+  <!-- ============== SMALL PRINT ICONS ============== -->
+  <!-- Print icon 1 (top right) -->
+  <g transform="translate(690, 40)" filter="url(#shadow3)">
+    <rect x="0" y="0" width="28" height="28" rx="8" fill="#fff"/>
+    <rect x="5" y="6" width="18" height="12" rx="2" fill="#16a34a"/>
+    <rect x="7" y="18" width="14" height="4" rx="1" fill="#22c55e"/>
+    <rect x="9" y="8" width="10" height="2" rx="1" fill="#fff" opacity="0.5"/>
+  </g>
+
+  <!-- Print icon 2 (bottom right) -->
+  <g transform="translate(690, 480)" filter="url(#shadow3)">
+    <rect x="0" y="0" width="24" height="24" rx="7" fill="#fff"/>
+    <rect x="4" y="5" width="16" height="10" rx="2" fill="#16a34a"/>
+    <rect x="6" y="15" width="12" height="4" rx="1" fill="#22c55e"/>
+  </g>
+
+  <!-- Print icon 3 (top left area) -->
+  <g transform="translate(50, 60)" filter="url(#shadow3)">
+    <rect x="0" y="0" width="22" height="22" rx="6" fill="#fff"/>
+    <rect x="4" y="5" width="14" height="8" rx="2" fill="#15803d"/>
+  </g>
+
+  <!-- ============== FLOATING PARTICLES ============== -->
+  <g opacity="0.15">
+    <circle cx="300" cy="120" r="3" fill="#16a34a"/>
+    <circle cx="350" cy="200" r="2" fill="#22c55e"/>
+    <circle cx="450" cy="160" r="2.5" fill="#16a34a"/>
+    <circle cx="520" cy="220" r="2" fill="#22c55e"/>
+    <circle cx="280" cy="250" r="2" fill="#16a34a"/>
+    <circle cx="500" cy="350" r="2.5" fill="#22c55e"/>
+    <circle cx="320" cy="400" r="2" fill="#16a34a"/>
+    <circle cx="600" cy="420" r="2" fill="#22c55e"/>
+  </g>
+
+  <!-- ============== CONNECTION LINES (from phone to printer) ============== -->
+  <g opacity="0.08">
+    <path d="M185,370 Q300,320 480,370" fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="6,4"/>
+    <path d="M200,340 Q350,280 500,340" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4,4"/>
+  </g>
+
+  <!-- ============== Upload Complete badge (floating near phone) ============== -->
+  <g transform="translate(120, 350)" filter="url(#shadow3)">
+    <rect x="0" y="0" width="90" height="22" rx="11" fill="#16a34a"/>
+    <circle cx="14" cy="11" r="4" fill="#fff"/>
+    <path d="M12,11 L14,13 L17,9" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="24" y="15" fill="#fff" font-size="8" font-family="sans-serif" font-weight="600">Upload Complete</text>
+  </g>
+
+</svg>

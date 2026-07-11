@@ -57,6 +57,15 @@ body {
   -webkit-text-fill-color:#6b7280;
 }
 
+/* --- Hero Illustration --- */
+.hero-illustration {
+  max-width:560px; margin:0 auto; padding:20px 12px 0;
+}
+.hero-illustration img {
+  display:block; width:100%; height:auto;
+  border-radius:22px;
+}
+
 /* --- Main Container --- */
 .app-main {
   max-width:560px; margin:0 auto; padding:16px 12px 100px;
