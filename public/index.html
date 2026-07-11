@@ -346,26 +346,17 @@
 
   <!-- Crop Modal (Regular) -->
   <div id="cropModal" class="crop-overlay" style="display:none;">
-    <div class="crop-card" style="max-width:560px;">
+    <div class="crop-card">
       <h3 style="display:flex;justify-content:space-between;align-items:center;">
         <span>Crop <span id="cropProgress" style="font-size:0.8em;color:#aaa;"></span></span>
-        <span style="display:flex;gap:4px;background:#1f2937;border-radius:8px;padding:2px;">
-          <button id="cropModeNormal" class="crop-mode-btn active" onclick="setCropMode('normal')" style="background:#059669;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">Normal</button>
-          <button id="cropModePerspective" class="crop-mode-btn" onclick="setCropMode('perspective')" style="background:transparent;color:#aaa;border:none;padding:4px 12px;border-radius:6px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">Perspective</button>
-        </span>
       </h3>
       <div style="border-radius:10px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:55vh;">
         <canvas id="cropCanvas" style="max-width:100%;max-height:55vh;"></canvas>
       </div>
-      <div id="cropNormalControls" style="display:flex;justify-content:center;gap:6px;padding:8px 0;flex-wrap:wrap;">
-        <button class="idc-crop-btn" onclick="rotateCrop(-90)" title="Rotate Left">↺</button>
-        <button class="idc-crop-btn" onclick="autoCropEdge()" title="Auto-detect edges">Auto</button>
-        <button class="idc-crop-btn" onclick="rotateCrop(90)" title="Rotate Right">↻</button>
-        <button class="idc-crop-btn" onclick="resetCrop()" title="Reset crop">Reset</button>
-        <button class="idc-crop-btn" style="background:#059669;" onclick="confirmCrop()">✓ Crop</button>
-      </div>
-      <div id="cropPerspectiveControls" style="display:none;justify-content:center;gap:6px;padding:8px 0;flex-wrap:wrap;">
-        <button class="idc-crop-btn" onclick="resetPerspectiveCrop()" title="Reset corners">Reset</button>
+      <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
+        <button class="idc-crop-btn" onclick="rotateCrop(-90)">↺</button>
+        <button class="idc-crop-btn" onclick="autoCropEdge()">Auto</button>
+        <button class="idc-crop-btn" onclick="rotateCrop(90)">↻</button>
         <button class="idc-crop-btn" style="background:#059669;" onclick="confirmCrop()">✓ Crop</button>
       </div>
       <div id="cropError" style="color:#ef4444;text-align:center;font-size:0.8em;"></div>
@@ -410,8 +401,6 @@
     var cropRect = { x1: 0, y1: 0, x2: 0, y2: 0 };
     var cropDragHandle = null;
     var cropDragStart = null;
-    var cropMode = 'normal';
-    var cropCorners = [];
 
     // New flow state
     var selectedFiles = [];
@@ -1815,11 +1804,18 @@
       cropFileName = item.name;
       cropOrigFile = item.file;
       cropRotation = 0;
-      cropMode = 'normal';
       var img = new Image();
       img.onload = function() {
         cropImg = img;
-        showCropModal();
+        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
+          OCV_CROP.openModal(img, false, function(croppedFile, filter) {
+            if (croppedFile) { enhancedFiles[cropFileName] = croppedFile; }
+            cropIndex++;
+            startCropItem();
+          });
+        } else {
+          showCropModal();
+        }
       };
       img.src = URL.createObjectURL(item.file);
     }
@@ -1840,53 +1836,13 @@
       canvas.style.width = Math.round(w) + 'px';
       canvas.style.height = Math.round(h) + 'px';
       cropRect = { x1: 10 * dpr, y1: 10 * dpr, x2: Math.round(w * dpr) - 10 * dpr, y2: Math.round(h * dpr) - 10 * dpr };
-      cropCorners = [
-        { x: 10 * dpr, y: 10 * dpr },
-        { x: Math.round(w * dpr) - 10 * dpr, y: 10 * dpr },
-        { x: Math.round(w * dpr) - 10 * dpr, y: Math.round(h * dpr) - 10 * dpr },
-        { x: 10 * dpr, y: Math.round(h * dpr) - 10 * dpr }
-      ];
-      setCropMode('normal');
       drawCropCanvas();
       document.getElementById('cropProgress').textContent = (cropIndex + 1) + '/' + cropQueue.length;
       document.getElementById('cropError').textContent = '';
     }
 
-    function setCropMode(mode) {
-      cropMode = mode;
-      document.getElementById('cropModeNormal').style.background = mode === 'normal' ? '#059669' : 'transparent';
-      document.getElementById('cropModeNormal').style.color = mode === 'normal' ? '#fff' : '#aaa';
-      document.getElementById('cropModePerspective').style.background = mode === 'perspective' ? '#059669' : 'transparent';
-      document.getElementById('cropModePerspective').style.color = mode === 'perspective' ? '#fff' : '#aaa';
-      document.getElementById('cropNormalControls').style.display = mode === 'normal' ? 'flex' : 'none';
-      document.getElementById('cropPerspectiveControls').style.display = mode === 'perspective' ? 'flex' : 'none';
-      if (mode === 'perspective' && cropRotation !== 0) {
-        cropRotation = 0;
-        var canvas = document.getElementById('cropCanvas');
-        if (canvas && cropImg) {
-          var ctx = canvas.getContext('2d');
-          var cw = canvas.width, ch = canvas.height;
-          var iw = cropImg.width, ih = cropImg.height;
-          if (cw > iw || ch > ih) {
-            var dpr = window.devicePixelRatio || 1;
-            var maxW = document.getElementById('cropModal').clientWidth * 0.9;
-            var maxH = window.innerHeight * 0.6;
-            var w = iw, h = ih;
-            if (w > maxW) { h = h * maxW / w; w = maxW; }
-            if (h > maxH) { w = w * maxH / h; h = maxH; }
-            canvas.width = Math.round(w * dpr);
-            canvas.height = Math.round(h * dpr);
-            canvas.style.width = Math.round(w) + 'px';
-            canvas.style.height = Math.round(h) + 'px';
-          }
-        }
-      }
-      drawCropCanvas();
-    }
-
     function drawCropCanvas() {
       var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
       var ctx = canvas.getContext('2d');
       var w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
@@ -1895,253 +1851,120 @@
       ctx.rotate(cropRotation * Math.PI / 180);
       ctx.drawImage(cropImg, -w / 2, -h / 2, w, h);
       ctx.restore();
-      if (cropMode === 'normal') { drawNormalCrop(ctx, w, h); }
-      else { drawPerspectiveCrop(ctx, w, h); }
-    }
 
-    function drawNormalCrop(ctx, w, h) {
       var x1 = Math.min(cropRect.x1, cropRect.x2);
       var y1 = Math.min(cropRect.y1, cropRect.y2);
       var x2 = Math.max(cropRect.x1, cropRect.x2);
       var y2 = Math.max(cropRect.y1, cropRect.y2);
 
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.fillRect(0, 0, w, y1);
       ctx.fillRect(0, y2, w, h - y2);
       ctx.fillRect(0, y1, x1, y2 - y1);
       ctx.fillRect(x2, y1, w - x2, y2 - y1);
 
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([]);
-      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-
-      var gw = (x2 - x1) / 3, gh = (y2 - y1) / 3;
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-      for (var i = 1; i < 3; i++) {
-        ctx.beginPath(); ctx.moveTo(x1 + gw * i, y1); ctx.lineTo(x1 + gw * i, y2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x1, y1 + gh * i); ctx.lineTo(x2, y1 + gh * i); ctx.stroke();
-      }
-      ctx.setLineDash([]);
-
-      var hs = 12;
-      drawHandle(ctx, x1, y1, hs, '#fff', '#059669');
-      drawHandle(ctx, x2, y1, hs, '#fff', '#059669');
-      drawHandle(ctx, x1, y2, hs, '#fff', '#059669');
-      drawHandle(ctx, x2, y2, hs, '#fff', '#059669');
-      var mhs = 8;
-      drawHandle(ctx, (x1 + x2) / 2, y1, mhs, '#fff', '#059669');
-      drawHandle(ctx, x2, (y1 + y2) / 2, mhs, '#fff', '#059669');
-      drawHandle(ctx, (x1 + x2) / 2, y2, mhs, '#fff', '#059669');
-      drawHandle(ctx, x1, (y1 + y2) / 2, mhs, '#fff', '#059669');
-    }
-
-    function drawHandle(ctx, x, y, hs, fill, stroke) {
-      ctx.fillStyle = fill;
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 2;
-      ctx.fillRect(x - hs / 2, y - hs / 2, hs, hs);
-      ctx.strokeRect(x - hs / 2, y - hs / 2, hs, hs);
-    }
-
-    function drawPerspectiveCrop(ctx, w, h) {
-      if (cropCorners.length !== 4) return;
-      var c = cropCorners;
-
-      ctx.beginPath();
-      ctx.moveTo(c[0].x, c[0].y);
-      ctx.lineTo(c[1].x, c[1].y);
-      ctx.lineTo(c[2].x, c[2].y);
-      ctx.lineTo(c[3].x, c[3].y);
-      ctx.closePath();
-
-      ctx.save();
-      ctx.clip();
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.rect(0, 0, w, h);
-      ctx.moveTo(c[0].x, c[0].y);
-      ctx.lineTo(c[1].x, c[1].y);
-      ctx.lineTo(c[2].x, c[2].y);
-      ctx.lineTo(c[3].x, c[3].y);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fill('evenodd');
-
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = '#1a73e8';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      ctx.moveTo(c[0].x, c[0].y);
-      ctx.lineTo(c[1].x, c[1].y);
-      ctx.lineTo(c[2].x, c[2].y);
-      ctx.lineTo(c[3].x, c[3].y);
-      ctx.closePath();
-      ctx.stroke();
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
       ctx.setLineDash([]);
 
-      var colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A'];
-      var labels = ['TL', 'TR', 'BR', 'BL'];
-      var hs = 16;
-      for (var i = 0; i < 4; i++) {
-        ctx.beginPath();
-        ctx.arc(c[i].x, c[i].y, hs, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
-        ctx.strokeStyle = colors[i];
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(c[i].x, c[i].y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = colors[i];
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(labels[i], c[i].x, c[i].y - hs - 4);
-      }
+      var hs = 14;
+      var corners = [[x1, y1], [x2, y1], [x1, y2], [x2, y2]];
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = '#1a73e8';
+      ctx.lineWidth = 2;
+      corners.forEach(function(p) {
+        ctx.fillRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
+        ctx.strokeRect(p[0] - hs/2, p[1] - hs/2, hs, hs);
+      });
     }
 
     function getCropHandle(x, y) {
-      if (cropMode === 'perspective') {
-        var threshold = 25;
-        var labels = ['tl', 'tr', 'br', 'bl'];
-        for (var i = 0; i < 4; i++) {
-          if (Math.abs(x - cropCorners[i].x) < threshold && Math.abs(y - cropCorners[i].y) < threshold) return labels[i];
-        }
-        return null;
-      }
       var x1 = Math.min(cropRect.x1, cropRect.x2);
       var y1 = Math.min(cropRect.y1, cropRect.y2);
       var x2 = Math.max(cropRect.x1, cropRect.x2);
       var y2 = Math.max(cropRect.y1, cropRect.y2);
       var hs = 20;
-      var handles = [
-        [x1, y1, 'tl'], [x2, y1, 'tr'], [x1, y2, 'bl'], [x2, y2, 'br'],
-        [(x1 + x2) / 2, y1, 'tm'], [x2, (y1 + y2) / 2, 'rm'], [(x1 + x2) / 2, y2, 'bm'], [x1, (y1 + y2) / 2, 'lm']
-      ];
-      for (var i = 0; i < handles.length; i++) {
-        if (Math.abs(x - handles[i][0]) < hs && Math.abs(y - handles[i][1]) < hs) return handles[i][2];
+      var corners = [[x1, y1, 'tl'], [x2, y1, 'tr'], [x1, y2, 'bl'], [x2, y2, 'br']];
+      for (var i = 0; i < corners.length; i++) {
+        if (Math.abs(x - corners[i][0]) < hs && Math.abs(y - corners[i][1]) < hs) return corners[i][2];
       }
       if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return 'move';
       return null;
     }
+    document.getElementById('cropCanvas').addEventListener('mousedown', function(e) {
+      var pos = getCanvasPos(e);
+      var handle = getCropHandle(pos.x, pos.y);
+      if (handle) {
+        cropDragHandle = handle;
+        cropDragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
+      }
+    });
 
-    var cropEventSetup = false;
-    function setupCropEvents() {
-      if (cropEventSetup) return;
-      cropEventSetup = true;
+    document.getElementById('cropCanvas').addEventListener('mousemove', function(e) {
       var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
-      canvas.addEventListener('mousedown', function(e) {
-        var pos = getCanvasPos(e);
+      var pos = getCanvasPos(e);
+      if (!cropDragHandle) {
         var handle = getCropHandle(pos.x, pos.y);
-        if (handle) {
-          cropDragHandle = handle;
-          if (cropMode === 'perspective') {
-            cropDragStart = { x: pos.x, y: pos.y, corners: cropCorners.map(function(c) { return { x: c.x, y: c.y }; }) };
-          } else {
-            cropDragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
-          }
-        }
-      });
-      canvas.addEventListener('mousemove', function(e) {
-        var pos = getCanvasPos(e);
-        if (!cropDragHandle) {
-          var handle = getCropHandle(pos.x, pos.y);
-          if (cropMode === 'perspective') {
-            canvas.style.cursor = handle ? 'grab' : 'default';
-          } else {
-            var cursors = { tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize', tm: 'ns-resize', rm: 'ew-resize', bm: 'ns-resize', lm: 'ew-resize', move: 'move' };
-            canvas.style.cursor = handle ? (cursors[handle] || 'default') : 'default';
-          }
-          return;
-        }
-        var dx = pos.x - cropDragStart.x;
-        var dy = pos.y - cropDragStart.y;
-        var cw = canvas.width, ch = canvas.height;
-        if (cropMode === 'perspective') {
-          var idx = { tl: 0, tr: 1, br: 2, bl: 3 }[cropDragHandle];
-          if (idx !== undefined) {
-            cropCorners[idx].x = Math.max(0, Math.min(cw, cropDragStart.corners[idx].x + dx));
-            cropCorners[idx].y = Math.max(0, Math.min(ch, cropDragStart.corners[idx].y + dy));
-          }
-        } else {
-          var sx = cropDragStart, c = cropRect;
-          if (cropDragHandle === 'move') {
-            var rw = c.x2 - c.x1, rh = c.y2 - c.y1;
-            c.x1 = Math.max(0, Math.min(cw - rw, sx.x1 + dx));
-            c.y1 = Math.max(0, Math.min(ch - rh, sx.y1 + dy));
-            c.x2 = c.x1 + rw; c.y2 = c.y1 + rh;
-          } else if (cropDragHandle === 'tl') { c.x1 = Math.max(0, Math.min(cw - 20, sx.x1 + dx)); c.y1 = Math.max(0, Math.min(ch - 20, sx.y1 + dy)); }
-          else if (cropDragHandle === 'tr') { c.x2 = Math.min(cw, Math.max(20, sx.x2 + dx)); c.y1 = Math.max(0, Math.min(ch - 20, sx.y1 + dy)); }
-          else if (cropDragHandle === 'bl') { c.x1 = Math.max(0, Math.min(cw - 20, sx.x1 + dx)); c.y2 = Math.min(ch, Math.max(20, sx.y2 + dy)); }
-          else if (cropDragHandle === 'br') { c.x2 = Math.min(cw, Math.max(20, sx.x2 + dx)); c.y2 = Math.min(ch, Math.max(20, sx.y2 + dy)); }
-          else if (cropDragHandle === 'tm') { c.y1 = Math.max(0, Math.min(c.y2 - 20, sx.y1 + dy)); }
-          else if (cropDragHandle === 'bm') { c.y2 = Math.min(ch, Math.max(c.y1 + 20, sx.y2 + dy)); }
-          else if (cropDragHandle === 'lm') { c.x1 = Math.max(0, Math.min(c.x2 - 20, sx.x1 + dx)); }
-          else if (cropDragHandle === 'rm') { c.x2 = Math.min(cw, Math.max(c.x1 + 20, sx.x2 + dx)); }
-        }
-        drawCropCanvas();
-      });
-      canvas.addEventListener('mouseup', function() { cropDragHandle = null; cropDragStart = null; });
-      canvas.addEventListener('mouseleave', function() { cropDragHandle = null; cropDragStart = null; });
-      canvas.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        var pos = getCanvasPos(e.touches[0]);
-        var handle = getCropHandle(pos.x, pos.y);
-        if (handle) {
-          cropDragHandle = handle;
-          if (cropMode === 'perspective') {
-            cropDragStart = { x: pos.x, y: pos.y, corners: cropCorners.map(function(c) { return { x: c.x, y: c.y }; }) };
-          } else {
-            cropDragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
-          }
-        }
-      });
-      canvas.addEventListener('touchmove', function(e) {
-        e.preventDefault();
-        if (!cropDragHandle) return;
-        var pos = getCanvasPos(e.touches[0]);
-        var dx = pos.x - cropDragStart.x;
-        var dy = pos.y - cropDragStart.y;
-        var cw = canvas.width, ch = canvas.height;
-        if (cropMode === 'perspective') {
-          var idx = { tl: 0, tr: 1, br: 2, bl: 3 }[cropDragHandle];
-          if (idx !== undefined) {
-            cropCorners[idx].x = Math.max(0, Math.min(cw, cropDragStart.corners[idx].x + dx));
-            cropCorners[idx].y = Math.max(0, Math.min(ch, cropDragStart.corners[idx].y + dy));
-          }
-        } else {
-          var sx = cropDragStart, c = cropRect;
-          if (cropDragHandle === 'move') {
-            var rw = c.x2 - c.x1, rh = c.y2 - c.y1;
-            c.x1 = Math.max(0, Math.min(cw - rw, sx.x1 + dx));
-            c.y1 = Math.max(0, Math.min(ch - rh, sx.y1 + dy));
-            c.x2 = c.x1 + rw; c.y2 = c.y1 + rh;
-          } else if (cropDragHandle === 'tl') { c.x1 = Math.max(0, Math.min(cw - 20, sx.x1 + dx)); c.y1 = Math.max(0, Math.min(ch - 20, sx.y1 + dy)); }
-          else if (cropDragHandle === 'tr') { c.x2 = Math.min(cw, Math.max(20, sx.x2 + dx)); c.y1 = Math.max(0, Math.min(ch - 20, sx.y1 + dy)); }
-          else if (cropDragHandle === 'bl') { c.x1 = Math.max(0, Math.min(cw - 20, sx.x1 + dx)); c.y2 = Math.min(ch, Math.max(20, sx.y2 + dy)); }
-          else if (cropDragHandle === 'br') { c.x2 = Math.min(cw, Math.max(20, sx.x2 + dx)); c.y2 = Math.min(ch, Math.max(20, sx.y2 + dy)); }
-          else if (cropDragHandle === 'tm') { c.y1 = Math.max(0, Math.min(c.y2 - 20, sx.y1 + dy)); }
-          else if (cropDragHandle === 'bm') { c.y2 = Math.min(ch, Math.max(c.y1 + 20, sx.y2 + dy)); }
-          else if (cropDragHandle === 'lm') { c.x1 = Math.max(0, Math.min(c.x2 - 20, sx.x1 + dx)); }
-          else if (cropDragHandle === 'rm') { c.x2 = Math.min(cw, Math.max(c.x1 + 20, sx.x2 + dx)); }
-        }
-        drawCropCanvas();
-      });
-      canvas.addEventListener('touchend', function(e) { e.preventDefault(); cropDragHandle = null; cropDragStart = null; });
-    }
+        canvas.style.cursor = handle ? (handle === 'move' ? 'move' : 'nwse-resize') : 'default';
+        return;
+      }
+      var dx = pos.x - cropDragStart.x;
+      var dy = pos.y - cropDragStart.y;
+      var sx = cropDragStart, c = cropRect;
+      var cw = canvas.width, ch = canvas.height;
+
+      if (cropDragHandle === 'move') {
+        var rw = c.x2 - c.x1, rh = c.y2 - c.y1;
+        c.x1 = Math.max(0, Math.min(cw - rw, sx.x1 + dx));
+        c.y1 = Math.max(0, Math.min(ch - rh, sx.y1 + dy));
+        c.x2 = c.x1 + rw; c.y2 = c.y1 + rh;
+      } else if (cropDragHandle === 'tl') {
+        c.x1 = Math.max(0, Math.min(sx.x2 - 20, sx.x1 + dx));
+        c.y1 = Math.max(0, Math.min(sx.y2 - 20, sx.y1 + dy));
+      } else if (cropDragHandle === 'tr') {
+        c.x2 = Math.min(cw, Math.max(sx.x1 + 20, sx.x2 + dx));
+        c.y1 = Math.max(0, Math.min(sx.y2 - 20, sx.y1 + dy));
+      } else if (cropDragHandle === 'bl') {
+        c.x1 = Math.max(0, Math.min(sx.x2 - 20, sx.x1 + dx));
+        c.y2 = Math.min(ch, Math.max(sx.y1 + 20, sx.y2 + dy));
+      } else if (cropDragHandle === 'br') {
+        c.x2 = Math.min(cw, Math.max(sx.x1 + 20, sx.x2 + dx));
+        c.y2 = Math.min(ch, Math.max(sx.y1 + 20, sx.y2 + dy));
+      }
+      drawCropCanvas();
+    });
+
+    document.getElementById('cropCanvas').addEventListener('mouseup', function() {
+      cropDragHandle = null; cropDragStart = null;
+    });
+    document.getElementById('cropCanvas').addEventListener('mouseleave', function() {
+      cropDragHandle = null; cropDragStart = null;
+    });
+
+    document.getElementById('cropCanvas').addEventListener('touchstart', function(e) {
+      e.preventDefault(); var pos = getCanvasPos(e.touches[0]); cropDragHandle = getCropHandle(pos.x, pos.y);
+      if (cropDragHandle) cropDragStart = { x: pos.x, y: pos.y, x1: cropRect.x1, y1: cropRect.y1, x2: cropRect.x2, y2: cropRect.y2 };
+    });
+    document.getElementById('cropCanvas').addEventListener('touchmove', function(e) {
+      e.preventDefault(); if (!cropDragHandle) return;
+      var pos = getCanvasPos(e.touches[0]); var dx = pos.x - cropDragStart.x; var dy = pos.y - cropDragStart.y;
+      var sx = cropDragStart, c = cropRect;
+      var cw = document.getElementById('cropCanvas').width, ch = document.getElementById('cropCanvas').height;
+      if (cropDragHandle === 'move') { var rw = c.x2 - c.x1, rh = c.y2 - c.y1; c.x1 = Math.max(0, Math.min(cw - rw, sx.x1 + dx)); c.y1 = Math.max(0, Math.min(ch - rh, sx.y1 + dy)); c.x2 = c.x1 + rw; c.y2 = c.y1 + rh; }
+      else if (cropDragHandle === 'tl') { c.x1 = Math.max(0, Math.min(sx.x2 - 20, sx.x1 + dx)); c.y1 = Math.max(0, Math.min(sx.y2 - 20, sx.y1 + dy)); }
+      else if (cropDragHandle === 'tr') { c.x2 = Math.min(cw, Math.max(sx.x1 + 20, sx.x2 + dx)); c.y1 = Math.max(0, Math.min(sx.y2 - 20, sx.y1 + dy)); }
+      else if (cropDragHandle === 'bl') { c.x1 = Math.max(0, Math.min(sx.x2 - 20, sx.x1 + dx)); c.y2 = Math.min(ch, Math.max(sx.y1 + 20, sx.y2 + dy)); }
+      else if (cropDragHandle === 'br') { c.x2 = Math.min(cw, Math.max(sx.x1 + 20, sx.x2 + dx)); c.y2 = Math.min(ch, Math.max(sx.y1 + 20, sx.y2 + dy)); }
+      drawCropCanvas();
+    });
+    document.getElementById('cropCanvas').addEventListener('touchend', function(e) {
+      e.preventDefault(); cropDragHandle = null; cropDragStart = null;
+    });
 
     function getCanvasPos(e) {
       var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return { x: 0, y: 0 };
       var rect = canvas.getBoundingClientRect();
       var x = (e.clientX !== undefined) ? e.clientX : e.pageX;
       var y = (e.clientY !== undefined) ? e.clientY : e.pageY;
@@ -2151,7 +1974,6 @@
     function rotateCrop(deg) {
       cropRotation = (cropRotation + deg) % 360;
       var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
       var ctx = canvas.getContext('2d');
       var tempC = document.createElement('canvas');
       var tCtx = tempC.getContext('2d');
@@ -2166,56 +1988,11 @@
       canvas.width = tempC.width; canvas.height = tempC.height;
       ctx.drawImage(tempC, 0, 0);
       cropRect = { x1: 10, y1: 10, x2: canvas.width - 10, y2: canvas.height - 10 };
-      var dpr = window.devicePixelRatio || 1;
-      var w = cropImg.width, h = cropImg.height;
-      var cw = canvas.width, ch = canvas.height;
-      var sx = w / cw, sy = h / ch;
-      var ox = Math.round(10 * sx), oy = Math.round(10 * sy);
-      cropCorners = [
-        { x: 10, y: 10 },
-        { x: canvas.width - 10, y: 10 },
-        { x: canvas.width - 10, y: canvas.height - 10 },
-        { x: 10, y: canvas.height - 10 }
-      ];
-      drawCropCanvas();
-    }
-
-    function resetCrop() {
-      var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
-      var dpr = window.devicePixelRatio || 1;
-      var m = 10 * dpr;
-      cropRect = { x1: m, y1: m, x2: canvas.width - m, y2: canvas.height - m };
-      cropRotation = 0;
-      var img = cropImg;
-      if (img) {
-        var ctx = canvas.getContext('2d');
-        var cw = canvas.width, ch = canvas.height;
-        ctx.clearRect(0, 0, cw, ch);
-        ctx.save();
-        ctx.translate(cw / 2, ch / 2);
-        ctx.drawImage(img, -cw / 2, -ch / 2, cw, ch);
-        ctx.restore();
-      }
-      drawCropCanvas();
-    }
-
-    function resetPerspectiveCrop() {
-      var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
-      var m = 10;
-      cropCorners = [
-        { x: m, y: m },
-        { x: canvas.width - m, y: m },
-        { x: canvas.width - m, y: canvas.height - m },
-        { x: m, y: canvas.height - m }
-      ];
       drawCropCanvas();
     }
 
     function autoCropEdge() {
       var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
       var ctx = canvas.getContext('2d');
       var w = canvas.width, h = canvas.height;
       var imageData = ctx.getImageData(0, 0, w, h);
@@ -2293,11 +2070,6 @@
 
     function confirmCrop() {
       var canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
-      if (cropMode === 'perspective') {
-        confirmPerspectiveCrop();
-        return;
-      }
       var x1 = Math.round(Math.min(cropRect.x1, cropRect.x2));
       var y1 = Math.round(Math.min(cropRect.y1, cropRect.y2));
       var x2 = Math.round(Math.max(cropRect.x1, cropRect.x2));
@@ -2350,73 +2122,6 @@
       }, 'image/png');
     }
 
-    function confirmPerspectiveCrop() {
-      var c = cropCorners;
-      if (c.length !== 4) return;
-      var e = document.getElementById('cropError');
-      var canvas = document.getElementById('cropCanvas');
-
-      function dist(a, b) { return Math.sqrt((a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y)); }
-      var minSide = Math.min(dist(c[0],c[1]), dist(c[1],c[2]), dist(c[2],c[3]), dist(c[3],c[0]));
-      if (minSide < 10) { e.textContent = 'Crop area too small'; return; }
-
-      if (!cropImg) return;
-      var iw = cropImg.width, ih = cropImg.height;
-      var cw = canvas.width, ch = canvas.height;
-
-      var sx = iw / cw, sy = ih / ch;
-      var origCorners = c.map(function(p) { return { x: p.x * sx, y: p.y * sy }; });
-
-      var pw = Math.max(dist(origCorners[0],origCorners[1]), dist(origCorners[3],origCorners[2]));
-      var ph = Math.max(dist(origCorners[0],origCorners[3]), dist(origCorners[1],origCorners[2]));
-      if (pw < 10 || ph < 10) { e.textContent = 'Crop area too small'; return; }
-
-      var outW = Math.round(pw), outH = Math.round(ph);
-      var tempC = document.createElement('canvas');
-      tempC.width = iw; tempC.height = ih;
-      var tCtx = tempC.getContext('2d');
-      tCtx.drawImage(cropImg, 0, 0);
-      var srcData = tCtx.getImageData(0, 0, iw, ih).data;
-
-      var outC = document.createElement('canvas');
-      outC.width = outW; outC.height = outH;
-      var oCtx = outC.getContext('2d');
-      var imgData = oCtx.createImageData(outW, outH);
-
-      var tl = origCorners[0], tr = origCorners[1], br = origCorners[2], bl = origCorners[3];
-      for (var dy = 0; dy < outH; dy++) {
-        for (var dx = 0; dx < outW; dx++) {
-          var u = dx / (outW - 1), v = dy / (outH - 1);
-          var topX = tl.x + (tr.x - tl.x) * u, topY = tl.y + (tr.y - tl.y) * u;
-          var botX = bl.x + (br.x - bl.x) * u, botY = bl.y + (br.y - bl.y) * u;
-          var sx2 = topX + (botX - topX) * v, sy2 = topY + (botY - topY) * v;
-          var ix = Math.floor(sx2), iy = Math.floor(sy2);
-          var fx = sx2 - ix, fy = sy2 - iy;
-          ix = Math.max(0, Math.min(iw - 2, ix));
-          iy = Math.max(0, Math.min(ih - 2, iy));
-          var idx00 = (iy * iw + ix) * 4;
-          var idx10 = (iy * iw + ix + 1) * 4;
-          var idx01 = ((iy + 1) * iw + ix) * 4;
-          var idx11 = ((iy + 1) * iw + ix + 1) * 4;
-          var oi = (dy * outW + dx) * 4;
-          for (var ci = 0; ci < 4; ci++) {
-            imgData.data[oi + ci] = srcData[idx00 + ci] * (1-fx) * (1-fy) + srcData[idx10 + ci] * fx * (1-fy) +
-                                    srcData[idx01 + ci] * (1-fx) * fy + srcData[idx11 + ci] * fx * fy;
-          }
-        }
-      }
-      oCtx.putImageData(imgData, 0, 0);
-      outC.toBlob(function(blob) {
-        if (!blob) { e.textContent = 'Failed to process image'; return; }
-        var cf = new File([blob], cropFileName, { type: 'image/png' });
-        enhancedFiles[cropFileName] = cf;
-        document.getElementById('cropModal').classList.add('hidden');
-        document.getElementById('cropModal').style.display = 'none';
-        cropIndex++;
-        startCropItem();
-      }, 'image/png');
-    }
-
     function showFileList() {
       // Not used in new flow (files are displayed via file cards)
     }
@@ -2431,7 +2136,6 @@
       }
     }, 10000);
 
-    setupCropEvents();
     if (typeof lucide !== 'undefined') lucide.createIcons();
   </script>
   <script src="opencv-crop.js"></script>
