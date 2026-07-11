@@ -75,12 +75,10 @@
         <div class="printer-status" style="margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <strong>🖨 B&W:</strong>
           <span id="bwPrinterName" style="font-weight:600;">KONICA MINOLTA 205i(36</span>
-          <button class="btn btn-sm btn-secondary" onclick="toggleBwPrinter()" id="bwToggleBtn" style="font-size:0.75em;padding:4px 10px;">Switch to Kyocera</button>
         </div>
         <div class="printer-status">
           <strong>🖨 Color:</strong> HP Smart Tank 580-590
         </div>
-        <small style="font-size:0.75em;color:#9ca3af;margin-top:2px;display:block;" id="bwHint">Default B&W printer. Click switch if Konica is unavailable.</small>
       </div>
 
       <!-- QR Modal -->
@@ -211,29 +209,9 @@
       }, 5000);
     }
 
-    var bwPrinters = [
-      { name: 'KONICA MINOLTA 205i(36', label: 'Konica Minolta' },
-      { name: 'Kyocera ECOSYS MA4000x KX', label: 'Kyocera' }
-    ];
-    var bwIndex = 0;
-    try { var saved = parseInt(localStorage.getItem('bwPrinterIndex')); if (saved === 0 || saved === 1) bwIndex = saved; } catch(e) {}
-    if (bwIndex !== 0 && bwIndex !== 1) { bwIndex = 0; localStorage.removeItem('bwPrinterIndex'); }
+    var bwPrinterName = 'KONICA MINOLTA 205i(36';
 
-    function getBwPrinter() { return bwPrinters[bwIndex].name; }
-
-    function updateBwUi() {
-      var p = bwPrinters[bwIndex];
-      document.getElementById('bwPrinterName').textContent = p.name;
-      document.getElementById('bwToggleBtn').textContent = 'Switch to ' + bwPrinters[1 - bwIndex].label;
-    }
-
-    function toggleBwPrinter() {
-      bwIndex = 1 - bwIndex;
-      localStorage.setItem('bwPrinterIndex', bwIndex);
-      updateBwUi();
-    }
-
-    updateBwUi();
+    function getBwPrinter() { return bwPrinterName; }
 
     function toggleSound() {
       soundEnabled = !soundEnabled;
