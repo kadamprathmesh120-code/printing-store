@@ -19,6 +19,10 @@
         </h1>
         <p style="-webkit-text-fill-color:#6b7280;">Manage print orders</p>
       </div>
+      <div style="position:relative;cursor:pointer;" id="notifBell" onclick="markAllRead()" title="Notifications">
+        <i data-lucide="bell" style="width:20px;height:20px;color:#6b7280;"></i>
+        <span id="notifBadge" class="notif-badge hidden">0</span>
+      </div>
     </div>
   </header>
 
@@ -125,6 +129,25 @@
     var soundEnabled = localStorage.getItem('notifSound') !== 'off';
     var isFirstLoad = true;
     var pendingNewIds = [];
+    var unreadCount = 0;
+    var originalTitle = document.title;
+
+    function updateNotifBadge(count) {
+      var badge = document.getElementById('notifBadge');
+      if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+        document.title = '(' + count + ') ' + originalTitle;
+      } else {
+        badge.classList.add('hidden');
+        document.title = originalTitle;
+      }
+    }
+
+    function markAllRead() {
+      unreadCount = 0;
+      updateNotifBadge(0);
+    }
 
     try {
       var saved = sessionStorage.getItem('knownOrderIds');
@@ -194,6 +217,8 @@
             newOrders.reverse().forEach(function(o) {
               showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
             });
+            unreadCount += newOrders.length;
+            updateNotifBadge(unreadCount);
           }
           isFirstLoad = false;
 
@@ -340,6 +365,11 @@
 
     // Initialize Lucide icons
     lucide.createIcons();
+
+    // Request notification permission for desktop notifications (optional)
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   </script>
 </body>
 </html>
