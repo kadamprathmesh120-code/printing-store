@@ -466,7 +466,7 @@
         if (isImage) {
           thumbHtml = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">';
         } else if (isPdf) {
-          thumbHtml = '<embed src="' + url + '" type="application/pdf" style="width:100%;height:100%;display:block;">';
+          thumbHtml = '<embed src="' + url + '#toolbar=0" type="application/pdf" style="width:100%;height:100%;display:block;border:none;">';
         } else {
           thumbHtml = '<span style="font-size:1.5em;font-weight:700;color:#fff;">D</span>';
         }
@@ -1652,7 +1652,7 @@
         if (['jpg','jpeg','png'].includes(hext)) {
           html += '<div class="hero-preview-item"><img src="' + hu + '" alt=""></div>';
         } else if (hext === 'pdf') {
-          html += '<div class="hero-preview-item" style="background:#fff;"><embed src="' + hu + '" type="application/pdf" style="width:100%;height:100%;display:block;"></div>';
+          html += '<div class="hero-preview-item" style="background:#fff;"><embed src="' + hu + '#toolbar=0" type="application/pdf" style="width:100%;height:100%;display:block;border:none;"></div>';
         } else {
           html += '<div class="hero-preview-item doc">' + escapeHtml(hf.name) + '</div>';
         }
