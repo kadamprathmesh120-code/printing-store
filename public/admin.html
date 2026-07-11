@@ -74,13 +74,13 @@
         <label>Printers</label>
         <div class="printer-status" style="margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <strong>🖨 B&W:</strong>
-          <span id="bwPrinterName" style="font-weight:600;">Kyocera ECOSYS MA4000x KX</span>
-          <button class="btn btn-sm btn-secondary" onclick="toggleBwPrinter()" id="bwToggleBtn" style="font-size:0.75em;padding:4px 10px;">Switch to Konica</button>
+          <span id="bwPrinterName" style="font-weight:600;">KONICA MINOLTA 205i(36</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleBwPrinter()" id="bwToggleBtn" style="font-size:0.75em;padding:4px 10px;">Switch to Kyocera</button>
         </div>
         <div class="printer-status">
           <strong>🖨 Color:</strong> HP Smart Tank 580-590
         </div>
-        <small style="font-size:0.75em;color:#9ca3af;margin-top:2px;display:block;" id="bwHint">Default B&W printer. Click switch if Kyocera is unavailable.</small>
+        <small style="font-size:0.75em;color:#9ca3af;margin-top:2px;display:block;" id="bwHint">Default B&W printer. Click switch if Konica is unavailable.</small>
       </div>
 
       <!-- QR Modal -->
@@ -212,8 +212,8 @@
     }
 
     var bwPrinters = [
-      { name: 'Kyocera ECOSYS MA4000x KX', label: 'Kyocera' },
-      { name: 'KONICA MINOLTA 205i(36', label: 'Konica Minolta' }
+      { name: 'KONICA MINOLTA 205i(36', label: 'Konica Minolta' },
+      { name: 'Kyocera ECOSYS MA4000x KX', label: 'Kyocera' }
     ];
     var bwIndex = parseInt(localStorage.getItem('bwPrinterIndex')) || 0;
 
@@ -223,7 +223,6 @@
       var p = bwPrinters[bwIndex];
       document.getElementById('bwPrinterName').textContent = p.name;
       document.getElementById('bwToggleBtn').textContent = 'Switch to ' + bwPrinters[1 - bwIndex].label;
-      document.getElementById('bwHint').textContent = 'Active: ' + p.label + '. Click switch if unavailable.';
     }
 
     function toggleBwPrinter() {
