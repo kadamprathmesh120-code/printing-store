@@ -382,9 +382,10 @@
           showProgress(100);
           hideLoading();
         })
-        .catch(function() {
+        .catch(function(err) {
           var tbody = document.getElementById('ordersBody');
-          if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Failed to load orders</td></tr>';
+          if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#ef4444;padding:24px;">Failed to load orders. Check server.</td></tr>';
+          updateAnalytics([]);
           showProgress(100);
           hideLoading();
         });
