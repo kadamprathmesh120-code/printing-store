@@ -37,10 +37,10 @@
     <!-- Step 1: Home -->
     <div id="stepHome" class="step active">
       <div class="home-grid">
-        <button class="home-btn doc" onclick="pickFiles()">
+        <label class="home-btn doc" for="fileInput">
           <div class="hb-icon"><i data-lucide="upload"></i></div>
           <div class="hb-label" data-i18n="uploadFile">Upload</div>
-        </button>
+        </label>
         <button class="home-btn idc" onclick="startIdCopy()">
           <div class="hb-icon"><i data-lucide="id-card"></i></div>
           <div class="hb-label" data-i18n="idCopy">ID Copy</div>
@@ -53,13 +53,13 @@
       <div class="sheet-backdrop" onclick="closeUploadSheet()"></div>
       <div class="sheet-content">
         <div class="sheet-handle"></div>
-        <div class="sheet-option" onclick="openCamera()">
+        <label class="sheet-option" for="cameraInput" onclick="closeUploadSheet()">
           <div class="sheet-icon camera"><i data-lucide="camera"></i></div>
           <div>
             <div class="sheet-label" data-i18n="takePhoto">Take Photo</div>
             <div class="sheet-sublabel" data-i18n="photoHint">Use camera to capture document</div>
           </div>
-        </div>
+        </label>
       </div>
     </div>
 
@@ -84,7 +84,7 @@
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="filesCountLabel"><span id="fileCountDisplay">0</span> file(s) selected</p>
       <div id="fileCardsContainer" class="file-cards"></div>
       <div class="bottom-bar">
-        <button class="btn btn-secondary" onclick="pickFiles()"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></button>
+        <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></label>
         <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
       </div>
     </div>
@@ -432,16 +432,6 @@
     }
     function closeUploadSheet() {
       document.getElementById('uploadSheet').classList.remove('open');
-    }
-
-    function pickFiles() {
-      closeUploadSheet();
-      document.getElementById('fileInput').click();
-    }
-
-    function openCamera() {
-      closeUploadSheet();
-      document.getElementById('cameraInput').click();
     }
 
     function onFilesSelected(files) {
