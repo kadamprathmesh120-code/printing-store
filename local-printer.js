@@ -9,7 +9,7 @@ const { promisify } = require('util');
 const execP = promisify(exec);
 
 const RENDER_URL = 'https://printing-store.onrender.com';
-const BW_PRINTER_DEFAULT = 'KONICA MINOLTA 205i(36';
+const BW_PRINTER_DEFAULT = 'KONICA MINOLTA 205i(36:33:9E)';
 const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
 var BW_PRINTER = BW_PRINTER_DEFAULT;
 if (fs.existsSync(PRINTER_CONFIG)) {
