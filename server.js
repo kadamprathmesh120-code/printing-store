@@ -200,9 +200,12 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
 
     db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', req.params.id);
 
-    const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
+    const BW_PRINTER = req.body.printer || 'Kyocera ECOSYS MA4000x KX';
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
     const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+
+    // Save selected printer to order
+    db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, req.params.id);
 
     try {
       const printers = await getPrinters();

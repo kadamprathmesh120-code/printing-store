@@ -59,12 +59,21 @@
 
       <div class="form-group">
         <label>Printers</label>
-        <div class="printer-status" style="margin-bottom:6px;">
-          <strong>🖨 B&W:</strong> Kyocera ECOSYS MA4000x KX
+        <div class="printer-status" style="margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong>🖨 B&W:</strong>
+          <label class="printer-radio" style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="radio" name="bwPrinter" value="Kyocera ECOSYS MA4000x KX" onclick="selectBwPrinter('Kyocera ECOSYS MA4000x KX')" checked>
+            <span>Kyocera</span>
+          </label>
+          <label class="printer-radio" style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="radio" name="bwPrinter" value="KONICA MINOLTA 205i(36" onclick="selectBwPrinter('KONICA MINOLTA 205i(36')">
+            <span>Konica Minolta</span>
+          </label>
         </div>
         <div class="printer-status">
           <strong>🖨 Color:</strong> HP Smart Tank 580-590
         </div>
+        <small style="font-size:0.75em;color:#9ca3af;margin-top:2px;display:block;">Select B&W printer above</small>
       </div>
 
       <!-- QR Modal -->
@@ -194,6 +203,20 @@
       }, 5000);
     }
 
+    function getBwPrinter() {
+      return localStorage.getItem('bwPrinter') || 'Kyocera ECOSYS MA4000x KX';
+    }
+    function selectBwPrinter(name) {
+      localStorage.setItem('bwPrinter', name);
+    }
+    (function restoreBwPrinter() {
+      var saved = localStorage.getItem('bwPrinter');
+      if (saved) {
+        var el = document.querySelector('input[name="bwPrinter"][value="' + saved.replace(/"/g,'\\"') + '"]');
+        if (el) el.checked = true;
+      }
+    })();
+
     function toggleSound() {
       soundEnabled = !soundEnabled;
       localStorage.setItem('notifSound', soundEnabled ? 'on' : 'off');
@@ -292,8 +315,9 @@
     function acceptOrder(id) {
       if (!confirm('Accept this order?')) return;
       var pw = window.open('', '_blank');
-      pw.document.write('<p style="font-family:sans-serif;text-align:center;margin-top:50px;color:#888;">Printing to Kyocera...</p>');
-      fetch('/api/admin/orders/' + id + '/accept', { method: 'POST' })
+      var printer = getBwPrinter();
+      pw.document.write('<p style="font-family:sans-serif;text-align:center;margin-top:50px;color:#888;">Printing to ' + printer + '...</p>');
+      fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ printer: printer }) })
         .then(r => r.json())
         .then(data => {
           if (data.error) { pw.close(); alert(data.error); return; }

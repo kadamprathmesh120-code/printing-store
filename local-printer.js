@@ -9,7 +9,12 @@ const { promisify } = require('util');
 const execP = promisify(exec);
 
 const RENDER_URL = 'https://printing-store.onrender.com';
-const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
+const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
+const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
+var BW_PRINTER = BW_PRINTER_DEFAULT;
+if (fs.existsSync(PRINTER_CONFIG)) {
+  try { BW_PRINTER = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || BW_PRINTER; } catch(e) {}
+}
 const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
 const TRACKING_FILE = path.join(__dirname, 'printed-orders.json');
 const DOWNLOAD_DIR = path.join(__dirname, 'downloads');
@@ -61,7 +66,7 @@ async function checkAndPrint() {
         fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
         await downloadFile(fileUrl, localFile);
 
-        var printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+        var printer = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
         var isPdf = ext === '.pdf';
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
 
