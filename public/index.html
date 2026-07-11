@@ -1641,7 +1641,14 @@
 
     function renderHero() {
       var el = document.getElementById('heroContainer');
-      alert('renderHero called. selectedFiles=' + selectedFiles.length);
+      var dbg = document.getElementById('debugInfo');
+      if (!dbg) {
+        dbg = document.createElement('div');
+        dbg.id = 'debugInfo';
+        dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font:12px monospace;padding:8px;z-index:99999;white-space:pre-wrap;';
+        document.body.appendChild(dbg);
+      }
+      dbg.textContent = 'renderHero called. selectedFiles=' + selectedFiles.length;
       if (window._heroUrls) {
         window._heroUrls.forEach(function(u) { URL.revokeObjectURL(u); });
       }
