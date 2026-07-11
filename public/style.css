@@ -780,14 +780,6 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .toast-detail { font-size:0.82em; color:#374151; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .toast-time { font-size:0.7em; color:#9ca3af; margin-top:3px; }
 
-/* --- Highlight Animation --- */
-@keyframes highlightNew {
-  0% { background:rgba(22,163,74,0.12); }
-  70% { background:rgba(22,163,74,0.06); }
-  100% { background:transparent; }
-}
-.order-new { animation:highlightNew 3s ease-out; }
-
 /* --- Notification Badge --- */
 .notif-badge {
   position:absolute; top:-4px; right:-6px;
@@ -862,4 +854,52 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   .ocv-toolbar .ocv-btn { flex:1 1 40%; min-width:60px; }
   .ocv-action-bar { gap:5px; }
   .ocv-action-bar .ocv-btn { min-height:48px; font-size:0.95em; }
+}
+
+/* --- Admin Analytics --- */
+.stats-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:10px;
+}
+.stat-card {
+  background:#f9fafb; border-radius:14px; padding:14px;
+  text-align:center; border:1.5px solid #f3f4f6;
+  transition:transform .2s, box-shadow .2s;
+}
+.stat-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+.stat-card.pending { border-color:#fde68a; background:#fffbeb; }
+.stat-card.paid { border-color:#bbf7d0; background:#f0fdf4; }
+.stat-card.accepted { border-color:#a5f3fc; background:#ecfeff; }
+.stat-card.revenue { border-color:#fecaca; background:#fef2f2; }
+.stat-card.today { border-color:#c7d2fe; background:#eef2ff; }
+.stat-value { display:block; font-size:1.5em; font-weight:800; color:#111827; margin-bottom:2px; }
+.stat-label { font-size:0.72em; color:#6b7280; font-weight:500; text-transform:uppercase; letter-spacing:0.3px; }
+
+/* --- Animations --- */
+@keyframes fadeSlideIn {
+  from { opacity:0; transform:translateY(10px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes highlightPulse {
+  0% { background:#f0fdf4; }
+  50% { background:#dcfce7; }
+  100% { background:#f0fdf4; }
+}
+.order-new { animation:fadeSlideIn .4s ease-out; }
+.order-new td:first-child { position:relative; }
+.order-new td:first-child::before {
+  content:''; position:absolute; left:0; top:0; bottom:0;
+  width:3px; background:#16A34A; border-radius:0 2px 2px 0;
+}
+
+/* --- Loading Spinner --- */
+.loading-overlay { animation:fadeIn .3s; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+/* --- Responsive Admin Table --- */
+@media (max-width:640px) {
+  .stats-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
+  .stat-card { padding:10px; }
+  .stat-value { font-size:1.2em; }
 }
