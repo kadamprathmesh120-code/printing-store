@@ -459,6 +459,7 @@
 
     function renderFileCards() {
       var container = document.getElementById('fileCardsContainer');
+      if (!container) { alert('ERROR: #fileCardsContainer missing from DOM'); return; }
       container.innerHTML = '';
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
@@ -474,7 +475,7 @@
           '<div class="file-card">' +
             '<div class="file-thumb ' + thumbClass + '">' + iconText + '</div>' +
             '<div class="file-info">' +
-              '<div class="fi-name">' + f.name + '</div>' +
+              '<div class="fi-name">' + escapeHtml(f.name) + '</div>' +
               '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + '</div>' +
             '</div>' +
             '<div class="file-actions">' +
@@ -482,8 +483,15 @@
             '</div>' +
           '</div>';
       }
-      document.getElementById('fileCountDisplay').textContent = selectedFiles.length;
+      var fcd = document.getElementById('fileCountDisplay');
+      if (fcd) { fcd.textContent = selectedFiles.length; } else { alert('ERROR: #fileCountDisplay missing from DOM'); }
       if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
     }
 
     function formatSize(bytes) {
