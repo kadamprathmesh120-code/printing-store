@@ -436,22 +436,21 @@
 
     function onFilesSelected(files) {
       if (!files || files.length === 0) return;
-      showProgress('Uploading files...', 0);
-      updateProgress(10);
+      try {
+        showProgress('Uploading files...', 10);
 
-      for (var i = 0; i < files.length; i++) {
-        selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
-      }
-      updateProgress(80);
+        for (var i = 0; i < files.length; i++) {
+          selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
+        }
 
-      setTimeout(function() {
-        updateProgress(100);
         setTimeout(function() {
           hideProgress();
           renderFileCards();
           showStep('stepFiles');
-        }, 300);
-      }, 200);
+        }, 400);
+      } catch(e) {
+        alert('Error: ' + e.message);
+      }
     }
 
     function renderFileCards() {
