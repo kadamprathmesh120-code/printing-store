@@ -9,6 +9,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body style="background:#f8faf8;">
+<div id="topNotif" class="notif-bar"><span class="notif-text">🙏 For the best print quality, we kindly recommend uploading PDF files and clear, high-resolution images.</span><button class="notif-close" onclick="dismissNotif()">×</button></div>
 
   <!-- Glass Header -->
   <header class="app-header">
@@ -441,6 +442,9 @@
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+
+    (function(){if(localStorage.getItem('notifDismissed')){var n=document.getElementById('topNotif');if(n)n.style.display='none';}})();
+    function dismissNotif(){var n=document.getElementById('topNotif');if(n)n.style.display='none';localStorage.setItem('notifDismissed','1');}
   </script>
 </body>
 </html>

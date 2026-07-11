@@ -874,6 +874,26 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   width:3px; background:#16A34A; border-radius:0 2px 2px 0;
 }
 
+/* --- Top Notification Bar --- */
+.notif-bar {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 40px 10px 16px; position:relative;
+  background:#fef9e7; color:#7c5e00; font-size:0.82em; line-height:1.5;
+  border-bottom:1px solid #f0e6c0;
+}
+.notif-bar .notif-text { text-align:center; }
+.notif-bar .notif-close {
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:#7c5e00; cursor:pointer;
+  width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+  border-radius:6px; font-size:1.1em; font-family:inherit; transition:background .15s;
+  padding:0; line-height:1;
+}
+.notif-bar .notif-close:hover { background:rgba(0,0,0,0.08); }
+@media (max-width:480px) {
+  .notif-bar { font-size:0.75em; padding:8px 36px 8px 10px; gap:4px; }
+}
+
 /* --- Loading Spinner --- */
 .loading-overlay { animation:fadeIn .3s; }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
