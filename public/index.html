@@ -439,46 +439,22 @@
 
     function onFilesSelected(files) {
       if (!files || files.length === 0) return;
-      showProgress('Processing your files...', 0);
+      showProgress('Uploading files...', 0);
+      updateProgress(10);
 
-      var total = files.length;
-      var processed = 0;
+      for (var i = 0; i < files.length; i++) {
+        selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
+      }
+      updateProgress(80);
 
-      function processNext() {
-        if (processed >= total) {
+      setTimeout(function() {
+        updateProgress(100);
+        setTimeout(function() {
           hideProgress();
           renderFileCards();
           showStep('stepFiles');
-          return;
-        }
-        var f = files[processed];
-        var ext = f.name.split('.').pop().toLowerCase();
-        var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
-
-        if (isImage) {
-          var img = new Image();
-          img.onload = function() {
-            enhancedFiles[f.name] = f;
-            selectedFiles.push({ file: f, pages: 1, imageWidth: img.naturalWidth, imageHeight: img.naturalHeight });
-            processed++;
-            updateProgress(processed / total * 100);
-            processNext();
-          };
-          img.onerror = function() {
-            selectedFiles.push({ file: f, pages: 1 });
-            processed++;
-            updateProgress(processed / total * 100);
-            processNext();
-          };
-          img.src = URL.createObjectURL(f);
-        } else {
-          selectedFiles.push({ file: f, pages: f.name.endsWith('.pdf') ? 'auto' : 1 });
-          processed++;
-          updateProgress(processed / total * 100);
-          processNext();
-        }
-      }
-      processNext();
+        }, 300);
+      }, 200);
     }
 
     function renderFileCards() {
