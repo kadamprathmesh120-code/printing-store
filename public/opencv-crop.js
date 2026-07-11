@@ -1450,6 +1450,47 @@ return {
     renderCrop();
   },
 
+  // Auto-crop an Image element: detects document edges, perspective-corrects, returns File
+  processImage: function(image, callback) {
+    var iw = image.width, ih = image.height;
+    if (iw < 10 || ih < 10) { callback(null); return; }
+    var tempCanvas = document.createElement('canvas');
+    tempCanvas.width = iw;
+    tempCanvas.height = ih;
+    var tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(image, 0, 0);
+    loadOpenCV(function(err) {
+      var detected = null;
+      if (!err && ocvReady && cv.Mat) {
+        try { detected = detectCornersOpenCV(tempCanvas); } catch(e) {}
+      }
+      if (!detected) {
+        try { var d = tempCtx.getImageData(0,0,iw,ih); detected = findQuadCornersPure(d.data,iw,ih); } catch(e) {}
+      }
+      if (detected && detected.length === 4) {
+        var cw = Math.max(distance(detected[0],detected[1]),distance(detected[3],detected[2]));
+        var ch = Math.max(distance(detected[0],detected[3]),distance(detected[1],detected[2]));
+        if (cw >= 10 && ch >= 10) {
+          var outW = Math.round(cw), outH = Math.round(ch);
+          var srcData = tempCtx.getImageData(0,0,iw,ih).data;
+          var fullData = applyPerspective(srcData,iw,ih,detected,outW,outH);
+          var outC = document.createElement('canvas');
+          outC.width = outW; outC.height = outH;
+          var oCtx = outC.getContext('2d');
+          var imgData = oCtx.createImageData(outW,outH);
+          imgData.data.set(fullData);
+          oCtx.putImageData(imgData,0,0);
+          outC.toBlob(function(blob) {
+            if (blob) { callback(new File([blob],'cropped_'+Date.now()+'.png',{type:'image/png'})); }
+            else { callback(null); }
+          },'image/png',1);
+          return;
+        }
+      }
+      callback(null);
+    });
+  },
+
   // For integration with existing code
   getState: function() {
     return { corners: corners, filter: selectedFilter, zoom: zoomLevel, panX: panX, panY: panY };

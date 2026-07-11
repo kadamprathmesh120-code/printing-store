@@ -432,18 +432,43 @@
       document.getElementById('uploadSheet').classList.remove('open');
     }
 
+    function autoCropImages(callback) {
+      var toCrop = [];
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var ext = selectedFiles[i].file.name.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png'].includes(ext)) toCrop.push({ index: i, file: selectedFiles[i].file });
+      }
+      if (toCrop.length === 0 || typeof OCV_CROP === 'undefined' || !OCV_CROP.processImage) { if (callback) callback(); return; }
+      var done = 0;
+      function next() {
+        if (done >= toCrop.length) { if (callback) callback(); return; }
+        var item = toCrop[done];
+        showProgress('AI Scanning document ' + (done + 1) + '/' + toCrop.length + '...', 10 + Math.round(80 * done / toCrop.length));
+        var img = new Image();
+        img.onload = function() {
+          OCV_CROP.processImage(img, function(croppedFile) {
+            if (croppedFile) selectedFiles[item.index].file = croppedFile;
+            URL.revokeObjectURL(img.src);
+            done++;
+            next();
+          });
+        };
+        img.src = URL.createObjectURL(item.file);
+      }
+      next();
+    }
+
     function onFilesSelected(files) {
       if (!files || files.length === 0) return;
       showProgress('Uploading files...', 10);
-
       for (var i = 0; i < files.length; i++) {
         selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
       }
-      setTimeout(function() {
+      autoCropImages(function() {
         hideProgress();
         renderFileCards();
         showStep('stepFiles');
-      }, 400);
+      });
     }
 
     function renderFileCards() {
@@ -525,6 +550,8 @@
     function showProgress(text, pct) {
       var ov = document.getElementById('uploadProgressOverlay');
       ov.classList.remove('hidden');
+      var pt = document.querySelector('.progress-text');
+      if (pt && text) pt.textContent = text;
       document.getElementById('progressFill').style.width = pct + '%';
       document.getElementById('progressPercent').textContent = Math.round(pct) + '%';
     }
@@ -1754,13 +1781,12 @@
     function openCrop(index) {
       try {
         var sf = selectedFiles[index];
-        if (!sf || !sf.file) { alert('File not found'); return; }
-        if (!(sf.file instanceof Blob)) { alert('Invalid file type: ' + typeof sf.file); return; }
+        if (!sf || !sf.file) return;
         cropQueue = [{ name: sf.file.name, file: sf.file }];
         cropIndex = 0;
         enhancedFiles = {};
         startCropItem();
-      } catch(e) { alert('Crop error: ' + e.message); }
+      } catch(e) {}
     }
 
     function startCropItem() {
@@ -1774,7 +1800,7 @@
         return;
       }
       var item = cropQueue[cropIndex];
-      if (!item || !item.file || !(item.file instanceof Blob)) { alert('startCropItem: invalid file at index ' + cropIndex); return; }
+      if (!item || !item.file) return;
       cropFileName = item.name;
       cropOrigFile = item.file;
       cropRotation = 0;
