@@ -26,8 +26,8 @@
     </div>
   </header>
 
-  <!-- Hero Illustration -->
-  <div class="hero-illustration">
+  <!-- Hero Illustration (replaced with file previews after upload) -->
+  <div class="hero-illustration" id="heroContainer">
     <img src="hero-illustration.svg" alt="Kadam Xerox - Print Shop" loading="eager">
   </div>
 
@@ -1630,6 +1630,33 @@
         el.classList.remove('hidden');
         el.style.display = 'block';
       }
+      if (id === 'stepHome') renderHero();
+    }
+
+    function renderHero() {
+      var el = document.getElementById('heroContainer');
+      if (window._heroUrls) {
+        window._heroUrls.forEach(function(u) { URL.revokeObjectURL(u); });
+      }
+      window._heroUrls = [];
+      if (selectedFiles.length === 0) {
+        el.innerHTML = '<img src="hero-illustration.svg" alt="Kadam Xerox - Print Shop" loading="eager">';
+        return;
+      }
+      var html = '<div class="hero-previews">';
+      for (var hi = 0; hi < selectedFiles.length; hi++) {
+        var hf = selectedFiles[hi].file;
+        var hext = hf.name.split('.').pop().toLowerCase();
+        if (['jpg','jpeg','png'].includes(hext)) {
+          var hu = URL.createObjectURL(hf);
+          window._heroUrls.push(hu);
+          html += '<div class="hero-preview-item"><img src="' + hu + '" alt=""></div>';
+        } else {
+          html += '<div class="hero-preview-item doc">' + escapeHtml(hf.name) + '</div>';
+        }
+      }
+      html += '</div>';
+      el.innerHTML = html;
     }
 
     // --- Existing functions used by both old and new flow ---
