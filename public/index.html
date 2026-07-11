@@ -1630,7 +1630,13 @@
         el.classList.remove('hidden');
         el.style.display = 'block';
       }
-      if (id === 'stepHome') renderHero();
+      var hero = document.getElementById('heroContainer');
+      if (id === 'stepHome') {
+        hero.classList.remove('hidden');
+        renderHero();
+      } else {
+        hero.classList.add('hidden');
+      }
     }
 
     function renderHero() {
