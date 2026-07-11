@@ -856,25 +856,6 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   .ocv-action-bar .ocv-btn { min-height:48px; font-size:0.95em; }
 }
 
-/* --- Admin Analytics --- */
-.stats-grid {
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
-  gap:10px;
-}
-.stat-card {
-  background:#f9fafb; border-radius:14px; padding:14px;
-  text-align:center; border:1.5px solid #f3f4f6;
-  transition:transform .2s, box-shadow .2s;
-}
-.stat-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
-.stat-card.pending { border-color:#fde68a; background:#fffbeb; }
-.stat-card.paid { border-color:#bbf7d0; background:#f0fdf4; }
-.stat-card.accepted { border-color:#a5f3fc; background:#ecfeff; }
-.stat-card.revenue { border-color:#fecaca; background:#fef2f2; }
-.stat-card.today { border-color:#c7d2fe; background:#eef2ff; }
-.stat-value { display:block; font-size:1.5em; font-weight:800; color:#111827; margin-bottom:2px; }
-.stat-label { font-size:0.72em; color:#6b7280; font-weight:500; text-transform:uppercase; letter-spacing:0.3px; }
-
 /* --- Animations --- */
 @keyframes fadeSlideIn {
   from { opacity:0; transform:translateY(10px); }
@@ -897,9 +878,4 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .loading-overlay { animation:fadeIn .3s; }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-/* --- Responsive Admin Table --- */
-@media (max-width:640px) {
-  .stats-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
-  .stat-card { padding:10px; }
-  .stat-value { font-size:1.2em; }
-}
+

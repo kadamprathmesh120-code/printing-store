@@ -106,40 +106,6 @@
 
     </div>
 
-    <!-- Analytics Card -->
-    <div class="card">
-      <h2 style="display:flex;align-items:center;gap:6px;margin:0 0 12px;">
-        <i data-lucide="bar-chart-3" style="width:18px;height:18px;color:#16A34A;"></i>
-        Analytics
-      </h2>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-value" id="statTotal">0</span>
-          <span class="stat-label">Total Orders</span>
-        </div>
-        <div class="stat-card pending">
-          <span class="stat-value" id="statPending">0</span>
-          <span class="stat-label">Pending</span>
-        </div>
-        <div class="stat-card paid">
-          <span class="stat-value" id="statPaid">0</span>
-          <span class="stat-label">Paid</span>
-        </div>
-        <div class="stat-card accepted">
-          <span class="stat-value" id="statAccepted">0</span>
-          <span class="stat-label">Accepted</span>
-        </div>
-        <div class="stat-card revenue">
-          <span class="stat-value" id="statRevenue">₹0</span>
-          <span class="stat-label">Revenue</span>
-        </div>
-        <div class="stat-card today">
-          <span class="stat-value" id="statToday">0</span>
-          <span class="stat-label">Today</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Orders Card -->
     <div class="card">
       <h2 style="display:flex;align-items:center;gap:6px;">
@@ -273,21 +239,6 @@
       document.getElementById('soundToggle').classList.toggle('active', soundEnabled);
     }
 
-    function updateAnalytics(orders) {
-      var total = orders.length;
-      var pending = orders.filter(function(o) { return o.status === 'pending'; }).length;
-      var paid = orders.filter(function(o) { return o.status === 'paid'; }).length;
-      var accepted = orders.filter(function(o) { return o.status === 'accepted'; }).length;
-      var revenue = orders.reduce(function(sum, o) { return sum + (o.status === 'paid' || o.status === 'accepted' ? Number(o.price) : 0); }, 0);
-      var today = orders.filter(function(o) { var d = new Date(o.created_at); var n = new Date(); return d.getDate() === n.getDate() && d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length;
-      document.getElementById('statTotal').textContent = total;
-      document.getElementById('statPending').textContent = pending;
-      document.getElementById('statPaid').textContent = paid;
-      document.getElementById('statAccepted').textContent = accepted;
-      document.getElementById('statRevenue').textContent = '\u20B9' + revenue;
-      document.getElementById('statToday').textContent = today;
-    }
-
     function showProgress(pct) {
       var bar = document.getElementById('progressBar');
       var fill = document.getElementById('progressFill');
@@ -310,7 +261,7 @@
       fetch('/api/admin/orders')
         .then(r => r.json())
         .then(orders => {
-          if (!Array.isArray(orders)) { updateAnalytics([]); showProgress(100); hideLoading(); return; }
+          if (!Array.isArray(orders)) { showProgress(100); hideLoading(); return; }
           var newOrders = [];
           if (!isFirstLoad) {
             newOrders = orders.filter(function(o) { return !knownOrderIds.has(o.id); });
@@ -328,8 +279,6 @@
             updateNotifBadge(unreadCount);
           }
           isFirstLoad = false;
-
-          updateAnalytics(orders);
 
           const tbody = document.getElementById('ordersBody');
           if (orders.length === 0) {
@@ -392,7 +341,6 @@
         .catch(function(err) {
           var tbody = document.getElementById('ordersBody');
           if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#ef4444;padding:24px;">Failed to load orders. Check server.</td></tr>';
-          updateAnalytics([]);
           showProgress(100);
           hideLoading();
         });
