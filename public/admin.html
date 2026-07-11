@@ -294,17 +294,16 @@
     }
 
     function hideLoading() {
-      if (!isInitialLoad) return;
-      isInitialLoad = false;
       var ov = document.getElementById('loadingOverlay');
+      if (!ov || ov.style.display === 'none') return;
       ov.style.opacity = '0';
       setTimeout(function() { ov.style.display = 'none'; }, 400);
     }
+    // Force-hide loading overlay after 5s regardless of fetch
+    setTimeout(hideLoading, 5000);
 
     function fetchOrders() {
       showProgress(30);
-      // Hide loading overlay after 8s even if fetch hangs
-      setTimeout(function() { hideLoading(); }, 8000);
       fetch('/api/admin/orders')
         .then(r => r.json())
         .then(orders => {
