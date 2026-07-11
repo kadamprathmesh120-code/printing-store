@@ -461,12 +461,12 @@
         var isPdf = ext === 'pdf';
         var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
         var thumbHtml;
+        var url = URL.createObjectURL(f);
+        window._thumbUrls.push(url);
         if (isImage) {
-          var url = URL.createObjectURL(f);
-          window._thumbUrls.push(url);
           thumbHtml = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">';
         } else if (isPdf) {
-          thumbHtml = '<span style="font-size:1.5em;font-weight:700;color:#fff;">P</span>';
+          thumbHtml = '<embed src="' + url + '" type="application/pdf" style="width:100%;height:100%;display:block;">';
         } else {
           thumbHtml = '<span style="font-size:1.5em;font-weight:700;color:#fff;">D</span>';
         }
@@ -474,7 +474,7 @@
 
         container.innerHTML += '' +
           '<div class="file-card">' +
-            '<div class="file-thumb' + (isPdf ? ' pdf' : isImage ? ' image' : ' doc') + '" style="overflow:hidden;position:relative;">' + thumbHtml + '</div>' +
+            '<div class="file-thumb' + (isPdf ? ' pdf' : isImage ? ' image' : ' doc') + '" style="overflow:hidden;position:relative;' + (isPdf ? 'background:#fff;' : '') + '">' + thumbHtml + '</div>' +
             '<div class="file-info">' +
               '<div class="fi-name">' + escapeHtml(f.name) + '</div>' +
               '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + '</div>' +
@@ -1647,10 +1647,12 @@
       for (var hi = 0; hi < selectedFiles.length; hi++) {
         var hf = selectedFiles[hi].file;
         var hext = hf.name.split('.').pop().toLowerCase();
+        var hu = URL.createObjectURL(hf);
+        window._heroUrls.push(hu);
         if (['jpg','jpeg','png'].includes(hext)) {
-          var hu = URL.createObjectURL(hf);
-          window._heroUrls.push(hu);
           html += '<div class="hero-preview-item"><img src="' + hu + '" alt=""></div>';
+        } else if (hext === 'pdf') {
+          html += '<div class="hero-preview-item" style="background:#fff;"><embed src="' + hu + '" type="application/pdf" style="width:100%;height:100%;display:block;"></div>';
         } else {
           html += '<div class="hero-preview-item doc">' + escapeHtml(hf.name) + '</div>';
         }
