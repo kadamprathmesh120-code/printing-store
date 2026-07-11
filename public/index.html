@@ -81,7 +81,7 @@
     <div id="stepFiles" class="step hidden">
       <button class="back-btn" onclick="goHome()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="uploadedFiles">Uploaded Files</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="filesCountLabel"><span id="fileCountDisplay">0</span> file(s) selected</p>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;"><span id="fileCountDisplay">0</span> <span data-i18n="filesCountLabel">file(s) selected</span></p>
       <div id="fileCardsContainer" class="file-cards"></div>
       <div class="bottom-bar">
         <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></label>
@@ -441,19 +441,10 @@
       for (var i = 0; i < files.length; i++) {
         selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
       }
-      if (typeof console !== 'undefined') console.log('Files selected:', files.length, 'selectedFiles:', selectedFiles.length);
-
       setTimeout(function() {
-        try {
-          hideProgress();
-          if (typeof console !== 'undefined') console.log('renderFileCards...');
-          renderFileCards();
-          if (typeof console !== 'undefined') console.log('showStep stepFiles...');
-          showStep('stepFiles');
-          if (typeof console !== 'undefined') console.log('Done.');
-        } catch(e) {
-          alert('Error in upload: ' + e.message);
-        }
+        hideProgress();
+        renderFileCards();
+        showStep('stepFiles');
       }, 400);
     }
 
