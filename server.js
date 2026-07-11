@@ -210,8 +210,8 @@ app.post('/api/create-razorpay-order', (req, res) => {
   }
 });
 
-// Razorpay: verify payment signature and mark orders paid
-app.post('/api/verify-razorpay-payment', (req, res) => {
+// Razorpay: verify payment signature and mark orders paid + auto-accept for printing
+app.post('/api/verify-razorpay-payment', async (req, res) => {
   try {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, orderIds } = req.body;
     if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
@@ -226,15 +226,40 @@ app.post('/api/verify-razorpay-payment', (req, res) => {
       return res.status(400).json({ error: 'Payment verification failed (signature mismatch)' });
     }
 
-    // Mark all associated orders as paid
+    // Mark all associated orders as paid, then auto-accept and print
+    const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
+    const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+
     if (Array.isArray(orderIds)) {
-      const stmt = db.prepare('UPDATE orders SET status = ?, razorpay_order_id = ? WHERE id = ? AND status = ?');
       for (const oid of orderIds) {
-        stmt.run('paid', razorpayOrderId, oid, 'pending');
+        db.prepare('UPDATE orders SET status = ?, razorpay_order_id = ? WHERE id = ? AND status = ?').run('paid', razorpayOrderId, oid, 'pending');
+        
+        // Auto-accept and trigger print
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
+        if (order) {
+          db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
+          const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+          db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
+          try {
+            const printers = await getPrinters();
+            const hasPrinter = printers.some(p => p.name === printer);
+            if (hasPrinter) {
+              if (order.is_id_copy && order.back_file_path) {
+                const frontPath = path.join(__dirname, 'uploads', order.file_path);
+                const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+                const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+                await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+                await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side);
+              } else {
+                await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side);
+              }
+            }
+          } catch (e) {}
+        }
       }
     }
 
-    res.json({ success: true, message: 'Payment verified. Orders confirmed.' });
+    res.json({ success: true, message: 'Payment verified. Printing started.' });
   } catch (err) {
     console.error('Razorpay verify error:', err);
     res.status(500).json({ error: 'Server error' });
