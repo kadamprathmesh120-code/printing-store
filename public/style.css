@@ -369,7 +369,7 @@ body {
 
 /* --- Razorpay Payment Card (on Review page) --- */
 .razorpay-payment-card {
-  margin-top:20px;
+  margin:24px 0 0;
   background:linear-gradient(135deg,#f5f3ff,#ede9fe);
   border:1.5px solid #c4b5fd;
   border-radius:20px;
