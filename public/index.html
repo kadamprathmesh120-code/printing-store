@@ -37,9 +37,10 @@
     <!-- Step 1: Home -->
     <div id="stepHome" class="step active">
       <div class="home-grid">
-        <label class="home-btn doc" for="fileInput">
+        <label class="home-btn doc" style="position:relative;overflow:hidden;">
           <div class="hb-icon"><i data-lucide="upload"></i></div>
           <div class="hb-label" data-i18n="uploadFile">Upload</div>
+          <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0" onchange="onFilesSelected(this.files)">
         </label>
         <button class="home-btn idc" onclick="startIdCopy()">
           <div class="hb-icon"><i data-lucide="id-card"></i></div>
@@ -53,18 +54,18 @@
       <div class="sheet-backdrop" onclick="closeUploadSheet()"></div>
       <div class="sheet-content">
         <div class="sheet-handle"></div>
-        <label class="sheet-option" for="cameraInput" onclick="closeUploadSheet()">
+        <label class="sheet-option" style="position:relative;overflow:hidden;" onclick="closeUploadSheet()">
           <div class="sheet-icon camera"><i data-lucide="camera"></i></div>
           <div>
             <div class="sheet-label" data-i18n="takePhoto">Take Photo</div>
             <div class="sheet-sublabel" data-i18n="photoHint">Use camera to capture document</div>
           </div>
+          <input type="file" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0" onchange="onFilesSelected(this.files)">
         </label>
       </div>
     </div>
 
-    <!-- Hidden file inputs -->
-    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="display:none" onchange="onFilesSelected(this.files)">
+    <!-- Camera input (accessed via label) -->
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="onFilesSelected(this.files)">
 
     <!-- Upload Progress Overlay -->
