@@ -469,39 +469,53 @@ function applyFilter(ctx, w, h, mode) {
       if (ks % 2 === 0) ks++;
       var half = Math.floor(ks / 2);
       var bg = new Float32Array(w * h);
+      var bgR = new Float32Array(w * h);
+      var bgG = new Float32Array(w * h);
+      var bgB = new Float32Array(w * h);
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
-          var sum = 0, cnt = 0;
+          var sR = 0, sG = 0, sB = 0, sL = 0, cnt = 0;
           for (var ky = -half; ky <= half; ky++) {
             for (var kx = -half; kx <= half; kx++) {
               var px = x + kx, py = y + ky;
               if (px >= 0 && px < w && py >= 0 && py < h) {
-                sum += grayBuf[py * w + px]; cnt++;
+                var bi = (py * w + px) * 4;
+                sR += d[bi]; sG += d[bi+1]; sB += d[bi+2];
+                sL += grayBuf[py * w + px]; cnt++;
               }
             }
           }
-          bg[y * w + x] = sum / cnt;
+          var ci = y * w + x;
+          bgR[ci] = sR / cnt;
+          bgG[ci] = sG / cnt;
+          bgB[ci] = sB / cnt;
+          bg[ci] = sL / cnt;
         }
       }
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
           var base = bg[idx];
+          var bR = bgR[idx], bG = bgG[idx], bB = bgB[idx];
           var target = 230;
           var scale = base > 15 ? target / base : 1;
-          for (var c = 0; c < 3; c++) {
-            var val = d[idx*4 + c] * scale;
-            val = (val - 128) * 1.4 + 128;
-            val = Math.min(255, Math.max(0, val));
-            d[idx*4 + c] = Math.round(val);
-          }
-          var avg = (d[idx*4] + d[idx*4+1] + d[idx*4+2]) / 3;
-          d[idx*4] = Math.min(255, Math.max(0, d[idx*4] + (d[idx*4] - avg) * 0.3));
-          d[idx*4+1] = Math.min(255, Math.max(0, d[idx*4+1] + (d[idx*4+1] - avg) * 0.3));
-          d[idx*4+2] = Math.min(255, Math.max(0, d[idx*4+2] + (d[idx*4+2] - avg) * 0.3));
+          var rScale = bR > 15 ? target / bR : 1;
+          var gScale = bG > 15 ? target / bG : 1;
+          var bScale = bB > 15 ? target / bB : 1;
+          var valR = d[idx*4] * rScale;
+          var valG = d[idx*4+1] * gScale;
+          var valB = d[idx*4+2] * bScale;
+          valR = (valR - 128) * 1.4 + 128;
+          valG = (valG - 128) * 1.4 + 128;
+          valB = (valB - 128) * 1.4 + 128;
+          valR = Math.min(255, Math.max(0, valR));
+          valG = Math.min(255, Math.max(0, valG));
+          valB = Math.min(255, Math.max(0, valB));
+          d[idx*4] = Math.round(valR);
+          d[idx*4+1] = Math.round(valG);
+          d[idx*4+2] = Math.round(valB);
         }
       }
-      // 3. Sharpen text (unsharp mask)
       var shKs = 3, shHalf = 1;
       var shR = new Float32Array(w * h);
       var shG = new Float32Array(w * h);
