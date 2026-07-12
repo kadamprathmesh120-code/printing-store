@@ -465,43 +465,58 @@ function applyFilter(ctx, w, h, mode) {
       for (var i = 0; i < len; i += 4) {
         grayBuf[i >> 2] = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
       }
+      // Separable box blur: horizontal pass then vertical pass (O(n*ks) not O(n*ks^2))
       var ks = Math.max(5, Math.round(Math.min(w, h) * 0.08));
       if (ks % 2 === 0) ks++;
       var half = Math.floor(ks / 2);
-      var bg = new Float32Array(w * h);
+      var tmpR = new Float32Array(w * h);
+      var tmpG = new Float32Array(w * h);
+      var tmpB = new Float32Array(w * h);
+      var tmpL = new Float32Array(w * h);
+      // Horizontal pass
+      for (var y = 0; y < h; y++) {
+        var sR = 0, sG = 0, sB = 0, sL = 0, cnt = 0;
+        for (var x = 0; x < Math.min(half, w); x++) {
+          var bi = (y * w + x) * 4;
+          sR += d[bi]; sG += d[bi+1]; sB += d[bi+2]; sL += grayBuf[y*w+x]; cnt++;
+        }
+        for (var x = 0; x < w; x++) {
+          var addX = x + half;
+          if (addX < w) { var ai = (y * w + addX) * 4; sR += d[ai]; sG += d[ai+1]; sB += d[ai+2]; sL += grayBuf[y*w+addX]; cnt++; }
+          var ci = y * w + x;
+          tmpR[ci] = sR / cnt; tmpG[ci] = sG / cnt; tmpB[ci] = sB / cnt; tmpL[ci] = sL / cnt;
+          var remX = x - half;
+          if (remX >= 0) { var ri = (y * w + remX) * 4; sR -= d[ri]; sG -= d[ri+1]; sB -= d[ri+2]; sL -= grayBuf[y*w+remX]; cnt--; }
+        }
+      }
+      // Vertical pass
       var bgR = new Float32Array(w * h);
       var bgG = new Float32Array(w * h);
       var bgB = new Float32Array(w * h);
-      for (var y = 0; y < h; y++) {
-        for (var x = 0; x < w; x++) {
-          var sR = 0, sG = 0, sB = 0, sL = 0, cnt = 0;
-          for (var ky = -half; ky <= half; ky++) {
-            for (var kx = -half; kx <= half; kx++) {
-              var px = x + kx, py = y + ky;
-              if (px >= 0 && px < w && py >= 0 && py < h) {
-                var bi = (py * w + px) * 4;
-                sR += d[bi]; sG += d[bi+1]; sB += d[bi+2];
-                sL += grayBuf[py * w + px]; cnt++;
-              }
-            }
-          }
+      var bg = new Float32Array(w * h);
+      for (var x = 0; x < w; x++) {
+        var sR = 0, sG = 0, sB = 0, sL = 0, cnt = 0;
+        for (var y = 0; y < Math.min(half, h); y++) {
           var ci = y * w + x;
-          bgR[ci] = sR / cnt;
-          bgG[ci] = sG / cnt;
-          bgB[ci] = sB / cnt;
-          bg[ci] = sL / cnt;
+          sR += tmpR[ci]; sG += tmpG[ci]; sB += tmpB[ci]; sL += tmpL[ci]; cnt++;
+        }
+        for (var y = 0; y < h; y++) {
+          var addY = y + half;
+          if (addY < h) { var ai2 = addY * w + x; sR += tmpR[ai2]; sG += tmpG[ai2]; sB += tmpB[ai2]; sL += tmpL[ai2]; cnt++; }
+          var ci2 = y * w + x;
+          bgR[ci2] = sR / cnt; bgG[ci2] = sG / cnt; bgB[ci2] = sB / cnt; bg[ci2] = sL / cnt;
+          var remY = y - half;
+          if (remY >= 0) { var ri2 = remY * w + x; sR -= tmpR[ri2]; sG -= tmpG[ri2]; sB -= tmpB[ri2]; sL -= tmpL[ri2]; cnt--; }
         }
       }
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
           var base = bg[idx];
-          var bR = bgR[idx], bG = bgG[idx], bB = bgB[idx];
           var target = 230;
-          var scale = base > 15 ? target / base : 1;
-          var rScale = bR > 15 ? target / bR : 1;
-          var gScale = bG > 15 ? target / bG : 1;
-          var bScale = bB > 15 ? target / bB : 1;
+          var rScale = bgR[idx] > 15 ? target / bgR[idx] : 1;
+          var gScale = bgG[idx] > 15 ? target / bgG[idx] : 1;
+          var bScale = bgB[idx] > 15 ? target / bgB[idx] : 1;
           var valR = d[idx*4] * rScale;
           var valG = d[idx*4+1] * gScale;
           var valB = d[idx*4+2] * bScale;
@@ -516,22 +531,22 @@ function applyFilter(ctx, w, h, mode) {
           d[idx*4+2] = Math.round(valB);
         }
       }
-      var shKs = 3, shHalf = 1;
+      // Sharpen (3x3)
       var shR = new Float32Array(w * h);
       var shG = new Float32Array(w * h);
       var shB = new Float32Array(w * h);
       for (var y = 1; y < h - 1; y++) {
         for (var x = 1; x < w - 1; x++) {
-          var sR = 0, sG = 0, sB = 0;
+          var sR2 = 0, sG2 = 0, sB2 = 0;
           for (var ky = -1; ky <= 1; ky++) {
             for (var kx = -1; kx <= 1; kx++) {
               var idx2 = ((y + ky) * w + (x + kx)) * 4;
-              sR += d[idx2]; sG += d[idx2 + 1]; sB += d[idx2 + 2];
+              sR2 += d[idx2]; sG2 += d[idx2 + 1]; sB2 += d[idx2 + 2];
             }
           }
-          shR[y * w + x] = sR / 9;
-          shG[y * w + x] = sG / 9;
-          shB[y * w + x] = sB / 9;
+          shR[y * w + x] = sR2 / 9;
+          shG[y * w + x] = sG2 / 9;
+          shB[y * w + x] = sB2 / 9;
         }
       }
       var shAmount = 0.6;
@@ -553,20 +568,34 @@ function applyFilter(ctx, w, h, mode) {
       var blurR = new Float32Array(w * h);
       var blurG = new Float32Array(w * h);
       var blurB = new Float32Array(w * h);
+      var tmpR2 = new Float32Array(w * h);
+      var tmpG2 = new Float32Array(w * h);
+      var tmpB2 = new Float32Array(w * h);
       for (var y = 0; y < h; y++) {
+        var sR = 0, sG = 0, sB = 0, cnt = 0;
+        for (var x = 0; x < Math.min(blurHalf, w); x++) {
+          var bi = (y * w + x) * 4;
+          sR += d[bi]; sG += d[bi+1]; sB += d[bi+2]; cnt++;
+        }
         for (var x = 0; x < w; x++) {
-          var sR = 0, sG = 0, sB = 0, cnt = 0;
-          for (var ky = -blurHalf; ky <= blurHalf; ky++) {
-            for (var kx = -blurHalf; kx <= blurHalf; kx++) {
-              var px = Math.min(w-1, Math.max(0, x+kx));
-              var py = Math.min(h-1, Math.max(0, y+ky));
-              var idx = (py * w + px) * 4;
-              sR += d[idx]; sG += d[idx + 1]; sB += d[idx + 2]; cnt++;
-            }
-          }
-          blurR[y * w + x] = sR / cnt;
-          blurG[y * w + x] = sG / cnt;
-          blurB[y * w + x] = sB / cnt;
+          var addX = x + blurHalf;
+          if (addX < w) { var ai = (y * w + addX) * 4; sR += d[ai]; sG += d[ai+1]; sB += d[ai+2]; cnt++; }
+          tmpR2[y*w+x] = sR / cnt; tmpG2[y*w+x] = sG / cnt; tmpB2[y*w+x] = sB / cnt;
+          var remX = x - blurHalf;
+          if (remX >= 0) { var ri = (y * w + remX) * 4; sR -= d[ri]; sG -= d[ri+1]; sB -= d[ri+2]; cnt--; }
+        }
+      }
+      for (var x = 0; x < w; x++) {
+        var sR = 0, sG = 0, sB = 0, cnt = 0;
+        for (var y = 0; y < Math.min(blurHalf, h); y++) {
+          sR += tmpR2[y*w+x]; sG += tmpG2[y*w+x]; sB += tmpB2[y*w+x]; cnt++;
+        }
+        for (var y = 0; y < h; y++) {
+          var addY = y + blurHalf;
+          if (addY < h) { sR += tmpR2[addY*w+x]; sG += tmpG2[addY*w+x]; sB += tmpB2[addY*w+x]; cnt++; }
+          blurR[y*w+x] = sR / cnt; blurG[y*w+x] = sG / cnt; blurB[y*w+x] = sB / cnt;
+          var remY = y - blurHalf;
+          if (remY >= 0) { sR -= tmpR2[remY*w+x]; sG -= tmpG2[remY*w+x]; sB -= tmpB2[remY*w+x]; cnt--; }
         }
       }
       var amount = 1.2;
@@ -725,12 +754,23 @@ function getFilteredImage() {
     return null;
   }
 
+  // Process at 1/3 resolution for speed, then upscale
+  var iw = sourceImage.width, ih = sourceImage.height;
+  var scale = Math.min(1, 600 / Math.max(iw, ih));
+  var sw = Math.round(iw * scale), sh = Math.round(ih * scale);
+
+  var tmp = document.createElement('canvas');
+  tmp.width = sw; tmp.height = sh;
+  var tCtx = tmp.getContext('2d');
+  tCtx.drawImage(sourceImage, 0, 0, sw, sh);
+  applyFilter(tCtx, sw, sh, selectedFilter);
+
   var c = document.createElement('canvas');
-  c.width = sourceImage.width;
-  c.height = sourceImage.height;
+  c.width = iw; c.height = ih;
   var ctx = c.getContext('2d');
-  ctx.drawImage(sourceImage, 0, 0);
-  applyFilter(ctx, c.width, c.height, selectedFilter);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(tmp, 0, 0, iw, ih);
+
   filteredCanvas = c;
   filteredFilter = selectedFilter;
   return c;
