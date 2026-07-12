@@ -509,29 +509,53 @@ function applyFilter(ctx, w, h, mode) {
           if (remY >= 0) { var ri2 = remY * w + x; sR -= tmpR[ri2]; sG -= tmpG[ri2]; sB -= tmpB[ri2]; sL -= tmpL[ri2]; cnt--; }
         }
       }
+      // White balance + shadow removal + ink black
+      var target = 210;
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
-          var base = bg[idx];
-          var target = 210;
-          var rScale = bgR[idx] > 15 ? target / bgR[idx] : 1;
-          var gScale = bgG[idx] > 15 ? target / bgG[idx] : 1;
-          var bScale = bgB[idx] > 15 ? target / bgB[idx] : 1;
+          var bL = bg[idx];
+          var bR2 = bgR[idx], bG2 = bgG[idx], bB2 = bgB[idx];
+          // White balance: scale so background becomes target
+          var rScale = bR2 > 15 ? target / bR2 : 1;
+          var gScale = bG2 > 15 ? target / bG2 : 1;
+          var bScale = bB2 > 15 ? target / bB2 : 1;
           var valR = d[idx*4] * rScale;
           var valG = d[idx*4+1] * gScale;
           var valB = d[idx*4+2] * bScale;
+          // Contrast boost
           valR = (valR - 128) * 1.4 + 128;
           valG = (valG - 128) * 1.4 + 128;
           valB = (valB - 128) * 1.4 + 128;
           valR = Math.min(255, Math.max(0, valR));
           valG = Math.min(255, Math.max(0, valG));
           valB = Math.min(255, Math.max(0, valB));
-          d[idx*4] = Math.round(valR);
-          d[idx*4+1] = Math.round(valG);
-          d[idx*4+2] = Math.round(valB);
+          // Compute luminance after white balance
+          var lum = valR * 0.299 + valG * 0.587 + valB * 0.114;
+          // Shadow removal: anything darker than bg*0.55 is text/ink
+          var shadowThresh = bL * 0.55;
+          if (lum < shadowThresh) {
+            // Push to ink black — darker pixels get more black
+            var darkness = 1 - (lum / shadowThresh); // 0..1
+            darkness = darkness * darkness; // sharpen the curve
+            var blackAmount = 0.85 + 0.15 * darkness;
+            valR = valR * (1 - blackAmount);
+            valG = valG * (1 - blackAmount);
+            valB = valB * (1 - blackAmount);
+          }
+          // Background cleanup: anything brighter than bg*0.7 is paper — push to clean white
+          if (lum > bL * 0.7 && lum > 140) {
+            var whiteness = Math.min(1, (lum - 140) / 80);
+            valR = valR + (255 - valR) * whiteness * 0.5;
+            valG = valG + (255 - valG) * whiteness * 0.5;
+            valB = valB + (255 - valB) * whiteness * 0.5;
+          }
+          d[idx*4] = Math.round(Math.min(255, Math.max(0, valR)));
+          d[idx*4+1] = Math.round(Math.min(255, Math.max(0, valG)));
+          d[idx*4+2] = Math.round(Math.min(255, Math.max(0, valB)));
         }
       }
-      // Sharpen (3x3)
+      // Sharpen (3x3 unsharp mask)
       var shR = new Float32Array(w * h);
       var shG = new Float32Array(w * h);
       var shB = new Float32Array(w * h);
