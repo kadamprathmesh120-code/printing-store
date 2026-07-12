@@ -754,23 +754,12 @@ function getFilteredImage() {
     return null;
   }
 
-  // Process at 1/3 resolution for speed, then upscale
-  var iw = sourceImage.width, ih = sourceImage.height;
-  var scale = Math.min(1, 600 / Math.max(iw, ih));
-  var sw = Math.round(iw * scale), sh = Math.round(ih * scale);
-
-  var tmp = document.createElement('canvas');
-  tmp.width = sw; tmp.height = sh;
-  var tCtx = tmp.getContext('2d');
-  tCtx.drawImage(sourceImage, 0, 0, sw, sh);
-  applyFilter(tCtx, sw, sh, selectedFilter);
-
   var c = document.createElement('canvas');
-  c.width = iw; c.height = ih;
+  c.width = sourceImage.width;
+  c.height = sourceImage.height;
   var ctx = c.getContext('2d');
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(tmp, 0, 0, iw, ih);
-
+  ctx.drawImage(sourceImage, 0, 0);
+  applyFilter(ctx, c.width, c.height, selectedFilter);
   filteredCanvas = c;
   filteredFilter = selectedFilter;
   return c;
@@ -1048,7 +1037,7 @@ function commitCropResult() {
   finalCanvas.height = fullH;
   var fCtx = finalCanvas.getContext('2d');
   fCtx.imageSmoothingQuality = 'high';
-  fCtx.imageSmoothingEnabled = false;
+  fCtx.imageSmoothingEnabled = true;
 
   if (origCorners && origCorners.length === 4 && imgW > 0 && imgH > 0) {
     // Get fresh original image data if not cached
@@ -1076,9 +1065,10 @@ function commitCropResult() {
   applyFilter(fCtx, fullW, fullH, selectedFilter);
 
   var outType = 'image/png';
+  var outQuality = undefined;
   var srcName = sourceImage && sourceImage.src ? sourceImage.src.split('/').pop() : 'cropped.png';
   var srcExt = srcName.split('.').pop().toLowerCase();
-  if (srcExt === 'jpg' || srcExt === 'jpeg') outType = 'image/jpeg';
+  if (srcExt === 'jpg' || srcExt === 'jpeg') { outType = 'image/jpeg'; outQuality = 0.98; }
 
   fCtx.canvas.toBlob(function(blob) {
     if (!blob) return;
@@ -1087,7 +1077,7 @@ function commitCropResult() {
     var file = new File([blob], fileName, { type: outType });
     currentCallback(file, selectedFilter);
     closeModal();
-  }, outType, outType === 'image/jpeg' ? 0.95 : undefined);
+  }, outType, outQuality);
 }
 
 // ---------- Close modal ----------
@@ -1587,9 +1577,10 @@ function cropDirect() {
 
   // Export
   var outType = 'image/png';
+  var outQuality2 = undefined;
   var srcName = sourceImage && sourceImage.src ? sourceImage.src.split('/').pop() : 'cropped.png';
   var srcExt = srcName.split('.').pop().toLowerCase();
-  if (srcExt === 'jpg' || srcExt === 'jpeg') outType = 'image/jpeg';
+  if (srcExt === 'jpg' || srcExt === 'jpeg') { outType = 'image/jpeg'; outQuality2 = 0.98; }
 
   fCtx.canvas.toBlob(function(blob) {
     if (!blob) return;
@@ -1598,7 +1589,7 @@ function cropDirect() {
     var file = new File([blob], fileName, { type: outType });
     currentCallback(file, selectedFilter);
     closeModal();
-  }, outType, outType === 'image/jpeg' ? 0.95 : undefined);
+  }, outType, outQuality2);
 }
 
 // ---------- Refresh preview when filter changes ----------
