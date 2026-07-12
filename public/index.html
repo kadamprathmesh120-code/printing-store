@@ -959,7 +959,7 @@
             };
             reader.readAsDataURL(croppedFile);
             document.getElementById('idcCropError').textContent = '';
-          });
+          }, f);
           return;
         }
         var canvas = document.getElementById('idcCanvas');
@@ -1905,7 +1905,7 @@
             if (croppedFile) { enhancedFiles[cropFileName] = croppedFile; }
             cropIndex++;
             startCropItem();
-          });
+          }, item.file);
         } else {
           showCropModal();
         }
@@ -2236,6 +2236,6 @@
     (function(){if(localStorage.getItem('notifDismissed')){var n=document.getElementById('topNotif');if(n)n.style.display='none';}})();
     function dismissNotif(){var n=document.getElementById('topNotif');if(n)n.style.display='none';localStorage.setItem('notifDismissed','1');}
   </script>
-  <script src="opencv-crop.js?v=10"></script>
+  <script src="opencv-crop.js?v=11"></script>
 </body>
 </html>

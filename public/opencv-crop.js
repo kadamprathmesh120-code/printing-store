@@ -637,6 +637,7 @@ var isIdCopyMode = false;
 var selectedFilter = 'original';
 var filteredCanvas = null; // cached filtered image
 var filteredFilter = null; // which filter is cached
+var _originalFileRef = null;
 var zoomLevel = 1;
 var panX = 0, panY = 0;
 var isDraggingCorner = false;
@@ -970,6 +971,10 @@ function showPreview() {
   previewCanvas._imgW = imgW;
   previewCanvas._imgH = imgH;
   previewCanvas._origCorners = origCorners;
+  if (!previewCanvas._savedCorners) {
+    previewCanvas._savedCorners = origCorners.map(function(c) { return {x: c.x, y: c.y}; });
+    previewCanvas._originalFile = _originalFileRef;
+  }
 
   previewCanvas.width = previewW;
   previewCanvas.height = previewH;
@@ -1030,6 +1035,26 @@ function commitCropResult() {
   var origCorners = previewCanvas._origCorners;
   var imgW = previewCanvas._imgW || (sourceImage ? sourceImage.width : 0);
   var imgH = previewCanvas._imgH || (sourceImage ? sourceImage.height : 0);
+  var savedCorners = previewCanvas._savedCorners;
+
+  // Check if corners barely moved and no filter — pass original file through
+  var cornersMoved = false;
+  if (savedCorners && origCorners && origCorners.length === 4) {
+    var thresh = Math.max(imgW, imgH) * 0.02;
+    for (var ci = 0; ci < 4; ci++) {
+      var dx = Math.abs(origCorners[ci].x - savedCorners[ci].x);
+      var dy = Math.abs(origCorners[ci].y - savedCorners[ci].y);
+      if (dx > thresh || dy > thresh) { cornersMoved = true; break; }
+    }
+  } else {
+    cornersMoved = true;
+  }
+
+  if (!cornersMoved && selectedFilter === 'original' && previewCanvas._originalFile) {
+    currentCallback(previewCanvas._originalFile, 'original');
+    closeModal();
+    return;
+  }
 
   // Generate full-resolution output
   var finalCanvas = document.createElement('canvas');
@@ -1040,14 +1065,13 @@ function commitCropResult() {
   fCtx.imageSmoothingEnabled = true;
 
   if (origCorners && origCorners.length === 4 && imgW > 0 && imgH > 0) {
-    // Get fresh original image data if not cached
     var srcPixels = srcData;
     if (!srcPixels || srcPixels.length === 0) {
       var tc = document.createElement('canvas');
       tc.width = imgW;
       tc.height = imgH;
       var tctx = tc.getContext('2d');
-      tctx.imageSmoothingEnabled = false;
+      tctx.imageSmoothingEnabled = true;
       tctx.imageSmoothingQuality = 'high';
       tctx.drawImage(sourceImage, 0, 0);
       srcPixels = tctx.getImageData(0, 0, imgW, imgH).data;
@@ -1064,20 +1088,16 @@ function commitCropResult() {
   // Apply filter at full resolution
   applyFilter(fCtx, fullW, fullH, selectedFilter);
 
-  var outType = 'image/png';
-  var outQuality = undefined;
-  var srcName = sourceImage && sourceImage.src ? sourceImage.src.split('/').pop() : 'cropped.png';
-  var srcExt = srcName.split('.').pop().toLowerCase();
-  if (srcExt === 'jpg' || srcExt === 'jpeg') { outType = 'image/jpeg'; outQuality = 0.98; }
-
+  // Always export as PNG for maximum print quality
   fCtx.canvas.toBlob(function(blob) {
     if (!blob) return;
     var fileName = sourceImage && sourceImage.src ? (sourceImage.src.split('/').pop() || 'cropped.png') : 'cropped.png';
     if (fileName.startsWith('blob:')) fileName = 'cropped_' + Date.now() + '.png';
-    var file = new File([blob], fileName, { type: outType });
+    fileName = fileName.replace(/\.[^.]+$/, '.png');
+    var file = new File([blob], fileName, { type: 'image/png' });
     currentCallback(file, selectedFilter);
     closeModal();
-  }, outType, outQuality);
+  }, 'image/png');
 }
 
 // ---------- Close modal ----------
@@ -1094,10 +1114,11 @@ function closeModal() {
 }
 
 // ---------- Open crop modal ----------
-function openModal(image, idCopy, callback) {
+function openModal(image, idCopy, callback, originalFile) {
   sourceImage = image;
   isIdCopyMode = idCopy || false;
   currentCallback = callback;
+  _originalFileRef = originalFile || null;
   selectedFilter = isIdCopyMode ? 'magic' : 'original';
   filteredCanvas = null;
   filteredFilter = null;
@@ -1115,6 +1136,8 @@ function openModal(image, idCopy, callback) {
   canvasEl = document.getElementById('ocvCropCanvas');
   containerEl = document.getElementById('ocvCropContainer');
   previewCanvas = document.getElementById('ocvPreviewResult');
+  previewCanvas._savedCorners = null;
+  previewCanvas._originalFile = null;
 
   // Size the canvas to fit within the modal card
   var cardWidth = Math.min(540, window.innerWidth * 0.94);
