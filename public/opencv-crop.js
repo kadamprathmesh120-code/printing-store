@@ -513,7 +513,7 @@ function applyFilter(ctx, w, h, mode) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
           var base = bg[idx];
-          var target = 230;
+          var target = 210;
           var rScale = bgR[idx] > 15 ? target / bgR[idx] : 1;
           var gScale = bgG[idx] > 15 ? target / bgG[idx] : 1;
           var bScale = bgB[idx] > 15 ? target / bgB[idx] : 1;
@@ -549,7 +549,7 @@ function applyFilter(ctx, w, h, mode) {
           shB[y * w + x] = sB2 / 9;
         }
       }
-      var shAmount = 0.6;
+      var shAmount = 1.5;
       for (var y = 1; y < h - 1; y++) {
         for (var x = 1; x < w - 1; x++) {
           var idx = (y * w + x) * 4;
