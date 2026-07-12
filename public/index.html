@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     body { font-family:'Inter',-apple-system,sans-serif; }
   </style>
@@ -382,6 +383,7 @@
   </div>
 
   <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     var currentOrderIds = [];
     var currentFilePages = {};
     var currentLang = localStorage.getItem('lang') || 'en';
@@ -430,9 +432,45 @@
       if (!files || files.length === 0) return;
       showProgress('Uploading files...', 10);
 
+      var total = files.length;
+      var done = 0;
+
       for (var i = 0; i < files.length; i++) {
-        selectedFiles.push({ file: files[i], pages: files[i].name.toLowerCase().endsWith('.pdf') ? 'auto' : 1 });
+        var f = files[i];
+        if (f.name.toLowerCase().endsWith('.pdf')) {
+          (function(file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              try {
+                var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
+                loadingTask.promise.then(function(pdf) {
+                  selectedFiles.push({ file: file, pages: pdf.numPages });
+                  done++;
+                  if (done === total) finishFiles();
+                }, function() {
+                  selectedFiles.push({ file: file, pages: 1 });
+                  done++; if (done === total) finishFiles();
+                });
+              } catch(e) {
+                selectedFiles.push({ file: file, pages: 1 });
+                done++; if (done === total) finishFiles();
+              }
+            };
+            reader.onerror = function() {
+              selectedFiles.push({ file: file, pages: 1 });
+              done++; if (done === total) finishFiles();
+            };
+            reader.readAsArrayBuffer(file);
+          })(f);
+        } else {
+          selectedFiles.push({ file: f, pages: 1 });
+          done++;
+          if (done === total) finishFiles();
+        }
       }
+    }
+
+    function finishFiles() {
       setTimeout(function() {
         hideProgress();
         renderFileCards();
@@ -593,8 +631,7 @@
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
-        var p = sf.pages;
-        if (p === 'auto') p = 1;
+        var p = sf.pages || 1;
         if (!p || p < 1) p = 1;
         var sheets = selectedPrintSide === 'both' ? Math.ceil(p / 2) : p;
         totalPages += p;
@@ -631,7 +668,7 @@
         var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
         var thumbClass = isPdf ? 'pdf' : isImage ? 'image' : 'doc';
         var iconText = isPdf ? 'P' : isImage ? 'I' : 'D';
-        var pagesInfo = sf.pages === 'auto' ? 'PDF' : (sf.pages || 1) + ' pg';
+        var pagesInfo = (sf.pages || 1) + ' pg';
 
         ri.innerHTML += '' +
           '<div class="review-item">' +
@@ -687,7 +724,7 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
         formData.append('files', fileToUpload);
-        if (selectedFiles[i].pages && selectedFiles[i].pages !== 'auto') {
+        if (selectedFiles[i].pages) {
           formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
         }
       }
@@ -801,7 +838,7 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
         formData.append('files', fileToUpload);
-        if (selectedFiles[i].pages && selectedFiles[i].pages !== 'auto') {
+        if (selectedFiles[i].pages) {
           formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
         }
       }
