@@ -629,10 +629,37 @@
       var totalPages = 0;
       var totalSheets = 0;
 
+      function countPagesInRange(rangeStr, maxPages) {
+        if (rangeStr === 'all') return maxPages;
+        var trimmed = rangeStr.replace(/\s/g, '');
+        if (!trimmed) return maxPages;
+        var parts = trimmed.split(',');
+        var seen = {};
+        var count = 0;
+        for (var pi = 0; pi < parts.length; pi++) {
+          var part = parts[pi];
+          if (/^(\d+)$/.test(part)) {
+            var n = parseInt(part, 10);
+            if (n >= 1 && n <= maxPages && !seen[n]) { seen[n] = true; count++; }
+          } else if (/^(\d+)-(\d+)$/.test(part)) {
+            var match = part.match(/^(\d+)-(\d+)$/);
+            var start = parseInt(match[1], 10);
+            var end = parseInt(match[2], 10);
+            if (start > end) { var tmp = start; start = end; end = tmp; }
+            for (var pi2 = start; pi2 <= end; pi2++) {
+              if (pi2 >= 1 && pi2 <= maxPages && !seen[pi2]) { seen[pi2] = true; count++; }
+            }
+          }
+        }
+        return count || maxPages;
+      }
+
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
-        var p = sf.pages || 1;
-        if (!p || p < 1) p = 1;
+        var maxP = sf.pages || 1;
+        if (!maxP || maxP < 1) maxP = 1;
+        // Apply page range to each file individually
+        var p = countPagesInRange(pageRange, maxP);
         var sheets = selectedPrintSide === 'both' ? Math.ceil(p / 2) : p;
         totalPages += p;
         totalSheets += sheets;
@@ -642,7 +669,11 @@
       var basePrice = totalSheets * perPage;
       var totalPrice = basePrice * copiesCount;
 
-      var bd = totalPages + ' page' + (totalPages !== 1 ? 's' : '');
+      var rangeLabel = '';
+      if (selectedPageRange !== 'all') {
+        rangeLabel = ' (' + selectedPageRange + ')';
+      }
+      var bd = totalPages + ' page' + (totalPages !== 1 ? 's' : '') + rangeLabel;
       if (selectedPrintSide === 'both') {
         bd += ' → ' + totalSheets + ' sheet' + (totalSheets !== 1 ? 's' : '');
       }
