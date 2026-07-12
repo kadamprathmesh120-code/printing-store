@@ -71,26 +71,16 @@ body {
 
 /* --- Hero Section --- */
 .nx-hero {
-  background:linear-gradient(135deg,#e8f0fe 0%,#d4e4fc 40%,#2563eb 100%);
+  background:#e8f0fe;
   padding:28px 20px 24px; color:#1e293b; position:relative; overflow:hidden;
+  min-height:220px; background-size:cover; background-position:center;
 }
-.nx-hero::after {
-  content:''; position:absolute; bottom:-60px; right:-60px;
-  width:260px; height:260px; border-radius:50%;
-  background:rgba(37,99,235,0.15);
+.nx-hero-overlay {
+  position:absolute; inset:0;
+  background:linear-gradient(90deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
 }
-.nx-hero-content {
-  display:flex; align-items:center; gap:12px;
-}
-.nx-hero-left { flex:1; z-index:1; }
-.nx-hero-right {
-  flex:0 0 45%; max-width:220px; display:flex; align-items:flex-end; justify-content:center;
-  z-index:1;
-}
-.nx-hero-printer {
-  width:100%; height:auto; display:block;
-  filter:drop-shadow(0 8px 24px rgba(0,0,0,0.15));
-}
+.nx-hero-content { position:relative; z-index:1; }
+.nx-hero-left { z-index:1; max-width:55%; }
 .nx-hero-title {
   font-size:2.2em; font-weight:900; line-height:1.1;
   letter-spacing:-1px; margin-bottom:8px; color:#1e293b;
