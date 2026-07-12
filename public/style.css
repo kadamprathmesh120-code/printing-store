@@ -45,23 +45,23 @@ body {
 }
 .nx-header-right { display:flex; align-items:center; gap:8px; }
 .nx-phone-btn {
-  display:inline-flex; align-items:center; gap:4px;
-  background:#eff6ff; color:#2563eb; border:none; border-radius:8px;
-  padding:6px 10px; font-size:0.78em; font-weight:700;
+  display:inline-flex; align-items:center; gap:3px;
+  background:#eff6ff; color:#2563eb; border:none; border-radius:6px;
+  padding:4px 8px; font-size:0.7em; font-weight:700;
   text-decoration:none; cursor:pointer; font-family:inherit;
 }
 .nx-logo { display:flex; align-items:center; gap:10px; }
 .nx-logo-icon {
-  width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:#fff; font-weight:800; font-size:0.9em;
+  width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#fff; font-weight:800; font-size:0.82em;
   display:flex; align-items:center; justify-content:center;
 }
 .nx-logo-icon span { opacity:0.7; }
-.nx-logo-name { font-size:1em; font-weight:800; color:#1e40af; letter-spacing:0.5px; }
-.nx-logo-sub { font-size:0.6em; color:#6b7280; letter-spacing:1px; font-weight:600; }
+.nx-logo-name { font-size:0.88em; font-weight:800; color:#1e40af; letter-spacing:0.5px; }
+.nx-logo-sub { font-size:0.55em; color:#6b7280; letter-spacing:1px; font-weight:600; }
 .nx-hamburger {
-  background:#f1f5f9; border:none; border-radius:8px;
-  padding:6px 12px; font-size:0.8em; font-weight:600;
+  background:#f1f5f9; border:none; border-radius:6px;
+  padding:5px 10px; font-size:0.72em; font-weight:600;
   color:#475569; cursor:pointer; font-family:inherit;
 }
 
