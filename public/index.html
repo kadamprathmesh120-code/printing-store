@@ -135,11 +135,26 @@
 
       <div class="settings-section">
         <h3><i data-lucide="hash" style="width:16px;height:16px;"></i> <span data-i18n="pageRange">Page Range</span></h3>
-        <div class="setting-row" style="border-bottom:none;padding-bottom:0;">
-          <span class="setting-label" data-i18n="pagesToPrint">Pages to print</span>
-          <input type="text" id="pageRangeInput" value="all" style="width:120px;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:0.82em;font-family:inherit;text-align:center;outline:none;" onchange="updatePrice()" onfocus="if(this.value==='all')this.value=''">
+        <div class="prange-options">
+          <label class="prange-option" id="prangeAll">
+            <input type="radio" name="pageRange" value="all" checked onchange="onPageRangeChange()">
+            <div class="prange-content">
+              <span class="prange-label" data-i18n="printAllPages">All pages</span>
+              <span class="prange-desc" data-i18n="printAllDesc">Print every page of the document</span>
+            </div>
+          </label>
+          <label class="prange-option" id="prangeCustom">
+            <input type="radio" name="pageRange" value="custom" onchange="onPageRangeChange()">
+            <div class="prange-content">
+              <span class="prange-label" data-i18n="printCustomRange">Custom range</span>
+              <span class="prange-desc" data-i18n="printCustomDesc">Specify pages to print</span>
+            </div>
+          </label>
+          <div id="prangeInputRow" class="hidden">
+            <input type="text" id="pageRangeInput" placeholder="e.g. 1-5, 1,3,5-8" oninput="onPageRangeChange()">
+            <div class="prange-hint" data-i18n="pageRangeHint">Use dashes for ranges (-) and commas to separate</div>
+          </div>
         </div>
-        <p style="font-size:0.7em;color:#9ca3af;margin:6px 0 0;" data-i18n="pageRangeHint">Leave "all" or specify e.g. 1-5, 1,3,5</p>
       </div>
 
       <div class="live-price">
@@ -548,8 +563,29 @@
       updatePrice();
     }
 
+    function onPageRangeChange() {
+      var allRadio = document.querySelector('input[name="pageRange"][value="all"]');
+      var customRadio = document.querySelector('input[name="pageRange"][value="custom"]');
+      var inputRow = document.getElementById('prangeInputRow');
+      var input = document.getElementById('pageRangeInput');
+      if (customRadio.checked) {
+        inputRow.classList.remove('hidden');
+        selectedPageRange = input.value.trim() || 'all';
+      } else {
+        inputRow.classList.add('hidden');
+        selectedPageRange = 'all';
+      }
+      updatePrice();
+    }
+
     function updatePrice() {
-      var pageRange = document.getElementById('pageRangeInput').value.trim() || 'all';
+      var allRadio = document.querySelector('input[name="pageRange"][value="all"]');
+      var customRadio = document.querySelector('input[name="pageRange"][value="custom"]');
+      var input = document.getElementById('pageRangeInput');
+      var pageRange = 'all';
+      if (customRadio && customRadio.checked) {
+        pageRange = input.value.trim() || 'all';
+      }
       selectedPageRange = pageRange;
 
       var totalPages = 0;
@@ -1516,8 +1552,11 @@
         portrait: 'Portrait',
         landscape: 'Landscape',
         pageRange: 'Page Range',
-        pagesToPrint: 'Pages to print',
-        pageRangeHint: 'Leave "all" or specify e.g. 1-5, 1,3,5',
+        printAllPages: 'All pages',
+        printAllDesc: 'Print every page of the document',
+        printCustomRange: 'Custom range',
+        printCustomDesc: 'Specify pages to print',
+        pageRangeHint: 'Use dashes for ranges (-) and commas to separate',
         estimatedTotal: 'Estimated Total',
         nextReview: 'Next: Review',
         reviewOrder: 'Review Order',
@@ -1583,8 +1622,11 @@
         portrait: 'पोर्ट्रेट',
         landscape: 'लँडस्केप',
         pageRange: 'पेज श्रेणी',
-        pagesToPrint: 'प्रिंट करण्यासाठी पेज',
-        pageRangeHint: '"सर्व" ठेवा किंवा निर्दिष्ट करा जसे १-५, १,३,५',
+        printAllPages: 'सर्व पेज',
+        printAllDesc: 'दस्तऐवजातील प्रत्येक पेज प्रिंट करा',
+        printCustomRange: 'सानुकूल श्रेणी',
+        printCustomDesc: 'प्रिंट करण्यासाठी पेज निर्दिष्ट करा',
+        pageRangeHint: 'रेंजसाठी डॅश (-) आणि स्वल्पविराम वापरा',
         estimatedTotal: 'अंदाजे एकूण',
         nextReview: 'पुढे: पुनरावलोकन',
         reviewOrder: 'ऑर्डरचे पुनरावलोकन',

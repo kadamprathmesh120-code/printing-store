@@ -269,6 +269,29 @@ body {
 }
 .pill-option:active { transform:scale(0.96); }
 
+/* --- Page Range (Print-dialog style) --- */
+.prange-options { display:flex; flex-direction:column; gap:4px; }
+.prange-option {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 12px; border-radius:10px;
+  border:1.5px solid #e5e7eb; cursor:pointer;
+  transition:all .15s; background:#fff;
+}
+.prange-option:hover { border-color:#d1d5db; background:#f9fafb; }
+.prange-option input[type="radio"] { margin-top:3px; accent-color:#16A34A; }
+.prange-option:has(input:checked) { border-color:#16A34A; background:#f0fdf4; }
+.prange-content { display:flex; flex-direction:column; gap:1px; }
+.prange-label { font-size:0.85em; font-weight:600; color:#1f2937; }
+.prange-desc { font-size:0.72em; color:#9ca3af; }
+#prangeInputRow { padding:8px 12px 8px 36px; }
+#prangeInputRow input {
+  width:100%; padding:9px 12px; border:1.5px solid #d1d5db;
+  border-radius:8px; font-size:0.85em; font-family:inherit;
+  outline:none; box-sizing:border-box;
+}
+#prangeInputRow input:focus { border-color:#16A34A; }
+.prange-hint { font-size:0.68em; color:#9ca3af; margin-top:4px; }
+
 /* --- Live Price --- */
 .live-price {
   background:linear-gradient(135deg,#16A34A,#059669);
