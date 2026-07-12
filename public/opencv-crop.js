@@ -487,11 +487,11 @@ function applyFilter(ctx, w, h, mode) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
           var base = bg[idx];
-          var target = 245;
+          var target = 230;
           var scale = base > 15 ? target / base : 1;
           for (var c = 0; c < 3; c++) {
             var val = d[idx*4 + c] * scale;
-            val = (val - 128) * 1.5 + 128;
+            val = (val - 128) * 1.4 + 128;
             val = Math.min(255, Math.max(0, val));
             d[idx*4 + c] = Math.round(val);
           }
