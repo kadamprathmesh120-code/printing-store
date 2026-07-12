@@ -44,6 +44,10 @@
           <div class="hb-icon"><i data-lucide="upload"></i></div>
           <div class="hb-label" data-i18n="uploadFile">Upload</div>
         </label>
+        <label class="home-btn cam" for="cameraInput">
+          <div class="hb-icon"><i data-lucide="camera"></i></div>
+          <div class="hb-label">Scan</div>
+        </label>
         <button class="home-btn idc" onclick="startIdCopy()">
           <div class="hb-icon"><i data-lucide="id-card"></i></div>
           <div class="hb-label" data-i18n="idCopy">ID Copy</div>
@@ -69,6 +73,7 @@
     <!-- Hidden file inputs (positioned off-screen — NOT display:none — for reliable label[for] activation on all browsers) -->
     <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
+    <input type="file" id="scanMoreInput" accept="image/*" capture="environment" multiple style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onScanMoreSelected(this.files)">
 
     <!-- Upload Progress Overlay -->
     <div id="uploadProgressOverlay" class="progress-overlay hidden">
@@ -89,6 +94,18 @@
       <div class="bottom-bar">
         <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></label>
         <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
+      </div>
+    </div>
+
+    <!-- Step 2b: Scan Queue -->
+    <div id="stepScanQueue" class="step hidden">
+      <button class="back-btn" onclick="scanQueueClear()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
+      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Scanned Pages</h2>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;"><span id="scanCountDisplay">0</span> page(s) scanned</p>
+      <div id="scanQueueGrid" class="scan-queue-grid"></div>
+      <div class="bottom-bar">
+        <label class="btn btn-secondary" for="scanMoreInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="camera" style="width:16px;height:16px;vertical-align:middle;"></i> Scan More</label>
+        <button class="btn btn-primary" id="btnScanDone" onclick="scanQueueDone()" disabled>Done (<span id="scanQueueCount">0</span>) →</button>
       </div>
     </div>
 
@@ -388,6 +405,7 @@
     var currentFilePages = {};
     var currentLang = localStorage.getItem('lang') || 'en';
     var enhancedFiles = {};
+    var scanQueue = [];
     var cropQueue = [];
     var cropIndex = 0;
     var cropRotation = 0;
@@ -430,14 +448,21 @@
 
     function onFilesSelected(files) {
       if (!files || files.length === 0) return;
-      showProgress('Uploading files...', 10);
-
-      var total = files.length;
-      var done = 0;
-
+      var imageFiles = [];
+      var pdfFiles = [];
       for (var i = 0; i < files.length; i++) {
-        var f = files[i];
-        if (f.name.toLowerCase().endsWith('.pdf')) {
+        var ext = files[i].name.split('.').pop().toLowerCase();
+        if (['jpg','jpeg','png'].includes(ext)) imageFiles.push(files[i]);
+        else pdfFiles.push(files[i]);
+      }
+      document.getElementById('fileInput').value = '';
+      document.getElementById('cameraInput').value = '';
+
+      // PDFs go straight to selectedFiles
+      if (pdfFiles.length > 0) {
+        showProgress('Processing PDFs...', 10);
+        var total = pdfFiles.length, done = 0;
+        for (var i = 0; i < pdfFiles.length; i++) {
           (function(file) {
             var reader = new FileReader();
             reader.onload = function(e) {
@@ -445,37 +470,117 @@
                 var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
                 loadingTask.promise.then(function(pdf) {
                   selectedFiles.push({ file: file, pages: pdf.numPages });
-                  done++;
-                  if (done === total) finishFiles();
+                  done++; if (done === total) onPdfDone();
                 }, function() {
                   selectedFiles.push({ file: file, pages: 1 });
-                  done++; if (done === total) finishFiles();
+                  done++; if (done === total) onPdfDone();
                 });
-              } catch(e) {
+              } catch(ex) {
                 selectedFiles.push({ file: file, pages: 1 });
-                done++; if (done === total) finishFiles();
+                done++; if (done === total) onPdfDone();
               }
             };
             reader.onerror = function() {
               selectedFiles.push({ file: file, pages: 1 });
-              done++; if (done === total) finishFiles();
+              done++; if (done === total) onPdfDone();
             };
             reader.readAsArrayBuffer(file);
-          })(f);
-        } else {
-          selectedFiles.push({ file: f, pages: 1 });
-          done++;
-          if (done === total) finishFiles();
+          })(pdfFiles[i]);
         }
+      }
+      // Images → auto-open crop one by one, then go to scan queue
+      if (imageFiles.length > 0) {
+        showProgress('Preparing scanner...', 10);
+        setTimeout(function() { hideProgress(); startAutoCrop(imageFiles, 0); }, 300);
+      }
+      // If only PDFs (no images), go straight to stepFiles
+      if (pdfFiles.length > 0 && imageFiles.length === 0) {
+        // onPdfDone will fire from the loop above
       }
     }
 
-    function finishFiles() {
-      setTimeout(function() {
-        hideProgress();
+    function onPdfDone() {
+      hideProgress();
+      if (scanQueue.length > 0) {
+        renderScanQueue();
+      } else {
         renderFileCards();
         showStep('stepFiles');
-      }, 400);
+      }
+    }
+
+    function startAutoCrop(files, idx) {
+      if (idx >= files.length) {
+        if (scanQueue.length > 0) renderScanQueue();
+        return;
+      }
+      var f = files[idx];
+      var img = new Image();
+      img.onload = function() {
+        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
+          OCV_CROP.openModal(img, false, function(croppedFile, filter) {
+            if (croppedFile) {
+              var thumbUrl = URL.createObjectURL(croppedFile);
+              scanQueue.push({ file: croppedFile, name: f.name, pages: 1, thumb: thumbUrl, filter: filter });
+            }
+            startAutoCrop(files, idx + 1);
+          }, f);
+        } else {
+          startAutoCrop(files, idx + 1);
+        }
+      };
+      img.src = URL.createObjectURL(f);
+    }
+
+    function onScanMoreSelected(files) {
+      if (!files || files.length === 0) return;
+      var arr = [];
+      for (var i = 0; i < files.length; i++) arr.push(files[i]);
+      document.getElementById('scanMoreInput').value = '';
+      startAutoCrop(arr, 0);
+    }
+
+    function renderScanQueue() {
+      var grid = document.getElementById('scanQueueGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      for (var i = 0; i < scanQueue.length; i++) {
+        var item = scanQueue[i];
+        grid.innerHTML += '' +
+          '<div class="sq-card">' +
+            '<div class="sq-thumb"><img src="' + item.thumb + '" alt=""></div>' +
+            '<div class="sq-page">' + (i + 1) + '</div>' +
+            '<button class="sq-delete" onclick="scanQueueRemove(' + i + ')">&times;</button>' +
+            '<div class="sq-filter">' + (item.filter && item.filter !== 'original' ? item.filter : '') + '</div>' +
+          '</div>';
+      }
+      document.getElementById('scanCountDisplay').textContent = scanQueue.length;
+      document.getElementById('scanQueueCount').textContent = scanQueue.length;
+      document.getElementById('btnScanDone').disabled = scanQueue.length === 0;
+      showStep('stepScanQueue');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function scanQueueRemove(index) {
+      if (scanQueue[index] && scanQueue[index].thumb) URL.revokeObjectURL(scanQueue[index].thumb);
+      scanQueue.splice(index, 1);
+      renderScanQueue();
+    }
+
+    function scanQueueClear() {
+      scanQueue.forEach(function(item) { if (item.thumb) URL.revokeObjectURL(item.thumb); });
+      scanQueue = [];
+      showStep('stepHome');
+    }
+
+    function scanQueueDone() {
+      if (scanQueue.length === 0) return;
+      for (var i = 0; i < scanQueue.length; i++) {
+        var item = scanQueue[i];
+        selectedFiles.push({ file: item.file, pages: item.pages || 1 });
+      }
+      renderFileCards();
+      showStep('stepFiles');
     }
 
     function renderFileCards() {
@@ -544,6 +649,7 @@
 
     function goHome() {
       selectedFiles = [];
+      scanQueue = [];
       copiesCount = 1;
       selectedPrintType = 'bw';
       selectedPrintSide = 'single';
@@ -1856,6 +1962,8 @@
     function startOver() {
       currentOrderIds = [];
       selectedFiles = [];
+      scanQueue.forEach(function(item) { if (item.thumb) URL.revokeObjectURL(item.thumb); });
+      scanQueue = [];
       enhancedFiles = {};
       copiesCount = 1;
       selectedPrintType = 'bw';
