@@ -424,27 +424,6 @@ function applyFilter(ctx, w, h, mode) {
       // No change
       break;
 
-    case 'color':
-      // Auto contrast stretch + slight saturation boost
-      var rMin = 255, rMax = 0, gMin = 255, gMax = 0, bMin = 255, bMax = 0;
-      for (var i = 0; i < len; i += 4) {
-        if (d[i] < rMin) rMin = d[i]; if (d[i] > rMax) rMax = d[i];
-        if (d[i+1] < gMin) gMin = d[i+1]; if (d[i+1] > gMax) gMax = d[i+1];
-        if (d[i+2] < bMin) bMin = d[i+2]; if (d[i+2] > bMax) bMax = d[i+2];
-      }
-      var rRange = rMax - rMin || 1, gRange = gMax - gMin || 1, bRange = bMax - bMin || 1;
-      for (var i = 0; i < len; i += 4) {
-        d[i] = Math.min(255, Math.max(0, (d[i] - rMin) / rRange * 255));
-        d[i+1] = Math.min(255, Math.max(0, (d[i+1] - gMin) / gRange * 255));
-        d[i+2] = Math.min(255, Math.max(0, (d[i+2] - bMin) / bRange * 255));
-        // Slight saturation boost
-        var avg = (d[i] + d[i+1] + d[i+2]) / 3;
-        d[i] = Math.min(255, d[i] + (d[i] - avg) * 0.3);
-        d[i+1] = Math.min(255, d[i+1] + (d[i+1] - avg) * 0.3);
-        d[i+2] = Math.min(255, d[i+2] + (d[i+2] - avg) * 0.3);
-      }
-      break;
-
     case 'grayscale':
       for (var i = 0; i < len; i += 4) {
         var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
@@ -527,6 +506,64 @@ function applyFilter(ctx, w, h, mode) {
           d[idx*4] = Math.min(255, Math.max(0, d[idx*4] + (d[idx*4] - avg) * 0.5));
           d[idx*4+1] = Math.min(255, Math.max(0, d[idx*4+1] + (d[idx*4+1] - avg) * 0.5));
           d[idx*4+2] = Math.min(255, Math.max(0, d[idx*4+2] + (d[idx*4+2] - avg) * 0.5));
+        }
+      }
+      break;
+
+    case 'enhance':
+      // Unsharp mask + mild auto brightness/contrast
+      // 1. Create blurred copy for unsharp mask
+      var blurKs = Math.max(3, Math.round(Math.min(w, h) * 0.008));
+      if (blurKs % 2 === 0) blurKs++;
+      var blurHalf = Math.floor(blurKs / 2);
+      var blurredR = new Float32Array(w * h);
+      var blurredG = new Float32Array(w * h);
+      var blurredB = new Float32Array(w * h);
+      for (var y = blurHalf; y < h - blurHalf; y++) {
+        for (var x = blurHalf; x < w - blurHalf; x++) {
+          var sumR = 0, sumG = 0, sumB = 0, cnt = 0;
+          for (var ky = -blurHalf; ky <= blurHalf; ky++) {
+            for (var kx = -blurHalf; kx <= blurHalf; kx++) {
+              var idx2 = ((y + ky) * w + (x + kx)) * 4;
+              sumR += d[idx2]; sumG += d[idx2 + 1]; sumB += d[idx2 + 2]; cnt++;
+            }
+          }
+          blurredR[y * w + x] = sumR / cnt;
+          blurredG[y * w + x] = sumG / cnt;
+          blurredB[y * w + x] = sumB / cnt;
+        }
+      }
+      // 2. Apply unsharp mask: original + (original - blurred) * amount
+      var amount = 0.8;
+      var origMinR = 255, origMaxR = 0, origMinG = 255, origMaxG = 0, origMinB = 255, origMaxB = 0;
+      for (var y = blurHalf; y < h - blurHalf; y++) {
+        for (var x = blurHalf; x < w - blurHalf; x++) {
+          var idx3 = (y * w + x) * 4;
+          var newR = d[idx3] + (d[idx3] - blurredR[y * w + x]) * amount;
+          var newG = d[idx3 + 1] + (d[idx3 + 1] - blurredG[y * w + x]) * amount;
+          var newB = d[idx3 + 2] + (d[idx3 + 2] - blurredB[y * w + x]) * amount;
+          newR = Math.min(255, Math.max(0, newR));
+          newG = Math.min(255, Math.max(0, newG));
+          newB = Math.min(255, Math.max(0, newB));
+          d[idx3] = newR; d[idx3 + 1] = newG; d[idx3 + 2] = newB;
+          if (newR < origMinR) origMinR = newR; if (newR > origMaxR) origMaxR = newR;
+          if (newG < origMinG) origMinG = newG; if (newG > origMaxG) origMaxG = newG;
+          if (newB < origMinB) origMinB = newB; if (newB > origMaxB) origMaxB = newB;
+        }
+      }
+      // 3. Mild auto brightness/contrast stretch (1% clip)
+      var clipPct = 0.01;
+      var clipPx = Math.round(w * h * clipPct);
+      // Simple stretch using min/max from non-edge pixels
+      var rRange = origMaxR - origMinR || 1;
+      var gRange = origMaxG - origMinG || 1;
+      var bRange = origMaxB - origMinB || 1;
+      for (var y = blurHalf; y < h - blurHalf; y++) {
+        for (var x = blurHalf; x < w - blurHalf; x++) {
+          var idx4 = (y * w + x) * 4;
+          d[idx4] = Math.min(255, Math.max(0, (d[idx4] - origMinR) / rRange * 255));
+          d[idx4 + 1] = Math.min(255, Math.max(0, (d[idx4 + 1] - origMinG) / gRange * 255));
+          d[idx4 + 2] = Math.min(255, Math.max(0, (d[idx4 + 2] - origMinB) / bRange * 255));
         }
       }
       break;
@@ -968,7 +1005,7 @@ function openModal(image, idCopy, callback) {
   sourceImage = image;
   isIdCopyMode = idCopy || false;
   currentCallback = callback;
-  selectedFilter = 'original';
+  selectedFilter = isIdCopyMode ? 'magic' : 'original';
   zoomLevel = 1;
   panX = 0;
   panY = 0;
@@ -1028,6 +1065,13 @@ function openModal(image, idCopy, callback) {
   // Show filter bar immediately
   var filterBar = document.getElementById('ocvFilterBar');
   if (filterBar) filterBar.style.display = 'flex';
+
+  // Set correct default filter button active
+  var filterBtns = document.querySelectorAll('.ocv-filter-btn');
+  filterBtns.forEach(function(b) {
+    b.classList.remove('active');
+    if (b.getAttribute('data-filter') === selectedFilter) b.classList.add('active');
+  });
 }
 
 // ---------- Create modal HTML ----------
@@ -1053,10 +1097,10 @@ function createModalHTML() {
       '</div>' +
       '<div id="ocvFilterBar" style="display:none;gap:4px;padding:6px 0;justify-content:center;flex-wrap:wrap;">' +
         '<button class="ocv-filter-btn active" data-filter="original" onclick="OCV_CROP.setFilter(\'original\',this)">Original</button>' +
-        '<button class="ocv-filter-btn" data-filter="color" onclick="OCV_CROP.setFilter(\'color\',this)">Color</button>' +
+        '<button class="ocv-filter-btn" data-filter="magic" onclick="OCV_CROP.setFilter(\'magic\',this)">Magic Color</button>' +
         '<button class="ocv-filter-btn" data-filter="grayscale" onclick="OCV_CROP.setFilter(\'grayscale\',this)">Grayscale</button>' +
         '<button class="ocv-filter-btn" data-filter="bw" onclick="OCV_CROP.setFilter(\'bw\',this)">B&W</button>' +
-        '<button class="ocv-filter-btn" data-filter="magic" onclick="OCV_CROP.setFilter(\'magic\',this)">Magic</button>' +
+        '<button class="ocv-filter-btn" data-filter="enhance" onclick="OCV_CROP.setFilter(\'enhance\',this)">Enhance</button>' +
       '</div>' +
       '<div class="ocv-toolbar">' +
         '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#16213e;flex:1;">Auto Detect</button>' +
