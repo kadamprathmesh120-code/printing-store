@@ -606,6 +606,8 @@ var currentCrop = null;
 var currentCallback = null;
 var isIdCopyMode = false;
 var selectedFilter = 'original';
+var filteredCanvas = null; // cached filtered image
+var filteredFilter = null; // which filter is cached
 var zoomLevel = 1;
 var panX = 0, panY = 0;
 var isDraggingCorner = false;
@@ -712,6 +714,28 @@ function getEdgeData(canvas) {
   return edges;
 }
 
+// ---------- Build filtered image cache ----------
+function getFilteredImage() {
+  if (!sourceImage) return null;
+  if (filteredFilter === selectedFilter && filteredCanvas) return filteredCanvas;
+
+  if (selectedFilter === 'original') {
+    filteredCanvas = null;
+    filteredFilter = 'original';
+    return null;
+  }
+
+  var c = document.createElement('canvas');
+  c.width = sourceImage.width;
+  c.height = sourceImage.height;
+  var ctx = c.getContext('2d');
+  ctx.drawImage(sourceImage, 0, 0);
+  applyFilter(ctx, c.width, c.height, selectedFilter);
+  filteredCanvas = c;
+  filteredFilter = selectedFilter;
+  return c;
+}
+
 // ---------- Main render function ----------
 function renderCrop() {
   if (!canvasEl || !sourceImage) return;
@@ -725,7 +749,8 @@ function renderCrop() {
   ctx.translate(panX, panY);
   ctx.scale(zoomLevel, zoomLevel);
 
-  ctx.drawImage(sourceImage, displayOffsetX, displayOffsetY, displayW, displayH);
+  var drawImg = getFilteredImage() || sourceImage;
+  ctx.drawImage(drawImg, displayOffsetX, displayOffsetY, displayW, displayH);
 
   // Dim outside
   ctx.beginPath();
@@ -1044,6 +1069,8 @@ function openModal(image, idCopy, callback) {
   isIdCopyMode = idCopy || false;
   currentCallback = callback;
   selectedFilter = isIdCopyMode ? 'magic' : 'original';
+  filteredCanvas = null;
+  filteredFilter = null;
   zoomLevel = 1;
   panX = 0;
   panY = 0;
@@ -1564,8 +1591,10 @@ return {
 
   setFilter: function(mode) {
     selectedFilter = mode;
+    filteredFilter = null; // invalidate cache
+    filteredCanvas = null;
     updateFilterSelection();
-    refreshPreview();
+    renderCrop();
   },
 
   autoDetect: function() {
