@@ -721,27 +721,11 @@ function renderCrop() {
   ctx.clearRect(0, 0, cw, ch);
   ctx.save();
 
-  // Compute display params for object-fit:contain
   computeDisplayParams();
-
-  // Apply zoom and pan
   ctx.translate(panX, panY);
   ctx.scale(zoomLevel, zoomLevel);
 
-  // Draw source image centered with object-fit:contain (full image visible)
   ctx.drawImage(sourceImage, displayOffsetX, displayOffsetY, displayW, displayH);
-
-  // Draw crop overlay (dim outside the quadrilateral)
-  ctx.beginPath();
-  ctx.moveTo(corners[0].x, corners[0].y);
-  ctx.lineTo(corners[1].x, corners[1].y);
-  ctx.lineTo(corners[2].x, corners[2].y);
-  ctx.lineTo(corners[3].x, corners[3].y);
-  ctx.closePath();
-
-  ctx.save();
-  ctx.clip();
-  ctx.restore();
 
   // Dim outside
   ctx.beginPath();
@@ -751,13 +735,12 @@ function renderCrop() {
   ctx.lineTo(corners[2].x, corners[2].y);
   ctx.lineTo(corners[3].x, corners[3].y);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
   ctx.fill('evenodd');
 
-  // Draw quadrilateral outline
-  ctx.strokeStyle = '#1a73e8';
-  ctx.lineWidth = 2 / zoomLevel;
-  ctx.setLineDash([6 / zoomLevel, 4 / zoomLevel]);
+  // Green crop border
+  ctx.strokeStyle = '#16A34A';
+  ctx.lineWidth = 2.5 / zoomLevel;
   ctx.beginPath();
   ctx.moveTo(corners[0].x, corners[0].y);
   ctx.lineTo(corners[1].x, corners[1].y);
@@ -765,38 +748,49 @@ function renderCrop() {
   ctx.lineTo(corners[3].x, corners[3].y);
   ctx.closePath();
   ctx.stroke();
-  ctx.setLineDash([]);
 
-  // Draw corner handles (circles) — bigger on touch devices
+  // 8 handles: 4 corners + 4 midpoints
   var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  var hs = Math.max(isTouch ? 18 : 12, 22 / zoomLevel);
-  var colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A'];
+  var cornerR = Math.max(isTouch ? 16 : 10, 18 / zoomLevel);
+  var midR = Math.max(isTouch ? 10 : 7, 12 / zoomLevel);
+
+  // Corner handles (large white circles with green border)
   for (var i = 0; i < 4; i++) {
     var hx = corners[i].x, hy = corners[i].y;
-
-    // Outer glow
     ctx.beginPath();
-    ctx.arc(hx, hy, hs * 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(26, 115, 232, 0.2)';
-    ctx.fill();
-
-    // Handle circle
-    ctx.beginPath();
-    ctx.arc(hx, hy, hs, 0, Math.PI * 2);
+    ctx.arc(hx, hy, cornerR, 0, Math.PI * 2);
     ctx.fillStyle = 'white';
     ctx.fill();
-    ctx.strokeStyle = colors[i];
+    ctx.strokeStyle = '#16A34A';
     ctx.lineWidth = 2.5 / zoomLevel;
     ctx.stroke();
+  }
 
-    // Inner dot
+  // Midpoint handles (smaller white circles with green border)
+  for (var i = 0; i < 4; i++) {
+    var j = (i + 1) % 4;
+    var mx = (corners[i].x + corners[j].x) / 2;
+    var my = (corners[i].y + corners[j].y) / 2;
     ctx.beginPath();
-    ctx.arc(hx, hy, 3 / zoomLevel, 0, Math.PI * 2);
-    ctx.fillStyle = colors[i];
+    ctx.arc(mx, my, midR, 0, Math.PI * 2);
+    ctx.fillStyle = 'white';
     ctx.fill();
+    ctx.strokeStyle = '#16A34A';
+    ctx.lineWidth = 2 / zoomLevel;
+    ctx.stroke();
   }
 
   ctx.restore();
+}
+
+// Get midpoint positions from corners
+function getMidpoints() {
+  var mids = [];
+  for (var i = 0; i < 4; i++) {
+    var j = (i + 1) % 4;
+    mids.push({ x: (corners[i].x + corners[j].x) / 2, y: (corners[i].y + corners[j].y) / 2 });
+  }
+  return mids;
 }
 
 // ---------- Get canvas coordinates from mouse/touch event ----------
@@ -826,14 +820,29 @@ function getTouchPos(e, index) {
   return { x: x, y: y };
 }
 
-// Find which corner handle is near a point — larger threshold on touch
-function getCornerHandle(pos, threshold) {
+// Find which handle is near a point — returns {type:'corner'|'mid', index:number} or null
+function getHandleAt(pos) {
   var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  threshold = threshold || (isTouch ? 40 : 25);
+  var threshold = isTouch ? 40 : 28;
+
+  // Check corners first
   for (var i = 0; i < corners.length; i++) {
-    if (distance(pos, corners[i]) < threshold) return i;
+    if (distance(pos, corners[i]) < threshold) return { type: 'corner', index: i };
   }
-  return -1;
+
+  // Check midpoints
+  var mids = getMidpoints();
+  for (var i = 0; i < mids.length; i++) {
+    if (distance(pos, mids[i]) < threshold) return { type: 'mid', index: i };
+  }
+
+  return null;
+}
+
+// Legacy wrapper for backward compat
+function getCornerHandle(pos, threshold) {
+  var h = getHandleAt(pos);
+  return h && h.type === 'corner' ? h.index : -1;
 }
 
 // Check if point is inside quadrilateral
@@ -1088,19 +1097,22 @@ function openModal(image, idCopy, callback) {
   modalEl.classList.remove('hidden');
   modalEl.style.display = 'flex';
 
-  // Draw initial state (original image, no auto-detect)
   renderCrop();
 
-  // Show filter bar immediately
   var filterBar = document.getElementById('ocvFilterBar');
   if (filterBar) filterBar.style.display = 'flex';
 
-  // Set correct default filter button active
   var filterBtns = document.querySelectorAll('.ocv-filter-btn');
   filterBtns.forEach(function(b) {
     b.classList.remove('active');
     if (b.getAttribute('data-filter') === selectedFilter) b.classList.add('active');
   });
+
+  // Auto-detect edges on open
+  setTimeout(function() {
+    renderFilterThumbnails();
+    OCV_CROP.autoDetect();
+  }, 300);
 }
 
 // ---------- Create modal HTML ----------
@@ -1108,52 +1120,105 @@ function createModalHTML() {
   var div = document.createElement('div');
   div.id = 'ocvCropModal';
   div.className = 'hidden';
-  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:100;display:none;align-items:center;justify-content:center;overscroll-behavior:none;';
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:100;display:none;align-items:center;justify-content:center;overscroll-behavior:none;';
   var isId = isIdCopyMode;
   div.innerHTML =
-    '<div style="background:#1a1a2e;border-radius:12px;padding:12px;max-width:540px;width:94%;color:white;max-height:98vh;overflow-y:auto;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-        '<h3 style="margin:0;font-size:1em;">' + (isId ? 'ID Copy Crop' : 'Crop Document') + ' <span id="ocvCropInfo" style="font-size:0.8em;font-weight:400;color:#aaa;">' + (isId ? '86×54mm' : '') + '</span></h3>' +
-        '<div class="ocv-header-controls">' +
-          '<span id="ocvLoading" style="display:none;font-size:0.8em;color:#FFD700;margin-right:8px;">Detecting edges...</span>' +
-          '<button onclick="OCV_CROP.zoomIn()" class="ocv-btn ocv-zoom-btn">+</button>' +
-          '<button onclick="OCV_CROP.zoomOut()" class="ocv-btn ocv-zoom-btn">−</button>' +
-          '<button onclick="OCV_CROP.resetView()" class="ocv-btn ocv-zoom-btn">Fit</button>' +
+    '<div style="background:#1a1a2e;border-radius:16px;padding:10px;max-width:540px;width:96%;color:white;max-height:98vh;overflow-y:auto;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding:0 4px;">' +
+        '<span id="ocvLoading" style="display:none;font-size:0.75em;color:#FFD700;">Detecting...</span>' +
+        '<div style="display:flex;gap:4px;">' +
+          '<button onclick="OCV_CROP.rotate(-90)" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">↺ Left</button>' +
+          '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">↻ Right</button>' +
+          '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">Auto</button>' +
         '</div>' +
       '</div>' +
-      '<div id="ocvCropContainer" style="border-radius:8px;overflow:hidden;background:#000;position:relative;touch-action:none;display:flex;justify-content:center;">' +
+      '<div id="ocvCropContainer" style="border-radius:8px;overflow:hidden;background:#000;position:relative;touch-action:none;display:flex;justify-content:center;min-height:200px;">' +
         '<canvas id="ocvCropCanvas" style="display:block;touch-action:none;"></canvas>' +
       '</div>' +
-      '<div id="ocvFilterBar" style="display:none;gap:4px;padding:6px 0;justify-content:center;flex-wrap:wrap;">' +
-        '<button class="ocv-filter-btn active" data-filter="original" onclick="OCV_CROP.setFilter(\'original\',this)">Original</button>' +
-        '<button class="ocv-filter-btn" data-filter="magic" onclick="OCV_CROP.setFilter(\'magic\',this)">Magic Color</button>' +
-        '<button class="ocv-filter-btn" data-filter="grayscale" onclick="OCV_CROP.setFilter(\'grayscale\',this)">Grayscale</button>' +
-        '<button class="ocv-filter-btn" data-filter="bw" onclick="OCV_CROP.setFilter(\'bw\',this)">B&W</button>' +
-        '<button class="ocv-filter-btn" data-filter="enhance" onclick="OCV_CROP.setFilter(\'enhance\',this)">Enhance</button>' +
+      '<div id="ocvFilterBar" class="ocv-filter-bar"></div>' +
+      '<div style="display:flex;gap:8px;padding:8px 4px 4px;">' +
+        '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.5;">Cancel</button>' +
+        '<button onclick="OCV_CROP.cropDirect()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#16A34A;">Done ✓</button>' +
       '</div>' +
-      '<div class="ocv-toolbar">' +
-        '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#16213e;flex:1;">Auto Detect</button>' +
-        '<button onclick="OCV_CROP.toggleSnap()" id="ocvSnapBtn" class="ocv-btn" style="background:#16213e;">Snap: ON</button>' +
-        '<button onclick="OCV_CROP.rotate(-90)" class="ocv-btn" style="background:#16213e;">↺</button>' +
-        '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#16213e;">↻</button>' +
-      '</div>' +
-      '<div class="ocv-action-bar">' +
-        '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel">Cancel</button>' +
-        '<button onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-preview">Preview</button>' +
-        '<button onclick="OCV_CROP.cropDirect()" class="ocv-btn ocv-crop-btn">Crop</button>' +
-      '</div>' +
-      '<div id="ocvCropError" style="color:#dc3545;text-align:center;font-size:0.8em;padding:2px;"></div>' +
     '</div>';
   document.body.appendChild(div);
 
-  // Canvas for preview result (hidden)
   var pCanvas = document.createElement('canvas');
   pCanvas.id = 'ocvPreviewResult';
   pCanvas.style.display = 'none';
   document.body.appendChild(pCanvas);
 
-  // Setup events
   setupEvents();
+  buildFilterThumbnails();
+}
+
+// ---------- Build filter thumbnails (CamScanner style) ----------
+var FILTER_DEFS = [
+  { id: 'original', label: 'Original' },
+  { id: 'magic', label: 'Magic Color' },
+  { id: 'grayscale', label: 'Grayscale' },
+  { id: 'bw', label: 'B&W' },
+  { id: 'enhance', label: 'Enhance' }
+];
+
+function buildFilterThumbnails() {
+  var bar = document.getElementById('ocvFilterBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+
+  var thumbW = 56, thumbH = 72;
+  FILTER_DEFS.forEach(function(f) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ocv-filter-thumb';
+    wrap.setAttribute('data-filter', f.id);
+    wrap.onclick = function() { OCV_CROP.setFilter(f.id); };
+
+    var cvs = document.createElement('canvas');
+    cvs.width = thumbW;
+    cvs.height = thumbH;
+    cvs.style.cssText = 'width:' + thumbW + 'px;height:' + thumbH + 'px;border-radius:6px;display:block;';
+
+    var label = document.createElement('div');
+    label.className = 'ocv-filter-label';
+    label.textContent = f.label;
+
+    wrap.appendChild(cvs);
+    wrap.appendChild(label);
+    bar.appendChild(wrap);
+  });
+}
+
+function renderFilterThumbnails() {
+  if (!sourceImage) return;
+  var thumbW = 56, thumbH = 72;
+  var thumbs = document.querySelectorAll('.ocv-filter-thumb canvas');
+  thumbs.forEach(function(cvs) {
+    var fId = cvs.parentElement.getAttribute('data-filter');
+    var ctx = cvs.getContext('2d');
+    var iw = sourceImage.width, ih = sourceImage.height;
+    var scale = Math.min(thumbW / iw, thumbH / ih);
+    var dw = iw * scale, dh = ih * scale;
+    var dx = (thumbW - dw) / 2, dy = (thumbH - dh) / 2;
+    ctx.clearRect(0, 0, thumbW, thumbH);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, thumbW, thumbH);
+    ctx.drawImage(sourceImage, dx, dy, dw, dh);
+    if (fId !== 'original') {
+      applyFilter(ctx, thumbW, thumbH, fId);
+    }
+  });
+  updateFilterSelection();
+}
+
+function updateFilterSelection() {
+  var thumbs = document.querySelectorAll('.ocv-filter-thumb');
+  thumbs.forEach(function(el) {
+    if (el.getAttribute('data-filter') === selectedFilter) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
 }
 
 var eventsSetup = false;
@@ -1173,16 +1238,17 @@ function setupEvents() {
   ce.addEventListener('wheel', onWheel, { passive: false });
 }
 
-var pointerState = { dragging: false, cornerIdx: -1, moving: false, startX: 0, startY: 0, startCorners: [] };
+var pointerState = { dragging: false, handleType: '', handleIdx: -1, moving: false, startX: 0, startY: 0, startCorners: [] };
 
 function onPointerDown(e) {
   if (!canvasEl || corners.length !== 4) return;
   var pos = getCanvasPos(e);
-  var idx = getCornerHandle(pos);
+  var handle = getHandleAt(pos);
 
-  if (idx >= 0) {
+  if (handle) {
     pointerState.dragging = true;
-    pointerState.cornerIdx = idx;
+    pointerState.handleType = handle.type;
+    pointerState.handleIdx = handle.index;
     pointerState.startX = pos.x;
     pointerState.startY = pos.y;
     pointerState.startCorners = corners.map(function(c) { return {x:c.x, y:c.y}; });
@@ -1205,11 +1271,26 @@ function onPointerMove(e) {
   if (pointerState.dragging) {
     var dx = pos.x - pointerState.startX;
     var dy = pos.y - pointerState.startY;
-    var idx = pointerState.cornerIdx;
-    corners[idx] = {
-      x: clamp(pointerState.startCorners[idx].x + dx, 0, w),
-      y: clamp(pointerState.startCorners[idx].y + dy, 0, h)
-    };
+
+    if (pointerState.handleType === 'corner') {
+      var idx = pointerState.handleIdx;
+      corners[idx] = {
+        x: clamp(pointerState.startCorners[idx].x + dx, 0, w),
+        y: clamp(pointerState.startCorners[idx].y + dy, 0, h)
+      };
+    } else if (pointerState.handleType === 'mid') {
+      var mi = pointerState.handleIdx;
+      var ci = mi;
+      var cj = (mi + 1) % 4;
+      corners[ci] = {
+        x: clamp(pointerState.startCorners[ci].x + dx, 0, w),
+        y: clamp(pointerState.startCorners[ci].y + dy, 0, h)
+      };
+      corners[cj] = {
+        x: clamp(pointerState.startCorners[cj].x + dx, 0, w),
+        y: clamp(pointerState.startCorners[cj].y + dy, 0, h)
+      };
+    }
     renderCrop();
     return;
   }
@@ -1227,16 +1308,21 @@ function onPointerMove(e) {
     return;
   }
 
-  // Update cursor
-  var idx2 = getCornerHandle(pos);
-  canvasEl.style.cursor = idx2 >= 0 ? 'grab' : (isInsideQuad(pos) ? 'move' : 'default');
+  var h2 = getHandleAt(pos);
+  canvasEl.style.cursor = h2 ? 'grab' : (isInsideQuad(pos) ? 'move' : 'default');
 }
 
 function onPointerUp(e) {
   if (pointerState.dragging && corners.length === 4 && snapEnabled) {
     var edgeData = getEdgeData(canvasEl);
-    var snapped = snapToEdge(corners[pointerState.cornerIdx], edgeData, canvasEl.width, canvasEl.height);
-    corners[pointerState.cornerIdx] = snapped;
+    if (pointerState.handleType === 'corner') {
+      var snapped = snapToEdge(corners[pointerState.handleIdx], edgeData, canvasEl.width, canvasEl.height);
+      corners[pointerState.handleIdx] = snapped;
+    } else if (pointerState.handleType === 'mid') {
+      var mi = pointerState.handleIdx;
+      corners[mi] = snapToEdge(corners[mi], edgeData, canvasEl.width, canvasEl.height);
+      corners[(mi + 1) % 4] = snapToEdge(corners[(mi + 1) % 4], edgeData, canvasEl.width, canvasEl.height);
+    }
     renderCrop();
   }
   pointerState.dragging = false;
@@ -1244,7 +1330,7 @@ function onPointerUp(e) {
 }
 
 // Touch events with pinch-to-zoom
-var touchState = { dragging: false, cornerIdx: -1, moving: false, pinching: false, lastDist: 0, startPanX: 0, startPanY: 0, startZoom: 1, startX: 0, startY: 0, startCorners: [] };
+var touchState = { dragging: false, handleType: '', handleIdx: -1, moving: false, pinching: false, lastDist: 0, startPanX: 0, startPanY: 0, startZoom: 1, startX: 0, startY: 0, startCorners: [] };
 
 function onTouchStart(e) {
   e.preventDefault();
@@ -1261,11 +1347,12 @@ function onTouchStart(e) {
 
   if (e.touches.length === 1) {
     var pos = getTouchPos(e);
-    var idx = getCornerHandle(pos);
+    var handle = getHandleAt(pos);
 
-    if (idx >= 0) {
+    if (handle) {
       touchState.dragging = true;
-      touchState.cornerIdx = idx;
+      touchState.handleType = handle.type;
+      touchState.handleIdx = handle.index;
       touchState.startX = pos.x;
       touchState.startY = pos.y;
       touchState.startCorners = corners.map(function(c) { return {x:c.x, y:c.y}; });
@@ -1290,14 +1377,11 @@ function onTouchMove(e) {
     var dist = hypot(e.touches[0], e.touches[1]);
     var scale = dist / touchState.lastDist;
     zoomLevel = clamp(touchState.startZoom * scale, 0.5, 5);
-
-    // Pan toward pinch center
     var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
     var cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
     var rect = canvasEl.getBoundingClientRect();
     var dpr = canvasEl.width / rect.width;
     panX = cx * dpr - (rect.left * dpr) - (canvasEl.width / 2 * zoomLevel) + (canvasEl.width / 2) * (1 - zoomLevel);
-
     renderCrop();
     return;
   }
@@ -1306,11 +1390,24 @@ function onTouchMove(e) {
     var pos = getTouchPos(e);
     var dx = pos.x - touchState.startX;
     var dy = pos.y - touchState.startY;
-    var idx = touchState.cornerIdx;
-    corners[idx] = {
-      x: clamp(touchState.startCorners[idx].x + dx, 0, w),
-      y: clamp(touchState.startCorners[idx].y + dy, 0, h)
-    };
+
+    if (touchState.handleType === 'corner') {
+      var idx = touchState.handleIdx;
+      corners[idx] = {
+        x: clamp(touchState.startCorners[idx].x + dx, 0, w),
+        y: clamp(touchState.startCorners[idx].y + dy, 0, h)
+      };
+    } else if (touchState.handleType === 'mid') {
+      var mi = touchState.handleIdx;
+      corners[mi] = {
+        x: clamp(touchState.startCorners[mi].x + dx, 0, w),
+        y: clamp(touchState.startCorners[mi].y + dy, 0, h)
+      };
+      corners[(mi + 1) % 4] = {
+        x: clamp(touchState.startCorners[(mi + 1) % 4].x + dx, 0, w),
+        y: clamp(touchState.startCorners[(mi + 1) % 4].y + dy, 0, h)
+      };
+    }
     renderCrop();
     return;
   }
@@ -1334,8 +1431,14 @@ function onTouchEnd(e) {
   e.preventDefault();
   if (touchState.dragging && corners.length === 4) {
     var edgeData = getEdgeData(canvasEl);
-    var snapped = snapToEdge(corners[touchState.cornerIdx], edgeData, canvasEl.width, canvasEl.height);
-    corners[touchState.cornerIdx] = snapped;
+    if (touchState.handleType === 'corner') {
+      var snapped = snapToEdge(corners[touchState.handleIdx], edgeData, canvasEl.width, canvasEl.height);
+      corners[touchState.handleIdx] = snapped;
+    } else if (touchState.handleType === 'mid') {
+      var mi = touchState.handleIdx;
+      corners[mi] = snapToEdge(corners[mi], edgeData, canvasEl.width, canvasEl.height);
+      corners[(mi + 1) % 4] = snapToEdge(corners[(mi + 1) % 4], edgeData, canvasEl.width, canvasEl.height);
+    }
     renderCrop();
   }
   touchState.dragging = false;
@@ -1459,12 +1562,9 @@ return {
     openModal(image, idCopy, callback);
   },
 
-  setFilter: function(mode, btn) {
+  setFilter: function(mode) {
     selectedFilter = mode;
-    document.querySelectorAll('.ocv-filter-btn').forEach(function(b) {
-      b.classList.remove('active');
-    });
-    if (btn) btn.classList.add('active');
+    updateFilterSelection();
     refreshPreview();
   },
 

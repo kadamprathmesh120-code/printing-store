@@ -934,6 +934,30 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .ocv-filter-btn:hover { border-color:#1a73e8; color:white; }
 .ocv-filter-btn.active { background:#1a73e8; border-color:#1a73e8; color:white; font-weight:600; }
 
+/* CamScanner-style filter thumbnail bar */
+.ocv-filter-bar {
+  display:flex; gap:6px; padding:8px 0; overflow-x:auto;
+  justify-content:center; -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.ocv-filter-bar::-webkit-scrollbar { display:none; }
+.ocv-filter-thumb {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  cursor:pointer; flex-shrink:0; transition:all 0.15s;
+}
+.ocv-filter-thumb canvas {
+  border:2px solid transparent; border-radius:6px; transition:border-color 0.15s;
+}
+.ocv-filter-thumb.active canvas {
+  border-color:#16A34A;
+}
+.ocv-filter-label {
+  font-size:0.65em; color:#aaa; text-align:center; white-space:nowrap;
+}
+.ocv-filter-thumb.active .ocv-filter-label {
+  color:#16A34A; font-weight:600;
+}
+
 .ocv-header-controls { display:flex; align-items:center; gap:4px; }
 .ocv-zoom-btn { min-width:36px; text-align:center; font-size:1.1em !important; padding:6px 10px !important; }
 .ocv-toolbar { display:flex; gap:6px; justify-content:center; padding:6px 0; }
