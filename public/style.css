@@ -43,6 +43,13 @@ body {
   max-width:560px; margin:0 auto;
   display:flex; align-items:center; justify-content:space-between;
 }
+.nx-header-right { display:flex; align-items:center; gap:8px; }
+.nx-phone-btn {
+  display:inline-flex; align-items:center; gap:4px;
+  background:#eff6ff; color:#2563eb; border:none; border-radius:8px;
+  padding:6px 10px; font-size:0.78em; font-weight:700;
+  text-decoration:none; cursor:pointer; font-family:inherit;
+}
 .nx-logo { display:flex; align-items:center; gap:10px; }
 .nx-logo-icon {
   width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#2563eb,#1d4ed8);
@@ -71,6 +78,17 @@ body {
   content:''; position:absolute; top:-40px; right:-40px;
   width:200px; height:200px; border-radius:50%;
   background:rgba(255,255,255,0.08);
+}
+.nx-hero-content {
+  display:flex; align-items:center; gap:12px;
+}
+.nx-hero-left { flex:1; z-index:1; }
+.nx-hero-right {
+  flex:0 0 42%; max-width:200px; display:flex; align-items:flex-end; justify-content:center;
+}
+.nx-hero-printer {
+  width:100%; height:auto; display:block;
+  filter:drop-shadow(0 8px 24px rgba(0,0,0,0.2));
 }
 .nx-hero-title {
   font-size:2.2em; font-weight:900; line-height:1.1;
@@ -180,14 +198,6 @@ body {
 }
 .nx-nav-item i { width:20px; height:20px; }
 .nx-nav-item.active { color:#2563eb; }
-.nx-nav-upload { position:relative; }
-.nx-nav-upload-icon {
-  width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#1d4ed8);
-  color:#fff; display:flex; align-items:center; justify-content:center;
-  margin-top:-20px; box-shadow:0 4px 12px rgba(37,99,235,0.35);
-}
-.nx-nav-upload-icon i { width:22px; height:22px; }
-.nx-nav-upload span { color:#2563eb; font-weight:700; }
 
 /* --- Pages (Prices, Contact, Orders) --- */
 .nx-page {
