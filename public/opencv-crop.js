@@ -421,7 +421,6 @@ function applyFilter(ctx, w, h, mode) {
 
   switch (mode) {
     case 'original':
-      // No change
       break;
 
     case 'grayscale':
@@ -431,14 +430,17 @@ function applyFilter(ctx, w, h, mode) {
       }
       break;
 
-    case 'bw':
-      // Otsu-like threshold
+    case 'bw': {
       var hist = new Int32Array(256);
+      var grayArr = new Uint8Array(w * h);
       for (var i = 0; i < len; i += 4) {
         var g = Math.round(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
+        grayArr[i >> 2] = g;
         hist[g]++;
       }
       var total = w * h;
+      var sumAll = 0;
+      for (var t = 0; t < 256; t++) sumAll += t * hist[t];
       var sumB = 0, wB = 0, maxVar = 0, threshold = 128;
       for (var t = 0; t < 256; t++) {
         wB += hist[t];
@@ -447,126 +449,111 @@ function applyFilter(ctx, w, h, mode) {
         if (wF === 0) break;
         sumB += t * hist[t];
         var mB = sumB / wB;
-        var mF = (total * 128 - sumB) / wF; // simplified
+        var mF = (sumAll - sumB) / wF;
         var varBetween = wB * wF * (mB - mF) * (mB - mF);
         if (varBetween > maxVar) { maxVar = varBetween; threshold = t; }
       }
       for (var i = 0; i < len; i += 4) {
-        var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
-        var val = g > threshold ? 255 : 0;
+        var val = grayArr[i >> 2] > threshold ? 255 : 0;
         d[i] = val; d[i+1] = val; d[i+2] = val;
       }
       break;
+    }
 
-    case 'magic':
-      // Shadow removal + contrast + saturation + sharpening
-      // 1. Estimate background (large blur)
+    case 'magic': {
+      var grayBuf = new Float32Array(w * h);
+      for (var i = 0; i < len; i += 4) {
+        grayBuf[i >> 2] = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+      }
+      var ks = Math.max(5, Math.round(Math.min(w, h) * 0.08));
+      if (ks % 2 === 0) ks++;
+      var half = Math.floor(ks / 2);
       var bg = new Float32Array(w * h);
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
-          var idx = y * w + x;
-          bg[idx] = d[idx*4] * 0.299 + d[idx*4+1] * 0.587 + d[idx*4+2] * 0.114;
-        }
-      }
-      // Simple box blur for background estimation (kernel size ~10% of image)
-      var ks = Math.max(3, Math.round(Math.min(w, h) * 0.05));
-      if (ks % 2 === 0) ks++;
-      var half = Math.floor(ks / 2);
-      var blurred = new Float32Array(w * h);
-      for (var y = 0; y < h; y++) {
-        for (var x = 0; x < w; x++) {
-          var sum = 0, count = 0;
+          var sum = 0, cnt = 0;
           for (var ky = -half; ky <= half; ky++) {
             for (var kx = -half; kx <= half; kx++) {
               var px = x + kx, py = y + ky;
               if (px >= 0 && px < w && py >= 0 && py < h) {
-                sum += bg[py * w + px]; count++;
+                sum += grayBuf[py * w + px]; cnt++;
               }
             }
           }
-          blurred[y*w+x] = sum / count;
+          bg[y * w + x] = sum / cnt;
         }
       }
-      // 2. Apply shadow removal and enhancement
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
-          var base = blurred[idx];
-          // Shadow removal: d = d * (mean / base)
-          var globalMean = 128;
-          var scale = base > 10 ? globalMean / base : 1;
+          var base = bg[idx];
+          var target = 245;
+          var scale = base > 15 ? target / base : 1;
           for (var c = 0; c < 3; c++) {
             var val = d[idx*4 + c] * scale;
-            val = (val - 128) * 1.3 + 128; // contrast
+            val = (val - 128) * 1.5 + 128;
             val = Math.min(255, Math.max(0, val));
             d[idx*4 + c] = Math.round(val);
           }
-          // Saturation boost
           var avg = (d[idx*4] + d[idx*4+1] + d[idx*4+2]) / 3;
-          d[idx*4] = Math.min(255, Math.max(0, d[idx*4] + (d[idx*4] - avg) * 0.5));
-          d[idx*4+1] = Math.min(255, Math.max(0, d[idx*4+1] + (d[idx*4+1] - avg) * 0.5));
-          d[idx*4+2] = Math.min(255, Math.max(0, d[idx*4+2] + (d[idx*4+2] - avg) * 0.5));
+          d[idx*4] = Math.min(255, Math.max(0, d[idx*4] + (d[idx*4] - avg) * 0.3));
+          d[idx*4+1] = Math.min(255, Math.max(0, d[idx*4+1] + (d[idx*4+1] - avg) * 0.3));
+          d[idx*4+2] = Math.min(255, Math.max(0, d[idx*4+2] + (d[idx*4+2] - avg) * 0.3));
         }
       }
       break;
+    }
 
-    case 'enhance':
-      // Unsharp mask + mild auto brightness/contrast
-      // 1. Create blurred copy for unsharp mask
-      var blurKs = Math.max(3, Math.round(Math.min(w, h) * 0.008));
+    case 'enhance': {
+      var blurKs = Math.max(3, Math.round(Math.min(w, h) * 0.015));
       if (blurKs % 2 === 0) blurKs++;
       var blurHalf = Math.floor(blurKs / 2);
-      var blurredR = new Float32Array(w * h);
-      var blurredG = new Float32Array(w * h);
-      var blurredB = new Float32Array(w * h);
-      for (var y = blurHalf; y < h - blurHalf; y++) {
-        for (var x = blurHalf; x < w - blurHalf; x++) {
-          var sumR = 0, sumG = 0, sumB = 0, cnt = 0;
+      var blurR = new Float32Array(w * h);
+      var blurG = new Float32Array(w * h);
+      var blurB = new Float32Array(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var sR = 0, sG = 0, sB = 0, cnt = 0;
           for (var ky = -blurHalf; ky <= blurHalf; ky++) {
             for (var kx = -blurHalf; kx <= blurHalf; kx++) {
-              var idx2 = ((y + ky) * w + (x + kx)) * 4;
-              sumR += d[idx2]; sumG += d[idx2 + 1]; sumB += d[idx2 + 2]; cnt++;
+              var px = Math.min(w-1, Math.max(0, x+kx));
+              var py = Math.min(h-1, Math.max(0, y+ky));
+              var idx = (py * w + px) * 4;
+              sR += d[idx]; sG += d[idx + 1]; sB += d[idx + 2]; cnt++;
             }
           }
-          blurredR[y * w + x] = sumR / cnt;
-          blurredG[y * w + x] = sumG / cnt;
-          blurredB[y * w + x] = sumB / cnt;
+          blurR[y * w + x] = sR / cnt;
+          blurG[y * w + x] = sG / cnt;
+          blurB[y * w + x] = sB / cnt;
         }
       }
-      // 2. Apply unsharp mask: original + (original - blurred) * amount
-      var amount = 0.8;
-      var origMinR = 255, origMaxR = 0, origMinG = 255, origMaxG = 0, origMinB = 255, origMaxB = 0;
-      for (var y = blurHalf; y < h - blurHalf; y++) {
-        for (var x = blurHalf; x < w - blurHalf; x++) {
-          var idx3 = (y * w + x) * 4;
-          var newR = d[idx3] + (d[idx3] - blurredR[y * w + x]) * amount;
-          var newG = d[idx3 + 1] + (d[idx3 + 1] - blurredG[y * w + x]) * amount;
-          var newB = d[idx3 + 2] + (d[idx3 + 2] - blurredB[y * w + x]) * amount;
-          newR = Math.min(255, Math.max(0, newR));
-          newG = Math.min(255, Math.max(0, newG));
-          newB = Math.min(255, Math.max(0, newB));
-          d[idx3] = newR; d[idx3 + 1] = newG; d[idx3 + 2] = newB;
-          if (newR < origMinR) origMinR = newR; if (newR > origMaxR) origMaxR = newR;
-          if (newG < origMinG) origMinG = newG; if (newG > origMaxG) origMaxG = newG;
-          if (newB < origMinB) origMinB = newB; if (newB > origMaxB) origMaxB = newB;
+      var amount = 1.2;
+      var rMin = 255, rMax = 0, gMin = 255, gMax = 0, bMin = 255, bMax = 0;
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var idx = (y * w + x) * 4;
+          var nR = Math.min(255, Math.max(0, d[idx] + (d[idx] - blurR[y * w + x]) * amount));
+          var nG = Math.min(255, Math.max(0, d[idx+1] + (d[idx+1] - blurG[y * w + x]) * amount));
+          var nB = Math.min(255, Math.max(0, d[idx+2] + (d[idx+2] - blurB[y * w + x]) * amount));
+          d[idx] = nR; d[idx+1] = nG; d[idx+2] = nB;
+          if (nR < rMin) rMin = nR; if (nR > rMax) rMax = nR;
+          if (nG < gMin) gMin = nG; if (nG > gMax) gMax = nG;
+          if (nB < bMin) bMin = nB; if (nB > bMax) bMax = nB;
         }
       }
-      // 3. Mild auto brightness/contrast stretch (1% clip)
-      var clipPct = 0.01;
-      var clipPx = Math.round(w * h * clipPct);
-      // Simple stretch using min/max from non-edge pixels
-      var rRange = origMaxR - origMinR || 1;
-      var gRange = origMaxG - origMinG || 1;
-      var bRange = origMaxB - origMinB || 1;
-      for (var y = blurHalf; y < h - blurHalf; y++) {
-        for (var x = blurHalf; x < w - blurHalf; x++) {
-          var idx4 = (y * w + x) * 4;
-          d[idx4] = Math.min(255, Math.max(0, (d[idx4] - origMinR) / rRange * 255));
-          d[idx4 + 1] = Math.min(255, Math.max(0, (d[idx4 + 1] - origMinG) / gRange * 255));
-          d[idx4 + 2] = Math.min(255, Math.max(0, (d[idx4 + 2] - origMinB) / bRange * 255));
+      var rRange = (rMax - rMin) || 1;
+      var gRange = (gMax - gMin) || 1;
+      var bRange = (bMax - bMin) || 1;
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var idx = (y * w + x) * 4;
+          d[idx] = Math.min(255, Math.max(0, (d[idx] - rMin) / rRange * 255));
+          d[idx+1] = Math.min(255, Math.max(0, (d[idx+1] - gMin) / gRange * 255));
+          d[idx+2] = Math.min(255, Math.max(0, (d[idx+2] - bMin) / bRange * 255));
         }
       }
       break;
+    }
   }
 
   ctx.putImageData(imageData, 0, 0);
