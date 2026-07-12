@@ -80,7 +80,9 @@ async function checkAndPrint() {
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '"');
           console.log('Printed combined ID copy to', printer);
         } else if (isPdf) {
-          await print(localFile, { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' });
+          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
+          if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
+          await print(localFile, pdfOpts);
         } else if (isImage) {
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
         } else {

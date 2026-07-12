@@ -249,9 +249,9 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
                 const backPath = path.join(__dirname, 'uploads', order.back_file_path);
                 const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
                 await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
-                await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side);
+                await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range);
               } else {
-                await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side);
+                await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range);
               }
             }
           } catch (e) {}
@@ -275,17 +275,19 @@ app.get('/api/admin/orders', (req, res) => {
   }
 });
 
-async function printFile(filePath, fileName, printer, printType, printSide) {
+async function printFile(filePath, fileName, printer, printType, printSide, pageRange) {
   const ext = path.extname(fileName).toLowerCase();
   const isPdf = ext === '.pdf';
   const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
   if (isPdf) {
-    await printPdf(filePath, {
+    const opts = {
       printer, silent: true,
       monochrome: printType === 'bw',
       side: printType === 'bw' && printSide === 'both' ? 'duplex' : 'simplex',
       paperSize: 'A4'
-    });
+    };
+    if (pageRange && pageRange !== 'all') opts.pages = pageRange;
+    await printPdf(filePath, opts);
   } else if (isImage) {
     await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '"');
   } else {
@@ -321,10 +323,10 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
           const backPath = path.join(__dirname, 'uploads', order.back_file_path);
           const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
-          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side);
+          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range);
         } else {
           const frontPath = path.join(__dirname, 'uploads', order.file_path);
-          await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
+          await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, order.page_range);
         }
       }
     } catch (e) {}
@@ -376,10 +378,10 @@ app.post('/api/admin/print/:id', async (req, res) => {
       const backPath = path.join(__dirname, 'uploads', order.back_file_path);
       const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
       await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
-      await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side);
+      await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range);
     } else {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
-      await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side);
+      await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, order.page_range);
     }
 
     res.json({ success: true, message: `Sent to printer: ${printer}` });
