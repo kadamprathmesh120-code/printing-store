@@ -18,40 +18,106 @@
 <body>
 <div id="topNotif" class="notif-bar"><span class="notif-text">🙏 For the best print quality, we kindly recommend uploading PDF files and clear, high-resolution images.</span><button class="notif-close" onclick="dismissNotif()">×</button></div>
 
-  <!-- Glass Header -->
-  <header class="app-header">
-    <div class="app-header-inner">
-      <div>
-        <h1 data-i18n="storeName">Printing Store</h1>
-        <p data-i18n="storeTagline">Upload your documents for printing</p>
+  <!-- New Header -->
+  <header class="nx-header">
+    <div class="nx-header-inner">
+      <div class="nx-logo">
+        <div class="nx-logo-icon">K<span>X</span></div>
+        <div>
+          <div class="nx-logo-name">KADAM XEROX</div>
+          <div class="nx-logo-sub">SELF SERVICE PRINT</div>
+        </div>
       </div>
-      <button id="langToggle" class="lang-toggle" onclick="toggleLang()">मराठी</button>
+      <button class="nx-hamburger" onclick="toggleLang()" id="langToggle">मराठी</button>
     </div>
   </header>
-
-  <!-- Hero Illustration (replaced with file previews after upload) -->
-  <div class="hero-illustration" id="heroContainer">
-    <img src="hero-illustration.svg" alt="Kadam Xerox - Print Shop" loading="eager">
-  </div>
 
   <!-- Main -->
   <main class="app-main">
 
     <!-- Step 1: Home -->
     <div id="stepHome" class="step active">
-      <div class="home-grid">
-        <label class="home-btn doc" for="fileInput">
-          <div class="hb-icon"><i data-lucide="upload"></i></div>
-          <div class="hb-label" data-i18n="uploadFile">Upload</div>
-        </label>
-        <label class="home-btn cam" for="cameraInput">
-          <div class="hb-icon"><i data-lucide="camera"></i></div>
-          <div class="hb-label">Scan</div>
-        </label>
-        <button class="home-btn idc" onclick="startIdCopy()">
-          <div class="hb-icon"><i data-lucide="id-card"></i></div>
-          <div class="hb-label" data-i18n="idCopy">ID Copy</div>
-        </button>
+      <!-- Hero Section -->
+      <div class="nx-hero">
+        <div class="nx-hero-text">
+          <div class="nx-hero-title">SCAN.<br>UPLOAD.<br><span class="nx-hero-accent">PRINT.</span></div>
+          <p class="nx-hero-desc" data-i18n="storeTagline">फाइल अपलोड करा आणि काही क्षणात प्रिंट घ्या.</p>
+          <div class="nx-hero-badges">
+            <div class="nx-badge"><i data-lucide="shield-check" style="width:18px;height:18px;"></i><span>Secure<br><small>100% सुरक्षित</small></span></div>
+            <div class="nx-badge"><i data-lucide="zap" style="width:18px;height:18px;"></i><span>Fast<br><small>जलद प्रिंट</small></span></div>
+            <div class="nx-badge"><i data-lucide="award" style="width:18px;height:18px;"></i><span>Quality<br><small>बेस्ट क्वालिटी</small></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Cards -->
+      <div class="nx-actions-section">
+        <h3 class="nx-section-title"><span class="nx-dot"></span> फाइल अपलोड करण्यासाठी पर्याय निवडा <span class="nx-dot"></span></h3>
+        <div class="nx-action-cards">
+          <label class="nx-action-card blue" for="fileInput">
+            <div class="nx-ac-icon"><i data-lucide="upload-cloud"></i></div>
+            <div class="nx-ac-title">UPLOAD</div>
+            <div class="nx-ac-desc" data-i18n="uploadFile">फाइल अपलोड करा</div>
+            <div class="nx-ac-detail">PDF, JPG, PNG, DOC<br>इ. फाइल अपलोड करा</div>
+            <div class="nx-ac-btn blue">अपलोड करा <i data-lucide="upload" style="width:14px;height:14px;"></i></div>
+          </label>
+          <div class="nx-action-card green" onclick="startIdCopy()" style="cursor:pointer;">
+            <div class="nx-ac-icon"><i data-lucide="file-text"></i></div>
+            <div class="nx-ac-title">ID COPY</div>
+            <div class="nx-ac-desc">ID कॉपी करा</div>
+            <div class="nx-ac-detail">आधार, पॅन, DL इ.<br>चे फोटो घ्या</div>
+            <div class="nx-ac-btn green">ID कॉपी करा <i data-lucide="users" style="width:14px;height:14px;"></i></div>
+          </div>
+          <label class="nx-action-card purple" for="cameraInput">
+            <div class="nx-ac-icon"><i data-lucide="camera"></i></div>
+            <div class="nx-ac-title">CAMERA</div>
+            <div class="nx-ac-desc">कॅमेऱने फोटो घ्या</div>
+            <div class="nx-ac-detail">कॅमेऱने फोटो काढा<br>आणि प्रिंट करा</div>
+            <div class="nx-ac-btn purple">फोटो घ्या <i data-lucide="camera" style="width:14px;height:14px;"></i></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Security Banner -->
+      <div class="nx-security-banner">
+        <div class="nx-sb-left"><i data-lucide="shield-check" style="width:20px;height:20px;color:#2563eb;"></i></div>
+        <div class="nx-sb-text"><strong>तुमची फाइल सुरक्षित आहे.</strong><br><small>आम्ही तुमची फाइल 24 तासांत आपोआप डिलीट करतो.</small></div>
+        <div class="nx-sb-arrow"><i data-lucide="chevron-right" style="width:18px;height:18px;color:#9ca3af;"></i></div>
+      </div>
+
+      <!-- How It Works -->
+      <div class="nx-how-section">
+        <h3 class="nx-section-title"><span class="nx-dot"></span> प्रिंट करण्याची सोपी पद्धत <span class="nx-dot"></span></h3>
+        <div class="nx-how-steps">
+          <div class="nx-how-step">
+            <div class="nx-how-num">1</div>
+            <div class="nx-how-icon"><i data-lucide="upload-cloud"></i></div>
+            <div class="nx-how-label">UPLOAD</div>
+            <div class="nx-how-desc">फाइल अपलोड करा<br>किंवा फोटो घ्या</div>
+          </div>
+          <div class="nx-how-arrow">→</div>
+          <div class="nx-how-step">
+            <div class="nx-how-num">2</div>
+            <div class="nx-how-icon"><i data-lucide="printer"></i></div>
+            <div class="nx-how-label">PRINT</div>
+            <div class="nx-how-desc">आम्ही प्रिंट<br>तयार करतो</div>
+          </div>
+          <div class="nx-how-arrow">→</div>
+          <div class="nx-how-step">
+            <div class="nx-how-num">3</div>
+            <div class="nx-how-icon"><i data-lucide="package-check"></i></div>
+            <div class="nx-how-label">PICK UP</div>
+            <div class="nx-how-desc">काउंटरवरून<br>प्रिंट घ्या</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Tags -->
+      <div class="nx-features-row">
+        <div class="nx-feature"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> 100% सुरक्षित<br><small>तुमच्या फाइलची पूर्ण सुरक्षा</small></div>
+        <div class="nx-feature"><i data-lucide="clock" style="width:14px;height:14px;"></i> जलद सेवा<br><small>काही क्षणात प्रिंट तयार</small></div>
+        <div class="nx-feature"><i data-lucide="award" style="width:14px;height:14px;"></i> बेस्ट क्वालिटी<br><small>स्वच्छ आणि उत्तम प्रिंट</small></div>
+        <div class="nx-feature"><i data-lucide="headphones" style="width:14px;height:14px;"></i> सहाय्य<br><small>आम्ही मदतीसाठी उपलब्ध</small></div>
       </div>
     </div>
 
@@ -362,6 +428,118 @@
     </div>
 
   </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="nx-bottom-nav" id="bottomNav">
+    <button class="nx-nav-item active" onclick="navTo('home')" data-nav="home">
+      <i data-lucide="home"></i>
+      <span>होम</span>
+    </button>
+    <button class="nx-nav-item" onclick="navTo('orders')" data-nav="orders">
+      <i data-lucide="file-text"></i>
+      <span>माझे ऑर्डर</span>
+    </button>
+    <button class="nx-nav-item nx-nav-upload" onclick="navTo('upload')" data-nav="upload">
+      <div class="nx-nav-upload-icon"><i data-lucide="upload-cloud"></i></div>
+      <span>अपलोड करा</span>
+    </button>
+    <button class="nx-nav-item" onclick="navTo('prices')" data-nav="prices">
+      <i data-lucide="tag"></i>
+      <span>किमती</span>
+    </button>
+    <button class="nx-nav-item" onclick="navTo('contact')" data-nav="contact">
+      <i data-lucide="phone"></i>
+      <span>संपर्क</span>
+    </button>
+  </nav>
+
+  <!-- Prices Page -->
+  <div id="pagePrices" class="nx-page hidden">
+    <div class="nx-page-header">
+      <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
+      <h2>किमती</h2>
+    </div>
+    <div class="nx-page-body">
+      <div class="nx-price-card">
+        <div class="nx-price-icon bw"><i data-lucide="droplets"></i></div>
+        <div class="nx-price-info">
+          <div class="nx-price-title">B&W प्रिंट</div>
+          <div class="nx-price-desc">काळा व पांढरा प्रिंट</div>
+        </div>
+        <div class="nx-price-amount">₹5</div>
+        <div class="nx-price-unit">/पेज</div>
+      </div>
+      <div class="nx-price-card">
+        <div class="nx-price-icon color"><i data-lucide="palette"></i></div>
+        <div class="nx-price-info">
+          <div class="nx-price-title">कलर प्रिंट</div>
+          <div class="nx-price-desc">रंगीबेरंगी प्रिंट</div>
+        </div>
+        <div class="nx-price-amount">₹10</div>
+        <div class="nx-price-unit">/पेज</div>
+      </div>
+      <div class="nx-price-card">
+        <div class="nx-price-icon copy"><i data-lucide="copy"></i></div>
+        <div class="nx-price-info">
+          <div class="nx-price-title">ID कॉपी</div>
+          <div class="nx-price-desc">आधार/पॅन/DL कॉपी</div>
+        </div>
+        <div class="nx-price-amount">₹10</div>
+        <div class="nx-price-unit">/सेट</div>
+      </div>
+      <div class="nx-note-card">
+        <i data-lucide="info" style="width:16px;height:16px;color:#2563eb;"></i>
+        <span>दोन्ही बाजू प्रिंट = दुप्पट शीट्स × किमत. फाइल PDF असल्यास सर्वोत्तम गुणवत्ता मिळते.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Page -->
+  <div id="pageContact" class="nx-page hidden">
+    <div class="nx-page-header">
+      <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
+      <h2>संपर्क</h2>
+    </div>
+    <div class="nx-page-body">
+      <div class="nx-contact-card">
+        <div class="nx-cc-icon"><i data-lucide="map-pin"></i></div>
+        <div class="nx-cc-info">
+          <div class="nx-cc-title">पत्ता</div>
+          <div class="nx-cc-text">Kadam Xerox, Main Road, Maharashtra</div>
+        </div>
+      </div>
+      <div class="nx-contact-card">
+        <div class="nx-cc-icon"><i data-lucide="phone"></i></div>
+        <div class="nx-cc-info">
+          <div class="nx-cc-title">फोन</div>
+          <div class="nx-cc-text">+91 98765 43210</div>
+        </div>
+      </div>
+      <div class="nx-contact-card">
+        <div class="nx-cc-icon"><i data-lucide="clock"></i></div>
+        <div class="nx-cc-info">
+          <div class="nx-cc-title">वेळ</div>
+          <div class="nx-cc-text">सोम - शनि: सकाळी 9 - रात्री 9</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Orders Page -->
+  <div id="pageOrders" class="nx-page hidden">
+    <div class="nx-page-header">
+      <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
+      <h2>माझे ऑर्डर</h2>
+    </div>
+    <div class="nx-page-body">
+      <div class="nx-empty-state">
+        <i data-lucide="package" style="width:48px;height:48px;color:#d1d5db;"></i>
+        <p>अद्याप कोणतेही ऑर्डर नाहीत</p>
+        <p style="font-size:0.8em;color:#9ca3af;">प्रिंट करण्यासाठी फाइल अपलोड करा</p>
+        <button class="btn btn-primary" onclick="navTo('home')" style="margin-top:12px;">अपलोड करा</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Crop Modal (Regular) -->
   <div id="cropModal" class="crop-overlay" style="display:none;">
@@ -1910,31 +2088,10 @@
     }
 
     function renderHero() {
-      var el = document.getElementById('heroContainer');
       if (window._heroUrls) {
         window._heroUrls.forEach(function(u) { URL.revokeObjectURL(u); });
       }
       window._heroUrls = [];
-      if (selectedFiles.length === 0) {
-        el.innerHTML = '<img src="hero-illustration.svg" alt="Kadam Xerox - Print Shop" loading="eager">';
-        return;
-      }
-      var html = '<div class="hero-previews">';
-      for (var hi = 0; hi < selectedFiles.length; hi++) {
-        var hf = selectedFiles[hi].file;
-        var hext = hf.name.split('.').pop().toLowerCase();
-        var hu = URL.createObjectURL(hf);
-        window._heroUrls.push(hu);
-        if (['jpg','jpeg','png'].includes(hext)) {
-          html += '<div class="hero-preview-item"><img src="' + hu + '" alt=""></div>';
-        } else if (hext === 'pdf') {
-          html += '<div class="hero-preview-item" style="background:#fff;"><embed src="' + hu + '#toolbar=0" type="application/pdf" style="width:100%;height:100%;display:block;border:none;"></div>';
-        } else {
-          html += '<div class="hero-preview-item doc">' + escapeHtml(hf.name) + '</div>';
-        }
-      }
-      html += '</div>';
-      el.innerHTML = html;
     }
 
     // --- Existing functions used by both old and new flow ---
@@ -2371,6 +2528,30 @@
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
     (function(){if(localStorage.getItem('notifDismissed')){var n=document.getElementById('topNotif');if(n)n.style.display='none';}})();
+    function navTo(page) {
+      var pages = ['pagePrices','pageContact','pageOrders'];
+      pages.forEach(function(p) { document.getElementById(p).classList.add('hidden'); });
+      document.querySelectorAll('.nx-nav-item').forEach(function(n) { n.classList.remove('active'); });
+      var navBtn = document.querySelector('[data-nav="'+page+'"]');
+      if (navBtn) navBtn.classList.add('active');
+      document.getElementById('bottomNav').style.display = (page === 'home') ? 'flex' : 'flex';
+      if (page === 'home') {
+        goHome();
+      } else if (page === 'upload') {
+        openUploadSheet();
+      } else if (page === 'prices') {
+        document.getElementById('pagePrices').classList.remove('hidden');
+        document.getElementById('bottomNav').style.display = 'flex';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      } else if (page === 'contact') {
+        document.getElementById('pageContact').classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      } else if (page === 'orders') {
+        document.getElementById('pageOrders').classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+
     function dismissNotif(){var n=document.getElementById('topNotif');if(n)n.style.display='none';localStorage.setItem('notifDismissed','1');}
   </script>
   <script src="opencv-crop.js?v=11"></script>
