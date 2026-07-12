@@ -501,6 +501,34 @@ function applyFilter(ctx, w, h, mode) {
           d[idx*4+2] = Math.min(255, Math.max(0, d[idx*4+2] + (d[idx*4+2] - avg) * 0.3));
         }
       }
+      // 3. Sharpen text (unsharp mask)
+      var shKs = 3, shHalf = 1;
+      var shR = new Float32Array(w * h);
+      var shG = new Float32Array(w * h);
+      var shB = new Float32Array(w * h);
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          var sR = 0, sG = 0, sB = 0;
+          for (var ky = -1; ky <= 1; ky++) {
+            for (var kx = -1; kx <= 1; kx++) {
+              var idx2 = ((y + ky) * w + (x + kx)) * 4;
+              sR += d[idx2]; sG += d[idx2 + 1]; sB += d[idx2 + 2];
+            }
+          }
+          shR[y * w + x] = sR / 9;
+          shG[y * w + x] = sG / 9;
+          shB[y * w + x] = sB / 9;
+        }
+      }
+      var shAmount = 0.6;
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          var idx = (y * w + x) * 4;
+          d[idx] = Math.min(255, Math.max(0, d[idx] + (d[idx] - shR[y * w + x]) * shAmount));
+          d[idx+1] = Math.min(255, Math.max(0, d[idx+1] + (d[idx+1] - shG[y * w + x]) * shAmount));
+          d[idx+2] = Math.min(255, Math.max(0, d[idx+2] + (d[idx+2] - shB[y * w + x]) * shAmount));
+        }
+      }
       break;
     }
 
