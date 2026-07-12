@@ -642,8 +642,13 @@
       var basePrice = totalSheets * perPage;
       var totalPrice = basePrice * copiesCount;
 
+      var bd = totalPages + ' page' + (totalPages !== 1 ? 's' : '');
+      if (selectedPrintSide === 'both') {
+        bd += ' → ' + totalSheets + ' sheet' + (totalSheets !== 1 ? 's' : '');
+      }
+      bd += ' × ₹' + perPage + ' × ' + copiesCount + ' copy' + (copiesCount !== 1 ? 'ies' : '');
       document.getElementById('livePriceDisplay').textContent = '\u20B9' + totalPrice;
-      document.getElementById('priceBreakdown').textContent = totalSheets + ' sheet(s) × \u20B9' + perPage + ' × ' + copiesCount + ' copy(ies)';
+      document.getElementById('priceBreakdown').textContent = bd;
 
       return totalPrice;
     }
