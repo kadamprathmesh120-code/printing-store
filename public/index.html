@@ -101,12 +101,19 @@
     <div id="stepScanQueue" class="step hidden">
       <button class="back-btn" onclick="scanQueueClear()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Scanned Pages</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;"><span id="scanCountDisplay">0</span> page(s) scanned</p>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 8px;"><span id="scanCountDisplay">0</span> page(s) scanned</p>
+      <div id="scanPreviewBig" class="scan-preview-big" onclick="openScanZoom()"></div>
       <div id="scanQueueGrid" class="scan-queue-grid"></div>
       <div class="bottom-bar">
         <label class="btn btn-secondary" for="scanMoreInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="upload" style="width:16px;height:16px;vertical-align:middle;"></i> Add More Upload</label>
         <button class="btn btn-primary" id="btnScanDone" onclick="scanQueueDone()" disabled>Done (<span id="scanQueueCount">0</span>) →</button>
       </div>
+    </div>
+
+    <!-- Full-screen scan zoom -->
+    <div id="scanZoomModal" class="scan-zoom-modal hidden" onclick="closeScanZoom()">
+      <div class="scan-zoom-close">&times;</div>
+      <img id="scanZoomImg" src="" alt="">
     </div>
 
     <!-- Step 3: Print Settings -->
@@ -542,8 +549,18 @@
 
     function renderScanQueue() {
       var grid = document.getElementById('scanQueueGrid');
+      var big = document.getElementById('scanPreviewBig');
       if (!grid) return;
       grid.innerHTML = '';
+      // Big preview of last scanned page
+      if (scanQueue.length > 0 && big) {
+        var last = scanQueue[scanQueue.length - 1];
+        big.innerHTML = '<img src="' + last.thumb + '" alt="Last scanned page">';
+        big.style.display = 'block';
+      } else if (big) {
+        big.innerHTML = '';
+        big.style.display = 'none';
+      }
       for (var i = 0; i < scanQueue.length; i++) {
         var item = scanQueue[i];
         grid.innerHTML += '' +
@@ -559,6 +576,18 @@
       document.getElementById('btnScanDone').disabled = scanQueue.length === 0;
       showStep('stepScanQueue');
       if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function openScanZoom() {
+      var last = scanQueue[scanQueue.length - 1];
+      if (!last) return;
+      var modal = document.getElementById('scanZoomModal');
+      document.getElementById('scanZoomImg').src = last.thumb;
+      modal.classList.remove('hidden');
+    }
+
+    function closeScanZoom() {
+      document.getElementById('scanZoomModal').classList.add('hidden');
     }
 
     function scanQueueRemove(index) {
