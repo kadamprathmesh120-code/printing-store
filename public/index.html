@@ -402,6 +402,39 @@
       </div>
     </div>
 
+    <!-- ID Copy Payment Step -->
+    <div id="idcPayStep" class="step hidden">
+      <button class="back-btn" onclick="showStep('idCopySection')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back</button>
+      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Pay for ID Copy</h2>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;">Complete payment to print</p>
+
+      <div class="summary-card">
+        <div class="summary-total">
+          <span class="st-label">Total Price</span>
+          <span class="st-value" id="idcPayTotal">₹0</span>
+        </div>
+      </div>
+
+      <div class="contact-form">
+        <input type="text" id="idcPayName" placeholder="Your Name" required>
+      </div>
+
+      <div class="razorpay-payment-card">
+        <div class="rpc-header">
+          <div class="rpc-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Pay with Razorpay</span>
+          </div>
+        </div>
+        <div class="rpc-body">
+          <div class="rpc-amount">₹<span id="idcPayBtnAmount">0</span></div>
+          <button class="rpc-btn" id="btnIdcRazorpay" onclick="idcPayRazorpay()">Pay ₹<span id="idcPayBtnAmount2">0</span></button>
+          <div class="rpc-footer">or</div>
+          <button class="rpc-cash-btn" onclick="idcPayCash()">Pay with Cash</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Bottom Navigation -->
@@ -1851,7 +1884,7 @@
           fd.append('customerName', name);
           fd.append('printType', printType);
           fd.append('printSide', 'single');
-          fd.append('paymentMethod', paymentMethod);
+          fd.append('paymentMethod', 'razorpay');
           fd.append('front', item.front);
           if (item.back) { fd.append('back', item.back); fd.append('backEnabled', 'true'); }
           else { fd.append('backEnabled', 'false'); }
@@ -1866,17 +1899,77 @@
       Promise.all(prom)
         .then(function(results) {
           currentOrderIds = results.map(function(r) { return r.orderId; });
-          var a4ImgSrc = idcRenderA4ToImage();
           var totalPrice = results.reduce(function(s, r) { return s + r.price; }, 0);
           document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-          showStep('stepStatus');
-          updateStatusDisplay('paid');
+          // Show payment page
+          document.getElementById('idcPayTotal').textContent = '₹' + totalPrice;
+          document.getElementById('idcPayBtnAmount').textContent = totalPrice;
+          document.getElementById('idcPayName').value = name;
+          showStep('idcPayStep');
           btn.disabled = false; btn.textContent = 'Calculate Price';
         })
         .catch(function(err) {
           alert('Upload failed: ' + (err.message || err));
           btn.disabled = false; btn.textContent = 'Calculate Price';
         });
+    }
+
+    function idcPayRazorpay() {
+      var name = document.getElementById('idcPayName').value.trim();
+      if (!name) { document.getElementById('idcPayName').style.borderColor = '#ef4444'; return; }
+      var btn = document.getElementById('btnIdcRazorpay');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
+      var totalPrice = parseInt(document.getElementById('idcPayBtnAmount').textContent) || 0;
+      fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: totalPrice, orderIds: currentOrderIds })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(rpData) {
+        if (rpData.error) throw new Error(rpData.error);
+        var options = {
+          key: 'rzp_test_TCEWIXuK88Wqs1',
+          amount: rpData.amount,
+          currency: rpData.currency,
+          name: 'Kadam Xerox',
+          description: 'ID Copy #' + currentOrderIds[0].slice(0,8),
+          order_id: rpData.razorpayOrderId,
+          handler: function(payment) {
+            fetch('/api/verify-razorpay-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ payment_id: payment.razorpay_payment_id, order_id: payment.razorpay_order_id, signature: payment.razorpay_signature, orderIds: currentOrderIds })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(vData) {
+              if (vData.error) throw new Error(vData.error);
+              updateStatusDisplay('paid');
+              showStep('stepStatus');
+            }).catch(function(e) { alert('Verification failed: ' + e.message); });
+          },
+          prefill: { name: name },
+          theme: { color: '#2563eb' }
+        };
+        var rzp = new Razorpay(options);
+        rzp.on('payment.failed', function(resp) { alert('Payment failed'); btn.disabled = false; btn.innerHTML = 'Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>'; });
+        rzp.open();
+        btn.disabled = false;
+        btn.innerHTML = 'Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>';
+      })
+      .catch(function(err) {
+        alert('Error: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = 'Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>';
+      });
+    }
+
+    function idcPayCash() {
+      fetch('/api/orders/' + currentOrderIds[0] + '/pay-cash', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        .then(function(r) { return r.json(); })
+        .then(function() { updateStatusDisplay('paid'); showStep('stepStatus'); })
+        .catch(function() { alert('Cash payment failed'); });
     }
 
     // --- Translations ---
