@@ -764,15 +764,15 @@ function magicColorPipeline(ctx, w, h) {
   for (var i = 0; i < len; i++) { var idx = i * 4; lum[i] = d[idx] * 0.299 + d[idx+1] * 0.587 + d[idx+2] * 0.114; }
 
   // 3. Shadow removal via large background estimation
-  var bgRadius = Math.max(7, Math.round(Math.min(w, h) * 0.05));
+  var bgRadius = Math.max(7, Math.round(Math.min(w, h) * 0.06));
   if (bgRadius % 2 === 0) bgRadius++;
   var bg = boxBlur(lum, w, h, bgRadius);
 
-  var globalTarget = Math.min(245, Math.max(220, percentile(lum, len, 0.90)));
+  var globalTarget = Math.min(250, Math.max(230, percentile(lum, len, 0.92)));
   for (var i = 0; i < len; i++) {
     var b = bg[i];
-    var scale = b > 5 ? globalTarget / b : 1.0;
-    scale = Math.max(0.2, Math.min(4.0, scale));
+    var scale = b > 8 ? globalTarget / b : 1.0;
+    scale = Math.max(0.3, Math.min(3.0, scale));
     d[i*4] = Math.min(255, Math.max(0, d[i*4] * scale));
     d[i*4+1] = Math.min(255, Math.max(0, d[i*4+1] * scale));
     d[i*4+2] = Math.min(255, Math.max(0, d[i*4+2] * scale));
@@ -781,72 +781,74 @@ function magicColorPipeline(ctx, w, h) {
   // Recompute luminance
   for (var i = 0; i < len; i++) { var idx = i * 4; lum[i] = d[idx] * 0.299 + d[idx+1] * 0.587 + d[idx+2] * 0.114; }
 
-  // 4. Local contrast (CLAHE) - stronger for text
-  var claheMap = clahe(lum, w, h, 3.5, Math.round(Math.min(w, h) / 20));
+  // 4. Local contrast (CLAHE) - strong for text
+  var claheMap = clahe(lum, w, h, 4.0, Math.round(Math.min(w, h) / 18));
 
-  // 5. Blend - mostly CLAHE for text focus
+  // 5. Blend - mostly CLAHE
   for (var i = 0; i < len; i++) {
     var origLum = lum[i];
     var enhanced = claheMap[i];
-    var blendCLAHE = 0.92;
+    var blendCLAHE = 0.95;
     var blended = origLum * (1 - blendCLAHE) + enhanced * blendCLAHE;
-    if (origLum > 245) blended = origLum * 0.7 + enhanced * 0.3;
-    if (origLum < 25) blended = origLum * 0.2 + enhanced * 0.8;
+    if (origLum > 248) blended = origLum * 0.8 + enhanced * 0.2;
+    if (origLum < 30) blended = origLum * 0.1 + enhanced * 0.9;
     var ratio = blended / (origLum || 1);
     d[i*4] = Math.min(255, Math.max(0, d[i*4] * ratio));
     d[i*4+1] = Math.min(255, Math.max(0, d[i*4+1] * ratio));
     d[i*4+2] = Math.min(255, Math.max(0, d[i*4+2] * ratio));
   }
 
-  // 6. Strong unsharp mask for text sharpness
+  // 6. Sharpening
   var blurRadius = Math.max(1, Math.round(Math.min(w, h) * 0.003));
   var blurKernel = generateGaussianKernel(blurRadius);
   var blurred = convolutionFloat(lum, w, h, blurKernel, blurRadius);
-  var sharpenAmount = 2.5;
+  var sharpenAmount = 1.8;
   for (var i = 0; i < len; i++) {
     var diff = lum[i] - blurred[i];
     var factor = 1.0;
-    if (lum[i] < 20) factor = 0.2;
-    else if (lum[i] > 235) factor = 0.3;
+    if (lum[i] < 25) factor = 0.3;
+    else if (lum[i] > 240) factor = 0.5;
     var adj = diff * sharpenAmount * factor;
     for (var c = 0; c < 3; c++) {
       d[i*4+c] = Math.min(255, Math.max(0, d[i*4+c] + adj));
     }
   }
 
-  // 7. Aggressive white background push
+  // 7. White push (aggressive)
   for (var i = 0; i < len; i++) {
     var r = d[i*4], g = d[i*4+1], b = d[i*4+2];
     var minChan = Math.min(r, g, b);
-    if (minChan > 180) {
-      var push = (minChan - 180) / 75;
-      push = Math.min(1, push * push);
+    if (minChan > 200) {
+      var push = (minChan - 200) / 55;
+      push = Math.min(1, push);
       d[i*4] = Math.min(255, r + (255 - r) * push);
       d[i*4+1] = Math.min(255, g + (255 - g) * push);
       d[i*4+2] = Math.min(255, b + (255 - b) * push);
     }
   }
 
-  // 8. Saturation boost for any remaining color content
+  // 8. Black push - dark text to pure black
   for (var i = 0; i < len; i++) {
     var r = d[i*4], g = d[i*4+1], b = d[i*4+2];
-    var avg = (r + g + b) / 3;
-    var sat = 1.2;
-    d[i*4] = Math.min(255, Math.max(0, avg + (r - avg) * sat));
-    d[i*4+1] = Math.min(255, Math.max(0, avg + (g - avg) * sat));
-    d[i*4+2] = Math.min(255, Math.max(0, avg + (b - avg) * sat));
+    var maxChan = Math.max(r, g, b);
+    if (maxChan < 60) {
+      var push = (60 - maxChan) / 60;
+      d[i*4] = Math.round(r - r * push * 0.6);
+      d[i*4+1] = Math.round(g - g * push * 0.6);
+      d[i*4+2] = Math.round(b - b * push * 0.6);
+    }
   }
 
-  // 9. Final contrast stretch (saturate 0.5% extremes for pure white/black text)
+  // 9. Contrast stretch (1% extremes for print-ready black/white)
   var hist = new Int32Array(256);
   for (var i = 0; i < len; i++) { var v = Math.round(d[i*4] * 0.299 + d[i*4+1] * 0.587 + d[i*4+2] * 0.114); hist[Math.min(255, Math.max(0, v))]++; }
   var total = len;
   var lo = 0, hi = 255, count = 0;
   for (var i = 0; i < 256; i++) { count += hist[i]; if (count >= total * 0.005) { lo = i; break; } }
   count = 0;
-  for (var i = 255; i >= 0; i--) { count += hist[i]; if (count >= total * 0.005) { hi = i; break; } }
+  for (var i = 255; i >= 0; i--) { count += hist[i]; if (count >= total * 0.01) { hi = i; break; } }
   var range = hi - lo;
-  if (range > 20) {
+  if (range > 15) {
     for (var i = 0; i < len; i++) {
       for (var c = 0; c < 3; c++) {
         var v = (d[i*4+c] - lo) / range * 255;
@@ -854,9 +856,6 @@ function magicColorPipeline(ctx, w, h) {
       }
     }
   }
-
-  // 10. Light chroma denoise
-  medianFilterChroma(d, w, h, 1);
 
   ctx.putImageData(imageData, 0, 0);
 }
