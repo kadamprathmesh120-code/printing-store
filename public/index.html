@@ -720,21 +720,16 @@
       document.getElementById('fileInput').value = '';
       document.getElementById('cameraInput').value = '';
 
-      var totalFiles = pdfFiles.length + imageFiles.length;
-      var processed = 0;
-
-      function checkDone() {
-        processed++;
-        if (processed === totalFiles) {
-          hideProgress();
-          goToSettings();
-        }
-      }
-
-      // PDFs go straight to selectedFiles
+      // PDFs → selectedFiles directly → print settings
       if (pdfFiles.length > 0) {
-        showProgress('Processing files...', 10);
+        showProgress('Processing PDFs...', 10);
         var total = pdfFiles.length, done = 0;
+        function pdfCheckDone() {
+          done++;
+          if (done === total) {
+            if (imageFiles.length === 0) { hideProgress(); goToSettings(); }
+          }
+        }
         for (var i = 0; i < pdfFiles.length; i++) {
           (function(file) {
             var reader = new FileReader();
@@ -743,35 +738,58 @@
                 var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
                 loadingTask.promise.then(function(pdf) {
                   selectedFiles.push({ file: file, pages: pdf.numPages });
-                  done++; checkDone();
+                  pdfCheckDone();
                 }, function() {
                   selectedFiles.push({ file: file, pages: 1 });
-                  done++; checkDone();
+                  pdfCheckDone();
                 });
               } catch(ex) {
                 selectedFiles.push({ file: file, pages: 1 });
-                done++; checkDone();
+                pdfCheckDone();
               }
             };
             reader.onerror = function() {
               selectedFiles.push({ file: file, pages: 1 });
-              done++; checkDone();
+              pdfCheckDone();
             };
             reader.readAsArrayBuffer(file);
           })(pdfFiles[i]);
         }
       }
 
-      // Images → add directly to selectedFiles, skip crop/scan queue
+      // Images → crop tool → print settings
       if (imageFiles.length > 0) {
-        if (pdfFiles.length === 0) showProgress('Processing files...', 10);
-        for (var i = 0; i < imageFiles.length; i++) {
-          selectedFiles.push({ file: imageFiles[i], pages: 1 });
-          checkDone();
-        }
+        showProgress('Opening scanner...', 10);
+        setTimeout(function() {
+          hideProgress();
+          startImageCrop(imageFiles, 0, function() {
+            goToSettings();
+          });
+        }, 300);
       }
+    }
 
-      if (totalFiles === 0) hideProgress();
+    var _imageCropQueue = [];
+    var _imageCropCb = null;
+    function startImageCrop(files, idx, cb) {
+      _imageCropCb = cb;
+      if (idx >= files.length) { if (cb) cb(); return; }
+      var f = files[idx];
+      var img = new Image();
+      img.onload = function() {
+        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
+          OCV_CROP.openModal(img, false, function(croppedFile, filter) {
+            if (croppedFile) {
+              selectedFiles.push({ file: croppedFile, pages: 1 });
+            }
+            startImageCrop(files, idx + 1, cb);
+          }, f);
+        } else {
+          selectedFiles.push({ file: f, pages: 1 });
+          startImageCrop(files, idx + 1, cb);
+        }
+      };
+      img.src = URL.createObjectURL(f);
     }
 
     function onPdfDone() {
@@ -2711,20 +2729,20 @@
       var lastUrl=null;
       function preview(){
         if(typeof selectedFiles==='undefined'||!selectedFiles.length)return;
-        var f=selectedFiles[0].file,ext=f.name.split('.').pop().toLowerCase(),p=selectedFiles[0].pages||1;
+        var f=selectedFiles[0].file,ext=f.name?(f.name.split('.').pop().toLowerCase()):'',p=selectedFiles[0].pages||1;
         var el=document.getElementById('qpDocPreview');if(!el)return;
         var isPdf=ext==='pdf',isImg=['jpg','jpeg','png'].includes(ext);
-        if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null;}
+        if(lastUrl){try{URL.revokeObjectURL(lastUrl)}catch(e){}lastUrl=null;}
         var html='';
-        if(isImg){
+        if(isImg||(!isPdf && f.type && f.type.startsWith('image/'))){
           lastUrl=URL.createObjectURL(f);
-          html='<img src="'+lastUrl+'" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:contain;" alt="'+f.name+'">';
+          html='<img src="'+lastUrl+'" style="max-width:100%;max-height:240px;border-radius:10px;object-fit:contain;" alt="'+(f.name||'image')+'">';
         } else if(isPdf){
-          html='<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="56" height="56"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>';
+          html='<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="64" height="64"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>';
         } else {
-          html='<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="56" height="56"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
+          html='<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="64" height="64"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
         }
-        html+='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+f.name+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
+        html+='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'file')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
         el.innerHTML=html;
       }
       function bar(){
@@ -2760,19 +2778,20 @@
 
     function openDocPreview(){
       if(typeof selectedFiles==='undefined'||!selectedFiles.length)return;
-      var f=selectedFiles[0].file,ext=f.name.split('.').pop().toLowerCase();
+      var f=selectedFiles[0].file,ext=f.name?(f.name.split('.').pop().toLowerCase()):'';
       var isImg=['jpg','jpeg','png'].includes(ext);
+      var isBlob=!isImg && !ext && f.type && f.type.startsWith('image/');
       var modal=document.getElementById('qpFullscreen');
       var img=document.getElementById('qpFullscreenImg');
       var name=document.getElementById('qpFullscreenName');
-      if(isImg){
+      if(isImg||isBlob){
         img.src=URL.createObjectURL(f);
       } else if(ext==='pdf'){
-        img.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><rect fill="%23fff" width="400" height="500" rx="8"/><rect fill="%23fee2e2" x="140" y="180" width="120" height="140" rx="8"/><text x="200" y="260" text-anchor="middle" font-size="48" font-weight="bold" fill="%23ef4444">PDF</text><text x="200" y="300" text-anchor="middle" font-size="14" fill="%239ca3af">'+f.name+'</text></svg>');
+        img.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><rect fill="%23fff" width="400" height="500" rx="8"/><rect fill="%23fee2e2" x="140" y="180" width="120" height="140" rx="8"/><text x="200" y="260" text-anchor="middle" font-size="48" font-weight="bold" fill="%23ef4444">PDF</text></svg>');
       } else {
-        img.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><rect fill="%23fff" width="400" height="500" rx="8"/><rect fill="%23f3f4f6" x="140" y="180" width="120" height="140" rx="8"/><text x="200" y="260" text-anchor="middle" font-size="48" font-weight="bold" fill="%239ca3af">DOC</text><text x="200" y="300" text-anchor="middle" font-size="14" fill="%239ca3af">'+f.name+'</text></svg>');
+        img.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><rect fill="%23fff" width="400" height="500" rx="8"/><rect fill="%23f3f4f6" x="140" y="180" width="120" height="140" rx="8"/><text x="200" y="260" text-anchor="middle" font-size="48" font-weight="bold" fill="%239ca3af">DOC</text></svg>');
       }
-      name.textContent=f.name;
+      name.textContent=f.name||'Document';
       modal.classList.remove('hidden');
       document.body.style.overflow='hidden';
     }
@@ -2781,7 +2800,7 @@
       modal.classList.add('hidden');
       document.body.style.overflow='';
       var img=document.getElementById('qpFullscreenImg');
-      if(img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);
+      if(img.src && img.src.startsWith('blob:')){try{URL.revokeObjectURL(img.src)}catch(e){}}
       img.src='';
     }
   </script>
