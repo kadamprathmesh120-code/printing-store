@@ -106,23 +106,32 @@ body {
 }
 .nx-action-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
 .nx-action-card {
-  border-radius:16px; padding:18px 10px 16px; text-align:center;
+  border-radius:16px; padding:16px 10px 14px; text-align:center;
   background:#fff; border:2px solid #e2e8f0; cursor:pointer;
-  transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:8px;
+  transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:6px;
 }
 .nx-action-card:active { transform:scale(0.97); }
-.nx-action-card.blue { border-color:#bfdbfe; background:linear-gradient(135deg, #eff6ff, #dbeafe); }
-.nx-action-card.green { border-color:#bbf7d0; background:linear-gradient(135deg, #f0fdf4, #dcfce7); }
-.nx-action-card.purple { border-color:#ddd6fe; background:linear-gradient(135deg, #f5f3ff, #ede9fe); }
+.nx-action-card.blue { border-color:#bfdbfe; }
+.nx-action-card.green { border-color:#bbf7d0; }
+.nx-action-card.purple { border-color:#ddd6fe; }
 .nx-ac-icon {
   width:48px; height:48px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
 }
-.nx-action-card.blue .nx-ac-icon { background:#2563eb; color:#fff; }
-.nx-action-card.green .nx-ac-icon { background:#16a34a; color:#fff; }
-.nx-action-card.purple .nx-ac-icon { background:#7c3aed; color:#fff; }
+.nx-action-card.blue .nx-ac-icon { background:#dbeafe; color:#2563eb; }
+.nx-action-card.green .nx-ac-icon { background:#dcfce7; color:#16a34a; }
+.nx-action-card.purple .nx-ac-icon { background:#ede9fe; color:#7c3aed; }
 .nx-ac-title { font-size:0.78em; font-weight:800; color:#1e293b; letter-spacing:0.5px; }
-.nx-ac-detail { font-size:0.6em; color:#6b7280; line-height:1.4; }
+.nx-ac-desc { font-size:0.65em; color:#475569; font-weight:500; }
+.nx-ac-detail { font-size:0.55em; color:#94a3b8; line-height:1.4; }
+.nx-ac-btn {
+  margin-top:4px; padding:6px 10px; border-radius:8px;
+  font-size:0.65em; font-weight:700; color:#fff; display:inline-flex;
+  align-items:center; gap:4px; border:none; cursor:pointer;
+}
+.nx-ac-btn.blue { background:#2563eb; }
+.nx-ac-btn.green { background:#16a34a; }
+.nx-ac-btn.purple { background:#7c3aed; }
 
 /* --- Security Banner --- */
 .nx-security-banner {

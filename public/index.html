@@ -27,21 +27,28 @@
 
       <!-- Action Cards -->
       <div class="nx-actions-section">
+        <h3 class="nx-section-title"><span class="nx-dot"></span> फाइल अपलोड करण्यासाठी पर्याय निवडा <span class="nx-dot"></span></h3>
         <div class="nx-action-cards">
           <label class="nx-action-card blue" for="fileInput">
             <div class="nx-ac-icon"><i data-lucide="upload-cloud"></i></div>
             <div class="nx-ac-title">UPLOAD</div>
-            <div class="nx-ac-detail">PDF • JPG • PNG</div>
+            <div class="nx-ac-desc" data-i18n="uploadFile">फाइल अपलोड करा</div>
+            <div class="nx-ac-detail">PDF, JPG, PNG, DOC<br>इ. फाइल अपलोड करा</div>
+            <div class="nx-ac-btn blue">अपलोड करा <i data-lucide="upload" style="width:14px;height:14px;"></i></div>
           </label>
           <div class="nx-action-card green" onclick="startIdCopy()" style="cursor:pointer;">
             <div class="nx-ac-icon"><i data-lucide="file-text"></i></div>
             <div class="nx-ac-title">ID COPY</div>
-            <div class="nx-ac-detail">Aadhaar • PAN • DL</div>
+            <div class="nx-ac-desc">ID कॉपी करा</div>
+            <div class="nx-ac-detail">आधार, पॅन, DL इ.<br>चे फोटो घ्या</div>
+            <div class="nx-ac-btn green">ID कॉपी करा <i data-lucide="users" style="width:14px;height:14px;"></i></div>
           </div>
           <label class="nx-action-card purple" for="cameraInput">
             <div class="nx-ac-icon"><i data-lucide="camera"></i></div>
             <div class="nx-ac-title">CAMERA</div>
-            <div class="nx-ac-detail">Take Photo & Print</div>
+            <div class="nx-ac-desc">कॅमेऱने फोटो घ्या</div>
+            <div class="nx-ac-detail">कॅमेऱने फोटो काढा<br>आणि प्रिंट करा</div>
+            <div class="nx-ac-btn purple">फोटो घ्या <i data-lucide="camera" style="width:14px;height:14px;"></i></div>
           </label>
         </div>
       </div>
