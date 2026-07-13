@@ -371,25 +371,54 @@ body {
   margin:16px 0 20px; overflow:hidden;
 }
 .qp-doc-preview {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:24px; background:#f0fdf4; border-radius:20px; min-height:160px;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px; background:#f0fdf4; border-radius:20px;
+  min-height:200px; position:relative;
 }
-.qp-doc-preview img { border:1px solid #d1fae5; background:#fff; }
+.qp-doc-preview img {
+  max-width:85%; max-height:260px; border-radius:8px;
+  object-fit:contain; box-shadow:0 4px 20px rgba(0,0,0,0.12);
+  border:1px solid #e5e7eb; background:#fff;
+}
 .qp-doc-delete {
-  position:absolute; top:12px; right:12px;
-  width:36px; height:36px; border-radius:50%;
+  position:absolute; top:10px; right:10px; z-index:2;
+  width:40px; height:40px; border-radius:14px;
   background:#fff; border:1.5px solid #fecaca;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; color:#ef4444; transition:all .2s;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 .qp-doc-delete:active { transform:scale(0.9); background:#fef2f2; }
 .qp-doc-label {
-  display:flex; align-items:center; justify-content:center; gap:6px;
-  padding:14px; border-top:1px solid #f0f0f0;
-  font-size:0.78em; font-weight:700; color:#374151;
-  letter-spacing:1px; cursor:pointer; transition:background .2s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:16px; border-top:1px solid #f0f0f0;
+  font-size:0.82em; font-weight:700; color:#374151;
+  letter-spacing:1.5px; cursor:pointer; transition:background .2s;
 }
 .qp-doc-label:active { background:#f9fafb; }
+
+/* --- Fullscreen Preview Modal --- */
+.qp-fullscreen {
+  position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.92);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  animation:qpFadeIn .2s ease;
+}
+.qp-fullscreen img {
+  max-width:92vw; max-height:80vh; object-fit:contain;
+  border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,0.4);
+}
+.qp-fullscreen-close {
+  position:absolute; top:16px; right:16px;
+  width:44px; height:44px; border-radius:50%;
+  background:rgba(255,255,255,0.15); border:none;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:#fff; transition:background .2s;
+}
+.qp-fullscreen-close:active { background:rgba(255,255,255,0.3); }
+.qp-fullscreen-name {
+  color:rgba(255,255,255,0.7); font-size:0.78em; margin-top:12px;
+  text-align:center; max-width:90vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 
 /* --- Card Base --- */
 .qp-card {
