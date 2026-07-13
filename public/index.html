@@ -2212,6 +2212,8 @@
         el.classList.remove('hidden');
         el.style.display = 'block';
       }
+      var bn = document.getElementById('bottomNav');
+      if (id === 'stepHome') { bn.style.display = 'flex'; } else { bn.style.display = 'none'; }
       renderHero();
     }
 
@@ -2662,14 +2664,13 @@
       document.querySelectorAll('.nx-nav-item').forEach(function(n) { n.classList.remove('active'); });
       var navBtn = document.querySelector('[data-nav="'+page+'"]');
       if (navBtn) navBtn.classList.add('active');
-      document.getElementById('bottomNav').style.display = (page === 'home') ? 'flex' : 'flex';
+      document.getElementById('bottomNav').style.display = (page === 'home') ? 'flex' : 'none';
       if (page === 'home') {
         goHome();
       } else if (page === 'upload') {
         openUploadSheet();
       } else if (page === 'prices') {
         document.getElementById('pagePrices').classList.remove('hidden');
-        document.getElementById('bottomNav').style.display = 'flex';
         if (typeof lucide !== 'undefined') lucide.createIcons();
       } else if (page === 'contact') {
         document.getElementById('pageContact').classList.remove('hidden');
