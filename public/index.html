@@ -29,87 +29,43 @@
       <div class="nx-actions-section">
         <h3 class="nx-section-title"><span class="nx-dot"></span> फाइल अपलोड करण्यासाठी पर्याय निवडा <span class="nx-dot"></span></h3>
         <div class="nx-action-cards">
-          <label class="nx-action-card" for="fileInput" style="border-color:#c7d9f7;">
-            <div class="nx-ac-icon-wrap" style="background:#e8f0fe;">
-              <svg viewBox="0 0 80 80" width="64" height="64" fill="none">
-                <circle cx="34" cy="34" r="20" fill="#d6e4fa"/>
-                <path d="M34 24v16" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
-                <path d="M27 33l7-7 7 7" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                <rect x="42" y="38" width="22" height="28" rx="4" fill="#fff" stroke="#bcccea" stroke-width="1.5"/>
-                <rect x="46" y="44" width="14" height="2.5" rx="1" fill="#2563eb" opacity="0.5"/>
-                <rect x="46" y="50" width="10" height="2.5" rx="1" fill="#2563eb" opacity="0.35"/>
-                <rect x="46" y="56" width="12" height="2.5" rx="1" fill="#2563eb" opacity="0.25"/>
-                <circle cx="50" cy="30" r="1.5" fill="#2563eb" opacity="0.4"/>
-                <circle cx="22" cy="24" r="1.2" fill="#2563eb" opacity="0.3"/>
-                <circle cx="46" cy="22" r="1" fill="#2563eb" opacity="0.25"/>
-              </svg>
-            </div>
+          <label class="nx-action-card blue" for="fileInput">
+            <div class="nx-ac-icon"><i data-lucide="upload-cloud"></i></div>
             <div class="nx-ac-title">UPLOAD</div>
-            <div class="nx-ac-sub">PDF &bull; JPG &bull; PNG</div>
-            <div class="nx-ac-btn blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-              Upload File
-            </div>
+            <div class="nx-ac-desc" data-i18n="uploadFile">फाइल अपलोड करा</div>
+            <div class="nx-ac-detail">PDF, JPG, PNG, DOC<br>इ. फाइल अपलोड करा</div>
+            <div class="nx-ac-btn blue">अपलोड करा <i data-lucide="upload" style="width:14px;height:14px;"></i></div>
           </label>
-          <div class="nx-action-card" onclick="startIdCopy()" style="cursor:pointer;border-color:#b8e6c8;">
-            <div class="nx-ac-icon-wrap" style="background:#e6f9ec;">
-              <svg viewBox="0 0 80 80" width="64" height="64" fill="none">
-                <rect x="14" y="18" width="44" height="30" rx="5" fill="#c8edcf" stroke="#16a34a" stroke-width="2"/>
-                <circle cx="28" cy="30" r="6" fill="#16a34a"/>
-                <path d="M22 42c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#16a34a"/>
-                <path d="M38 28h14M38 34h12M38 40h10" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round"/>
-                <circle cx="52" cy="50" r="9" fill="#16a34a"/>
-                <path d="M48 50l3 3 5.5-5.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="18" cy="16" r="1.3" fill="#16a34a" opacity="0.35"/>
-                <circle cx="62" cy="14" r="1" fill="#16a34a" opacity="0.3"/>
-                <circle cx="64" cy="30" r="1.2" fill="#16a34a" opacity="0.25"/>
-              </svg>
-            </div>
+          <div class="nx-action-card green" onclick="startIdCopy()" style="cursor:pointer;">
+            <div class="nx-ac-icon"><i data-lucide="file-text"></i></div>
             <div class="nx-ac-title">ID COPY</div>
-            <div class="nx-ac-sub">Aadhaar &bull; PAN &bull; DL</div>
-            <div class="nx-ac-btn green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M6 12h12M6 16h.01M10 16h.01M14 16h.01"/></svg>
-              Print ID Copy
-            </div>
+            <div class="nx-ac-desc">ID कॉपी करा</div>
+            <div class="nx-ac-detail">आधार, पॅन, DL इ.<br>चे फोटो घ्या</div>
+            <div class="nx-ac-btn green">ID कॉपी करा <i data-lucide="users" style="width:14px;height:14px;"></i></div>
           </div>
-          <label class="nx-action-card" for="cameraInput" style="border-color:#d4c5f9;">
-            <div class="nx-ac-icon-wrap" style="background:#f0eafd;">
-              <svg viewBox="0 0 80 80" width="64" height="64" fill="none">
-                <rect x="12" y="22" width="56" height="40" rx="8" fill="#ddd0f7" stroke="#7c3aed" stroke-width="2"/>
-                <circle cx="40" cy="42" r="13" fill="#c4b0f0" stroke="#7c3aed" stroke-width="2"/>
-                <circle cx="40" cy="42" r="7" fill="#7c3aed"/>
-                <circle cx="40" cy="42" r="3" fill="#f0eafd"/>
-                <circle cx="60" cy="30" r="3" fill="#7c3aed"/>
-                <rect x="30" y="16" width="20" height="8" rx="3" fill="#ddd0f7" stroke="#7c3aed" stroke-width="1.5"/>
-                <circle cx="20" cy="20" r="1.2" fill="#7c3aed" opacity="0.3"/>
-                <circle cx="64" cy="22" r="1" fill="#7c3aed" opacity="0.25"/>
-                <circle cx="66" cy="50" r="1.3" fill="#7c3aed" opacity="0.3"/>
-              </svg>
-            </div>
+          <label class="nx-action-card purple" for="cameraInput">
+            <div class="nx-ac-icon"><i data-lucide="camera"></i></div>
             <div class="nx-ac-title">CAMERA</div>
-            <div class="nx-ac-sub">Take Photo &amp; Print</div>
-            <div class="nx-ac-btn purple">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-              Open Camera
-            </div>
+            <div class="nx-ac-desc">कॅमेऱने फोटो घ्या</div>
+            <div class="nx-ac-detail">कॅमेऱने फोटो काढा<br>आणि प्रिंट करा</div>
+            <div class="nx-ac-btn purple">फोटो घ्या <i data-lucide="camera" style="width:14px;height:14px;"></i></div>
           </label>
         </div>
       </div>
 
       <!-- Security Banner -->
       <div class="nx-security-banner">
-        <div class="nx-sb-left"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <div class="nx-sb-left"><i data-lucide="shield-check" style="width:20px;height:20px;color:#2563eb;"></i></div>
         <div class="nx-sb-text"><strong>तुमची फाइल सुरक्षित आहे.</strong><br><small>आम्ही तुमची फाइल 24 तासांत आपोआप डिलीट करतो.</small></div>
-        <div class="nx-sb-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="m9 18 6-6-6-6"/></svg></div>
+        <div class="nx-sb-arrow"><i data-lucide="chevron-right" style="width:18px;height:18px;color:#9ca3af;"></i></div>
       </div>
-
 
       <!-- Feature Tags -->
       <div class="nx-features-row">
-        <div class="nx-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg> 100% सुरक्षित<br><small>तुमच्या फाइलची पूर्ण सुरक्षा</small></div>
-        <div class="nx-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> जलद सेवा<br><small>काही क्षणात प्रिंट तयार</small></div>
-        <div class="nx-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg> बेस्ट क्वालिटी<br><small>स्वच्छ आणि उत्तम प्रिंट</small></div>
-        <div class="nx-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> सहाय्य<br><small>आम्ही मदतीसाठी उपलब्ध</small></div>
+        <div class="nx-feature"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> 100% सुरक्षित<br><small>तुमच्या फाइलची पूर्ण सुरक्षा</small></div>
+        <div class="nx-feature"><i data-lucide="clock" style="width:14px;height:14px;"></i> जलद सेवा<br><small>काही क्षणात प्रिंट तयार</small></div>
+        <div class="nx-feature"><i data-lucide="award" style="width:14px;height:14px;"></i> बेस्ट क्वालिटी<br><small>स्वच्छ आणि उत्तम प्रिंट</small></div>
+        <div class="nx-feature"><i data-lucide="headphones" style="width:14px;height:14px;"></i> सहाय्य<br><small>आम्ही मदतीसाठी उपलब्ध</small></div>
       </div>
     </div>
 
@@ -119,7 +75,7 @@
       <div class="sheet-content">
         <div class="sheet-handle"></div>
         <label class="sheet-option" for="cameraInput" onclick="closeUploadSheet()">
-          <div class="sheet-icon camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+          <div class="sheet-icon camera"><i data-lucide="camera"></i></div>
           <div>
             <div class="sheet-label" data-i18n="takePhoto">Take Photo</div>
             <div class="sheet-sublabel" data-i18n="photoHint">Use camera to capture document</div>
@@ -145,25 +101,25 @@
 
     <!-- Step 2: Files View -->
     <div id="stepFiles" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepHome')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> <span data-i18n="back">Back</span></button>
+      <button class="back-btn" onclick="showStep('stepHome')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="uploadedFiles">Uploaded Files</h2>
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;"><span id="fileCountDisplay">0</span> <span data-i18n="filesCountLabel">file(s) selected</span></p>
       <div id="fileCardsContainer" class="file-cards"></div>
       <div class="bottom-bar">
-        <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M5 12h14"/><path d="M12 5v14"/></svg> <span data-i18n="addMore">Add More</span></label>
+        <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></label>
         <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
       </div>
     </div>
 
     <!-- Step 2b: Scan Queue -->
     <div id="stepScanQueue" class="step hidden">
-      <button class="back-btn" onclick="scanQueueClear()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> <span data-i18n="back">Back</span></button>
+      <button class="back-btn" onclick="scanQueueClear()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Scanned Pages</h2>
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 8px;"><span id="scanCountDisplay">0</span> page(s) scanned</p>
       <div id="scanPreviewBig" class="scan-preview-big" onclick="openScanZoom()"></div>
       <div id="scanQueueGrid" class="scan-queue-grid"></div>
       <div class="bottom-bar">
-        <label class="btn btn-secondary" for="scanMoreInput" style="flex:1;text-align:center;cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Add More Upload</label>
+        <label class="btn btn-secondary" for="scanMoreInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="upload" style="width:16px;height:16px;vertical-align:middle;"></i> Add More Upload</label>
         <button class="btn btn-primary" id="btnScanDone" onclick="scanQueueDone()" disabled>Done (<span id="scanQueueCount">0</span>) →</button>
       </div>
     </div>
@@ -176,12 +132,12 @@
 
     <!-- Step 3: Print Settings -->
     <div id="stepSettings" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepFiles')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> <span data-i18n="back">Back</span></button>
+      <button class="back-btn" onclick="showStep('stepFiles')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="printSettings">Print Settings</h2>
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="settingsDesc">Configure how you want your documents printed</p>
 
       <div class="settings-section">
-        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> <span data-i18n="copies">Copies</span></h3>
+        <h3><i data-lucide="copy" style="width:16px;height:16px;"></i> <span data-i18n="copies">Copies</span></h3>
         <div class="setting-row">
           <span class="setting-label" data-i18n="numberOfCopies">Number of copies</span>
           <div class="counter-group">
@@ -193,7 +149,7 @@
       </div>
 
       <div class="settings-section">
-        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 14.1c1.34 0 2.44-1.12 2.44-2.46 0-.68-.34-1.32-.97-1.91S12.89 8.5 12.56 7.7c-.22.88-.83 1.79-1.47 2.38s-.97 1.23-.97 1.91c0 1.34 1.1 2.46 2.44 2.46z"/></svg> <span data-i18n="printType">Print Type</span></h3>
+        <h3><i data-lucide="droplets" style="width:16px;height:16px;"></i> <span data-i18n="printType">Print Type</span></h3>
         <div class="pill-group">
           <button class="pill-option selected" data-value="bw" onclick="selectPill(this,'printType')"><span data-i18n="bwOption">B&W - ₹5/page</span></button>
           <button class="pill-option" data-value="color" onclick="selectPill(this,'printType')"><span data-i18n="colorOption">Color - ₹10/page</span></button>
@@ -201,7 +157,7 @@
       </div>
 
       <div class="settings-section">
-        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> <span data-i18n="printSide">Print Side</span></h3>
+        <h3><i data-lucide="layout" style="width:16px;height:16px;"></i> <span data-i18n="printSide">Print Side</span></h3>
         <div class="pill-group">
           <button class="pill-option selected" data-value="single" onclick="selectPill(this,'printSide')"><span data-i18n="singleSide">Single Side</span></button>
           <button class="pill-option" data-value="both" onclick="selectPill(this,'printSide')"><span data-i18n="bothSides">Both Sides</span></button>
@@ -209,7 +165,7 @@
       </div>
 
       <div class="settings-section">
-        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> <span data-i18n="orientation">Orientation</span></h3>
+        <h3><i data-lucide="smartphone" style="width:16px;height:16px;"></i> <span data-i18n="orientation">Orientation</span></h3>
         <div class="pill-group">
           <button class="pill-option selected" data-value="portrait" onclick="selectPill(this,'orientation')"><span data-i18n="portrait">Portrait</span></button>
           <button class="pill-option" data-value="landscape" onclick="selectPill(this,'orientation')"><span data-i18n="landscape">Landscape</span></button>
@@ -217,7 +173,7 @@
       </div>
 
       <div class="settings-section">
-        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> <span data-i18n="pageRange">Page Range</span></h3>
+        <h3><i data-lucide="hash" style="width:16px;height:16px;"></i> <span data-i18n="pageRange">Page Range</span></h3>
         <div class="prange-options">
           <label class="prange-option" id="prangeAll">
             <input type="radio" name="pageRange" value="all" checked onchange="onPageRangeChange()">
@@ -256,7 +212,7 @@
 
     <!-- Step 4: Review Order -->
     <div id="stepReview" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepSettings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> <span data-i18n="back">Back</span></button>
+      <button class="back-btn" onclick="showStep('stepSettings')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="reviewOrder">Review Order</h2>
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="reviewDesc">Please check your order details before confirming</p>
 
@@ -264,23 +220,23 @@
 
       <div class="summary-card">
         <div class="summary-row">
-          <span class="sr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 14.1c1.34 0 2.44-1.12 2.44-2.46 0-.68-.34-1.32-.97-1.91S12.89 8.5 12.56 7.7c-.22.88-.83 1.79-1.47 2.38s-.97 1.23-.97 1.91c0 1.34 1.1 2.46 2.44 2.46z"/></svg> <span data-i18n="printType">Print Type</span></span>
+          <span class="sr-label"><i data-lucide="droplets" style="width:14px;height:14px;"></i> <span data-i18n="printType">Print Type</span></span>
           <span class="sr-value" id="reviewPrintType">B&W</span>
         </div>
         <div class="summary-row">
-          <span class="sr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> <span data-i18n="printSide">Print Side</span></span>
+          <span class="sr-label"><i data-lucide="layout" style="width:14px;height:14px;"></i> <span data-i18n="printSide">Print Side</span></span>
           <span class="sr-value" id="reviewPrintSide">Single Side</span>
         </div>
         <div class="summary-row">
-          <span class="sr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> <span data-i18n="orientation">Orientation</span></span>
+          <span class="sr-label"><i data-lucide="smartphone" style="width:14px;height:14px;"></i> <span data-i18n="orientation">Orientation</span></span>
           <span class="sr-value" id="reviewOrientation">Portrait</span>
         </div>
         <div class="summary-row">
-          <span class="sr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> <span data-i18n="copies">Copies</span></span>
+          <span class="sr-label"><i data-lucide="copy" style="width:14px;height:14px;"></i> <span data-i18n="copies">Copies</span></span>
           <span class="sr-value" id="reviewCopies">1</span>
         </div>
         <div class="summary-row" style="border-bottom:none;">
-          <span class="sr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> <span data-i18n="pageRange">Page Range</span></span>
+          <span class="sr-label"><i data-lucide="hash" style="width:14px;height:14px;"></i> <span data-i18n="pageRange">Page Range</span></span>
           <span class="sr-value" id="reviewPageRange">All</span>
         </div>
         <div class="summary-total">
@@ -351,7 +307,7 @@
     <!-- ID Copy section (hidden until ID card mode activated) -->
     <div id="idCopySection" class="hidden" style="display:none;">
       <div class="card fade-in" style="max-width:560px;margin:0 auto;">
-        <button class="back-btn" onclick="exitIdCopy()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> <span data-i18n="backToHome">Back</span></button>
+        <button class="back-btn" onclick="exitIdCopy()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="backToHome">Back</span></button>
         <h2 data-i18n="idCopyTitle">Aadhar / PAN Card Copy</h2>
         <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="idCopyDesc">86×54 mm ID card printing (Aadhar, PAN, etc.)</p>
 
@@ -421,7 +377,7 @@
 
     <!-- ID Copy Payment Step -->
     <div id="idcPayStep" class="step hidden">
-      <button class="back-btn" onclick="showStep('idCopySection')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Back</button>
+      <button class="back-btn" onclick="showStep('idCopySection')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back</button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Pay for ID Copy</h2>
       <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;">Complete payment to print</p>
 
@@ -457,23 +413,23 @@
   <!-- Bottom Navigation -->
   <nav class="nx-bottom-nav" id="bottomNav">
     <button class="nx-nav-item active" onclick="navTo('home')" data-nav="home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <i data-lucide="home"></i>
       <span>होम</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('orders')" data-nav="orders">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+      <i data-lucide="file-text"></i>
       <span>माझे ऑर्डर</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('upload')" data-nav="upload">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+      <i data-lucide="upload-cloud"></i>
       <span>अपलोड करा</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('prices')" data-nav="prices">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+      <i data-lucide="tag"></i>
       <span>किमती</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('contact')" data-nav="contact">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <i data-lucide="phone"></i>
       <span>संपर्क</span>
     </button>
   </nav>
@@ -481,7 +437,7 @@
   <!-- Prices Page -->
   <div id="pagePrices" class="nx-page hidden">
     <div class="nx-page-header">
-      <button class="nx-page-back" onclick="navTo('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>
+      <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
       <h2>प्रिंटिंग सेवा दर</h2>
     </div>
     <div class="nx-page-body">
@@ -522,7 +478,7 @@
         <div class="nx-price-unit">/पेज</div>
       </div>
       <div class="nx-note-card">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <i data-lucide="info" style="width:16px;height:16px;color:#2563eb;"></i>
         <span>दोन्ही बाजू प्रिंट = दुप्पट शीट्स × किमत. फाइल PDF असल्यास सर्वोत्तम गुणवत्ता मिळते.</span>
       </div>
     </div>
@@ -531,26 +487,26 @@
   <!-- Contact Page -->
   <div id="pageContact" class="nx-page hidden">
     <div class="nx-page-header">
-      <button class="nx-page-back" onclick="navTo('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>
+      <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
       <h2>संपर्क</h2>
     </div>
     <div class="nx-page-body">
       <div class="nx-contact-card">
-        <div class="nx-cc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div class="nx-cc-icon"><i data-lucide="map-pin"></i></div>
         <div class="nx-cc-info">
           <div class="nx-cc-title">पत्ता</div>
           <div class="nx-cc-text">Kadam Xerox, Main Road, Maharashtra</div>
         </div>
       </div>
       <div class="nx-contact-card">
-        <div class="nx-cc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div class="nx-cc-icon"><i data-lucide="phone"></i></div>
         <div class="nx-cc-info">
           <div class="nx-cc-title">फोन</div>
           <div class="nx-cc-text">+91 9881093852</div>
         </div>
       </div>
       <div class="nx-contact-card">
-        <div class="nx-cc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+        <div class="nx-cc-icon"><i data-lucide="clock"></i></div>
         <div class="nx-cc-info">
           <div class="nx-cc-title">वेळ</div>
           <div class="nx-cc-text">सोम - शनि: सकाळी 9 - रात्री 9</div>
@@ -562,12 +518,12 @@
   <!-- My Orders Page -->
   <div id="pageOrders" class="nx-page hidden">
     <div class="nx-page-header">
-      <button class="nx-page-back" onclick="navTo('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>
+      <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
       <h2>माझे ऑर्डर</h2>
     </div>
     <div class="nx-page-body">
       <div class="nx-empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        <i data-lucide="package" style="width:48px;height:48px;color:#d1d5db;"></i>
         <p>अद्याप कोणतेही ऑर्डर नाहीत</p>
         <p style="font-size:0.8em;color:#9ca3af;">प्रिंट करण्यासाठी फाइल अपलोड करा</p>
         <button class="btn btn-primary" onclick="navTo('home')" style="margin-top:12px;">अपलोड करा</button>
@@ -858,8 +814,8 @@
               '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + '</div>' +
             '</div>' +
             '<div class="file-actions" style="gap:8px;">' +
-              (isImage ? '<button class="file-btn crop-btn" onclick="openCrop(' + i + ')" title="Crop Image" style="background:#16A34A;color:#fff;width:auto;padding:0 12px;font-size:0.82em;font-weight:700;gap:4px;border-radius:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg> Crop</button>' : '') +
-              '<button class="file-btn danger" onclick="removeFile(' + i + ')" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>' +
+              (isImage ? '<button class="file-btn crop-btn" onclick="openCrop(' + i + ')" title="Crop Image" style="background:#16A34A;color:#fff;width:auto;padding:0 12px;font-size:0.82em;font-weight:700;gap:4px;border-radius:8px;"><i data-lucide="crop" style="width:18px;height:18px;"></i> Crop</button>' : '') +
+              '<button class="file-btn danger" onclick="removeFile(' + i + ')" title="Remove"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>' +
             '</div>' +
           '</div>';
       }
