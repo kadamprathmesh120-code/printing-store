@@ -131,81 +131,227 @@
 
     <!-- Step 3: Print Settings -->
     <div id="stepSettings" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepFiles')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
-      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="printSettings">Print Settings</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="settingsDesc">Configure how you want your documents printed</p>
+      <div class="ps-wrap">
+        <button class="ps-back" onclick="showStep('stepFiles')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          <span data-i18n="back">Back</span>
+        </button>
 
-      <div class="settings-section">
-        <h3><i data-lucide="copy" style="width:16px;height:16px;"></i> <span data-i18n="copies">Copies</span></h3>
-        <div class="setting-row">
-          <span class="setting-label" data-i18n="numberOfCopies">Number of copies</span>
-          <div class="counter-group">
-            <button class="counter-btn" onclick="changeCopies(-1)">−</button>
-            <span class="counter-value" id="copiesValue">1</span>
-            <button class="counter-btn" onclick="changeCopies(1)">+</button>
+        <div class="ps-header">
+          <h2 data-i18n="printSettings">Print Settings</h2>
+          <p data-i18n="settingsDesc">Configure how you want your documents printed</p>
+        </div>
+
+        <!-- Document Preview -->
+        <div class="ps-card ps-doc-card" id="psDocCard">
+          <div class="ps-doc-thumb" id="psDocThumb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+          </div>
+          <div class="ps-doc-info">
+            <div class="ps-doc-name" id="psDocName">document.pdf</div>
+            <div class="ps-doc-meta" id="psDocMeta">1 page</div>
+          </div>
+          <div class="ps-doc-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>Ready</span>
           </div>
         </div>
-      </div>
 
-      <div class="settings-section">
-        <h3><i data-lucide="droplets" style="width:16px;height:16px;"></i> <span data-i18n="printType">Print Type</span></h3>
-        <div class="pill-group">
-          <button class="pill-option selected" data-value="bw" onclick="selectPill(this,'printType')"><span data-i18n="bwOption">B&W - ₹5/page</span></button>
-          <button class="pill-option" data-value="color" onclick="selectPill(this,'printType')"><span data-i18n="colorOption">Color - ₹10/page</span></button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <h3><i data-lucide="layout" style="width:16px;height:16px;"></i> <span data-i18n="printSide">Print Side</span></h3>
-        <div class="pill-group">
-          <button class="pill-option selected" data-value="single" onclick="selectPill(this,'printSide')"><span data-i18n="singleSide">Single Side</span></button>
-          <button class="pill-option" data-value="both" onclick="selectPill(this,'printSide')"><span data-i18n="bothSides">Both Sides</span></button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <h3><i data-lucide="smartphone" style="width:16px;height:16px;"></i> <span data-i18n="orientation">Orientation</span></h3>
-        <div class="pill-group">
-          <button class="pill-option selected" data-value="portrait" onclick="selectPill(this,'orientation')"><span data-i18n="portrait">Portrait</span></button>
-          <button class="pill-option" data-value="landscape" onclick="selectPill(this,'orientation')"><span data-i18n="landscape">Landscape</span></button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <h3><i data-lucide="hash" style="width:16px;height:16px;"></i> <span data-i18n="pageRange">Page Range</span></h3>
-        <div class="prange-options">
-          <label class="prange-option" id="prangeAll">
-            <input type="radio" name="pageRange" value="all" checked onchange="onPageRangeChange()">
-            <div class="prange-content">
-              <span class="prange-label" data-i18n="printAllPages">All pages</span>
-              <span class="prange-desc" data-i18n="printAllDesc">Print every page of the document</span>
-            </div>
-          </label>
-          <label class="prange-option" id="prangeCustom">
-            <input type="radio" name="pageRange" value="custom" onchange="onPageRangeChange()">
-            <div class="prange-content">
-              <span class="prange-label" data-i18n="printCustomRange">Custom range</span>
-              <span class="prange-desc" data-i18n="printCustomDesc">Specify pages to print</span>
-            </div>
-          </label>
-          <div id="prangeInputRow" class="hidden">
-            <input type="text" id="pageRangeInput" placeholder="e.g. 1-5, 1,3,5-8" oninput="onPageRangeChange()">
-            <div class="prange-hint" data-i18n="pageRangeHint">Use dashes for ranges (-) and commas to separate</div>
+        <!-- Copies -->
+        <div class="ps-card">
+          <div class="ps-card-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+            <span data-i18n="copies">Copies</span>
+          </div>
+          <div class="ps-copies">
+            <button class="ps-copies-btn" onclick="changeCopies(-1)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg>
+            </button>
+            <span class="ps-copies-val" id="copiesValue">1</span>
+            <button class="ps-copies-btn" onclick="changeCopies(1)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </button>
           </div>
         </div>
-      </div>
 
-      <div class="live-price">
-        <div>
-          <div class="lp-label" data-i18n="estimatedTotal">Estimated Total</div>
-          <div style="font-size:0.75em;opacity:0.8;" id="priceBreakdown"></div>
+        <!-- Print Type -->
+        <div class="ps-card">
+          <div class="ps-card-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            <span data-i18n="printType">Print Type</span>
+          </div>
+          <div class="ps-opt-grid">
+            <button class="ps-opt-card pill-option selected" data-value="bw" onclick="selectPill(this,'printType')">
+              <span class="ps-opt-emoji">🖤</span>
+              <span class="ps-opt-label" data-i18n="bwOption">B&W</span>
+              <span class="ps-opt-price">₹5/page</span>
+              <span class="ps-opt-check">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+            </button>
+            <button class="ps-opt-card pill-option" data-value="color" onclick="selectPill(this,'printType')">
+              <span class="ps-opt-emoji">🌈</span>
+              <span class="ps-opt-label" data-i18n="colorOption">Color</span>
+              <span class="ps-opt-price">₹10/page</span>
+              <span class="ps-opt-check">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+            </button>
+          </div>
         </div>
-        <div class="lp-amount" id="livePriceDisplay">₹0</div>
-      </div>
 
-      <div class="bottom-bar">
-        <button class="btn btn-secondary" onclick="showStep('stepFiles')" data-i18n="back">Back</button>
-        <button class="btn btn-primary" onclick="goToReview()"><span data-i18n="nextReview">Next: Review</span> →</button>
+        <!-- Print Side -->
+        <div class="ps-card">
+          <div class="ps-card-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+            <span data-i18n="printSide">Print Side</span>
+          </div>
+          <div class="ps-opt-grid">
+            <button class="ps-opt-card pill-option selected" data-value="single" onclick="selectPill(this,'printSide')">
+              <span class="ps-opt-emoji">📄</span>
+              <span class="ps-opt-label" data-i18n="singleSide">Single Side</span>
+              <span class="ps-opt-check">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+            </button>
+            <button class="ps-opt-card pill-option" data-value="both" onclick="selectPill(this,'printSide')">
+              <span class="ps-opt-emoji">📑</span>
+              <span class="ps-opt-label" data-i18n="bothSides">Both Sides</span>
+              <span class="ps-opt-check">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Orientation -->
+        <div class="ps-card">
+          <div class="ps-card-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+            <span data-i18n="orientation">Orientation</span>
+          </div>
+          <div class="ps-opt-grid">
+            <button class="ps-opt-card pill-option selected" data-value="portrait" onclick="selectPill(this,'orientation')">
+              <span class="ps-opt-emoji">📱</span>
+              <span class="ps-opt-label" data-i18n="portrait">Portrait</span>
+              <span class="ps-opt-check">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+            </button>
+            <button class="ps-opt-card pill-option" data-value="landscape" onclick="selectPill(this,'orientation')">
+              <span class="ps-opt-emoji">🖥️</span>
+              <span class="ps-opt-label" data-i18n="landscape">Landscape</span>
+              <span class="ps-opt-check">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Paper Size -->
+        <div class="ps-card">
+          <div class="ps-card-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <span>Paper Size</span>
+          </div>
+          <div class="ps-dropdown">
+            <span>A4 (210 × 297 mm)</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+
+        <!-- Page Range -->
+        <div class="ps-card">
+          <div class="ps-card-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3"/><path d="M4 17h3"/><path d="M10 7h10"/><path d="M10 17h10"/><circle cx="7" cy="7" r="1" fill="currentColor"/><circle cx="7" cy="17" r="1" fill="currentColor"/></svg>
+            <span data-i18n="pageRange">Page Range</span>
+          </div>
+          <div class="ps-range">
+            <label class="prange-option" id="prangeAll">
+              <input type="radio" name="pageRange" value="all" checked onchange="onPageRangeChange()">
+              <div class="prange-content">
+                <span class="prange-label" data-i18n="printAllPages">All pages</span>
+                <span class="prange-desc" data-i18n="printAllDesc">Print every page of the document</span>
+              </div>
+            </label>
+            <label class="prange-option" id="prangeCustom">
+              <input type="radio" name="pageRange" value="custom" onchange="onPageRangeChange()">
+              <div class="prange-content">
+                <span class="prange-label" data-i18n="printCustomRange">Custom range</span>
+                <span class="prange-desc" data-i18n="printCustomDesc">Specify pages to print</span>
+              </div>
+            </label>
+            <div id="prangeInputRow" class="hidden">
+              <input type="text" id="pageRangeInput" placeholder="e.g. 1-5, 1,3,5-8" oninput="onPageRangeChange()">
+              <div class="prange-hint" data-i18n="pageRangeHint">Use dashes for ranges (-) and commas to separate</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- More Options Accordion -->
+        <div class="ps-card ps-accordion" id="psAccordion">
+          <div class="ps-acc-head" onclick="document.getElementById('psAccordion').classList.toggle('open')">
+            <div class="ps-card-head" style="margin:0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>More Options</span>
+            </div>
+            <svg class="ps-acc-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div class="ps-acc-body">
+            <div class="ps-acc-row"><span>Scale</span><span class="ps-acc-val">100%</span></div>
+            <div class="ps-acc-row"><span>Pages per Sheet</span><span class="ps-acc-val">1</span></div>
+            <div class="ps-acc-row"><span>Fit to Page</span><span class="ps-acc-val">On</span></div>
+          </div>
+        </div>
+
+        <!-- Print Summary -->
+        <div class="ps-card ps-summary">
+          <div class="ps-card-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg>
+            <span>Print Summary</span>
+          </div>
+          <div class="ps-sum-grid">
+            <div class="ps-sum-item">
+              <span class="ps-sum-key">Pages</span>
+              <span class="ps-sum-val" id="psSumPages">—</span>
+            </div>
+            <div class="ps-sum-item">
+              <span class="ps-sum-key">Copies</span>
+              <span class="ps-sum-val" id="psSumCopies">1</span>
+            </div>
+            <div class="ps-sum-item">
+              <span class="ps-sum-key">Print Type</span>
+              <span class="ps-sum-val" id="psSumType">B&W</span>
+            </div>
+            <div class="ps-sum-item">
+              <span class="ps-sum-key">Orientation</span>
+              <span class="ps-sum-val" id="psSumOrient">Portrait</span>
+            </div>
+            <div class="ps-sum-item">
+              <span class="ps-sum-key">Print Side</span>
+              <span class="ps-sum-val" id="psSumSide">Single Side</span>
+            </div>
+          </div>
+          <div class="ps-sum-total">
+            <span>Total</span>
+            <span class="ps-sum-price" id="livePriceDisplay">₹0</span>
+          </div>
+          <div class="ps-sum-breakdown" id="priceBreakdown"></div>
+        </div>
+
+        <!-- Sticky Bottom Bar -->
+        <div class="ps-bottom">
+          <div class="ps-bottom-info">
+            <span class="ps-bottom-price" id="psBottomPrice">₹0</span>
+            <span class="ps-bottom-meta" id="psBottomMeta">1 Page • B&W • 1 Copy</span>
+          </div>
+          <div class="ps-bottom-btns">
+            <button class="ps-btn-back" onclick="showStep('stepFiles')" data-i18n="back">Back</button>
+            <button class="ps-btn-next" onclick="goToReview()"><span data-i18n="nextReview">Continue</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2602,6 +2748,78 @@
     }
 
     function dismissNotif(){var n=document.getElementById('topNotif');if(n)n.style.display='none';localStorage.setItem('notifDismissed','1');}
+
+    /* --- Print Settings UI Enhancements --- */
+    (function() {
+      var settingsEl = document.getElementById('stepSettings');
+      if (!settingsEl) return;
+
+      function renderDocPreview() {
+        if (typeof selectedFiles === 'undefined' || !selectedFiles.length) return;
+        var f = selectedFiles[0].file;
+        var ext = f.name.split('.').pop().toLowerCase();
+        var isPdf = ext === 'pdf';
+        var pages = selectedFiles[0].pages || 1;
+        var totalFiles = selectedFiles.length;
+
+        var nameEl = document.getElementById('psDocName');
+        var metaEl = document.getElementById('psDocMeta');
+        var thumbEl = document.getElementById('psDocThumb');
+        if (!nameEl) return;
+
+        nameEl.textContent = f.name;
+        var meta = pages + ' page' + (pages !== 1 ? 's' : '');
+        if (totalFiles > 1) meta += ' • ' + totalFiles + ' files';
+        meta += ' • ' + ext.toUpperCase();
+        metaEl.textContent = meta;
+
+        if (isPdf) {
+          thumbEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>';
+        } else if (['jpg','jpeg','png'].includes(ext)) {
+          thumbEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+        } else {
+          thumbEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
+        }
+      }
+
+      function updateSummary() {
+        if (typeof selectedFiles === 'undefined') return;
+        var totalPages = 0;
+        for (var i = 0; i < selectedFiles.length; i++) {
+          totalPages += selectedFiles[i].pages || 1;
+        }
+
+        var typeLabel = (typeof selectedPrintType !== 'undefined' && selectedPrintType === 'color') ? 'Color' : 'B&W';
+        var sideLabel = (typeof selectedPrintSide !== 'undefined' && selectedPrintSide === 'both') ? 'Both Sides' : 'Single Side';
+        var orientLabel = (typeof selectedOrientation !== 'undefined') ? selectedOrientation.charAt(0).toUpperCase() + selectedOrientation.slice(1) : 'Portrait';
+        var copiesVal = (typeof copiesCount !== 'undefined') ? copiesCount : 1;
+        var price = document.getElementById('livePriceDisplay');
+        var priceText = price ? price.textContent : '₹0';
+
+        var el;
+        el = document.getElementById('psSumPages'); if (el) el.textContent = totalPages + ' page' + (totalPages !== 1 ? 's' : '');
+        el = document.getElementById('psSumCopies'); if (el) el.textContent = copiesVal;
+        el = document.getElementById('psSumType'); if (el) el.textContent = typeLabel;
+        el = document.getElementById('psSumOrient'); if (el) el.textContent = orientLabel;
+        el = document.getElementById('psSumSide'); if (el) el.textContent = sideLabel;
+
+        el = document.getElementById('psBottomPrice'); if (el) el.textContent = priceText;
+        el = document.getElementById('psBottomMeta'); if (el) el.textContent = totalPages + ' Page' + (totalPages !== 1 ? 's' : '') + ' \u2022 ' + typeLabel + ' \u2022 ' + copiesVal + ' Copy' + (copiesVal !== 1 ? 's' : '');
+      }
+
+      var observer = new MutationObserver(function() {
+        if (settingsEl.style.display === 'block' || settingsEl.classList.contains('active')) {
+          setTimeout(function() { renderDocPreview(); updateSummary(); }, 50);
+        }
+      });
+      observer.observe(settingsEl, { attributes: true, attributeFilter: ['style', 'class'] });
+
+      var priceEl = document.getElementById('livePriceDisplay');
+      if (priceEl) {
+        var priceObs = new MutationObserver(function() { updateSummary(); });
+        priceObs.observe(priceEl, { childList: true, characterData: true, subtree: true });
+      }
+    })();
   </script>
   <script src="opencv-crop.js?v=11"></script>
 </body>
