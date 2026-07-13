@@ -1101,6 +1101,7 @@
       bd += ' × ₹' + perPage + ' × ' + copiesCount + ' copy' + (copiesCount !== 1 ? 'ies' : '');
       document.getElementById('livePriceDisplay').textContent = '\u20B9' + totalPrice;
       document.getElementById('priceBreakdown').textContent = bd;
+      if(typeof qpBar==='function') qpBar();
 
       return totalPrice;
     }
@@ -1109,6 +1110,11 @@
       document.getElementById('copiesValue').textContent = copiesCount;
       updatePrice();
       showStep('stepSettings');
+      setTimeout(function(){
+        updatePrice();
+        if(typeof qpPreview==='function') qpPreview();
+        if(typeof qpBar==='function') qpBar();
+      },150);
     }
 
     function goToReview() {
@@ -2727,7 +2733,7 @@
     (function(){
       var s=document.getElementById('stepSettings');if(!s)return;
       var lastUrl=null;
-      function preview(){
+      window.qpPreview = function preview(){
         if(typeof selectedFiles==='undefined'||!selectedFiles.length)return;
         var f=selectedFiles[0].file,ext=f.name?(f.name.split('.').pop().toLowerCase()):'',p=selectedFiles[0].pages||1;
         var el=document.getElementById('qpDocPreview');if(!el)return;
@@ -2745,7 +2751,7 @@
         html+='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'file')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
         el.innerHTML=html;
       }
-      function bar(){
+      window.qpBar = function bar(){
         if(typeof selectedFiles==='undefined')return;
         var tp=0;for(var i=0;i<selectedFiles.length;i++)tp+=selectedFiles[i].pages||1;
         var tl=(typeof selectedPrintType!=='undefined'&&selectedPrintType==='color')?'Color':'B&W';
