@@ -216,17 +216,27 @@ body {
   background:#fff; border-radius:14px; padding:16px;
   margin-bottom:10px; border:1px solid #e2e8f0;
 }
+.nx-price-bw { background:linear-gradient(135deg, #e8eaf6 0%, #f5f5f5 100%); border-color:#c5cae9; }
+.nx-price-color { background:linear-gradient(135deg, #fff3e0 0%, #fff8e1 100%); border-color:#ffe0b2; }
+.nx-price-id { background:linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-color:#c8e6c9; }
+.nx-price-photocopy { background:linear-gradient(135deg, #fce4ec 0%, #fce4ec 100%); border-color:#f8bbd0; }
 .nx-price-icon {
-  width:44px; height:44px; border-radius:12px;
+  width:50px; height:50px; border-radius:14px;
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
-.nx-price-icon.bw { background:#f1f5f9; color:#475569; }
-.nx-price-icon.color { background:#dbeafe; color:#2563eb; }
-.nx-price-icon.copy { background:#dcfce7; color:#16a34a; }
+.nx-price-icon svg { width:28px; height:28px; }
+.nx-price-icon.bw { background:#3f51b5; color:#fff; }
+.nx-price-icon.color { background:#ff9800; color:#fff; }
+.nx-price-icon.copy { background:#4caf50; color:#fff; }
+.nx-price-icon.photocopy { background:#e91e63; color:#fff; }
 .nx-price-info { flex:1; }
 .nx-price-title { font-size:0.88em; font-weight:700; color:#1e293b; }
 .nx-price-desc { font-size:0.72em; color:#6b7280; }
 .nx-price-amount { font-size:1.4em; font-weight:800; color:#2563eb; }
+.nx-price-bw .nx-price-amount { color:#3f51b5; }
+.nx-price-color .nx-price-amount { color:#ff9800; }
+.nx-price-id .nx-price-amount { color:#4caf50; }
+.nx-price-photocopy .nx-price-amount { color:#e91e63; }
 .nx-price-unit { font-size:0.7em; color:#94a3b8; }
 .nx-note-card {
   display:flex; align-items:flex-start; gap:10px;
