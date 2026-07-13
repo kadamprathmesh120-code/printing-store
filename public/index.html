@@ -29,26 +29,38 @@
       <div class="nx-actions-section">
         <h3 class="nx-section-title"><span class="nx-dot"></span> फाइल अपलोड करण्यासाठी पर्याय निवडा <span class="nx-dot"></span></h3>
         <div class="nx-action-cards">
-          <label class="nx-action-card blue" for="fileInput">
-            <div class="nx-ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg></div>
+          <label class="nx-action-card" for="fileInput" style="border-color:#c7d9f7;">
+            <div class="nx-ac-icon-wrap" style="background:#e8f0fe;">
+              <svg viewBox="0 0 64 64" width="56" height="56" fill="none"><circle cx="32" cy="28" r="18" fill="#d6e4fa"/><path d="M32 22v14M25 29l7-7 7 7" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="18" y="38" width="28" height="14" rx="3" fill="#e0eaff" stroke="#2563eb" stroke-width="1.5"/><path d="M28 42h8M28 47h5" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
             <div class="nx-ac-title">UPLOAD</div>
-            <div class="nx-ac-desc" data-i18n="uploadFile">फाइल अपलोड करा</div>
-            <div class="nx-ac-detail">PDF, JPG, PNG, DOC</div>
-            <div class="nx-ac-btn blue">अपलोड करा</div>
+            <div class="nx-ac-sub">PDF &bull; JPG &bull; PNG</div>
+            <div class="nx-ac-btn blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+              Upload File
+            </div>
           </label>
-          <div class="nx-action-card green" onclick="startIdCopy()" style="cursor:pointer;">
-            <div class="nx-ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M6 12h12M6 16h.01M10 16h.01M14 16h.01"/></svg></div>
+          <div class="nx-action-card" onclick="startIdCopy()" style="cursor:pointer;border-color:#b8e6c8;">
+            <div class="nx-ac-icon-wrap" style="background:#e6f9ec;">
+              <svg viewBox="0 0 64 64" width="56" height="56" fill="none"><rect x="12" y="16" width="40" height="28" rx="4" fill="#c8edcf" stroke="#16a34a" stroke-width="2"/><circle cx="24" cy="28" r="5" fill="#16a34a"/><path d="M32 26h12M32 32h10M32 38h8" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round"/><circle cx="44" cy="40" r="6" fill="#16a34a"/><path d="M41.5 40l2 2 3.5-3.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
             <div class="nx-ac-title">ID COPY</div>
-            <div class="nx-ac-desc">ID कॉपी करा</div>
-            <div class="nx-ac-detail">आधार, पॅन, DL इ.<br>चे फोटो घ्या</div>
-            <div class="nx-ac-btn green">ID कॉपी करा</div>
+            <div class="nx-ac-sub">Aadhaar &bull; PAN &bull; DL</div>
+            <div class="nx-ac-btn green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M6 12h12M6 16h.01M10 16h.01M14 16h.01"/></svg>
+              Print ID Copy
+            </div>
           </div>
-          <label class="nx-action-card purple" for="cameraInput">
-            <div class="nx-ac-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+          <label class="nx-action-card" for="cameraInput" style="border-color:#d4c5f9;">
+            <div class="nx-ac-icon-wrap" style="background:#f0eafd;">
+              <svg viewBox="0 0 64 64" width="56" height="56" fill="none"><rect x="10" y="18" width="44" height="32" rx="6" fill="#ddd0f7" stroke="#7c3aed" stroke-width="2"/><circle cx="32" cy="34" r="10" fill="#c4b0f0" stroke="#7c3aed" stroke-width="2"/><circle cx="32" cy="34" r="5" fill="#7c3aed"/><circle cx="46" cy="24" r="2.5" fill="#7c3aed"/></svg>
+            </div>
             <div class="nx-ac-title">CAMERA</div>
-            <div class="nx-ac-desc">कॅमेऱने फोटो घ्या</div>
-            <div class="nx-ac-detail">कॅमेऱने फोटो काढा<br>आणि प्रिंट करा</div>
-            <div class="nx-ac-btn purple">फोटो घ्या</div>
+            <div class="nx-ac-sub">Take Photo &amp; Print</div>
+            <div class="nx-ac-btn purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+              Open Camera
+            </div>
           </label>
         </div>
       </div>
