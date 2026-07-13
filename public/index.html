@@ -131,81 +131,160 @@
 
     <!-- Step 3: Print Settings -->
     <div id="stepSettings" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepFiles')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
-      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="printSettings">Print Settings</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="settingsDesc">Configure how you want your documents printed</p>
+      <div class="qp-wrap">
 
-      <div class="settings-section">
-        <h3><i data-lucide="copy" style="width:16px;height:16px;"></i> <span data-i18n="copies">Copies</span></h3>
-        <div class="setting-row">
-          <span class="setting-label" data-i18n="numberOfCopies">Number of copies</span>
-          <div class="counter-group">
-            <button class="counter-btn" onclick="changeCopies(-1)">−</button>
-            <span class="counter-value" id="copiesValue">1</span>
-            <button class="counter-btn" onclick="changeCopies(1)">+</button>
+        <!-- Document Preview Card -->
+        <div class="qp-doc-card" id="qpDocCard">
+          <div class="qp-doc-preview" id="qpDocPreview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+          </div>
+          <button class="qp-doc-delete" onclick="if(selectedFiles.length){selectedFiles=[];showStep('stepFiles');}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </button>
+          <div class="qp-doc-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            <span>PREVIEW</span>
           </div>
         </div>
-      </div>
 
-      <div class="settings-section">
-        <h3><i data-lucide="droplets" style="width:16px;height:16px;"></i> <span data-i18n="printType">Print Type</span></h3>
-        <div class="pill-group">
-          <button class="pill-option selected" data-value="bw" onclick="selectPill(this,'printType')"><span data-i18n="bwOption">B&W - ₹5/page</span></button>
-          <button class="pill-option" data-value="color" onclick="selectPill(this,'printType')"><span data-i18n="colorOption">Color - ₹10/page</span></button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <h3><i data-lucide="layout" style="width:16px;height:16px;"></i> <span data-i18n="printSide">Print Side</span></h3>
-        <div class="pill-group">
-          <button class="pill-option selected" data-value="single" onclick="selectPill(this,'printSide')"><span data-i18n="singleSide">Single Side</span></button>
-          <button class="pill-option" data-value="both" onclick="selectPill(this,'printSide')"><span data-i18n="bothSides">Both Sides</span></button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <h3><i data-lucide="smartphone" style="width:16px;height:16px;"></i> <span data-i18n="orientation">Orientation</span></h3>
-        <div class="pill-group">
-          <button class="pill-option selected" data-value="portrait" onclick="selectPill(this,'orientation')"><span data-i18n="portrait">Portrait</span></button>
-          <button class="pill-option" data-value="landscape" onclick="selectPill(this,'orientation')"><span data-i18n="landscape">Landscape</span></button>
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <h3><i data-lucide="hash" style="width:16px;height:16px;"></i> <span data-i18n="pageRange">Page Range</span></h3>
-        <div class="prange-options">
-          <label class="prange-option" id="prangeAll">
-            <input type="radio" name="pageRange" value="all" checked onchange="onPageRangeChange()">
-            <div class="prange-content">
-              <span class="prange-label" data-i18n="printAllPages">All pages</span>
-              <span class="prange-desc" data-i18n="printAllDesc">Print every page of the document</span>
+        <!-- Number of Copies -->
+        <div class="qp-card">
+          <div class="qp-card-row">
+            <span class="qp-card-title">Number of Copies</span>
+            <div class="qp-copies">
+              <button class="qp-copies-btn" onclick="changeCopies(-1)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg>
+              </button>
+              <span class="qp-copies-val" id="copiesValue">1</span>
+              <button class="qp-copies-btn" onclick="changeCopies(1)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              </button>
             </div>
-          </label>
-          <label class="prange-option" id="prangeCustom">
-            <input type="radio" name="pageRange" value="custom" onchange="onPageRangeChange()">
-            <div class="prange-content">
-              <span class="prange-label" data-i18n="printCustomRange">Custom range</span>
-              <span class="prange-desc" data-i18n="printCustomDesc">Specify pages to print</span>
-            </div>
-          </label>
+          </div>
+        </div>
+
+        <!-- Color Mode -->
+        <div class="qp-card">
+          <div class="qp-card-title">Color Mode</div>
+          <div class="qp-pair">
+            <button class="qp-opt pill-option selected" data-value="bw" onclick="selectPill(this,'printType')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">B/W</span>
+                <span class="qp-opt-sub">₹5/page</span>
+              </div>
+              <span class="qp-opt-icon bw-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="8" cy="10" r="5" fill="#555"/><circle cx="14" cy="10" r="5" fill="#888" opacity="0.6"/></svg>
+              </span>
+            </button>
+            <button class="qp-opt pill-option" data-value="color" onclick="selectPill(this,'printType')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">Color</span>
+                <span class="qp-opt-sub">₹10/page</span>
+              </div>
+              <span class="qp-opt-icon color-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="9" cy="9" r="4" fill="#ef4444"/><circle cx="15" cy="9" r="4" fill="#3b82f6"/><circle cx="12" cy="14" r="4" fill="#22c55e"/></svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Duplex (Layout) -->
+        <div class="qp-card">
+          <div class="qp-card-title">Duplex (Layout)</div>
+          <div class="qp-pair">
+            <button class="qp-opt pill-option selected" data-value="single" onclick="selectPill(this,'printSide')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">1-sided</span>
+              </div>
+              <span class="qp-opt-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 10h6"/><path d="M9 14h4"/></svg>
+              </span>
+            </button>
+            <button class="qp-opt pill-option" data-value="both" onclick="selectPill(this,'printSide')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">2-sided</span>
+              </div>
+              <span class="qp-opt-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="20" rx="2"/><rect x="7" y="1" width="14" height="20" rx="2" fill="#fff" stroke="#9ca3af"/><path d="M10 7h6"/><path d="M10 11h4"/></svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Orientation -->
+        <div class="qp-card">
+          <div class="qp-card-title">Orientation</div>
+          <div class="qp-pair">
+            <button class="qp-opt pill-option selected" data-value="portrait" onclick="selectPill(this,'orientation')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">Portrait</span>
+              </div>
+              <span class="qp-opt-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 10h6"/><path d="M9 14h4"/></svg>
+              </span>
+            </button>
+            <button class="qp-opt pill-option" data-value="landscape" onclick="selectPill(this,'orientation')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">Landscape</span>
+              </div>
+              <span class="qp-opt-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 9h6"/><path d="M7 13h4"/></svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hide / More Options -->
+        <div class="qp-card qp-hide-card" id="qpHideCard">
+          <button class="qp-hide-btn" onclick="document.getElementById('qpHideCard').classList.toggle('open');">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>More Options</span>
+          </button>
+          <div class="qp-hide-body">
+            <div class="qp-hide-row"><span>Scale</span><span>100%</span></div>
+            <div class="qp-hide-row"><span>Pages per Sheet</span><span>1</span></div>
+            <div class="qp-hide-row"><span>Fit to Page</span><span>On</span></div>
+          </div>
+        </div>
+
+        <!-- Pages Selection -->
+        <div class="qp-card">
+          <div class="qp-card-title" style="display:flex;align-items:center;gap:6px;">
+            Pages Selection
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </div>
+          <div class="qp-pair">
+            <button class="qp-opt pill-option selected" data-value="all" onclick="qpSelectRange('all')">
+              <div class="qp-opt-text"><span class="qp-opt-label">All</span></div>
+            </button>
+            <button class="qp-opt pill-option" data-value="range" onclick="qpSelectRange('custom')">
+              <div class="qp-opt-text"><span class="qp-opt-label">Range</span></div>
+            </button>
+          </div>
           <div id="prangeInputRow" class="hidden">
             <input type="text" id="pageRangeInput" placeholder="e.g. 1-5, 1,3,5-8" oninput="onPageRangeChange()">
             <div class="prange-hint" data-i18n="pageRangeHint">Use dashes for ranges (-) and commas to separate</div>
           </div>
+          <!-- Hidden radios for existing JS -->
+          <input type="radio" name="pageRange" value="all" checked style="display:none;" id="prangeAll">
+          <input type="radio" name="pageRange" value="custom" style="display:none;" id="prangeCustom">
         </div>
-      </div>
 
-      <div class="live-price">
-        <div>
-          <div class="lp-label" data-i18n="estimatedTotal">Estimated Total</div>
-          <div style="font-size:0.75em;opacity:0.8;" id="priceBreakdown"></div>
+        <!-- Hidden livePriceDisplay + priceBreakdown for existing JS -->
+        <div style="display:none;" id="livePriceDisplay">₹0</div>
+        <div style="display:none;" id="priceBreakdown"></div>
+
+        <!-- Sticky Bottom Bar -->
+        <div class="qp-bottom">
+          <div class="qp-bottom-info">
+            <span class="qp-bottom-pages" id="qpBottomPages">Total 1 pages</span>
+            <span class="qp-bottom-price" id="qpBottomPrice">₹0</span>
+          </div>
+          <button class="qp-bottom-pay" onclick="goToReview()">
+            <span data-i18n="nextReview">Proceed To Pay</span>
+          </button>
         </div>
-        <div class="lp-amount" id="livePriceDisplay">₹0</div>
-      </div>
 
-      <div class="bottom-bar">
-        <button class="btn btn-secondary" onclick="showStep('stepFiles')" data-i18n="back">Back</button>
-        <button class="btn btn-primary" onclick="goToReview()"><span data-i18n="nextReview">Next: Review</span> →</button>
       </div>
     </div>
 
@@ -2602,6 +2681,50 @@
     }
 
     function dismissNotif(){var n=document.getElementById('topNotif');if(n)n.style.display='none';localStorage.setItem('notifDismissed','1');}
+
+    /* --- QwikPrint UI: doc preview + bottom bar --- */
+    (function(){
+      var s=document.getElementById('stepSettings');if(!s)return;
+      function preview(){
+        if(typeof selectedFiles==='undefined'||!selectedFiles.length)return;
+        var f=selectedFiles[0].file,ext=f.name.split('.').pop().toLowerCase(),p=selectedFiles[0].pages||1;
+        var el=document.getElementById('qpDocPreview');if(!el)return;
+        var isPdf=ext==='pdf',isImg=['jpg','jpeg','png'].includes(ext);
+        var svg=isPdf?'<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>'
+          :isImg?'<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
+          :'<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
+        el.innerHTML=svg+'<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+f.name+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
+      }
+      function bar(){
+        if(typeof selectedFiles==='undefined')return;
+        var tp=0;for(var i=0;i<selectedFiles.length;i++)tp+=selectedFiles[i].pages||1;
+        var tl=(typeof selectedPrintType!=='undefined'&&selectedPrintType==='color')?'Color':'B&W';
+        var c=(typeof copiesCount!=='undefined')?copiesCount:1;
+        var pr=document.getElementById('livePriceDisplay');
+        var pt=pr?pr.textContent:'₹0';
+        var el;
+        el=document.getElementById('qpBottomPages');if(el)el.textContent='Total '+tp+' page'+(tp!==1?'s':'');
+        el=document.getElementById('qpBottomPrice');if(el)el.textContent=pt;
+      }
+      var obs=new MutationObserver(function(){
+        if(s.style.display==='block'||s.classList.contains('active'))
+          setTimeout(function(){preview();bar();},60);
+      });
+      obs.observe(s,{attributes:true,attributeFilter:['style','class']});
+      var pr=document.getElementById('livePriceDisplay');
+      if(pr){var po=new MutationObserver(function(){bar();});po.observe(pr,{childList:true,characterData:true,subtree:true});}
+    })();
+
+    /* --- QwikPrint UI: page range selection --- */
+    function qpSelectRange(val){
+      var all=document.querySelector('input[name=pageRange][value=all]');
+      var custom=document.querySelector('input[name=pageRange][value=custom]');
+      var btns=document.querySelectorAll('.qp-card:last-of-type .qp-opt');
+      btns.forEach(function(b){b.classList.remove('selected');});
+      if(val==='all'){all.checked=true;btns[0].classList.add('selected');}
+      else{custom.checked=true;btns[1].classList.add('selected');}
+      onPageRangeChange();
+    }
   </script>
   <script src="opencv-crop.js?v=11"></script>
 </body>
