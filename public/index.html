@@ -720,9 +720,20 @@
       document.getElementById('fileInput').value = '';
       document.getElementById('cameraInput').value = '';
 
+      var totalFiles = pdfFiles.length + imageFiles.length;
+      var processed = 0;
+
+      function checkDone() {
+        processed++;
+        if (processed === totalFiles) {
+          hideProgress();
+          goToSettings();
+        }
+      }
+
       // PDFs go straight to selectedFiles
       if (pdfFiles.length > 0) {
-        showProgress('Processing PDFs...', 10);
+        showProgress('Processing files...', 10);
         var total = pdfFiles.length, done = 0;
         for (var i = 0; i < pdfFiles.length; i++) {
           (function(file) {
@@ -732,33 +743,35 @@
                 var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
                 loadingTask.promise.then(function(pdf) {
                   selectedFiles.push({ file: file, pages: pdf.numPages });
-                  done++; if (done === total) onPdfDone();
+                  done++; checkDone();
                 }, function() {
                   selectedFiles.push({ file: file, pages: 1 });
-                  done++; if (done === total) onPdfDone();
+                  done++; checkDone();
                 });
               } catch(ex) {
                 selectedFiles.push({ file: file, pages: 1 });
-                done++; if (done === total) onPdfDone();
+                done++; checkDone();
               }
             };
             reader.onerror = function() {
               selectedFiles.push({ file: file, pages: 1 });
-              done++; if (done === total) onPdfDone();
+              done++; checkDone();
             };
             reader.readAsArrayBuffer(file);
           })(pdfFiles[i]);
         }
       }
-      // Images → auto-open crop one by one, then go to scan queue
+
+      // Images → add directly to selectedFiles, skip crop/scan queue
       if (imageFiles.length > 0) {
-        showProgress('Preparing scanner...', 10);
-        setTimeout(function() { hideProgress(); startAutoCrop(imageFiles, 0); }, 300);
+        if (pdfFiles.length === 0) showProgress('Processing files...', 10);
+        for (var i = 0; i < imageFiles.length; i++) {
+          selectedFiles.push({ file: imageFiles[i], pages: 1 });
+          checkDone();
+        }
       }
-      // If only PDFs (no images), go straight to stepFiles
-      if (pdfFiles.length > 0 && imageFiles.length === 0) {
-        // onPdfDone will fire from the loop above
-      }
+
+      if (totalFiles === 0) hideProgress();
     }
 
     function onPdfDone() {
