@@ -371,9 +371,10 @@ body {
   margin:16px 0 20px; overflow:hidden;
 }
 .qp-doc-preview {
-  display:flex; align-items:center; justify-content:center;
-  padding:40px 24px 20px; background:#f0fdf4; border-radius:20px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:24px; background:#f0fdf4; border-radius:20px; min-height:160px;
 }
+.qp-doc-preview img { border:1px solid #d1fae5; background:#fff; }
 .qp-doc-delete {
   position:absolute; top:12px; right:12px;
   width:36px; height:36px; border-radius:50%;

@@ -2686,15 +2686,24 @@
     /* --- QwikPrint UI: doc preview + bottom bar --- */
     (function(){
       var s=document.getElementById('stepSettings');if(!s)return;
+      var lastUrl=null;
       function preview(){
         if(typeof selectedFiles==='undefined'||!selectedFiles.length)return;
         var f=selectedFiles[0].file,ext=f.name.split('.').pop().toLowerCase(),p=selectedFiles[0].pages||1;
         var el=document.getElementById('qpDocPreview');if(!el)return;
         var isPdf=ext==='pdf',isImg=['jpg','jpeg','png'].includes(ext);
-        var svg=isPdf?'<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>'
-          :isImg?'<svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
-          :'<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
-        el.innerHTML=svg+'<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+f.name+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
+        if(lastUrl){URL.revokeObjectURL(lastUrl);lastUrl=null;}
+        var html='';
+        if(isImg){
+          lastUrl=URL.createObjectURL(f);
+          html='<img src="'+lastUrl+'" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:contain;" alt="'+f.name+'">';
+        } else if(isPdf){
+          html='<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="56" height="56"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>';
+        } else {
+          html='<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="56" height="56"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
+        }
+        html+='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+f.name+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
+        el.innerHTML=html;
       }
       function bar(){
         if(typeof selectedFiles==='undefined')return;
