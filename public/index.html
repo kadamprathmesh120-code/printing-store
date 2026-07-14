@@ -2848,132 +2848,85 @@
     }
 
     /* --- QwikPrint UI: doc preview + bottom bar --- */
-    (function(){
-      var s=document.getElementById('stepSettings');
-      console.log('QwikPrint UI IIFE: stepSettings element is:', s);
-      if(!s)return;
-      var lastUrl=null;
-
-      function preview(){
-        try {
-          var el=document.getElementById('qpDocPreview');
-          console.log('qpPreview: qpDocPreview element is:', el);
-          if(!el)return;
-          console.log('qpPreview: selectedFiles is:', typeof selectedFiles !== 'undefined' ? selectedFiles : 'undefined');
-          if(typeof selectedFiles==='undefined'||!selectedFiles.length){
-            el.innerHTML='<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">No files selected</div>';
-            return;
-          }
-          var sf=selectedFiles[0];
-          var f=sf.file;
-          console.log('qpPreview: first selected file is:', f);
-          if(!f){el.innerHTML='<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">File data missing</div>';return;}
-          var ext=f.name?(f.name.split('.').pop().toLowerCase()):'';
-          var p=sf.pages||1;
-          var isPdf=ext==='pdf',isImg=['jpg','jpeg','png','gif','webp','bmp','heic'].includes(ext);
-          var isImageType=isImg||(!isPdf && f.type && f.type.startsWith('image/'));
-
+    function _isImageFile(file) {
+      if (!file) return false;
+      var n = (file.name || '').toLowerCase();
+      if (/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i.test(n)) return true;
+      if (file.type && file.type.indexOf('image/') === 0) return true;
+      return false;
+    }
+    function _renderPdfPreview(file, el, fileName, pages) {
+      el.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:40px 0;">Loading preview...</div>';
+      renderPdfPage(file, 400, function(urls) {
+        if (urls && urls.length && urls[0]) {
           var isLandscape = (typeof selectedOrientation !== 'undefined' && selectedOrientation === 'landscape');
           var sheetStyle = isLandscape ? 'width:220px;height:155px;' : 'width:155px;height:220px;';
-
-          if(lastUrl){try{URL.revokeObjectURL(lastUrl)}catch(e){}lastUrl=null;}
-          if(isImageType){
-            var url=null;
-            try {
-              url=URL.createObjectURL(f);
-              lastUrl=url;
-            } catch(e){
-              console.warn('URL.createObjectURL failed, falling back to FileReader:', e);
+          var info = '<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">' + (fileName || 'file') + '<br>' + pages + ' page' + (pages !== 1 ? 's' : '') + '</div>';
+          el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">' +
+            '<div class="qp-a4-sheet" style="' + sheetStyle + '">' +
+              '<img src="' + urls[0] + '" alt="Preview">' +
+            '</div>' + info + '</div>';
+          urls.forEach(function(u, idx) {
+            if (idx > 0 && u) {
+              el.innerHTML += '<div class="qp-a4-sheet" style="' + sheetStyle + ';margin-top:8px;"><img src="' + u + '" alt="Page ' + (idx+1) + '"></div>';
             }
-            if(url){
-              var info='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'image')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
-              el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">' +
-                '<div class="qp-a4-sheet" style="' + sheetStyle + '">' +
-                  '<img src="' + url + '" alt="Preview">' +
-                '</div>' +
-                info +
-              '</div>';
-            } else {
-              el.innerHTML='<div style="text-align:center;color:#9ca3af;padding:40px 0;font-size:0.75em;">Loading preview...</div>';
-              var reader=new FileReader();
-              reader.onload=function(ev){
-                if(ev.target.result){
-                  var info='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'image')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
-                  el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">' +
-                    '<div class="qp-a4-sheet" style="' + sheetStyle + '">' +
-                      '<img src="' + ev.target.result + '" alt="Preview">' +
-                    '</div>' +
-                    info +
-                  '</div>';
-                } else {
-                  el.innerHTML='<div style="padding:40px;text-align:center;color:#999;">Preview unavailable</div>';
-                }
-              };
-              reader.onerror=function(){el.innerHTML='<div style="padding:40px;text-align:center;color:#999;">Preview unavailable</div>';};
-              reader.readAsDataURL(f);
-            }
-          } else if(isPdf){
-            el.innerHTML='<div style="text-align:center;color:#9ca3af;padding:40px 0;font-size:0.75em;">Loading PDF preview...</div>';
-            if(typeof renderPdfPage==='function'){
-              renderPdfPage(f, 400, function(urls){
-                if(urls && urls.length && urls[0]){
-                  var u = urls[0];
-                  var info='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'document')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
-                  el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">' +
-                    '<div class="qp-a4-sheet" style="' + sheetStyle + '">' +
-                      '<img src="' + u + '" alt="Preview">' +
-                    '</div>' +
-                    info +
-                  '</div>';
-                } else {
-                  var html='<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" width="64" height="64"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>';
-                  html+='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'file')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
-                  el.innerHTML=html;
-                }
-              });
-            } else {
-              var html='<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" width="64" height="64"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg>';
-              html+='<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'file')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>';
-              el.innerHTML=html;
-            }
-          } else {
-            var html='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">' +
-              '<div class="qp-a4-sheet" style="' + sheetStyle + '">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>' +
-              '</div>' +
-              '<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">'+(f.name||'file')+'<br>'+p+' page'+(p!==1?'s':'')+'</div>' +
-            '</div>';
-            el.innerHTML=html;
-          }
-        } catch(e) {
-          console.error('qpPreview error:', e);
-          var el=document.getElementById('qpDocPreview');
-          if(el) el.innerHTML='<div style="padding:12px;color:#ef4444;font-size:0.75em;word-break:break-all;">Preview error: '+e.message+'</div>';
+          });
+        } else {
+          el.innerHTML = '<div style="padding:40px;text-align:center;color:#999;">Preview unavailable</div>';
         }
-      }
-      window.qpPreview = preview;
-
-      function bar(){
-        if(typeof selectedFiles==='undefined')return;
-        var tp=0;for(var i=0;i<selectedFiles.length;i++)tp+=selectedFiles[i].pages||1;
-        var tl=(typeof selectedPrintType!=='undefined'&&selectedPrintType==='color')?'Color':'B&W';
-        var c=(typeof copiesCount!=='undefined')?copiesCount:1;
-        var pr=document.getElementById('livePriceDisplay');
-        var pt=pr?pr.textContent:'₹0';
-        var el;
-        el=document.getElementById('qpBottomPages');if(el)el.textContent='Total '+tp+' page'+(tp!==1?'s':'');
-        el=document.getElementById('qpBottomPrice');if(el)el.textContent=pt;
-      }
-      window.qpBar = bar;
-
-      var obs=new MutationObserver(function(){
-        if(s.style.display==='block'||s.classList.contains('active'))
-          setTimeout(function(){preview();bar();},60);
       });
-      obs.observe(s,{attributes:true,attributeFilter:['style','class']});
-      var pr=document.getElementById('livePriceDisplay');
-      if(pr){var po=new MutationObserver(function(){bar();});po.observe(pr,{childList:true,characterData:true,subtree:true});}
-    })();
+    }
+    window.qpPreview = function() {
+      try {
+        var el = document.getElementById('qpDocPreview');
+        if (!el) return;
+        if (typeof selectedFiles === 'undefined' || !selectedFiles.length) {
+          el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">No files selected</div>';
+          return;
+        }
+        var sf = selectedFiles[0];
+        var f = sf.file;
+        if (!f) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">File data missing</div>'; return; }
+        var ext = f.name ? (f.name.split('.').pop().toLowerCase()) : '';
+        var p = sf.pages || 1;
+        var isPdf = ext === 'pdf';
+        var isImageType = _isImageFile(f);
+        var isLandscape = (typeof selectedOrientation !== 'undefined' && selectedOrientation === 'landscape');
+        var sheetStyle = isLandscape ? 'width:220px;height:155px;' : 'width:155px;height:220px;';
+        if (isImageType) {
+          var url = URL.createObjectURL(f);
+          var info = '<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">' + (f.name || 'image') + '<br>' + p + ' page' + (p !== 1 ? 's' : '') + '</div>';
+          el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">' +
+            '<div class="qp-a4-sheet" style="' + sheetStyle + '">' +
+              '<img src="' + url + '" alt="Preview">' +
+            '</div>' + info + '</div>';
+        } else if (isPdf) {
+          _renderPdfPreview(f, el, f.name || 'file', p);
+        } else {
+          var info = '<div style="font-size:0.72em;color:#6b7280;margin-top:8px;text-align:center;">' + (f.name || 'file') + '<br>' + p + ' page' + (p !== 1 ? 's' : '') + '</div>';
+          el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">' +
+            '<div class="qp-a4-sheet" style="' + sheetStyle + '">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>' +
+            '</div>' + info + '</div>';
+        }
+      } catch(e) {
+        var el = document.getElementById('qpDocPreview');
+        if (el) el.innerHTML = '<div style="padding:12px;color:#ef4444;font-size:0.75em;">Preview error: ' + e.message + '</div>';
+      }
+    };
+    window.qpBar = function() {
+      try {
+        if (typeof selectedFiles === 'undefined' || !selectedFiles.length) return;
+        var tp = 0;
+        for (var i = 0; i < selectedFiles.length; i++) tp += selectedFiles[i].pages || 1;
+        if (typeof updatePrice === 'function') updatePrice();
+        var pr = document.getElementById('livePriceDisplay');
+        var pt = pr ? pr.textContent : '₹0';
+        var el;
+        el = document.getElementById('qpBottomPages'); if (el) el.textContent = 'Total ' + tp + ' page' + (tp !== 1 ? 's' : '');
+        el = document.getElementById('qpBottomPrice'); if (el) el.textContent = pt;
+      } catch(e) {}
+    };
 
     /* --- QwikPrint UI: page range selection --- */
     function qpSelectRange(val){
