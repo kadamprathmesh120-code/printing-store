@@ -1163,7 +1163,6 @@
       bd += ' × ₹' + perPage + ' × ' + copiesCount + ' copy' + (copiesCount !== 1 ? 'ies' : '');
       document.getElementById('livePriceDisplay').textContent = '\u20B9' + totalPrice;
       document.getElementById('priceBreakdown').textContent = bd;
-      if(typeof window.qpBar==='function') window.qpBar();
 
       return totalPrice;
     }
@@ -2916,10 +2915,13 @@
     };
     window.qpBar = function() {
       try {
-        if (typeof selectedFiles === 'undefined' || !selectedFiles.length) return;
+        if (typeof selectedFiles === 'undefined' || !selectedFiles.length) {
+          var el = document.getElementById('qpBottomPages'); if (el) el.textContent = 'Total 0 pages';
+          el = document.getElementById('qpBottomPrice'); if (el) el.textContent = '₹0';
+          return;
+        }
         var tp = 0;
         for (var i = 0; i < selectedFiles.length; i++) tp += selectedFiles[i].pages || 1;
-        if (typeof updatePrice === 'function') updatePrice();
         var pr = document.getElementById('livePriceDisplay');
         var pt = pr ? pr.textContent : '₹0';
         var el;
