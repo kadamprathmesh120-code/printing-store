@@ -16,7 +16,7 @@ db.exec(`
     print_type TEXT NOT NULL CHECK(print_type IN ('bw', 'color')),
     print_side TEXT NOT NULL DEFAULT 'single' CHECK(print_side IN ('single', 'both')),
     price REAL NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'accepted', 'rejected')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'accepted', 'rejected', 'payment_failed')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
@@ -38,4 +38,37 @@ try { db.exec(`ALTER TABLE orders ADD COLUMN mobile_number TEXT`); } catch (e) {
 try { db.exec(`ALTER TABLE orders ADD COLUMN order_notes TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN orientation TEXT NOT NULL DEFAULT 'portrait'`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN page_range TEXT DEFAULT 'all'`); } catch (e) {}
+try {
+  // Add payment_failed to status check constraint (SQLite doesn't support ALTER CHECK, so we recreate table)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS orders_new (
+      id TEXT PRIMARY KEY,
+      customer_name TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      page_count INTEGER NOT NULL DEFAULT 1,
+      print_type TEXT NOT NULL CHECK(print_type IN ('bw', 'color')),
+      print_side TEXT NOT NULL DEFAULT 'single' CHECK(print_side IN ('single', 'both')),
+      price REAL NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'accepted', 'rejected', 'payment_failed')),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      print_side TEXT NOT NULL DEFAULT 'single' CHECK(print_side IN ('single', 'both')),
+      payment_method TEXT NOT NULL DEFAULT 'razorpay' CHECK(payment_method IN ('razorpay', 'cash')),
+      razorpay_order_id TEXT,
+      is_id_copy INTEGER NOT NULL DEFAULT 0,
+      back_file_name TEXT,
+      back_file_path TEXT,
+      back_enabled INTEGER NOT NULL DEFAULT 0,
+      copies INTEGER NOT NULL DEFAULT 1,
+      printer_name TEXT,
+      mobile_number TEXT,
+      order_notes TEXT,
+      orientation TEXT NOT NULL DEFAULT 'portrait',
+      page_range TEXT DEFAULT 'all'
+    )
+  `);
+  db.exec(`INSERT INTO orders_new SELECT * FROM orders`);
+  db.exec(`DROP TABLE orders`);
+  db.exec(`ALTER TABLE orders_new RENAME TO orders`);
+} catch (e) {}
 module.exports = db;

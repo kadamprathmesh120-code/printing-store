@@ -1311,8 +1311,9 @@
           .then(function(r) { return r.json(); })
           .then(function(rpData) {
             if (rpData.error) { throw new Error(rpData.error); }
+            if (!rpData.key_id) { throw new Error('Server did not return a Razorpay Key ID'); }
             var options = {
-              key: 'rzp_test_TCEWIXuK88Wqs1',
+              key: rpData.key_id,
               amount: rpData.amount,
               currency: rpData.currency,
               name: 'Printing Store',
@@ -2131,8 +2132,9 @@
       .then(function(r) { return r.json(); })
       .then(function(rpData) {
         if (rpData.error) throw new Error(rpData.error);
+        if (!rpData.key_id) throw new Error('Server did not return a Razorpay Key ID');
         var options = {
-          key: 'rzp_test_TCEWIXuK88Wqs1',
+          key: rpData.key_id,
           amount: rpData.amount,
           currency: rpData.currency,
           name: 'Kadam Xerox',
@@ -2142,7 +2144,7 @@
             fetch('/api/verify-razorpay-payment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ payment_id: payment.razorpay_payment_id, order_id: payment.razorpay_order_id, signature: payment.razorpay_signature, orderIds: currentOrderIds })
+              body: JSON.stringify({ razorpayPaymentId: payment.razorpay_payment_id, razorpayOrderId: payment.razorpay_order_id, razorpaySignature: payment.razorpay_signature, orderIds: currentOrderIds })
             })
             .then(function(r) { return r.json(); })
             .then(function(vData) {

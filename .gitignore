@@ -5,3 +5,4 @@ printing.db
 *.db-shm
 *.db-wal
 printed-orders.json
+.env

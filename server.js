@@ -13,23 +13,68 @@ const crypto = require('crypto');
 const db = require('./db');
 const execP = promisify(exec);
 
+// Load environment variables from .env file (never commit .env)
+require('dotenv').config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Razorpay config — require env vars in production
+// ---------------------------------------------------------------------------
+// Razorpay configuration — uses environment variables ONLY, never hardcoded
+//
+// Locally (development):
+//   Create a .env file (see .env.example) with RAZORPAY_KEY_ID and
+//   RAZORPAY_KEY_SECRET. dotenv loads them automatically.
+//
+// On Render (production):
+//   Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Render Dashboard →
+//   Environment Variables. No .env file needed — process.env picks them up.
+//
+// Switching between Test and Live mode:
+//   Test keys  start with rzp_test_...
+//   Live keys  start with rzp_live_...
+//   Change the values in .env (local) or Render Dashboard (production).
+//   No code changes are required — only the environment variable values.
+// ---------------------------------------------------------------------------
 const isProd = process.env.NODE_ENV === 'production';
-const keyId = process.env.RAZORPAY_KEY_ID;
-const keySecret = process.env.RAZORPAY_KEY_SECRET;
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
-if (isProd && (!keyId || !keySecret)) {
-  console.error('FATAL: RAZORPAY_KEY_ID/SECRET not set in production');
-  process.exit(1);
+// Report exactly which variable(s) are missing when keys are absent
+const missing = [];
+if (!RAZORPAY_KEY_ID) missing.push('RAZORPAY_KEY_ID');
+if (!RAZORPAY_KEY_SECRET) missing.push('RAZORPAY_KEY_SECRET');
+
+if (missing.length > 0) {
+  const msg = 'Missing environment variable(s): ' + missing.join(', ') +
+    (isProd ? ' — set them in Render Dashboard → Environment Variables' : ' — add them to your .env file');
+  if (isProd) {
+    console.error('FATAL: ' + msg);
+    process.exit(1);
+  } else {
+    console.warn('WARNING: ' + msg);
+  }
 }
 
-const razorpay = new Razorpay({
-  key_id: keyId || 'rzp_test_TCEWIXuK88Wqs1',
-  key_secret: keySecret || 'H5QS92PlVOvLdqsFuuRROorF'
-});
+// Log whether Razorpay credentials are loaded (mask the full key for security)
+if (RAZORPAY_KEY_ID) {
+  const masked = RAZORPAY_KEY_ID.substring(0, 8) + '...' + RAZORPAY_KEY_ID.slice(-4);
+  console.log('Razorpay Key ID loaded:', masked);
+} else {
+  console.warn('Razorpay Key ID is NOT set — payment will be unavailable');
+}
+
+// Initialize Razorpay only if both credentials are present
+let razorpay = null;
+if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: RAZORPAY_KEY_ID,
+    key_secret: RAZORPAY_KEY_SECRET
+  });
+  console.log('Razorpay instance created successfully');
+} else {
+  console.warn('Razorpay not configured — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET');
+}
 
 const storage = multer.diskStorage({
   destination: path.join(__dirname, 'uploads'),
@@ -195,11 +240,15 @@ app.post('/api/orders/:id/confirm-payment', (req, res) => {
 // Razorpay: create an order for the total amount
 app.post('/api/create-razorpay-order', (req, res) => {
   try {
+    if (!razorpay) {
+      return res.status(503).json({ error: 'Razorpay is not configured on this server' });
+    }
+
     const { amount, orderIds } = req.body;
     if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
 
     const options = {
-      amount: Math.round(amount * 100), // paise
+      amount: Math.round(amount * 100), // convert to paise
       currency: 'INR',
       receipt: 'order_' + Date.now(),
       payment_capture: 1
@@ -210,14 +259,20 @@ app.post('/api/create-razorpay-order', (req, res) => {
         console.error('Razorpay create order error:', err);
         return res.status(500).json({ error: 'Failed to create Razorpay order' });
       }
-      // Store razorpay_order_id on each order row so we can verify later
+      // Store razorpay_order_id on each order row for verification
       if (Array.isArray(orderIds)) {
         const stmt = db.prepare('UPDATE orders SET razorpay_order_id = ? WHERE id = ?');
         for (const oid of orderIds) {
           stmt.run(order.id, oid);
         }
       }
-      res.json({ razorpayOrderId: order.id, amount: options.amount, currency: options.currency });
+      // Log key status (without exposing the full key) for debugging
+      console.log('Returning order ID:', order.id, '| key_id present:', !!RAZORPAY_KEY_ID);
+      // Include key_id in response so frontend never needs hardcoded keys
+      if (!RAZORPAY_KEY_ID) {
+        return res.status(500).json({ error: 'Razorpay Key ID is not configured on the server' });
+      }
+      res.json({ razorpayOrderId: order.id, amount: options.amount, currency: options.currency, key_id: RAZORPAY_KEY_ID });
     });
   } catch (err) {
     console.error('Razorpay order error:', err);
@@ -225,31 +280,41 @@ app.post('/api/create-razorpay-order', (req, res) => {
   }
 });
 
-// Razorpay: verify payment signature and mark orders paid + auto-accept for printing
+// Razorpay: verify payment signature and mark orders paid
 app.post('/api/verify-razorpay-payment', async (req, res) => {
   try {
+    if (!razorpay) {
+      return res.status(503).json({ error: 'Razorpay is not configured on this server' });
+    }
+
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, orderIds } = req.body;
     if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
       return res.status(400).json({ error: 'Missing payment details' });
     }
 
-    // Verify signature
+    // Verify payment signature using HMAC SHA256 with the key secret
     const body = razorpayOrderId + '|' + razorpayPaymentId;
-    const expectedSig = crypto.createHmac('sha256', razorpay.key_secret).update(body).digest('hex');
+    const expectedSig = crypto.createHmac('sha256', RAZORPAY_KEY_SECRET).update(body).digest('hex');
 
     if (expectedSig !== razorpaySignature) {
+      // Signature does not match — mark orders as payment_failed
+      if (Array.isArray(orderIds)) {
+        for (const oid of orderIds) {
+          db.prepare('UPDATE orders SET status = ? WHERE id = ? AND status = ?').run('payment_failed', oid, 'pending');
+        }
+      }
       return res.status(400).json({ error: 'Payment verification failed (signature mismatch)' });
     }
 
-    // Mark all associated orders as paid, then auto-accept and print
+    // Signature verified — mark all associated orders as paid
     const BW_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
 
     if (Array.isArray(orderIds)) {
       for (const oid of orderIds) {
         db.prepare('UPDATE orders SET status = ?, razorpay_order_id = ? WHERE id = ? AND status = ?').run('paid', razorpayOrderId, oid, 'pending');
-        
-        // Auto-accept and trigger print
+
+        // Existing auto-accept and print logic — kept as-is
         const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
         if (order) {
           db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
