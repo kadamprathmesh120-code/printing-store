@@ -1625,14 +1625,28 @@ function cropDirect() {
   // Export
   var outType = 'image/png';
   var outQuality2 = undefined;
-  var srcName = sourceImage && sourceImage.src ? sourceImage.src.split('/').pop() : 'cropped.png';
-  var srcExt = srcName.split('.').pop().toLowerCase();
-  if (srcExt === 'jpg' || srcExt === 'jpeg') { outType = 'image/jpeg'; outQuality2 = 0.98; }
+  var ext = '.png';
+  if (_originalFileRef && _originalFileRef.name) {
+    var origExt = _originalFileRef.name.split('.').pop().toLowerCase();
+    if (origExt === 'jpg' || origExt === 'jpeg') {
+      outType = 'image/jpeg';
+      outQuality2 = 0.98;
+      ext = '.jpg';
+    }
+  }
 
   fCtx.canvas.toBlob(function(blob) {
     if (!blob) return;
-    var fileName = sourceImage && sourceImage.src ? (sourceImage.src.split('/').pop() || 'cropped.png') : 'cropped.png';
-    if (fileName.startsWith('blob:')) fileName = 'cropped_' + Date.now() + '.png';
+    var baseName = 'cropped_' + Date.now();
+    if (_originalFileRef && _originalFileRef.name) {
+      var lastDot = _originalFileRef.name.lastIndexOf('.');
+      if (lastDot !== -1) {
+        baseName = 'cropped_' + _originalFileRef.name.substring(0, lastDot);
+      } else {
+        baseName = 'cropped_' + _originalFileRef.name;
+      }
+    }
+    var fileName = baseName + ext;
     var file = new File([blob], fileName, { type: outType });
     currentCallback(file, selectedFilter);
     closeModal();

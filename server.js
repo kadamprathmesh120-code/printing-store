@@ -54,6 +54,12 @@ const publicDir = fs.existsSync(path.join(__dirname, 'public')) ? path.join(__di
 app.use(express.static(publicDir));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.post('/api/log', (req, res) => {
+  const { type, message } = req.body;
+  console.log(`[CLIENT-LOG] [${type}] ${message}`);
+  res.sendStatus(200);
+});
+
 async function getPageCount(filePath, ext) {
   if (ext === '.pdf') {
     try {
