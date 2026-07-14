@@ -16,10 +16,19 @@ const execP = promisify(exec);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Razorpay config — use env vars in production
+// Razorpay config — require env vars in production
+const isProd = process.env.NODE_ENV === 'production';
+const keyId = process.env.RAZORPAY_KEY_ID;
+const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+if (isProd && (!keyId || !keySecret)) {
+  console.error('FATAL: RAZORPAY_KEY_ID/SECRET not set in production');
+  process.exit(1);
+}
+
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_TCEWIXuK88Wqs1',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'H5QS92PlVOvLdqsFuuRROorF'
+  key_id: keyId || 'rzp_test_TCEWIXuK88Wqs1',
+  key_secret: keySecret || 'H5QS92PlVOvLdqsFuuRROorF'
 });
 
 const storage = multer.diskStorage({
