@@ -73,6 +73,429 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       border-radius: 4px;
     }
+    
+    /* ===== Intelligent Pricing System Styles ===== */
+    
+    /* Bulk Discount Banner */
+    .bulk-discount-banner {
+      background: linear-gradient(135deg, #059669 0%, #16a34a 50%, #2563eb 100%);
+      border-radius: 16px;
+      padding: 16px;
+      margin: 16px 0;
+      box-shadow: 0 10px 30px -5px rgba(5, 150, 105, 0.4);
+      animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .bulk-discount-banner.hidden {
+      display: none !important;
+    }
+    .bulk-discount-banner.visible {
+      display: block !important;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .bulk-discount-content {
+      color: white;
+    }
+    .bulk-icon {
+      font-size: 1.5em;
+      margin-bottom: 8px;
+    }
+    .bulk-text h4 {
+      font-size: 1.1em;
+      font-weight: 800;
+      margin: 0 0 8px;
+    }
+    .bulk-text p {
+      font-size: 0.85em;
+      opacity: 0.9;
+      margin: 0 0 12px;
+      line-height: 1.4;
+    }
+    .bulk-pricing {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      backdrop-filter: blur(10px);
+    }
+    .pricing-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+    .pricing-row .psc-price-label {
+      opacity: 0.95;
+    }
+    .bulk-total {
+      text-align: right;
+      font-size: 0.95em;
+      font-weight: 800;
+      padding-top: 4px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    .bulk-total strong {
+      font-size: 1.1em;
+    }
+    
+    /* Premium Summary Card */
+    .premium-summary-card {
+      background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 16px 0;
+      box-shadow: 0 4px 20px -4px rgba(0,0,0,0.08), 0 2px 8px -2px rgba(0,0,0,0.04);
+      animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .premium-summary-card.hidden {
+      display: none !important;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .psc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .psc-title {
+      font-size: 1.05em;
+      font-weight: 800;
+      color: #111827;
+      margin: 0;
+    }
+    .psc-subtitle {
+      font-size: 0.75em;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .psc-files {
+      margin-bottom: 12px;
+    }
+    .psc-files h5 {
+      font-size: 0.8em;
+      font-weight: 700;
+      color: #374151;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .psc-file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border: 1px solid #e5e7eb;
+      transition: all 0.2s ease;
+    }
+    .psc-file-item:last-child {
+      margin-bottom: 0;
+    }
+    .psc-file-name {
+      font-size: 0.82em;
+      font-weight: 500;
+      color: #1f2937;
+      word-break: break-all;
+      flex: 1;
+    }
+    .psc-file-pages {
+      font-size: 0.75em;
+      color: #6b7280;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-left: 8px;
+    }
+    .psc-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+      margin: 12px 0;
+    }
+    .psc-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .psc-metric {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .psc-metric-label {
+      display: block;
+      font-size: 0.65em;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .psc-metric-value {
+      display: block;
+      font-size: 1.1em;
+      font-weight: 800;
+      color: #111827;
+    }
+    .psc-pricing {
+      margin-top: 8px;
+    }
+    .psc-price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 0.85em;
+    }
+    .psc-price-label {
+      color: #4b5563;
+      font-weight: 500;
+    }
+    .psc-price-value {
+      font-weight: 700;
+      color: #111827;
+    }
+    .psc-price-row.psc-total {
+      padding-top: 10px;
+      margin-top: 4px;
+      border-top: 2px solid #e5e7eb;
+      font-size: 1em;
+    }
+    .psc-price-row.psc-total .psc-price-label {
+      font-weight: 700;
+      font-size: 1.05em;
+    }
+    .psc-price-row.psc-total .psc-price-value {
+      font-size: 1.15em;
+      color: #2563eb;
+    }
+    .psc-savings {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      border: 1px solid #6ee7b7;
+      border-radius: 10px;
+      margin-top: 12px;
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.3); }
+      50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1); }
+    }
+    .savings-icon {
+      font-size: 1.1em;
+      animation: bounce 1s ease-in-out infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    .savings-text {
+      font-size: 0.85em;
+      font-weight: 700;
+      color: #065f46;
+    }
+    .savings-text .psc-metric-value {
+      font-size: 1.15em;
+      color: #16a34a;
+    }
+    .savings-badge {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.7em;
+      color: #16a34a;
+      font-weight: 600;
+    }
+    .psc-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .psc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.7em;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .psc-badge.bulk {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      color: #92400e;
+      border: 1px solid #fbbf24;
+    }
+    .psc-badge.standard {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+    
+    /* Price Badge */
+    .price-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.72em;
+      font-weight: 700;
+      margin-left: 8px;
+      animation: fadeIn 0.3s ease;
+    }
+    .price-badge.hidden {
+      display: none !important;
+    }
+    .badge-standard {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+    .badge-bulk {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      color: #92400e;
+      border: 1px solid #fbbf24;
+      animation: pulseWarm 2s ease-in-out infinite;
+    }
+    @keyframes pulseWarm {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+    }
+    
+    /* Savings Display */
+    .savings-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      border: 1px solid #6ee7b7;
+      border-radius: 10px;
+      margin: 8px 0;
+      animation: fadeInUp 0.4s ease;
+    }
+    .savings-display.hidden {
+      display: none !important;
+    }
+    .savings-amount {
+      font-size: 0.85em;
+      font-weight: 800;
+      color: #065f46;
+    }
+    .savings-badge {
+      display: inline-block;
+      font-size: 0.68em;
+      color: #16a34a;
+      font-weight: 700;
+      background: rgba(22, 163, 74, 0.1);
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 4px;
+    }
+    
+    /* PSC File Item */
+    .psc-file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+    .psc-file-name {
+      font-size: 0.82em;
+      font-weight: 500;
+      color: #1f2937;
+      word-break: break-all;
+      flex: 1;
+    }
+    .psc-file-pages {
+      font-size: 0.75em;
+      color: #6b7280;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-left: 8px;
+    }
+    
+    /* Price Badge in payment card */
+    .price-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 16px;
+      font-size: 0.68em;
+      font-weight: 700;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .price-badge.hidden {
+      display: none !important;
+    }
+    .badge-standard {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+    .badge-bulk {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      color: #92400e;
+      border: 1px solid #fbbf24;
+      animation: pulseWarm 2s ease-in-out infinite;
+    }
+    @keyframes pulseWarm {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+    }
+    
+    /* Savings Display */
+    .savings-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      border: 1px solid #6ee7b7;
+      border-radius: 10px;
+      margin: 8px 0;
+    }
+    .savings-display.hidden {
+      display: none !important;
+    }
+    .savings-amount {
+      font-size: 0.85em;
+      font-weight: 800;
+      color: #065f46;
+    }
+    .savings-badge {
+      display: inline-block;
+      font-size: 0.68em;
+      color: #16a34a;
+      font-weight: 700;
+      background: rgba(22, 163, 74, 0.1);
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 4px;
+    }
   </style>
 </head>
 <body>
@@ -370,6 +793,63 @@
 
       <div class="review-items" id="reviewItems"></div>
 
+      <!-- Bulk Discount Banner (hidden by default) -->
+      <div id="bulkDiscountBanner" class="bulk-discount-banner hidden"></div>
+
+      <!-- Premium Order Summary Card -->
+      <div id="premiumSummaryCard" class="premium-summary-card hidden">
+        <div class="psc-header">
+          <span class="psc-title">Order Summary</span>
+          <span class="psc-subtitle">Smart pricing with automatic bulk discount</span>
+        </div>
+        <div class="psc-files">
+          <h5>Uploaded Files</h5>
+          <div id="pscFileList"></div>
+        </div>
+        <div class="psc-divider"></div>
+        <div class="psc-metrics">
+          <div class="psc-metric">
+            <span class="psc-metric-label">Total PDF Pages</span>
+            <span class="psc-metric-value" id="pscTotalPages">0</span>
+          </div>
+          <div class="psc-metric">
+            <span class="psc-metric-label">Print Type</span>
+            <span class="psc-metric-value" id="pscPrintType">—</span>
+          </div>
+          <div class="psc-metric">
+            <span class="psc-metric-label">Total Physical Sheets</span>
+            <span class="psc-metric-value" id="pscTotalSheets">0</span>
+          </div>
+        </div>
+        <div class="psc-divider"></div>
+        <div class="psc-pricing">
+          <h5>Pricing Breakdown</h5>
+          <div class="psc-price-row">
+            <span class="psc-price-label">First 20 Sheets × ₹5</span>
+            <span class="psc-price-value" id="pscFirst20Cost">₹0</span>
+          </div>
+          <div class="psc-price-row" id="pscRemainingRow" style="display:none;">
+            <span class="psc-price-label">Remaining <span id="pscRemainingSheets">0</span> Sheets × ₹3</span>
+            <span class="psc-price-value" id="pscRemainingCost">₹0</span>
+          </div>
+          <div class="psc-divider"></div>
+          <div class="psc-price-row psc-total">
+            <span class="psc-price-label">Final Total</span>
+            <span class="psc-price-value" id="pscFinalTotal">₹0</span>
+          </div>
+        </div>
+        <div class="psc-savings" id="pscSavings" style="display:none;">
+          <span class="savings-icon">🎉</span>
+          <span class="savings-text">You Saved <span id="pscSavingsAmount">₹0</span> 🎉</span>
+        </div>
+        <div class="psc-badges" id="pscBadges"></div>
+      </div>
+
+      <!-- Bulk Discount Banner -->
+      <div id="bulkDiscountBanner" class="bulk-discount-banner hidden"></div>
+
+
+
       <div class="summary-card">
         <div class="summary-row">
           <span class="sr-label"><i data-lucide="droplets" style="width:14px;height:14px;"></i> <span data-i18n="printType">Print Type</span></span>
@@ -424,10 +904,13 @@
           <div class="rpc-methods">
             <span>💳 Cards</span><span>📱 UPI</span><span>🏦 Net Banking</span><span>👛 Wallets</span>
           </div>
-          <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            Pay ₹<span id="btnRazorpayAmount">0</span>
-          </button>
+          <div class="rpc-btn-wrapper">
+            <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Pay ₹<span id="btnRazorpayAmount">0</span>
+            </button>
+            <div id="priceBadge" class="price-badge hidden"></div>
+          </div>
         </div>
         <div class="rpc-footer">
           <span>🔒 Secured by Razorpay</span>
@@ -1105,6 +1588,31 @@
       if(typeof window.qpPreview==='function') window.qpPreview();
     }
 
+    function countPagesInRange(rangeStr, maxPages) {
+      if (rangeStr === 'all') return maxPages;
+      var trimmed = rangeStr.replace(/\s/g, '');
+      if (!trimmed) return maxPages;
+      var parts = trimmed.split(',');
+      var seen = {};
+      var count = 0;
+      for (var pi = 0; pi < parts.length; pi++) {
+        var part = parts[pi];
+        if (/^(\d+)$/.test(part)) {
+          var n = parseInt(part, 10);
+          if (n >= 1 && n <= maxPages && !seen[n]) { seen[n] = true; count++; }
+        } else if (/^(\d+)-(\d+)$/.test(part)) {
+          var match = part.match(/^(\d+)-(\d+)$/);
+          var start = parseInt(match[1], 10);
+          var end = parseInt(match[2], 10);
+          if (start > end) { var tmp = start; start = end; end = tmp; }
+          for (var pi2 = start; pi2 <= end; pi2++) {
+            if (pi2 >= 1 && pi2 <= maxPages && !seen[pi2]) { seen[pi2] = true; count++; }
+          }
+        }
+      }
+      return count || maxPages;
+    }
+
     function updatePrice() {
       var allRadio = document.querySelector('input[name="pageRange"][value="all"]');
       var customRadio = document.querySelector('input[name="pageRange"][value="custom"]');
@@ -1118,31 +1626,6 @@
       var totalPages = 0;
       var totalSheets = 0;
 
-      function countPagesInRange(rangeStr, maxPages) {
-        if (rangeStr === 'all') return maxPages;
-        var trimmed = rangeStr.replace(/\s/g, '');
-        if (!trimmed) return maxPages;
-        var parts = trimmed.split(',');
-        var seen = {};
-        var count = 0;
-        for (var pi = 0; pi < parts.length; pi++) {
-          var part = parts[pi];
-          if (/^(\d+)$/.test(part)) {
-            var n = parseInt(part, 10);
-            if (n >= 1 && n <= maxPages && !seen[n]) { seen[n] = true; count++; }
-          } else if (/^(\d+)-(\d+)$/.test(part)) {
-            var match = part.match(/^(\d+)-(\d+)$/);
-            var start = parseInt(match[1], 10);
-            var end = parseInt(match[2], 10);
-            if (start > end) { var tmp = start; start = end; end = tmp; }
-            for (var pi2 = start; pi2 <= end; pi2++) {
-              if (pi2 >= 1 && pi2 <= maxPages && !seen[pi2]) { seen[pi2] = true; count++; }
-            }
-          }
-        }
-        return count || maxPages;
-      }
-
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var maxP = sf.pages || 1;
@@ -1154,9 +1637,19 @@
         totalSheets += sheets;
       }
 
-      var perPage = selectedPrintType === 'bw' ? 5 : 10;
-      var basePrice = totalSheets * perPage;
-      var totalPrice = basePrice * copiesCount;
+      // Tiered pricing: First 20 sheets at ₹5, remaining at ₹3 (applies to TOTAL sheets across ALL copies)
+      var calculateTieredPrice = function(sheets) {
+        if (sheets <= 20) return sheets * 5;
+        return 20 * 5 + (sheets - 20) * 3;
+      };
+
+      var totalSheetsAllCopies = totalSheets * copiesCount;
+      var totalPrice = calculateTieredPrice(totalSheetsAllCopies);
+      
+      // Calculate savings compared to standard ₹5/sheet pricing
+      var standardPrice = totalSheetsAllCopies * 5;
+      var savings = Math.max(0, standardPrice - totalPrice);
+      var isBulk = totalSheetsAllCopies > 20;
 
       var rangeLabel = '';
       if (selectedPageRange !== 'all') {
@@ -1166,13 +1659,95 @@
       if (selectedPrintSide === 'both') {
         bd += ' → ' + totalSheets + ' sheet' + (totalSheets !== 1 ? 's' : '');
       }
-      bd += ' × ₹' + perPage + ' × ' + copiesCount + ' copy' + (copiesCount !== 1 ? 'ies' : '');
+      bd += ' × ' + copiesCount + ' copy' + (copiesCount !== 1 ? 'ies' : '');
       document.getElementById('livePriceDisplay').textContent = '\u20B9' + totalPrice;
       document.getElementById('priceBreakdown').textContent = bd;
       var bp = document.getElementById('qpBottomPrice'); if (bp) bp.textContent = '\u20B9' + totalPrice;
       var bpg = document.getElementById('qpBottomPages'); if (bpg) bpg.textContent = 'Total ' + totalPages + ' page' + (totalPages !== 1 ? 's' : '');
 
+      // Update bulk discount banner
+      updateBulkDiscountBanner(totalSheetsAllCopies, totalPrice, savings, isBulk);
+      
+      // Update price badge
+      updatePriceBadge(isBulk);
+      
+      // Update savings display
+      updateSavingsDisplay(savings, isBulk);
+
+      // Store for review step
+      window.currentPricing = {
+        totalPages: totalPages,
+        totalSheets: totalSheets,
+        totalSheetsAllCopies: totalSheetsAllCopies,
+        totalPrice: totalPrice,
+        savings: savings,
+        isBulk: isBulk,
+        priceBeforeDiscount: totalSheetsAllCopies * 5
+      };
+
       return totalPrice;
+    }
+
+    // Update bulk discount banner visibility and content
+    function updateBulkDiscountBanner(totalSheets, totalPrice, savings, isBulk) {
+      var banner = document.getElementById('bulkDiscountBanner');
+      if (!banner) return;
+      
+      if (isBulk && totalSheets > 20) {
+        var remainingSheets = totalSheets - 20;
+        var first20Cost = 20 * 5;
+        var remainingCost = remainingSheets * 3;
+        
+        banner.innerHTML = 
+          '<div class="bulk-discount-content">' +
+            '<div class="bulk-icon">🎉</div>' +
+            '<div class="bulk-text">' +
+              '<h4>Bulk Discount Applied</h4>' +
+              '<p>Congratulations! Your order qualifies for discounted pricing.</p>' +
+              '<div class="bulk-pricing">' +
+                '<span class="pricing-row"><span>✅ First 20 Sheets</span><span>₹5/sheet</span></span>' +
+                '<span class="pricing-row"><span>✅ Remaining ' + (totalSheets - 20) + ' Sheets</span><span>₹3/sheet</span></span>' +
+              '</div>' +
+              '<div class="bulk-total">Estimated Total: <strong>\u20B9' + totalPrice + '</strong></div>' +
+            '</div>' +
+          '</div>';
+        banner.classList.remove('hidden');
+        banner.classList.add('visible');
+      } else {
+        banner.classList.add('hidden');
+        banner.classList.remove('visible');
+      }
+    }
+
+    // Update price badge near payment button
+    function updatePriceBadge(isBulk) {
+      var badge = document.getElementById('priceBadge');
+      if (!badge) return;
+      
+      if (isBulk) {
+        badge.innerHTML = '<span class="badge-bulk">🔥 Bulk Discount Applied</span>';
+        badge.className = 'price-badge bulk';
+      } else {
+        badge.innerHTML = '<span class="badge-standard">🟢 Standard Pricing</span>';
+        badge.className = 'price-badge standard';
+      }
+      badge.classList.remove('hidden');
+    }
+
+    // Update savings display
+    function updateSavingsDisplay(savings, isBulk) {
+      var savingsEl = document.getElementById('savingsDisplay');
+      if (!savingsEl) return;
+      
+      if (savings > 0) {
+        savingsEl.innerHTML = '<span class="savings-amount">🎉 You Saved \u20B9' + savings + '</span>' +
+          (isBulk ? '<span class="savings-badge">🔥 Best Value · 💰 Bulk Discount · 🎉 Save More</span>' : '');
+        savingsEl.classList.remove('hidden');
+        savingsEl.classList.add('visible');
+      } else {
+        savingsEl.classList.add('hidden');
+        savingsEl.classList.remove('visible');
+      }
     }
 
     function goToSettings() {
@@ -1250,7 +1825,89 @@
       document.getElementById('btnRazorpayAmount').textContent = totalPrice;
 
       showStep('stepReview');
-    }
+
+      // Populate premium order summary card
+      populatePremiumSummary();
+}
+ 
+     // Populate premium order summary card
+     function populatePremiumSummary() {
+       var pricing = window.currentPricing;
+       if (!pricing) return;
+       
+       var totalPages = pricing.totalPages;
+       var totalSheets = pricing.totalSheets;
+       var totalSheetsAllCopies = pricing.totalSheetsAllCopies || (pricing.totalSheets * copiesCount);
+       var totalPrice = pricing.totalPrice;
+       var savings = pricing.savings;
+       var isBulk = pricing.isBulk;
+       var priceBeforeDiscount = pricing.priceBeforeDiscount;
+       
+       // Show premium summary card
+       var psc = document.getElementById('premiumSummaryCard');
+       if (psc) psc.classList.remove('hidden');
+       
+       // Populate file list
+       var fileList = document.getElementById('pscFileList');
+       if (fileList) {
+         var html = '';
+         for (var i = 0; i < selectedFiles.length; i++) {
+           var sf = selectedFiles[i];
+           var maxP = sf.pages || 1;
+           if (!maxP || maxP < 1) maxP = 1;
+           var p = countPagesInRange(selectedPageRange, maxP);
+           var sheets = selectedPrintSide === 'both' ? Math.ceil(p / 2) : p;
+           html += '<div class="psc-file-item"><span class="psc-file-name">' + (sf.file.name || 'file') + '</span><span class="psc-file-pages">' + p + ' page' + (p !== 1 ? 's' : '') + ' → ' + sheets + ' sheet' + (sheets !== 1 ? 's' : '') + '</span></div>';
+         }
+         fileList.innerHTML = html;
+       }
+       
+       // Populate metrics
+       document.getElementById('pscTotalPages').textContent = totalPages;
+       document.getElementById('pscPrintType').textContent = selectedPrintType === 'bw' ? 'Black & White' : 'Color';
+       document.getElementById('pscTotalSheets').textContent = totalSheetsAllCopies + ' (' + totalSheets + ' sheets × ' + copiesCount + ' copy' + (copiesCount !== 1 ? 'ies' : '') + ')';
+       
+       // Calculate pricing breakdown using TOTAL sheets across all copies
+       var totalSheetsForPricing = pricing.totalSheetsAllCopies || (pricing.totalSheets * copiesCount);
+       var first20Sheets = Math.min(totalSheetsAllCopies, 20);
+       var remainingSheets = Math.max(0, totalSheetsAllCopies - 20);
+       var first20Cost = first20Sheets * 5;
+       var remainingCost = remainingSheets * 3;
+       
+       document.getElementById('pscFirst20Cost').textContent = '\u20B9' + first20Cost;
+       
+       var remainingRow = document.getElementById('pscRemainingRow');
+       if (remainingSheets > 0) {
+         remainingRow.style.display = 'flex';
+         document.getElementById('pscRemainingSheets').textContent = remainingSheets;
+         document.getElementById('pscRemainingCost').textContent = '\u20B9' + remainingCost;
+       } else {
+         remainingRow.style.display = 'none';
+       }
+       
+       document.getElementById('pscFinalTotal').textContent = '\u20B9' + totalPrice;
+       
+       // Show savings
+       var savingsEl = document.getElementById('pscSavings');
+       if (savings > 0) {
+         savingsEl.style.display = 'flex';
+         document.getElementById('pscSavingsAmount').textContent = savings;
+       } else {
+         savingsEl.style.display = 'none';
+       }
+       
+       // Show badges
+       var badges = document.getElementById('pscBadges');
+       var badgeHtml = '';
+       if (isBulk) {
+         badgeHtml += '<span class="psc-badge bulk">🔥 Best Value</span>';
+         badgeHtml += '<span class="psc-badge bulk">💰 Bulk Discount</span>';
+         badgeHtml += '<span class="psc-badge bulk">🎉 Save More</span>';
+       } else {
+         badgeHtml += '<span class="psc-badge standard">🟢 Standard Pricing</span>';
+       }
+       badges.innerHTML = badgeHtml;
+     }
 
     function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
@@ -2957,13 +3614,9 @@ window.qpPreview = function() {
           el = document.getElementById('qpBottomPrice'); if (el) el.textContent = '₹0';
           return;
         }
-        var tp = 0;
-        for (var i = 0; i < selectedFiles.length; i++) tp += selectedFiles[i].pages || 1;
         var pr = document.getElementById('livePriceDisplay');
         var pt = pr ? pr.textContent : '₹0';
-        var el;
-        el = document.getElementById('qpBottomPages'); if (el) el.textContent = 'Total ' + tp + ' page' + (tp !== 1 ? 's' : '');
-        el = document.getElementById('qpBottomPrice'); if (el) el.textContent = pt;
+        var el = document.getElementById('qpBottomPrice'); if (el) el.textContent = pt;
       } catch(e) {}
     };
 

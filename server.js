@@ -185,7 +185,20 @@ app.post('/api/upload', (req, res) => {
 
       const orders = [];
       let totalPrice = 0;
+      let totalSheets = 0;
+      let totalPdfPages = 0;
 
+      // Helper function for tiered pricing
+      function calculateTieredPrice(sheets) {
+        if (sheets <= 20) {
+          return sheets * 5;
+        } else {
+          return 20 * 5 + (sheets - 20) * 3;
+        }
+      }
+
+      // First pass: calculate sheets per file
+      const fileSheets = [];
       for (const file of files) {
         const ext = path.extname(file.originalname).toLowerCase();
         let pages = await getPageCount(file.path, ext);
@@ -201,11 +214,41 @@ app.post('/api/upload', (req, res) => {
           effectivePages = countPagesInRange(pageRange, pages);
         }
         const sheets = printSide === 'both' ? Math.ceil(effectivePages / 2) : effectivePages;
-        const basePrice = printType === 'bw' ? sheets * 5 : sheets * 10;
-        const price = basePrice * copyCount;
-        const id = uuidv4();
+        
+        fileSheets.push({ file, pages, effectivePages, sheets });
+        totalSheets += sheets;
+        totalPdfPages += effectivePages;
+      }
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all');
+      // Calculate total price with tiered pricing on TOTAL sheets × copies
+      const totalSheetsWithCopies = totalSheets * copyCount;
+      const totalTieredPrice = calculateTieredPrice(totalSheetsWithCopies);
+      
+      // Calculate price before discount (as if all sheets at ₹5)
+      const totalPriceBeforeDiscount = totalSheetsWithCopies * 5;
+      const totalDiscountAmount = Math.max(0, totalPriceBeforeDiscount - totalTieredPrice);
+
+      // Distribute price proportionally to each file based on their sheet count
+      let totalDistributedPrice = 0;
+      for (let i = 0; i < fileSheets.length; i++) {
+        const { file, pages, effectivePages, sheets } = fileSheets[i];
+        const id = uuidv4();
+        
+        // Proportional price allocation
+        let price;
+        if (i === fileSheets.length - 1) {
+          // Last file gets remainder to avoid rounding errors
+          price = totalTieredPrice - totalDistributedPrice;
+        } else {
+          price = Math.round(totalTieredPrice * (sheets / totalSheets));
+        }
+        totalDistributedPrice += price;
+
+        // Proportional discount allocation
+        const filePriceBeforeDiscount = sheets * copyCount * 5;
+        const fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / totalPriceBeforeDiscount));
+
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard');
 
         orders.push({
           orderId: id,
@@ -213,7 +256,11 @@ app.post('/api/upload', (req, res) => {
           pageCount: pages,
           sheets,
           fileName: file.originalname,
-          copies: copyCount
+          copies: copyCount,
+          effectivePages,
+          priceBeforeDiscount: filePriceBeforeDiscount,
+          discountAmount: fileDiscountAmount,
+          pricingType: totalSheetsWithCopies > 20 ? 'bulk' : 'standard'
         });
         totalPrice += price;
       }
@@ -221,6 +268,8 @@ app.post('/api/upload', (req, res) => {
       res.json({
         orders,
         totalPrice,
+        totalSheets,
+        totalPdfPages,
         customerName,
         mobileNumber,
         orderNotes,
@@ -427,22 +476,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
     // Save selected printer to order
     db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, req.params.id);
 
-    try {
-      const printers = await getPrinters();
-      const hasPrinter = printers.some(function(p) { return p.name === printer; });
-      if (hasPrinter) {
-        if (order.is_id_copy && order.back_file_path) {
-          const frontPath = path.join(__dirname, 'uploads', order.file_path);
-          const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
-          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
-        } else {
-          const frontPath = path.join(__dirname, 'uploads', order.file_path);
-          await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
-        }
-      }
-    } catch (e) {}
+    // Printing is handled by local-printer.js which polls for accepted orders
 
     res.json({ success: true, message: 'Order accepted' });
   } catch (err) {

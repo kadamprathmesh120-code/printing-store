@@ -64,10 +64,20 @@ try {
       mobile_number TEXT,
       order_notes TEXT,
       orientation TEXT NOT NULL DEFAULT 'portrait',
-      page_range TEXT DEFAULT 'all'
+      page_range TEXT DEFAULT 'all',
+      total_pdf_pages INTEGER NOT NULL DEFAULT 0,
+      total_sheets INTEGER NOT NULL DEFAULT 0,
+      price_before_discount REAL NOT NULL DEFAULT 0,
+      discount_amount REAL NOT NULL DEFAULT 0,
+      pricing_type TEXT DEFAULT 'standard'
     )
   `);
-  db.exec(`INSERT INTO orders_new SELECT * FROM orders`);
+  db.exec(`INSERT INTO orders_new SELECT 
+    id, customer_name, file_name, file_path, page_count, print_type, print_side, price, status, created_at,
+    print_side, payment_method, razorpay_order_id, is_id_copy, back_file_name, back_file_path, back_enabled,
+    copies, printer_name, mobile_number, order_notes, orientation, page_range,
+    0, 0, 0, 0, 'standard'
+    FROM orders`);
   db.exec(`DROP TABLE orders`);
   db.exec(`ALTER TABLE orders_new RENAME TO orders`);
 } catch (e) {}
