@@ -38,8 +38,16 @@ try { db.exec(`ALTER TABLE orders ADD COLUMN mobile_number TEXT`); } catch (e) {
 try { db.exec(`ALTER TABLE orders ADD COLUMN order_notes TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN orientation TEXT NOT NULL DEFAULT 'portrait'`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN page_range TEXT DEFAULT 'all'`); } catch (e) {}
+
+// Add pricing columns (may already exist from migration, so wrap in try-catch)
+try { db.exec(`ALTER TABLE orders ADD COLUMN total_pdf_pages INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN total_sheets INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN price_before_discount REAL NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN pricing_type TEXT DEFAULT 'standard'`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN effective_pages INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+
 try {
-  // Add payment_failed to status check constraint (SQLite doesn't support ALTER CHECK, so we recreate table)
   db.exec(`
     CREATE TABLE IF NOT EXISTS orders_new (
       id TEXT PRIMARY KEY,
@@ -52,7 +60,6 @@ try {
       price REAL NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'accepted', 'rejected', 'payment_failed')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      print_side TEXT NOT NULL DEFAULT 'single' CHECK(print_side IN ('single', 'both')),
       payment_method TEXT NOT NULL DEFAULT 'razorpay' CHECK(payment_method IN ('razorpay', 'cash')),
       razorpay_order_id TEXT,
       is_id_copy INTEGER NOT NULL DEFAULT 0,
@@ -69,14 +76,15 @@ try {
       total_sheets INTEGER NOT NULL DEFAULT 0,
       price_before_discount REAL NOT NULL DEFAULT 0,
       discount_amount REAL NOT NULL DEFAULT 0,
-      pricing_type TEXT DEFAULT 'standard'
+      pricing_type TEXT DEFAULT 'standard',
+      effective_pages INTEGER NOT NULL DEFAULT 0
     )
   `);
   db.exec(`INSERT INTO orders_new SELECT 
     id, customer_name, file_name, file_path, page_count, print_type, print_side, price, status, created_at,
-    print_side, payment_method, razorpay_order_id, is_id_copy, back_file_name, back_file_path, back_enabled,
+    payment_method, razorpay_order_id, is_id_copy, back_file_name, back_file_path, back_enabled,
     copies, printer_name, mobile_number, order_notes, orientation, page_range,
-    0, 0, 0, 0, 'standard'
+    0, 0, 0, 0, 'standard', 0
     FROM orders`);
   db.exec(`DROP TABLE orders`);
   db.exec(`ALTER TABLE orders_new RENAME TO orders`);
