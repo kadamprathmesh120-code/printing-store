@@ -341,17 +341,15 @@
 
     function acceptOrder(id) {
       if (!confirm('Accept this order?')) return;
-      var pw = window.open('', '_blank');
       var printer = getBwPrinter();
-      pw.document.write('<p style="font-family:sans-serif;text-align:center;margin-top:50px;color:#888;">Printing to ' + printer + '...</p>');
       fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ printer: printer }) })
         .then(r => r.json())
         .then(data => {
-          if (data.error) { pw.close(); alert(data.error); return; }
+          if (data.error) { alert(data.error); return; }
           fetchOrders();
-          setTimeout(function() { pw.location.href = '/print/' + id; }, 1000);
+          alert('Order accepted. The local printer agent (local-printer.js) will print it shortly with the correct copies.');
         })
-        .catch(function() { pw.close(); alert('Failed'); });
+        .catch(function() { alert('Failed'); });
     }
 
     function rejectOrder(id) {
