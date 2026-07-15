@@ -179,8 +179,8 @@ app.post('/api/upload', (req, res) => {
       const copyCount = parseInt(copies) || 1;
       const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orders = [];
