@@ -111,6 +111,10 @@ console.log('Local printer agent started');
 console.log('Polling:', RENDER_URL);
 console.log('B&W printer:', BW_PRINTER);
 console.log('Color printer:', COLOR_PRINTER);
+console.log('Downloads dir:', DOWNLOAD_DIR);
+console.log('Tracking file:', TRACKING_FILE);
+console.log('Already printed:', Object.keys(printed).length, 'orders');
+try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); console.log('Downloads dir ready'); } catch(e) { console.error('Failed to create downloads dir:', e.message); }
 console.log('Checking every 10 seconds...\n');
 checkAndPrint();
 setInterval(checkAndPrint, 10000);
