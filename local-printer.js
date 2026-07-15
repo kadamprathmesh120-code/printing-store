@@ -55,11 +55,16 @@ function downloadFile(url, dest) {
 async function checkAndPrint() {
   try {
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
+    var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !printed[o.id]; });
+    if (orders.length > 0) {
+      console.log('Found', orders.length, 'total orders,', acceptedOrders.length, 'to print');
+    }
     for (var i = 0; i < orders.length; i++) {
       var order = orders[i];
       if (order.status === 'accepted' && !printed[order.id]) {
-        console.log('New order:', order.file_name, '-', order.customer_name);
         var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
+        console.log('New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
+        console.log('Downloading:', fileUrl);
         var ext = path.extname(order.file_name).toLowerCase();
         var localFile = path.join(DOWNLOAD_DIR, order.file_path);
 
@@ -98,6 +103,7 @@ async function checkAndPrint() {
     }
   } catch (e) {
     console.error('Error:', e.message);
+    if (e.stack) console.error('Stack:', e.stack.split('\n').slice(0,3).join('\n'));
   }
 }
 
