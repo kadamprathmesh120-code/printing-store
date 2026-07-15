@@ -367,7 +367,8 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
       paperSize: 'A4'
     };
     if (pageRange && pageRange !== 'all') opts.pages = pageRange;
-    if (copies && copies > 1) opts.copies = copies;
+    // Always pass copies (even 1) to override printer driver defaults
+    if (copies) opts.copies = copies;
     await printPdf(filePath, opts);
   } else if (isImage) {
     await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '"');

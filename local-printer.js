@@ -82,7 +82,8 @@ async function checkAndPrint() {
         } else if (isPdf) {
           var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
-          if (order.copies && order.copies > 1) pdfOpts.copies = order.copies;
+          // Always pass copies (even 1) to override printer driver defaults
+          if (order.copies) pdfOpts.copies = order.copies;
           await print(localFile, pdfOpts);
         } else if (isImage) {
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
