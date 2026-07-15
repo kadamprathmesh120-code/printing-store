@@ -99,7 +99,7 @@ const upload = multer({
       cb(new Error(`File type ${ext} not allowed`));
     }
   },
-  limits: { fileSize: 50 * 1024 * 1024 }
+  limits: { fileSize: 100 * 1024 * 1024 }
 });
 
 app.use(express.json());
@@ -476,7 +476,22 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
     // Save selected printer to order
     db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, req.params.id);
 
-    // Printing is handled by local-printer.js which polls for accepted orders
+    // Try direct print (for local server), falls back to local-printer.js polling
+    try {
+      const printers = await getPrinters();
+      const hasPrinter = printers.some(p => p.name === printer);
+      if (hasPrinter) {
+        if (order.is_id_copy && order.back_file_path) {
+          const frontPath = path.join(__dirname, 'uploads', order.file_path);
+          const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+        } else {
+          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+        }
+      }
+    } catch (e) {}
 
     res.json({ success: true, message: 'Order accepted' });
   } catch (err) {
@@ -654,7 +669,7 @@ app.get('/api/upi-qr', async (req, res) => {
   }
 });
 
-const idcUpload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }).fields([
+const idcUpload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } }).fields([
   { name: 'front', maxCount: 1 },
   { name: 'back', maxCount: 1 }
 ]);
