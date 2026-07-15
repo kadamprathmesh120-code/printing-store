@@ -128,6 +128,32 @@ async function getPageCount(filePath, ext) {
   return null;
 }
 
+// Count how many pages are selected in a page-range string like "1", "1-3", "1,3,5"
+function countPagesInRange(rangeStr, maxPages) {
+  if (!rangeStr || rangeStr === 'all') return maxPages;
+  var trimmed = rangeStr.replace(/\s/g, '');
+  if (!trimmed) return maxPages;
+  var parts = trimmed.split(',');
+  var count = 0;
+  for (var pi = 0; pi < parts.length; pi++) {
+    var part = parts[pi];
+    if (part.indexOf('-') !== -1) {
+      var rangeParts = part.split('-');
+      var start = parseInt(rangeParts[0], 10);
+      var end = parseInt(rangeParts[1], 10);
+      if (!isNaN(start) && !isNaN(end)) {
+        var from = Math.max(1, start);
+        var to = Math.min(maxPages, end);
+        if (to >= from) count += to - from + 1;
+      }
+    } else {
+      var page = parseInt(part, 10);
+      if (!isNaN(page) && page >= 1 && page <= maxPages) count++;
+    }
+  }
+  return Math.max(1, count);
+}
+
 const uploadMw = upload.array('files', 20);
 app.post('/api/upload', (req, res) => {
   uploadMw(req, res, async function(err) {
@@ -169,7 +195,12 @@ app.post('/api/upload', (req, res) => {
 
         if (!pages || pages < 1) pages = 1;
 
-        const sheets = printSide === 'both' ? Math.ceil(pages / 2) : pages;
+        // Use page range to determine effective page count for pricing
+        var effectivePages = pages;
+        if (pageRange && pageRange !== 'all') {
+          effectivePages = countPagesInRange(pageRange, pages);
+        }
+        const sheets = printSide === 'both' ? Math.ceil(effectivePages / 2) : effectivePages;
         const basePrice = printType === 'bw' ? sheets * 5 : sheets * 10;
         const price = basePrice * copyCount;
         const id = uuidv4();
