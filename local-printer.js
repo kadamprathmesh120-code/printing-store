@@ -87,9 +87,11 @@ async function checkAndPrint() {
         } else if (isPdf) {
           var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
-          // Always pass copies (even 1) to override printer driver defaults
-          if (order.copies) pdfOpts.copies = order.copies;
-          await print(localFile, pdfOpts);
+          var copiesToPrint = Math.max(1, order.copies || 1);
+          for (var c = 0; c < copiesToPrint; c++) {
+            await print(localFile, pdfOpts);
+          }
+          console.log('Printed', copiesToPrint, 'copy' + (copiesToPrint > 1 ? 'ies' : '') + ' to', printer);
         } else if (isImage) {
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
         } else {
@@ -115,6 +117,10 @@ console.log('Downloads dir:', DOWNLOAD_DIR);
 console.log('Tracking file:', TRACKING_FILE);
 console.log('Already printed:', Object.keys(printed).length, 'orders');
 try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); console.log('Downloads dir ready'); } catch(e) { console.error('Failed to create downloads dir:', e.message); }
-console.log('Checking every 10 seconds...\n');
+console.log('');
+console.log('IMPORTANT: If the Konica printer prints extra copies, run this ONCE as Admin:');
+console.log('  Set-PrintConfiguration -PrinterName "' + BW_PRINTER + '" -CopyCount 1');
+console.log('');
+console.log('Checking every 10 seconds...');
 checkAndPrint();
 setInterval(checkAndPrint, 10000);
