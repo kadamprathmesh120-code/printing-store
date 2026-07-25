@@ -503,22 +503,9 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Admin Auth Middleware — protects all /api/admin/* routes below this point.
-// The login, verify, and logout routes are defined ABOVE this middleware
-// so they remain accessible without a token.
+// Public /api/admin/* endpoints (accessible without admin token — for
+// local-printer.js agent and Razorpay auto-print setting)
 // ---------------------------------------------------------------------------
-app.use('/api/admin', (req, res, next) => {
-  // Skip auth for login/verify/logout (already handled above)
-  if (req.path === '/login' || req.path === '/verify' || req.path === '/logout') {
-    return next();
-  }
-  const token = req.headers['x-admin-token'];
-  if (!token || !activeAdminTokens.has(token)) {
-    return res.status(401).json({ error: 'Not authenticated. Please log in.' });
-  }
-  next();
-});
-
 app.get('/api/admin/orders', (req, res) => {
   try {
     const orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
@@ -528,13 +515,12 @@ app.get('/api/admin/orders', (req, res) => {
   }
 });
 
-// Auto Print status (for local printer agent polling)
 app.get('/api/admin/autoprint', (req, res) => {
   try {
     const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('autoprint_enabled');
     res.json({ enabled: row ? row.value === '1' : true });
   } catch (err) {
-    res.json({ enabled: true }); // default ON
+    res.json({ enabled: true });
   }
 });
 
@@ -548,13 +534,12 @@ app.post('/api/admin/autoprint', (req, res) => {
   }
 });
 
-// Razorpay Auto-Print setting (for auto-accept on payment verification)
 app.get('/api/admin/razorpay-autoprint', (req, res) => {
   try {
     const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
     res.json({ enabled: row ? row.value === '1' : true });
   } catch (err) {
-    res.json({ enabled: true }); // default ON
+    res.json({ enabled: true });
   }
 });
 
@@ -566,6 +551,21 @@ app.post('/api/admin/razorpay-autoprint', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Admin Auth Middleware — protects all remaining /api/admin/* routes.
+// Login, verify, logout, and the public endpoints above are exempt.
+// ---------------------------------------------------------------------------
+app.use('/api/admin', (req, res, next) => {
+  if (req.path === '/login' || req.path === '/verify' || req.path === '/logout') {
+    return next();
+  }
+  const token = req.headers['x-admin-token'];
+  if (!token || !activeAdminTokens.has(token)) {
+    return res.status(401).json({ error: 'Not authenticated. Please log in.' });
+  }
+  next();
 });
 
 async function printFile(filePath, fileName, printer, printType, printSide, pageRange, copies) {

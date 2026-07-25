@@ -54,13 +54,6 @@ function downloadFile(url, dest) {
 
 async function checkAndPrint() {
   try {
-    // Check auto print status first
-    var autoPrintStatus = await fetchJson(RENDER_URL + '/api/admin/autoprint');
-    if (!autoPrintStatus.enabled) {
-      console.log('Auto print is OFF — skipping this cycle');
-      return;
-    }
-
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
     var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !printed[o.id]; });
     if (orders.length > 0) {
