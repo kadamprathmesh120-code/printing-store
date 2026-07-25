@@ -75,17 +75,16 @@ async function sendPrinterHeartbeat() {
 
 async function resolvePrinterName(targetName) {
   if (!targetName) return BW_PRINTER;
+  var tName = (targetName || '').toLowerCase();
+  if (tName.includes('205i') || tName.includes('konica')) return BW_PRINTER_DEFAULT;
+  if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER_DEFAULT;
   try {
     var printers = await getPrinters();
     for (var i = 0; i < printers.length; i++) {
       var p = printers[i];
       if (p && p.name) {
         var pName = p.name.toLowerCase();
-        var tName = targetName.toLowerCase();
         if (p.name === targetName || pName.includes(tName) || tName.includes(pName)) return p.name;
-        if ((tName.includes('205i') || tName.includes('konica')) && (pName.includes('205i') || pName.includes('konica'))) return p.name;
-        if (tName.includes('kyocera') && pName.includes('kyocera')) return p.name;
-        if ((tName.includes('hp95224c') || tName.includes('smart tank')) && (pName.includes('hp95224c') || pName.includes('smart tank'))) return p.name;
       }
     }
   } catch (e) {}
