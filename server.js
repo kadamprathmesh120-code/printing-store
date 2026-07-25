@@ -11,7 +11,6 @@ const pdfParse = require('pdf-parse');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const db = require('./db');
-const ADMIN_PASSWORD = require('./admin-password');
 const execP = promisify(exec);
 
 // ---------------------------------------------------------------------------
