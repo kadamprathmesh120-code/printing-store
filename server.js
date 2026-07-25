@@ -610,7 +610,7 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
     const opts = {
       printer, silent: true,
       monochrome: printType === 'bw',
-      side: printSide === 'both' ? 'duplexlong' : 'simplex',
+      side: printSide === 'both' ? 'duplex' : 'simplex',
       paperSize: 'A4'
     };
     if (pageRange && pageRange !== 'all') opts.pages = pageRange;

@@ -132,7 +132,7 @@ async function checkAndPrint() {
           }
           console.log('Printed combined ID copy to', printer);
         } else if (isPdf) {
-          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplexlong' : 'simplex', paperSize: 'A4' };
+          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
           if (copyNum > 1) pdfOpts.copies = copyNum;
           await print(localFile, pdfOpts);
