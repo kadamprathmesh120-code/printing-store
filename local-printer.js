@@ -103,7 +103,6 @@ async function checkAndPrint() {
     for (var i = 0; i < orders.length; i++) {
       var order = orders[i];
       if (order.status === 'accepted' && !tracker.isOrderPrinted(order.id)) {
-        tracker.markOrderPrinted(order.id);
         var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
         console.log('New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
         console.log('Downloading:', fileUrl);
@@ -149,6 +148,7 @@ async function checkAndPrint() {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
         }
 
+        tracker.markOrderPrinted(order.id);
         console.log('Printed:', order.file_name, 'to', printer);
       }
     }
