@@ -13,6 +13,9 @@ const crypto = require('crypto');
 const db = require('./db');
 const execP = promisify(exec);
 
+// Admin password from environment variable (set in Render Dashboard)
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+
 // ---------------------------------------------------------------------------
 // Admin Authentication — simple token-based session
 // Active tokens are stored in memory. They expire when the server restarts
