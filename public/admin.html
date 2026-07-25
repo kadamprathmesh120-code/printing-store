@@ -4,141 +4,1042 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
-  <title>Printing Store - Admin Dashboard</title>
+  <title>Print Kiosk Control Centre — Kadam Xerox</title>
   <link rel="stylesheet" href="style.css?v=2">
   <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body style="background:#f8faf8;">
-<div id="topNotif" class="notif-bar"><span class="notif-text">🙏 For the best print quality, we kindly recommend uploading PDF files and clear, high-resolution images.</span><button class="notif-close" onclick="dismissNotif()">×</button></div>
+  <style>
+    /* ============================================
+       PRINT KIOSK CONTROL CENTRE — Admin Styles
+       ============================================ */
 
-  <!-- Glass Header -->
-  <header class="app-header">
-    <div class="app-header-inner">
-      <div>
-        <h1 style="background:none;-webkit-text-fill-color:#111827;background-clip:unset;display:flex;align-items:center;gap:8px;">
-          <i data-lucide="shield" style="width:20px;height:20px;color:#16A34A;"></i>
-          Admin Dashboard
-        </h1>
-        <p style="-webkit-text-fill-color:#6b7280;">Manage print orders</p>
+    body {
+      margin:0; padding:0;
+      font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background:#f0f4ff;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(37,99,235,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(37,99,235,0.03) 0%, transparent 50%);
+      background-attachment:fixed;
+      min-height:100vh;
+      color:#1e293b;
+      line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+      padding-bottom:40px;
+    }
+
+    /* --- Kiosk Header --- */
+    .kiosk-header {
+      position:sticky; top:0; z-index:100;
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(24px) saturate(180%);
+      -webkit-backdrop-filter:blur(24px) saturate(180%);
+      border-bottom:1px solid rgba(37,99,235,0.08);
+      padding:0 24px;
+      height:64px;
+      display:flex; align-items:center; justify-content:space-between;
+      box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    }
+    .kiosk-logo {
+      display:flex; align-items:center; gap:12px;
+    }
+    .kiosk-logo-icon {
+      width:40px; height:40px; border-radius:12px;
+      background:linear-gradient(135deg,#2563eb,#1d4ed8);
+      color:#fff; font-weight:800; font-size:0.9em;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 2px 8px rgba(37,99,235,0.3);
+    }
+    .kiosk-logo-text h1 {
+      font-size:1em; font-weight:800; color:#1e40af; margin:0; letter-spacing:0.3px;
+    }
+    .kiosk-logo-text p {
+      font-size:0.65em; color:#6b7280; margin:0; font-weight:600; letter-spacing:0.5px; text-transform:uppercase;
+    }
+    .kiosk-header-right {
+      display:flex; align-items:center; gap:16px;
+    }
+    .kiosk-clock {
+      font-size:0.85em; font-weight:600; color:#475569;
+      font-variant-numeric:tabular-nums;
+      display:flex; align-items:center; gap:6px;
+    }
+    .kiosk-clock i { color:#2563eb; }
+    .kiosk-notif-bell {
+      position:relative; cursor:pointer; padding:8px;
+      border-radius:10px; transition:background .15s;
+    }
+    .kiosk-notif-bell:hover { background:rgba(37,99,235,0.06); }
+    .kiosk-notif-bell i { color:#6b7280; }
+    .kiosk-notif-badge {
+      position:absolute; top:2px; right:2px;
+      min-width:18px; height:18px; padding:0 5px;
+      background:#ef4444; color:#fff; border-radius:9px;
+      font-size:0.6em; font-weight:700; line-height:18px;
+      text-align:center; pointer-events:none;
+      animation:notifPop .3s cubic-bezier(.22,1,.36,1);
+    }
+    .kiosk-logout-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      background:#fef2f2; color:#dc2626; border:1.5px solid #fecaca;
+      border-radius:10px; padding:7px 14px; font-size:0.78em;
+      font-weight:600; cursor:pointer; font-family:inherit;
+      transition:all .2s;
+    }
+    .kiosk-logout-btn:hover { background:#fee2e2; border-color:#fca5a5; }
+
+    /* --- Main Container --- */
+    .kiosk-main {
+      max-width:1400px; margin:0 auto; padding:20px 24px;
+    }
+
+    /* --- Alert Banners --- */
+    .kiosk-alert-banner {
+      display:flex; align-items:center; gap:14px;
+      padding:14px 20px; border-radius:14px;
+      margin-bottom:16px; font-size:0.88em;
+      animation:fadeSlideIn .4s ease-out both;
+    }
+    .kiosk-alert-banner.success {
+      background:linear-gradient(135deg,#dcfce7,#d1fae5);
+      border:1.5px solid #86efac; color:#166534;
+    }
+    .kiosk-alert-banner.error {
+      background:linear-gradient(135deg,#fef2f2,#fee2e2);
+      border:1.5px solid #fca5a5; color:#991b1b;
+    }
+    .kiosk-alert-banner.warning {
+      background:linear-gradient(135deg,#fffbeb,#fef3c7);
+      border:1.5px solid #fde68a; color:#92400e;
+    }
+    .kiosk-alert-banner .alert-icon { font-size:1.5em; flex-shrink:0; }
+    .kiosk-alert-banner .alert-content { flex:1; }
+    .kiosk-alert-banner .alert-title { font-weight:700; font-size:0.95em; }
+    .kiosk-alert-banner .alert-desc { font-size:0.82em; opacity:0.85; margin-top:2px; }
+    .kiosk-alert-banner .alert-close {
+      background:none; border:none; cursor:pointer; font-size:1.2em;
+      opacity:0.5; transition:opacity .15s; color:inherit; padding:4px;
+    }
+    .kiosk-alert-banner .alert-close:hover { opacity:1; }
+
+    /* --- Section Headers --- */
+    .kiosk-section-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .kiosk-section-title {
+      display:flex; align-items:center; gap:10px;
+      font-size:1em; font-weight:700; color:#1e293b;
+    }
+    .kiosk-section-title i { color:#2563eb; }
+    .kiosk-section-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:4px 12px; border-radius:20px;
+      font-size:0.72em; font-weight:600;
+      background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;
+    }
+
+    /* --- Status Dashboard Grid --- */
+    .status-grid {
+      display:grid; grid-template-columns:repeat(6, 1fr); gap:14px;
+      margin-bottom:24px;
+    }
+    .status-card {
+      background:#fff; border-radius:16px; padding:20px;
+      border:1px solid rgba(0,0,0,0.04);
+      box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.02);
+      transition:all .25s; position:relative; overflow:hidden;
+    }
+    .status-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    }
+    .status-card:hover { transform:translateY(-2px); box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+    .status-card .sc-icon {
+      width:44px; height:44px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.3em; margin-bottom:12px;
+    }
+    .status-card .sc-value {
+      font-size:1.8em; font-weight:800; line-height:1; margin-bottom:4px;
+      font-variant-numeric:tabular-nums;
+    }
+    .status-card .sc-label {
+      font-size:0.72em; font-weight:600; color:#6b7280; text-transform:uppercase;
+      letter-spacing:0.5px;
+    }
+    .status-card .sc-status {
+      display:inline-flex; align-items:center; gap:4px;
+      font-size:0.72em; font-weight:600; margin-top:8px;
+      padding:3px 8px; border-radius:6px;
+    }
+    .status-card .sc-status .pulse-dot {
+      width:6px; height:6px; border-radius:50%;
+      animation:pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Status card colour variants */
+    .status-card.green::before { background:linear-gradient(90deg,#22c55e,#16a34a); }
+    .status-card.green .sc-icon { background:#dcfce7; color:#16a34a; }
+    .status-card.green .sc-value { color:#16a34a; }
+    .status-card.green .sc-status { background:#f0fdf4; color:#16a34a; }
+    .status-card.green .pulse-dot { background:#22c55e; }
+
+    .status-card.blue::before { background:linear-gradient(90deg,#3b82f6,#2563eb); }
+    .status-card.blue .sc-icon { background:#dbeafe; color:#2563eb; }
+    .status-card.blue .sc-value { color:#2563eb; }
+    .status-card.blue .sc-status { background:#eff6ff; color:#2563eb; }
+    .status-card.blue .pulse-dot { background:#3b82f6; }
+
+    .status-card.purple::before { background:linear-gradient(90deg,#a78bfa,#7c3aed); }
+    .status-card.purple .sc-icon { background:#ede9fe; color:#7c3aed; }
+    .status-card.purple .sc-value { color:#7c3aed; }
+
+    .status-card.amber::before { background:linear-gradient(90deg,#f59e0b,#d97706); }
+    .status-card.amber .sc-icon { background:#fef3c7; color:#d97706; }
+    .status-card.amber .sc-value { color:#d97706; }
+
+    .status-card.red::before { background:linear-gradient(90deg,#ef4444,#dc2626); }
+    .status-card.red .sc-icon { background:#fee2e2; color:#dc2626; }
+    .status-card.red .sc-value { color:#dc2626; }
+
+    .status-card.teal::before { background:linear-gradient(90deg,#14b8a6,#0d9488); }
+    .status-card.teal .sc-icon { background:#ccfbf1; color:#0d9488; }
+    .status-card.teal .sc-value { color:#0d9488; }
+
+    /* --- Printer Panel --- */
+    .printer-grid {
+      display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;
+      margin-bottom:24px;
+    }
+    .printer-card {
+      background:#fff; border-radius:16px; padding:24px;
+      border:1px solid rgba(0,0,0,0.04);
+      box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.02);
+      transition:all .25s; position:relative;
+      border-left:4px solid #d1d5db;
+    }
+    .printer-card.online { border-left-color:#22c55e; }
+    .printer-card.printing { border-left-color:#3b82f6; }
+    .printer-card.busy { border-left-color:#f59e0b; }
+    .printer-card.offline { border-left-color:#ef4444; }
+
+    .printer-card:hover { transform:translateY(-2px); box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+
+    .pc-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .pc-name-row {
+      display:flex; align-items:center; gap:10px;
+    }
+    .pc-icon {
+      width:44px; height:44px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.3em;
+    }
+    .pc-icon.bw { background:#f1f5f9; color:#475569; }
+    .pc-icon.color { background:#faf5ff; color:#7c3aed; }
+    .pc-name { font-size:0.88em; font-weight:700; color:#1e293b; }
+
+    /* --- Active Printer Selector --- */
+    .printer-select-row {
+      display:flex; align-items:center; gap:6px;
+    }
+    .printer-select-btn {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:6px 14px; border-radius:10px;
+      font-size:0.72em; font-weight:700;
+      cursor:pointer; font-family:inherit;
+      transition:all .2s; border:1.5px solid #e5e7eb;
+      background:#fff; color:#6b7280;
+    }
+    .printer-select-btn:hover { border-color:#2563eb; color:#2563eb; }
+    .printer-select-btn.active {
+      background:#2563eb; color:#fff; border-color:#2563eb;
+      box-shadow:0 2px 6px rgba(37,99,235,0.25);
+    }
+    .printer-card.active-printer {
+      box-shadow:0 0 0 2px #2563eb, 0 4px 16px rgba(37,99,235,0.12);
+    }
+    .pc-active-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:3px 10px; border-radius:8px;
+      font-size:0.65em; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.5px;
+      background:#dbeafe; color:#2563eb;
+      margin-top:8px;
+    }
+    .pc-type { font-size:0.68em; color:#6b7280; font-weight:500; }
+    .pc-status-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 12px; border-radius:20px;
+      font-size:0.72em; font-weight:700;
+    }
+    .pc-status-badge.ready { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+    .pc-status-badge.printing { background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; }
+    .pc-status-badge.busy { background:#fffbeb; color:#d97706; border:1px solid #fde68a; }
+    .pc-status-badge.offline { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+
+    .pc-details {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    }
+    .pc-detail-item {
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .pc-detail-label { font-size:0.65em; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; }
+    .pc-detail-value { font-size:0.82em; font-weight:600; color:#374151; }
+
+    .pc-toner-bar {
+      height:6px; background:#f1f5f9; border-radius:3px; overflow:hidden; margin-top:4px;
+    }
+    .pc-toner-fill {
+      height:100%; border-radius:3px; transition:width .5s ease;
+    }
+    .pc-toner-fill.high { background:linear-gradient(90deg,#22c55e,#16a34a); }
+    .pc-toner-fill.medium { background:linear-gradient(90deg,#f59e0b,#d97706); }
+    .pc-toner-fill.low { background:linear-gradient(90deg,#ef4444,#dc2626); }
+
+    /* --- Quick Controls --- */
+    .controls-grid {
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-bottom:24px;
+    }
+    .ctrl-btn {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:14px 22px; border-radius:14px;
+      font-size:0.85em; font-weight:700;
+      cursor:pointer; font-family:inherit;
+      transition:all .2s; border:1.5px solid transparent;
+      min-height:52px;
+      -webkit-tap-highlight-color:transparent;
+      user-select:none;
+    }
+    .ctrl-btn:active { transform:scale(0.97); }
+    .ctrl-btn i { flex-shrink:0; }
+
+    .ctrl-btn.primary {
+      background:#2563eb; color:#fff; border-color:#2563eb;
+      box-shadow:0 2px 8px rgba(37,99,235,0.25);
+    }
+    .ctrl-btn.primary:hover { background:#1d4ed8; box-shadow:0 4px 14px rgba(37,99,235,0.3); }
+
+    .ctrl-btn.secondary {
+      background:#fff; color:#374151; border-color:#e5e7eb;
+      box-shadow:0 1px 3px rgba(0,0,0,0.04);
+    }
+    .ctrl-btn.secondary:hover { background:#f9fafb; border-color:#d1d5db; }
+
+    .ctrl-btn.success {
+      background:#059669; color:#fff; border-color:#059669;
+      box-shadow:0 2px 8px rgba(5,150,105,0.25);
+    }
+    .ctrl-btn.success:hover { background:#047857; }
+
+    .ctrl-btn.warning {
+      background:#f59e0b; color:#fff; border-color:#f59e0b;
+      box-shadow:0 2px 8px rgba(245,158,11,0.25);
+    }
+    .ctrl-btn.warning:hover { background:#d97706; }
+
+    .ctrl-btn.danger {
+      background:#ef4444; color:#fff; border-color:#ef4444;
+      box-shadow:0 2px 8px rgba(239,68,68,0.25);
+    }
+    .ctrl-btn.danger:hover { background:#dc2626; }
+
+    /* --- Settings Panel (collapsible) --- */
+    .settings-panel {
+      background:#fff; border-radius:16px; padding:24px;
+      border:1px solid rgba(0,0,0,0.04);
+      box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.02);
+      margin-bottom:24px;
+      overflow:hidden;
+      max-height:0;
+      opacity:0;
+      transition:max-height .4s ease, opacity .3s ease, padding .3s ease, margin .3s ease;
+      padding:0 24px;
+      margin-bottom:0;
+    }
+    .settings-panel.open {
+      max-height:600px;
+      opacity:1;
+      padding:24px;
+      margin-bottom:24px;
+    }
+
+    /* --- Queue Tabs --- */
+    .queue-tabs {
+      display:flex; gap:4px; background:#f1f5f9; border-radius:14px; padding:4px;
+      margin-bottom:16px;
+    }
+    .queue-tab {
+      flex:1; padding:10px 16px; border:none; border-radius:12px;
+      font-size:0.82em; font-weight:600; cursor:pointer;
+      font-family:inherit; transition:all .25s;
+      background:transparent; color:#6b7280;
+      display:flex; align-items:center; justify-content:center; gap:6px;
+    }
+    .queue-tab.active {
+      background:#fff; color:#2563eb;
+      box-shadow:0 1px 4px rgba(0,0,0,0.08);
+    }
+    .queue-tab .tab-count {
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width:20px; height:20px; padding:0 6px;
+      border-radius:10px; font-size:0.85em; font-weight:700;
+    }
+    .queue-tab.active .tab-count { background:#dbeafe; color:#2563eb; }
+    .queue-tab:not(.active) .tab-count { background:#e2e8f0; color:#64748b; }
+
+    /* --- Order Cards --- */
+    .orders-grid {
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:14px;
+      margin-bottom:24px;
+    }
+    .order-card {
+      background:#fff; border-radius:16px;
+      border:1px solid rgba(0,0,0,0.04);
+      box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.02);
+      transition:all .25s; overflow:hidden;
+      animation:fadeSlideIn .4s ease-out both;
+    }
+    .order-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+    .order-card.cash-highlight { border-color:#fde68a; }
+    .order-card.new-order {
+      border-color:#86efac; box-shadow:0 0 0 2px rgba(34,197,94,0.15);
+    }
+
+    .oc-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px 12px;
+      border-bottom:1px solid #f3f4f6;
+    }
+    .oc-customer {
+      display:flex; align-items:center; gap:10px;
+    }
+    .oc-avatar {
+      width:36px; height:36px; border-radius:10px;
+      background:linear-gradient(135deg,#dbeafe,#bfdbfe);
+      color:#2563eb; font-weight:700; font-size:0.82em;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .oc-name { font-size:0.88em; font-weight:700; color:#1e293b; }
+    .oc-time { font-size:0.68em; color:#9ca3af; font-weight:500; }
+    .oc-notes-icon {
+      cursor:help; color:#6b7280; font-size:0.8em; margin-left:4px;
+    }
+    .oc-status-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 14px; border-radius:20px;
+      font-size:0.72em; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.5px;
+    }
+    .oc-status-badge.paid { background:#dbeafe; color:#2563eb; }
+    .oc-status-badge.accepted { background:#dbeafe; color:#2563eb; }
+    .oc-status-badge.rejected { background:#fee2e2; color:#dc2626; }
+    .oc-status-badge.pending { background:#fef3c7; color:#b45309; }
+    .oc-status-badge.payment_failed { background:#fee2e2; color:#dc2626; }
+
+    .oc-body {
+      padding:16px 20px;
+    }
+    .oc-file-row {
+      display:flex; align-items:center; gap:10px; margin-bottom:12px;
+    }
+    .oc-file-icon {
+      width:40px; height:40px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1em; flex-shrink:0;
+    }
+    .oc-file-icon.pdf { background:#fef3c7; color:#b45309; }
+    .oc-file-icon.image { background:#dbeafe; color:#2563eb; }
+    .oc-file-icon.doc { background:#ede9fe; color:#7c3aed; }
+    .oc-file-icon.other { background:#f1f5f9; color:#475569; }
+    .oc-file-name {
+      font-size:0.82em; font-weight:600; color:#1e293b;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;
+    }
+    .oc-preview-btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:4px;
+      padding:5px 10px; border-radius:8px; border:1px solid #e5e7eb;
+      background:#fff; color:#6b7280; font-size:0.72em; font-weight:600;
+      cursor:pointer; text-decoration:none; transition:all .15s; flex-shrink:0;
+    }
+    .oc-preview-btn:hover { border-color:#2563eb; color:#2563eb; background:#eff6ff; }
+
+    .oc-details-grid {
+      display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;
+      margin-bottom:12px;
+    }
+    .oc-detail {
+      display:flex; flex-direction:column; gap:1px;
+    }
+    .oc-detail-label { font-size:0.62em; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; }
+    .oc-detail-value { font-size:0.8em; font-weight:600; color:#374151; }
+    .oc-detail-value.copies-highlight { color:#2563eb; font-weight:700; }
+
+    .oc-footer {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 20px 16px;
+      gap:8px;
+    }
+    .oc-payment-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:4px 10px; border-radius:8px;
+      font-size:0.7em; font-weight:600;
+    }
+    .oc-payment-badge.razorpay { background:#ede9fe; color:#7c3aed; }
+    .oc-payment-badge.cash { background:#fef3c7; color:#b45309; }
+
+    .oc-price {
+      font-size:1em; font-weight:800; color:#1e293b;
+    }
+
+    .oc-actions {
+      display:flex; gap:6px;
+    }
+    .oc-action-btn {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:8px 16px; border-radius:10px; border:none;
+      font-size:0.78em; font-weight:700; cursor:pointer;
+      font-family:inherit; transition:all .15s;
+      min-height:38px;
+    }
+    .oc-action-btn:active { transform:scale(0.96); }
+    .oc-action-btn.accept { background:#059669; color:#fff; box-shadow:0 2px 6px rgba(5,150,105,0.25); }
+    .oc-action-btn.accept:hover { background:#047857; }
+    .oc-action-btn.reject { background:#fee2e2; color:#dc2626; }
+    .oc-action-btn.reject:hover { background:#fecaca; }
+
+    /* --- Toast Notifications --- */
+    .kiosk-toast-container {
+      position:fixed; top:80px; right:20px; z-index:9999;
+      display:flex; flex-direction:column; gap:8px;
+      max-width:400px; width:calc(100% - 40px);
+      pointer-events:none;
+    }
+    .kiosk-toast {
+      background:#fff; border-radius:14px; padding:16px 20px;
+      box-shadow:0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+      display:flex; align-items:flex-start; gap:14px;
+      transform:translateX(120%); opacity:0;
+      transition:transform .35s cubic-bezier(.22,1,.36,1), opacity .3s ease-out;
+      pointer-events:auto;
+    }
+    .kiosk-toast.show { transform:translateX(0); opacity:1; }
+    .kiosk-toast.success { border-left:4px solid #22c55e; }
+    .kiosk-toast.info { border-left:4px solid #3b82f6; }
+    .kiosk-toast.warning { border-left:4px solid #f59e0b; }
+    .kiosk-toast.error { border-left:4px solid #ef4444; }
+    .kiosk-toast .toast-icon { font-size:1.4em; flex-shrink:0; margin-top:1px; }
+    .kiosk-toast .toast-body { flex:1; min-width:0; }
+    .kiosk-toast .toast-title { font-size:0.85em; font-weight:700; color:#111827; margin-bottom:3px; }
+    .kiosk-toast .toast-detail { font-size:0.82em; color:#374151; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .kiosk-toast .toast-time { font-size:0.68em; color:#9ca3af; margin-top:4px; }
+
+    /* --- Empty State --- */
+    .empty-state {
+      text-align:center; padding:60px 24px; color:#9ca3af;
+    }
+    .empty-state .empty-icon { font-size:3em; margin-bottom:12px; opacity:0.5; }
+    .empty-state h3 { font-size:1em; font-weight:600; color:#6b7280; margin:0 0 6px; }
+    .empty-state p { font-size:0.82em; margin:0; }
+
+    /* --- QR Modal --- */
+    .qr-modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.5);
+      backdrop-filter:blur(8px); z-index:200;
+      display:flex; align-items:center; justify-content:center;
+      animation:fadeIn .2s ease-out;
+    }
+    .qr-modal-card {
+      background:#fff; border-radius:20px; padding:32px;
+      max-width:400px; width:90%;
+      box-shadow:0 20px 60px rgba(0,0,0,0.15);
+      animation:slideUp .3s ease-out;
+      text-align:center;
+    }
+    .qr-modal-card h3 { font-size:1.1em; font-weight:700; color:#1e293b; margin:0 0 16px; }
+    .qr-modal-card img { max-width:260px; border-radius:12px; margin-bottom:12px; }
+    .qr-modal-card .qr-url { font-size:0.75em; color:#6b7280; word-break:break-all; margin:8px 0; }
+    .qr-modal-card .qr-hint { font-size:0.72em; color:#9ca3af; margin-bottom:16px; }
+    .qr-modal-close {
+      padding:10px 24px; border-radius:12px; border:1.5px solid #e5e7eb;
+      background:#fff; color:#374151; font-size:0.85em; font-weight:600;
+      cursor:pointer; font-family:inherit; transition:all .15s;
+    }
+    .qr-modal-close:hover { background:#f9fafb; border-color:#d1d5db; }
+
+    /* --- Loading Overlay --- */
+    .kiosk-loading {
+      position:fixed; inset:0; background:rgba(255,255,255,0.92);
+      z-index:9999; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      transition:opacity .4s;
+    }
+    .kiosk-loading .spinner {
+      width:44px; height:44px;
+      border:4px solid #e5e7eb; border-top-color:#2563eb;
+      border-radius:50%; animation:spin .8s linear infinite;
+      margin-bottom:16px;
+    }
+    .kiosk-loading p { color:#6b7280; font-size:0.88em; font-weight:500; }
+
+    /* --- Printer Offline Banner --- */
+    .printer-offline-banner {
+      display:none; align-items:center; gap:14px;
+      padding:16px 24px; border-radius:14px;
+      background:linear-gradient(135deg,#fef2f2,#fee2e2);
+      border:2px solid #fca5a5; color:#991b1b;
+      margin-bottom:20px;
+      animation:fadeSlideIn .4s ease-out both;
+    }
+    .printer-offline-banner.show { display:flex; }
+    .printer-offline-banner .pob-icon { font-size:2em; }
+    .printer-offline-banner .pob-title { font-weight:700; font-size:1em; }
+    .printer-offline-banner .pob-desc { font-size:0.82em; opacity:0.8; }
+
+    /* --- Animations --- */
+    @keyframes fadeSlideIn {
+      from { opacity:0; transform:translateY(12px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity:0; } to { opacity:1; }
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(24px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+    @keyframes notifPop {
+      0% { transform:scale(0); opacity:0; }
+      60% { transform:scale(1.25); }
+      100% { transform:scale(1); opacity:1; }
+    }
+
+    /* --- Responsive --- */
+    @media (max-width:1200px) {
+      .status-grid { grid-template-columns:repeat(3, 1fr); }
+    }
+    @media (max-width:1100px) {
+      .printer-grid { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width:900px) {
+      .status-grid { grid-template-columns:repeat(2, 1fr); }
+      .printer-grid { grid-template-columns:1fr; }
+      .orders-grid { grid-template-columns:1fr; }
+      .kiosk-main { padding:16px; }
+    }
+    @media (max-width:640px) {
+      .status-grid { grid-template-columns:1fr 1fr; gap:10px; }
+      .status-card { padding:16px; }
+      .status-card .sc-value { font-size:1.4em; }
+      .kiosk-header { padding:0 14px; height:56px; }
+      .kiosk-logo-text h1 { font-size:0.88em; }
+      .kiosk-clock { display:none; }
+      .controls-grid { gap:8px; }
+      .ctrl-btn { padding:12px 16px; font-size:0.78em; min-height:46px; }
+      .oc-details-grid { grid-template-columns:repeat(2, 1fr); }
+      .orders-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="kiosk-loading">
+    <div class="spinner"></div>
+    <p>Loading Print Kiosk...</p>
+  </div>
+
+  <!-- Kiosk Header -->
+  <header class="kiosk-header">
+    <div class="kiosk-logo">
+      <div class="kiosk-logo-icon">KX</div>
+      <div class="kiosk-logo-text">
+        <h1>Kadam Xerox</h1>
+        <p>Print Kiosk Control Centre</p>
       </div>
-      <div style="position:relative;cursor:pointer;" id="notifBell" onclick="markAllRead()" title="Notifications">
-        <i data-lucide="bell" style="width:20px;height:20px;color:#6b7280;"></i>
-        <span id="notifBadge" class="notif-badge hidden">0</span>
+    </div>
+    <div class="kiosk-header-right">
+      <div class="kiosk-clock">
+        <i data-lucide="clock" style="width:16px;height:16px;"></i>
+        <span id="liveClock">--:--:--</span>
       </div>
+      <div class="kiosk-notif-bell" id="notifBell" onclick="markAllRead()" title="Notifications">
+        <i data-lucide="bell" style="width:20px;height:20px;"></i>
+        <span id="notifBadge" class="kiosk-notif-badge hidden">0</span>
+      </div>
+      <button class="kiosk-logout-btn" id="logoutBtn" onclick="adminLogout()" title="Logout">
+        <i data-lucide="log-out" style="width:15px;height:15px;"></i> Logout
+      </button>
     </div>
   </header>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="loading-overlay" style="position:fixed;inset:0;background:rgba(255,255,255,0.9);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .4s;">
-    <div class="loading-spinner" style="width:40px;height:40px;border:4px solid #e5e7eb;border-top-color:#16A34A;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;"></div>
-    <p style="color:#6b7280;font-size:0.92em;">Loading dashboard...</p>
+  <!-- Printer Offline Banner -->
+  <div id="printerOfflineBanner" class="printer-offline-banner">
+    <span class="pob-icon">🔴</span>
+    <div>
+      <div class="pob-title">Printer Offline Detected</div>
+      <div class="pob-desc">One or more printers are not responding. Jobs will queue until printers come back online.</div>
+    </div>
   </div>
 
-  <!-- Progress Bar -->
-  <div id="progressBar" style="position:fixed;top:0;left:0;right:0;height:3px;z-index:9998;background:#e5e7eb;display:none;">
-    <div id="progressFill" style="height:100%;background:#16A34A;width:0%;transition:width .3s ease;"></div>
-  </div>
-
-  <main class="app-main" style="max-width:1000px;">
+  <!-- Main Content -->
+  <main class="kiosk-main">
 
     <!-- Cash Alert -->
-    <div id="cashAlert" class="hidden card" style="background:#fffbeb;border:1.5px solid #fde68a;display:none;align-items:center;gap:12px;padding:14px 16px;">
-      <span style="font-size:1.5em;">💰</span>
-      <div style="flex:1;">
-        <strong id="cashAlertCount" style="font-size:1em;color:#92400e;">0 Cash orders</strong>
-        <span style="display:block;color:#b45309;font-size:0.82em;margin-top:2px;">Customer will pay cash at counter. Accept after collecting payment.</span>
+    <div id="cashAlert" class="kiosk-alert-banner warning hidden" style="display:none;">
+      <span class="alert-icon">💰</span>
+      <div class="alert-content">
+        <div class="alert-title" id="cashAlertCount">0 Cash orders pending</div>
+        <div class="alert-desc">Customer will pay cash at counter. Accept after collecting payment.</div>
       </div>
     </div>
 
-    <!-- Controls Card -->
-    <div class="card">
-      <div class="admin-bar">
-        <button class="btn btn-secondary" onclick="fetchOrders()" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-          <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> Refresh Orders
+    <!-- Live Status Dashboard -->
+    <div class="kiosk-section-header">
+      <div class="kiosk-section-title">
+        <i data-lucide="activity" style="width:20px;height:20px;"></i>
+        Live Dashboard
+      </div>
+      <div class="kiosk-section-badge">
+        <span class="pulse-dot" style="width:6px;height:6px;border-radius:50%;background:#22c55e;animation:pulse 1.5s ease-in-out infinite;"></span>
+        Live
+      </div>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-card green" id="scAutoprint">
+        <div class="sc-icon">🟢</div>
+        <div class="sc-value" id="autoprintValue">ON</div>
+        <div class="sc-label">Auto Print</div>
+        <div class="sc-status"><span class="pulse-dot"></span> Active</div>
+      </div>
+      <div class="status-card blue" id="scPrinter">
+        <div class="sc-icon">🖨️</div>
+        <div class="sc-value" id="printerStatusValue">--</div>
+        <div class="sc-label">Printer Status</div>
+        <div class="sc-status"><span class="pulse-dot"></span> <span id="printerStatusText">Checking...</span></div>
+      </div>
+      <div class="status-card purple" id="scPrinting">
+        <div class="sc-icon">📄</div>
+        <div class="sc-value" id="jobsPrintingValue">0</div>
+        <div class="sc-label">Jobs Printing</div>
+      </div>
+      <div class="status-card amber" id="scNewOrders">
+        <div class="sc-icon">📥</div>
+        <div class="sc-value" id="newOrdersValue">0</div>
+        <div class="sc-label">New Paid Orders</div>
+      </div>
+      <div class="status-card teal" id="scRevenue">
+        <div class="sc-icon">💰</div>
+        <div class="sc-value" id="revenueValue">₹0</div>
+        <div class="sc-label">Today's Revenue</div>
+      </div>
+      <div class="status-card red" id="scQueue">
+        <div class="sc-icon">⏳</div>
+        <div class="sc-value" id="queueLengthValue">0</div>
+        <div class="sc-label">Queue Length</div>
+      </div>
+    </div>
+
+    <!-- Live Printer Panel -->
+    <div class="kiosk-section-header">
+      <div class="kiosk-section-title">
+        <i data-lucide="printer" style="width:20px;height:20px;"></i>
+        Printers
+      </div>
+      <div class="printer-select-row">
+        <span style="font-size:0.72em;font-weight:600;color:#6b7280;">Active B&W:</span>
+        <button class="printer-select-btn active" id="selectKonica" onclick="setActiveBwPrinter('konica')">
+          Konica
         </button>
-        <button class="btn btn-secondary" onclick="showQR()" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-          <i data-lucide="qrcode" style="width:16px;height:16px;"></i> Show QR Code
+        <button class="printer-select-btn" id="selectKyocera" onclick="setActiveBwPrinter('kyocera')">
+          Kyocera
         </button>
       </div>
+    </div>
 
-      <div class="form-group public-url-group">
-        <label for="publicUrl">Public URL <span style="font-weight:400;color:#9ca3af;">(for customer QR code)</span></label>
-        <div class="url-input-row">
-          <input type="text" id="publicUrl" placeholder="https://your-domain.com or ngrok URL">
-          <button class="btn btn-sm btn-primary" onclick="savePublicUrl()" style="white-space:nowrap;">Save</button>
-        </div>
-        <small style="display:block;font-size:0.75em;color:#9ca3af;margin-top:5px;">Get a public URL using <a href="https://ngrok.com" target="_blank" style="color:#16A34A;">ngrok</a>: run <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:0.9em;">ngrok http 3000</code></small>
-      </div>
-
-      <div class="form-group">
-        <label>Printers</label>
-        <div class="printer-status" style="margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <strong>🖨 B&W:</strong>
-          <span id="bwPrinterName" style="font-weight:600;">KONICA MINOLTA 205i(36:33:9E)</span>
-        </div>
-        <div class="printer-status">
-          <strong>🖨 Color:</strong> HP Smart Tank 580-590
-        </div>
-      </div>
-
-      <!-- QR Modal -->
-      <div id="qrModal" class="hidden" style="margin-top:12px;">
-        <div class="qr-display" style="background:#f9fafb;border-radius:16px;padding:20px;">
-          <h3 style="font-size:1em;font-weight:600;margin:0 0 12px;color:#1f2937;">Customer QR Code</h3>
-          <div id="qrImage"></div>
-          <p id="qrUrl" style="font-size:0.78em;color:#6b7280;word-break:break-all;margin:8px 0;"></p>
-          <small style="font-size:0.75em;color:#9ca3af;">Scan to open customer upload page</small>
-          <div style="margin-top:12px;">
-            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('qrModal').classList.add('hidden')">Close</button>
+    <div class="printer-grid" id="printerGrid">
+      <!-- BW Printer Card -->
+      <div class="printer-card online" id="bwPrinterCard">
+        <div class="pc-header">
+          <div class="pc-name-row">
+            <div class="pc-icon bw">🖨️</div>
+            <div>
+              <div class="pc-name" id="bwPrinterName">KONICA MINOLTA 205i</div>
+              <div class="pc-type">Black & White</div>
+            </div>
           </div>
+          <span class="pc-status-badge ready" id="bwPrinterStatus">
+            <span class="pulse-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite;"></span>
+            Ready
+          </span>
+        </div>
+        <div class="pc-details">
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Current Job</span>
+            <span class="pc-detail-value" id="bwCurrentJob">None</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Queue</span>
+            <span class="pc-detail-value" id="bwQueueCount">0 jobs</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Paper Size</span>
+            <span class="pc-detail-value">A4</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Last Print</span>
+            <span class="pc-detail-value" id="bwLastPrint">--</span>
+          </div>
+          <div class="pc-detail-item" style="grid-column:1/-1;">
+            <span class="pc-detail-label">Toner Level</span>
+            <div class="pc-toner-bar"><div class="pc-toner-fill high" style="width:72%;"></div></div>
+          </div>
+        </div>
       </div>
 
-      <!-- Settings Row -->
-      <div class="settings-row">
-        <span class="toggle-label"><i data-lucide="bell" style="width:16px;height:16px;"></i> Notification Sound</span>
-        <label class="toggle-switch active" id="soundToggle">
-          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      <!-- Color Printer Card -->
+      <div class="printer-card online" id="colorPrinterCard">
+        <div class="pc-header">
+          <div class="pc-name-row">
+            <div class="pc-icon color">🖨️</div>
+            <div>
+              <div class="pc-name">HP Smart Tank 580-590</div>
+              <div class="pc-type">Color</div>
+            </div>
+          </div>
+          <span class="pc-status-badge ready" id="colorPrinterStatus">
+            <span class="pulse-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite;"></span>
+            Ready
+          </span>
+        </div>
+        <div class="pc-details">
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Current Job</span>
+            <span class="pc-detail-value" id="colorCurrentJob">None</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Queue</span>
+            <span class="pc-detail-value" id="colorQueueCount">0 jobs</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Paper Size</span>
+            <span class="pc-detail-value">A4</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Last Print</span>
+            <span class="pc-detail-value" id="colorLastPrint">--</span>
+          </div>
+          <div class="pc-detail-item" style="grid-column:1/-1;">
+            <span class="pc-detail-label">Ink Level</span>
+            <div class="pc-toner-bar"><div class="pc-toner-fill high" style="width:65%;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kyocera BW Printer Card -->
+      <div class="printer-card online" id="kyoceraPrinterCard">
+        <div class="pc-header">
+          <div class="pc-name-row">
+            <div class="pc-icon bw">🖨️</div>
+            <div>
+              <div class="pc-name">Kyocera ECOSYS MA4000x</div>
+              <div class="pc-type">Black & White</div>
+            </div>
+          </div>
+          <span class="pc-status-badge ready" id="kyoceraPrinterStatus">
+            <span class="pulse-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite;"></span>
+            Ready
+          </span>
+        </div>
+        <div class="pc-details">
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Current Job</span>
+            <span class="pc-detail-value" id="kyoceraCurrentJob">None</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Queue</span>
+            <span class="pc-detail-value" id="kyoceraQueueCount">0 jobs</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Paper Size</span>
+            <span class="pc-detail-value">A4</span>
+          </div>
+          <div class="pc-detail-item">
+            <span class="pc-detail-label">Last Print</span>
+            <span class="pc-detail-value" id="kyoceraLastPrint">--</span>
+          </div>
+          <div class="pc-detail-item" style="grid-column:1/-1;">
+            <span class="pc-detail-label">Toner Level</span>
+            <div class="pc-toner-bar"><div class="pc-toner-fill high" style="width:80%;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Controls -->
+    <div class="kiosk-section-header">
+      <div class="kiosk-section-title">
+        <i data-lucide="settings" style="width:20px;height:20px;"></i>
+        Quick Controls
+      </div>
+    </div>
+
+    <div class="controls-grid">
+      <button class="ctrl-btn primary" onclick="fetchOrders()" id="refreshBtn">
+        <i data-lucide="refresh-cw" style="width:18px;height:18px;"></i> Refresh
+      </button>
+      <button class="ctrl-btn warning" onclick="toggleAutoPrint()" id="autoPrintToggle">
+        <i data-lucide="pause" style="width:18px;height:18px;" id="autoPrintIcon"></i>
+        <span id="autoPrintLabel">Pause Auto Print</span>
+      </button>
+      <button class="ctrl-btn secondary" onclick="showQR()" id="showQrBtn">
+        <i data-lucide="qr-code" style="width:18px;height:18px;"></i> Customer QR
+      </button>
+      <button class="ctrl-btn secondary" onclick="toggleSettings()" id="settingsToggle">
+        <i data-lucide="sliders" style="width:18px;height:18px;"></i> Printer Settings
+      </button>
+      <button class="ctrl-btn secondary" onclick="testNotification()" id="testNotifBtn">
+        <i data-lucide="bell-ring" style="width:18px;height:18px;"></i> Test Notification
+      </button>
+    </div>
+
+    <!-- Settings Panel (collapsible) -->
+    <div class="settings-panel" id="settingsPanel">
+      <div class="kiosk-section-title" style="margin-bottom:16px;">
+        <i data-lucide="settings" style="width:18px;height:18px;"></i>
+        Settings
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.82em;font-weight:600;color:#374151;margin-bottom:6px;">
+          Public URL <span style="font-weight:400;color:#9ca3af;">(for customer QR code)</span>
+        </label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="publicUrl" placeholder="https://your-domain.com or ngrok URL"
+            style="flex:1;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:0.85em;font-family:inherit;outline:none;transition:border-color .2s;">
+          <button class="ctrl-btn primary" onclick="savePublicUrl()" style="padding:10px 20px;min-height:auto;">Save</button>
+        </div>
+        <small style="display:block;font-size:0.72em;color:#9ca3af;margin-top:5px;">
+          Get a public URL using <a href="https://ngrok.com" target="_blank" style="color:#2563eb;">ngrok</a>: run
+          <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:0.9em;">ngrok http 3000</code>
+        </small>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #f3f4f6;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.85em;font-weight:600;color:#374151;">
+          <i data-lucide="bell" style="width:16px;height:16px;color:#2563eb;"></i> Notification Sound
+        </div>
+        <label class="toggle-switch active" id="soundToggle" style="cursor:pointer;user-select:none;">
+          <span class="toggle-track" style="display:block;width:44px;height:24px;background:#d1d5db;border-radius:12px;position:relative;transition:background .25s;">
+            <span class="toggle-thumb" style="display:block;width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .25s cubic-bezier(.22,1,.36,1);box-shadow:0 1px 3px rgba(0,0,0,0.15);"></span>
+          </span>
         </label>
       </div>
-
     </div>
 
+    <!-- QR Modal -->
+    <div id="qrModal" class="hidden">
+      <div class="qr-modal-overlay" onclick="closeQR(event)">
+        <div class="qr-modal-card" onclick="event.stopPropagation()">
+          <h3>📷 Customer QR Code</h3>
+          <div id="qrImage"></div>
+          <p id="qrUrl" class="qr-url"></p>
+          <p class="qr-hint">Scan to open customer upload page</p>
+          <button class="qr-modal-close" onclick="document.getElementById('qrModal').classList.add('hidden')">Close</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Orders Card -->
-    <div class="card">
-      <h2 style="display:flex;align-items:center;gap:6px;">
-        <i data-lucide="shopping-bag" style="width:18px;height:18px;color:#16A34A;"></i>
-        All Orders
-      </h2>
-      <div class="table-responsive">
-        <table id="ordersTable">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Mobile</th>
-              <th>File</th>
-              <th>Pages</th>
-              <th>Type</th>
-              <th>Price</th>
-              <th>Payment</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="ordersBody">
-            <tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">Loading orders...</td></tr>
-          </tbody>
-        </table>
+    <!-- Queue Tabs & Order Feed -->
+    <div class="kiosk-section-header">
+      <div class="kiosk-section-title">
+        <i data-lucide="layers" style="width:20px;height:20px;"></i>
+        Order Feed
+      </div>
+      <div class="kiosk-section-badge" id="totalOrdersBadge">
+        0 orders
+      </div>
+    </div>
+
+    <div class="queue-tabs">
+      <button class="queue-tab active" onclick="switchTab('all')" id="tabAll">
+        All Orders <span class="tab-count" id="tabAllCount">0</span>
+      </button>
+      <button class="queue-tab" onclick="switchTab('printing')" id="tabPrinting">
+        🔵 Printing <span class="tab-count" id="tabPrintingCount">0</span>
+      </button>
+      <button class="queue-tab" onclick="switchTab('completed')" id="tabCompleted">
+        🟢 Completed <span class="tab-count" id="tabCompletedCount">0</span>
+      </button>
+      <button class="queue-tab" onclick="switchTab('failed')" id="tabFailed">
+        🔴 Failed <span class="tab-count" id="tabFailedCount">0</span>
+      </button>
+    </div>
+
+    <div class="orders-grid" id="ordersGrid">
+      <div class="empty-state">
+        <div class="empty-icon">📄</div>
+        <h3>Loading orders...</h3>
+        <p>Fetching print jobs from server</p>
       </div>
     </div>
 
   </main>
 
-  <div class="toast-container" id="toastContainer"></div>
+  <!-- Toast Container -->
+  <div class="kiosk-toast-container" id="toastContainer"></div>
 
   <script>
+    // -------------------------------------------------------
+    //  Authentication Guard — redirect to login if not logged in
+    // -------------------------------------------------------
+    var adminToken = sessionStorage.getItem('adminToken');
+    if (!adminToken || sessionStorage.getItem('adminLoggedIn') !== 'true') {
+      window.location.replace('/admin-login.html');
+    }
+
+    // Helper: get headers with admin token for all API calls
+    function adminHeaders(extra) {
+      var h = { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken };
+      if (extra) { for (var k in extra) h[k] = extra[k]; }
+      return h;
+    }
+
+    // Verify token is still valid on the server
+    fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: adminHeaders()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.valid) {
+        sessionStorage.removeItem('adminLoggedIn');
+        sessionStorage.removeItem('adminToken');
+        window.location.replace('/admin-login.html');
+      }
+    })
+    .catch(function() {});
+
+    // Logout function
+    function adminLogout() {
+      fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: adminHeaders()
+      }).finally(function() {
+        sessionStorage.removeItem('adminLoggedIn');
+        sessionStorage.removeItem('adminToken');
+        window.location.replace('/admin-login.html');
+      });
+    }
+
+    // -------------------------------------------------------
+    //  State
+    // -------------------------------------------------------
     var knownOrderIds = new Set();
     var soundEnabled = localStorage.getItem('notifSound') !== 'off';
     var isFirstLoad = true;
@@ -146,7 +1047,59 @@
     var pendingNewIds = [];
     var unreadCount = 0;
     var originalTitle = document.title;
+    var allOrders = [];
+    var currentTab = 'all';
+    var autoPrintEnabled = true;
+    var pollInterval = null;
+    var KONICA_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
+    var KYOCERA_PRINTER = 'Kyocera ECOSYS MA4000x KX';
+    var activeBwPrinter = localStorage.getItem('activeBwPrinter') || 'konica';
+    var bwPrinterOnline = false;
+    var kyoceraPrinterOnline = false;
+    var colorPrinterOnline = false;
+    var printerList = [];
+    var lastBwPrintTime = null;
+    var lastKyoceraPrintTime = null;
+    var lastColorPrintTime = null;
 
+    function getBwPrinter() {
+      return activeBwPrinter === 'kyocera' ? KYOCERA_PRINTER : KONICA_PRINTER;
+    }
+
+    function setActiveBwPrinter(which) {
+      activeBwPrinter = which;
+      localStorage.setItem('activeBwPrinter', which);
+      // Update selector buttons
+      document.getElementById('selectKonica').className = 'printer-select-btn' + (which === 'konica' ? ' active' : '');
+      document.getElementById('selectKyocera').className = 'printer-select-btn' + (which === 'kyocera' ? ' active' : '');
+      // Update active printer badge on cards
+      updatePrinterCards();
+      var label = which === 'kyocera' ? 'Kyocera ECOSYS MA4000x' : 'KONICA MINOLTA 205i';
+      showToast('info', 'Active Printer Changed', 'B&W orders will now print on ' + label);
+    }
+
+    // Initialize selector from saved preference
+    (function() {
+      document.getElementById('selectKonica').className = 'printer-select-btn' + (activeBwPrinter === 'konica' ? ' active' : '');
+      document.getElementById('selectKyocera').className = 'printer-select-btn' + (activeBwPrinter === 'kyocera' ? ' active' : '');
+    })();
+
+    // -------------------------------------------------------
+    //  Live Clock
+    // -------------------------------------------------------
+    function updateClock() {
+      var now = new Date();
+      var h = now.getHours().toString().padStart(2, '0');
+      var m = now.getMinutes().toString().padStart(2, '0');
+      var s = now.getSeconds().toString().padStart(2, '0');
+      document.getElementById('liveClock').textContent = h + ':' + m + ':' + s;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // -------------------------------------------------------
+    //  Notification Badge
+    // -------------------------------------------------------
     function updateNotifBadge(count) {
       var badge = document.getElementById('notifBadge');
       if (count > 0) {
@@ -169,6 +1122,9 @@
       if (saved) { JSON.parse(saved).forEach(function(id) { knownOrderIds.add(id); }); }
     } catch(e) {}
 
+    // -------------------------------------------------------
+    //  Sounds
+    // -------------------------------------------------------
     function playNotificationSound() {
       if (!soundEnabled) return;
       try {
@@ -177,30 +1133,70 @@
         g.connect(ctx.destination);
         g.gain.setValueAtTime(0.25, ctx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-
         var o1 = ctx.createOscillator();
         o1.frequency.setValueAtTime(830, ctx.currentTime);
         o1.type = 'sine';
         o1.connect(g);
         o1.start(ctx.currentTime);
         o1.stop(ctx.currentTime + 0.1);
-
         var o2 = ctx.createOscillator();
         o2.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
         o2.type = 'sine';
         o2.connect(g);
         o2.start(ctx.currentTime + 0.1);
         o2.stop(ctx.currentTime + 0.3);
-
         setTimeout(function() { ctx.close(); }, 600);
       } catch(e) {}
     }
 
-    function showNotification(customerName, fileName, time) {
+    function playVoiceNotification(customerName, fileName, copies) {
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      try {
+        var msg = 'New order from ' + customerName + ', file ' + fileName + (copies > 1 ? ', ' + copies + ' copies' : '');
+        var utter = new SpeechSynthesisUtterance(msg);
+        utter.lang = 'en-IN';
+        utter.rate = 1;
+        utter.pitch = 1;
+        speechSynthesis.speak(utter);
+      } catch(e) {}
+    }
+
+    function playCompletionSound() {
+      if (!soundEnabled) return;
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var g = ctx.createGain();
+        g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.2, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        var notes = [523, 659, 784];
+        notes.forEach(function(freq, i) {
+          var o = ctx.createOscillator();
+          o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+          o.type = 'sine';
+          o.connect(g);
+          o.start(ctx.currentTime + i * 0.12);
+          o.stop(ctx.currentTime + i * 0.12 + 0.15);
+        });
+        setTimeout(function() { ctx.close(); }, 800);
+      } catch(e) {}
+    }
+
+    // -------------------------------------------------------
+    //  Toast Notifications
+    // -------------------------------------------------------
+    function showToast(type, title, detail, time) {
+      var icons = { success: '✅', info: '📄', warning: '⚠️', error: '🔴' };
       var container = document.getElementById('toastContainer');
       var toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.innerHTML = '<div class="toast-icon">📄</div><div class="toast-body"><div class="toast-title">New Print Order</div><div class="toast-detail">' + escapeHtml(customerName) + '</div><div class="toast-detail" style="font-weight:400;color:#6b7280;font-size:0.78em;">' + escapeHtml(fileName) + '</div><div class="toast-time">' + time + '</div></div>';
+      toast.className = 'kiosk-toast ' + type;
+      toast.innerHTML =
+        '<div class="toast-icon">' + (icons[type] || '📄') + '</div>' +
+        '<div class="toast-body">' +
+          '<div class="toast-title">' + escapeHtml(title) + '</div>' +
+          (detail ? '<div class="toast-detail">' + escapeHtml(detail) + '</div>' : '') +
+          (time ? '<div class="toast-time">' + time + '</div>' : '') +
+        '</div>';
       container.appendChild(toast);
       requestAnimationFrame(function() { toast.classList.add('show'); });
       setTimeout(function() {
@@ -209,39 +1205,479 @@
       }, 5000);
     }
 
-    var bwPrinterName = 'KONICA MINOLTA 205i(36:33:9E)';
+    function showNotification(customerName, fileName, time) {
+      showToast('success', 'New Print Order', customerName + ' — ' + fileName, time);
+    }
 
-    function getBwPrinter() { return bwPrinterName; }
+    // -------------------------------------------------------
+    //  Auto Print Toggle
+    // -------------------------------------------------------
+    function toggleAutoPrint() {
+      autoPrintEnabled = !autoPrintEnabled;
+      var icon = document.getElementById('autoPrintIcon');
+      var label = document.getElementById('autoPrintLabel');
+      var btn = document.getElementById('autoPrintToggle');
+      var card = document.getElementById('scAutoprint');
+      var value = document.getElementById('autoprintValue');
 
+      if (autoPrintEnabled) {
+        label.textContent = 'Pause Auto Print';
+        btn.className = 'ctrl-btn warning';
+        icon.setAttribute('data-lucide', 'pause');
+        card.className = 'status-card green';
+        card.querySelector('.sc-icon').textContent = '🟢';
+        value.textContent = 'ON';
+        card.querySelector('.sc-status').innerHTML = '<span class="pulse-dot"></span> Active';
+        startPolling();
+        showToast('success', 'Auto Print Resumed', 'Orders will be fetched automatically');
+      } else {
+        label.textContent = 'Resume Auto Print';
+        btn.className = 'ctrl-btn success';
+        icon.setAttribute('data-lucide', 'play');
+        card.className = 'status-card red';
+        card.querySelector('.sc-icon').textContent = '🔴';
+        value.textContent = 'OFF';
+        card.querySelector('.sc-status').innerHTML = '<span class="pulse-dot"></span> Paused';
+        stopPolling();
+        showToast('warning', 'Auto Print Paused', 'Orders will not be fetched automatically');
+      }
+      lucide.createIcons();
+    }
+
+    function startPolling() {
+      stopPolling();
+      pollInterval = setInterval(fetchOrders, 8000);
+    }
+    function stopPolling() {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    }
+
+    // -------------------------------------------------------
+    //  Settings Panel Toggle
+    // -------------------------------------------------------
+    function toggleSettings() {
+      var panel = document.getElementById('settingsPanel');
+      panel.classList.toggle('open');
+    }
+
+    // -------------------------------------------------------
+    //  Sound Toggle
+    // -------------------------------------------------------
     function toggleSound() {
       soundEnabled = !soundEnabled;
       localStorage.setItem('notifSound', soundEnabled ? 'on' : 'off');
-      document.getElementById('soundToggle').classList.toggle('active', soundEnabled);
+      var toggle = document.getElementById('soundToggle');
+      var track = toggle.querySelector('.toggle-track');
+      var thumb = toggle.querySelector('.toggle-thumb');
+      if (soundEnabled) {
+        track.style.background = '#2563eb';
+        thumb.style.transform = 'translateX(20px)';
+      } else {
+        track.style.background = '#d1d5db';
+        thumb.style.transform = 'translateX(0)';
+      }
     }
 
-    function showProgress(pct) {
-      var bar = document.getElementById('progressBar');
-      var fill = document.getElementById('progressFill');
-      bar.style.display = 'block';
-      fill.style.width = pct + '%';
-      if (pct >= 100) { setTimeout(function() { bar.style.display = 'none'; }, 500); }
+    // Init sound toggle visual
+    (function() {
+      var toggle = document.getElementById('soundToggle');
+      var track = toggle.querySelector('.toggle-track');
+      var thumb = toggle.querySelector('.toggle-thumb');
+      if (soundEnabled) {
+        track.style.background = '#2563eb';
+        thumb.style.transform = 'translateX(20px)';
+      } else {
+        track.style.background = '#d1d5db';
+        thumb.style.transform = 'translateX(0)';
+      }
+    })();
+
+    document.getElementById('soundToggle').addEventListener('click', toggleSound);
+
+    // -------------------------------------------------------
+    //  Test Notification
+    // -------------------------------------------------------
+    function testNotification() {
+      playNotificationSound();
+      showToast('info', 'Test Notification', 'Sound and notification are working correctly', new Date().toLocaleTimeString());
     }
 
+    // -------------------------------------------------------
+    //  QR Code
+    // -------------------------------------------------------
+    function showQR() {
+      var savedUrl = localStorage.getItem('publicUrl');
+      var apiUrl = '/api/qr';
+      if (savedUrl) {
+        apiUrl += '?url=' + encodeURIComponent(savedUrl);
+      }
+      var modal = document.getElementById('qrModal');
+      var imgDiv = document.getElementById('qrImage');
+      var urlP = document.getElementById('qrUrl');
+      modal.classList.remove('hidden');
+      imgDiv.innerHTML = '<p style="color:#9ca3af;">Generating QR...</p>';
+      fetch(apiUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          imgDiv.innerHTML = '<img src="' + data.qr + '" alt="QR Code">';
+          urlP.textContent = data.url;
+        })
+        .catch(function() {
+          imgDiv.innerHTML = '<p style="color:#ef4444;">Failed to generate QR</p>';
+        });
+    }
+
+    function closeQR(e) {
+      if (e.target === e.currentTarget) {
+        document.getElementById('qrModal').classList.add('hidden');
+      }
+    }
+
+    // -------------------------------------------------------
+    //  Public URL
+    // -------------------------------------------------------
+    function savePublicUrl() {
+      var url = document.getElementById('publicUrl').value.trim();
+      if (url) {
+        localStorage.setItem('publicUrl', url);
+        showToast('success', 'URL Saved', 'Public URL updated successfully');
+        showQR();
+      }
+    }
+
+    (function loadSavedUrl() {
+      var saved = localStorage.getItem('publicUrl');
+      if (saved) {
+        document.getElementById('publicUrl').value = saved;
+      }
+    })();
+
+    // -------------------------------------------------------
+    //  Printer Status
+    // -------------------------------------------------------
+    function fetchPrinterStatus() {
+      fetch('/api/admin/printers', { headers: { 'X-Admin-Token': adminToken } })
+        .then(function(r) { return r.json(); })
+        .then(function(printers) {
+          printerList = printers;
+          var bwFound = printers.some(function(p) { return p.name === KONICA_PRINTER; });
+          var kyoceraFound = printers.some(function(p) { return p.name === KYOCERA_PRINTER; });
+          var colorFound = printers.some(function(p) { return p.name === 'HP95224C (HP Smart Tank 580-590 series)'; });
+          bwPrinterOnline = bwFound;
+          kyoceraPrinterOnline = kyoceraFound;
+          colorPrinterOnline = colorFound;
+          updatePrinterCards();
+          updateOfflineBanner();
+        })
+        .catch(function() {
+          bwPrinterOnline = false;
+          kyoceraPrinterOnline = false;
+          colorPrinterOnline = false;
+          updatePrinterCards();
+          updateOfflineBanner();
+        });
+    }
+
+    var pulseDotHtml = '<span class="pulse-dot" style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite;"></span>';
+
+    function setPrinterCardState(cardId, statusId, isOnline, jobCount, firstJobName) {
+      var card = document.getElementById(cardId);
+      var status = document.getElementById(statusId);
+      if (!card || !status) return;
+
+      // Remove active-printer class first, re-add later if needed
+      card.classList.remove('active-printer');
+
+      if (!isOnline) {
+        card.className = 'printer-card offline';
+        status.className = 'pc-status-badge offline';
+        status.innerHTML = pulseDotHtml + ' Offline';
+      } else if (jobCount > 0) {
+        card.className = 'printer-card printing';
+        status.className = 'pc-status-badge printing';
+        status.innerHTML = pulseDotHtml + ' Printing';
+      } else {
+        card.className = 'printer-card online';
+        status.className = 'pc-status-badge ready';
+        status.innerHTML = pulseDotHtml + ' Ready';
+      }
+    }
+
+    function updatePrinterCards() {
+      var bwJobs = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'bw'; });
+      var colorJobs = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'color'; });
+
+      // Konica BW Printer
+      setPrinterCardState('bwPrinterCard', 'bwPrinterStatus', bwPrinterOnline, 
+        activeBwPrinter === 'konica' ? bwJobs.length : 0, 
+        bwJobs.length > 0 ? bwJobs[0].file_name : null);
+      document.getElementById('bwCurrentJob').textContent = (activeBwPrinter === 'konica' && bwJobs.length > 0) ? bwJobs[0].file_name : 'None';
+      document.getElementById('bwQueueCount').textContent = (activeBwPrinter === 'konica' ? bwJobs.length : 0) + ' jobs';
+
+      // Kyocera BW Printer
+      setPrinterCardState('kyoceraPrinterCard', 'kyoceraPrinterStatus', kyoceraPrinterOnline,
+        activeBwPrinter === 'kyocera' ? bwJobs.length : 0,
+        bwJobs.length > 0 ? bwJobs[0].file_name : null);
+      document.getElementById('kyoceraCurrentJob').textContent = (activeBwPrinter === 'kyocera' && bwJobs.length > 0) ? bwJobs[0].file_name : 'None';
+      document.getElementById('kyoceraQueueCount').textContent = (activeBwPrinter === 'kyocera' ? bwJobs.length : 0) + ' jobs';
+
+      // Mark active BW printer card
+      if (activeBwPrinter === 'konica') {
+        document.getElementById('bwPrinterCard').classList.add('active-printer');
+      } else {
+        document.getElementById('kyoceraPrinterCard').classList.add('active-printer');
+      }
+
+      // Color Printer
+      setPrinterCardState('colorPrinterCard', 'colorPrinterStatus', colorPrinterOnline, colorJobs.length,
+        colorJobs.length > 0 ? colorJobs[0].file_name : null);
+      document.getElementById('colorCurrentJob').textContent = colorJobs.length > 0 ? colorJobs[0].file_name : 'None';
+      document.getElementById('colorQueueCount').textContent = colorJobs.length + ' jobs';
+
+      // Update header status card (3 printers now)
+      var onlineCount = (bwPrinterOnline ? 1 : 0) + (kyoceraPrinterOnline ? 1 : 0) + (colorPrinterOnline ? 1 : 0);
+      document.getElementById('printerStatusValue').textContent = onlineCount + '/3';
+      if (onlineCount === 3) {
+        document.getElementById('printerStatusText').textContent = 'All Online';
+      } else if (onlineCount === 0) {
+        document.getElementById('printerStatusText').textContent = 'All Offline';
+      } else {
+        document.getElementById('printerStatusText').textContent = (3 - onlineCount) + ' Offline';
+      }
+
+      var scPrinter = document.getElementById('scPrinter');
+      if (onlineCount === 3) {
+        scPrinter.className = 'status-card green';
+      } else if (onlineCount >= 1) {
+        scPrinter.className = 'status-card amber';
+      } else {
+        scPrinter.className = 'status-card red';
+      }
+
+      // Update last print times
+      var bwAccepted = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'bw'; });
+      var colorAccepted = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'color'; });
+      if (bwAccepted.length > 0) {
+        var t = new Date(bwAccepted[0].created_at).toLocaleTimeString();
+        document.getElementById('bwLastPrint').textContent = t;
+        document.getElementById('kyoceraLastPrint').textContent = t;
+      }
+      if (colorAccepted.length > 0) {
+        document.getElementById('colorLastPrint').textContent = new Date(colorAccepted[0].created_at).toLocaleTimeString();
+      }
+    }
+
+    function updateOfflineBanner() {
+      var banner = document.getElementById('printerOfflineBanner');
+      // Show warning if the ACTIVE BW printer is offline, or if color is offline
+      var activeBwOnline = activeBwPrinter === 'kyocera' ? kyoceraPrinterOnline : bwPrinterOnline;
+      if (!activeBwOnline || !colorPrinterOnline) {
+        banner.classList.add('show');
+      } else {
+        banner.classList.remove('show');
+      }
+    }
+
+    // -------------------------------------------------------
+    //  Loading
+    // -------------------------------------------------------
     function hideLoading() {
       var ov = document.getElementById('loadingOverlay');
       if (!ov || ov.style.display === 'none') return;
       ov.style.opacity = '0';
       setTimeout(function() { ov.style.display = 'none'; }, 400);
     }
-    // Force-hide loading overlay after 5s regardless of fetch
     setTimeout(hideLoading, 5000);
 
+    // -------------------------------------------------------
+    //  Tab Switching
+    // -------------------------------------------------------
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.queue-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+      renderOrders();
+    }
+
+    // -------------------------------------------------------
+    //  Update Dashboard Metrics
+    // -------------------------------------------------------
+    function updateDashboard(orders) {
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      var todayOrders = orders.filter(function(o) {
+        return new Date(o.created_at) >= today;
+      });
+
+      var paidOrders = orders.filter(function(o) { return o.status === 'paid'; });
+      var printingOrders = orders.filter(function(o) { return o.status === 'accepted'; });
+      var todayRevenue = todayOrders.reduce(function(sum, o) {
+        if (o.status === 'paid' || o.status === 'accepted') return sum + (o.price || 0);
+        return sum;
+      }, 0);
+      var queueLength = paidOrders.length + printingOrders.length;
+
+      document.getElementById('jobsPrintingValue').textContent = printingOrders.length;
+      document.getElementById('newOrdersValue').textContent = paidOrders.length;
+      document.getElementById('revenueValue').textContent = '₹' + Math.round(todayRevenue);
+      document.getElementById('queueLengthValue').textContent = queueLength;
+
+      // Tab counts
+      var completedCount = orders.filter(function(o) { return o.status === 'accepted'; }).length;
+      var failedCount = orders.filter(function(o) { return o.status === 'rejected' || o.status === 'payment_failed'; }).length;
+
+      document.getElementById('tabAllCount').textContent = orders.length;
+      document.getElementById('tabPrintingCount').textContent = paidOrders.length;
+      document.getElementById('tabCompletedCount').textContent = completedCount;
+      document.getElementById('tabFailedCount').textContent = failedCount;
+      document.getElementById('totalOrdersBadge').textContent = orders.length + ' orders';
+    }
+
+    // -------------------------------------------------------
+    //  Render Orders as Cards
+    // -------------------------------------------------------
+    function getFileIcon(fileName) {
+      var ext = fileName.split('.').pop().toLowerCase();
+      if (ext === 'pdf') return { cls: 'pdf', icon: '📄' };
+      if (['jpg','jpeg','png'].includes(ext)) return { cls: 'image', icon: '🖼️' };
+      if (['doc','docx'].includes(ext)) return { cls: 'doc', icon: '📝' };
+      return { cls: 'other', icon: '📎' };
+    }
+
+    function getStatusBadge(status) {
+      var labels = {
+        pending: { text: '⏳ PENDING', cls: 'pending' },
+        paid: { text: '🟢 PAID', cls: 'paid' },
+        accepted: { text: '🖨️ PRINTING', cls: 'accepted' },
+        rejected: { text: '🔴 REJECTED', cls: 'rejected' },
+        payment_failed: { text: '🔴 FAILED', cls: 'payment_failed' }
+      };
+      return labels[status] || { text: status, cls: 'pending' };
+    }
+
+    function renderOrders() {
+      var grid = document.getElementById('ordersGrid');
+      var orders = allOrders;
+
+      // Filter by tab
+      if (currentTab === 'printing') {
+        orders = orders.filter(function(o) { return o.status === 'paid'; });
+      } else if (currentTab === 'completed') {
+        orders = orders.filter(function(o) { return o.status === 'accepted'; });
+      } else if (currentTab === 'failed') {
+        orders = orders.filter(function(o) { return o.status === 'rejected' || o.status === 'payment_failed'; });
+      }
+
+      if (orders.length === 0) {
+        var emptyMsg = currentTab === 'all' ? 'No orders yet' : 'No ' + currentTab + ' orders';
+        grid.innerHTML =
+          '<div class="empty-state">' +
+            '<div class="empty-icon">📄</div>' +
+            '<h3>' + emptyMsg + '</h3>' +
+            '<p>Orders will appear here automatically</p>' +
+          '</div>';
+        return;
+      }
+
+      grid.innerHTML = orders.map(function(o) {
+        var date = new Date(o.created_at);
+        var timeStr = date.toLocaleTimeString();
+        var dateStr = date.toLocaleDateString();
+        var typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
+        var sideLabel = o.print_side === 'both' ? 'Both Sides' : 'Single';
+        var fileInfo = getFileIcon(o.file_name);
+        var statusBadge = getStatusBadge(o.status);
+        var isNew = pendingNewIds.indexOf(o.id) !== -1;
+        var isCash = o.payment_method === 'cash' && o.status === 'paid';
+        var cardClass = 'order-card';
+        if (isCash) cardClass += ' cash-highlight';
+        if (isNew) cardClass += ' new-order';
+
+        var initials = (o.customer_name || '?').charAt(0).toUpperCase();
+
+        var payBadge = o.payment_method === 'cash'
+          ? '<span class="oc-payment-badge cash">💵 Cash</span>'
+          : '<span class="oc-payment-badge razorpay">💳 Razorpay</span>';
+
+        var previewBtn = '';
+        if (o.file_path) {
+          previewBtn = '<a href="/uploads/' + encodeURIComponent(o.file_path) + '" target="_blank" class="oc-preview-btn" title="Preview">' +
+            '<i data-lucide="eye" style="width:12px;height:12px;"></i> View</a>';
+        }
+
+        var actionBtns = '';
+        if (o.status === 'paid') {
+          actionBtns =
+            '<div class="oc-actions">' +
+              '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\')"><i data-lucide="check" style="width:14px;height:14px;"></i> Accept</button>' +
+              '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>' +
+            '</div>';
+        }
+
+        var copiesDisplay = '';
+        if (o.copies && o.copies > 1) {
+          copiesDisplay = '<span class="oc-detail-value copies-highlight">×' + o.copies + '</span>';
+        } else {
+          copiesDisplay = '<span class="oc-detail-value">1</span>';
+        }
+
+        var notesIcon = o.order_notes ? ' <span class="oc-notes-icon" title="' + escapeHtml(o.order_notes) + '">📝</span>' : '';
+        var mobileDisplay = o.mobile_number ? ' <span style="font-size:0.72em;color:#9ca3af;">' + escapeHtml(o.mobile_number) + '</span>' : '';
+
+        return '<div class="' + cardClass + '">' +
+          '<div class="oc-header">' +
+            '<div class="oc-customer">' +
+              '<div class="oc-avatar">' + initials + '</div>' +
+              '<div>' +
+                '<div class="oc-name">' + escapeHtml(o.customer_name) + notesIcon + mobileDisplay + '</div>' +
+                '<div class="oc-time">' + dateStr + ' · ' + timeStr + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<span class="oc-status-badge ' + statusBadge.cls + '">' + statusBadge.text + '</span>' +
+          '</div>' +
+          '<div class="oc-body">' +
+            '<div class="oc-file-row">' +
+              '<div class="oc-file-icon ' + fileInfo.cls + '">' + fileInfo.icon + '</div>' +
+              '<div class="oc-file-name" title="' + escapeHtml(o.file_name) + '">' + escapeHtml(o.file_name) + '</div>' +
+              previewBtn +
+            '</div>' +
+            '<div class="oc-details-grid">' +
+              '<div class="oc-detail"><span class="oc-detail-label">Pages</span><span class="oc-detail-value">' + o.page_count + '</span></div>' +
+              '<div class="oc-detail"><span class="oc-detail-label">Copies</span>' + copiesDisplay + '</div>' +
+              '<div class="oc-detail"><span class="oc-detail-label">Print Type</span><span class="oc-detail-value">' + typeLabel + '</span></div>' +
+              '<div class="oc-detail"><span class="oc-detail-label">Sides</span><span class="oc-detail-value">' + sideLabel + '</span></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="oc-footer">' +
+            '<div>' + payBadge + '</div>' +
+            '<div class="oc-price">₹' + o.price + '</div>' +
+            actionBtns +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      // Re-init lucide icons for dynamically added elements
+      lucide.createIcons();
+    }
+
+    // -------------------------------------------------------
+    //  Fetch Orders
+    // -------------------------------------------------------
     function fetchOrders() {
-      showProgress(30);
-      fetch('/api/admin/orders')
-        .then(r => r.json())
-        .then(orders => {
-          if (!Array.isArray(orders)) { showProgress(100); hideLoading(); return; }
+      // Spin the refresh button
+      var refreshBtn = document.getElementById('refreshBtn');
+      if (refreshBtn) refreshBtn.style.opacity = '0.6';
+
+      fetch('/api/admin/orders', { headers: { 'X-Admin-Token': adminToken } })
+        .then(function(r) {
+          if (r.status === 401) { adminLogout(); return []; }
+          return r.json();
+        })
+        .then(function(orders) {
+          if (refreshBtn) refreshBtn.style.opacity = '1';
+          if (!Array.isArray(orders)) { hideLoading(); return; }
+
           var newOrders = [];
           if (!isFirstLoad) {
             newOrders = orders.filter(function(o) { return !knownOrderIds.has(o.id); });
@@ -260,15 +1696,11 @@
           }
           isFirstLoad = false;
 
-          const tbody = document.getElementById('ordersBody');
-          if (orders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:24px;">No orders yet</td></tr>';
-            showProgress(100);
-            hideLoading();
-            return;
-          }
-          const cashPaid = orders.filter(o => o.payment_method === 'cash' && o.status === 'paid');
-          const cashAlert = document.getElementById('cashAlert');
+          allOrders = orders;
+
+          // Cash alert
+          var cashPaid = orders.filter(function(o) { return o.payment_method === 'cash' && o.status === 'paid'; });
+          var cashAlert = document.getElementById('cashAlert');
           if (cashPaid.length > 0) {
             cashAlert.classList.remove('hidden');
             cashAlert.style.display = 'flex';
@@ -278,150 +1710,74 @@
             cashAlert.style.display = 'none';
           }
 
-          tbody.innerHTML = orders.map(o => {
-            const date = new Date(o.created_at).toLocaleString();
-            const typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
-            const sideLabel = o.print_side === 'both' ? 'Both' : 'Single';
-            const payLabel = o.payment_method === 'cash' ? '<span class="cash-badge">Cash</span>' : '<span class="razorpay-badge">Razorpay</span>';
-            const statusLabel = getStatusLabel(o.status);
-            const actionBtn = getActionButtons(o);
-            var rowClass = o.payment_method === 'cash' && o.status === 'paid' ? 'cash-row' : '';
-            if (pendingNewIds.indexOf(o.id) !== -1) rowClass += ' order-new';
-            rowClass = rowClass ? ' class="' + rowClass.trim() + '"' : '';
-
-            let fileDisplay = escapeHtml(o.file_name);
-            let copiesDisplay = '';
-            if (o.copies && o.copies > 1) {
-              copiesDisplay = '<br><span style="font-weight:600;color:#16A34A;">×' + o.copies + ' copies</span>';
-            }
-            let previewBtn = '';
-            if (o.file_path) {
-              previewBtn = '<a href="/uploads/' + encodeURIComponent(o.file_path) + '" target="_blank" class="btn btn-sm btn-secondary" style="padding:2px 8px;font-size:0.72em;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Preview file"><i data-lucide="eye" style="width:12px;height:12px;"></i></a>';
-            }
-            let mobileDisplay = o.mobile_number ? escapeHtml(o.mobile_number) : '<span style="color:#9ca3af;">-</span>';
-            let notesIcon = o.order_notes ? '<span title="' + escapeHtml(o.order_notes) + '" style="cursor:help;color:#6b7280;font-size:0.8em;"> 📝</span>' : '';
-
-            return `<tr${rowClass}>
-              <td>${date}</td>
-              <td>${escapeHtml(o.customer_name)}${notesIcon}</td>
-              <td>${mobileDisplay}</td>
-              <td>${fileDisplay}${copiesDisplay} ${previewBtn}</td>
-              <td>${o.page_count}</td>
-              <td>${typeLabel}</td>
-              <td>₹${o.price}</td>
-              <td>${payLabel}</td>
-              <td>${statusLabel}</td>
-              <td>${actionBtn}</td>
-            </tr>`;
-          }).join('');
-          pendingNewIds = [];
-          showProgress(100);
+          updateDashboard(orders);
+          updatePrinterCards();
+          renderOrders();
           hideLoading();
         })
         .catch(function(err) {
-          var tbody = document.getElementById('ordersBody');
-          if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#ef4444;padding:24px;">Failed to load orders. Check server.</td></tr>';
-          showProgress(100);
+          if (refreshBtn) refreshBtn.style.opacity = '1';
+          document.getElementById('ordersGrid').innerHTML =
+            '<div class="empty-state">' +
+              '<div class="empty-icon">⚠️</div>' +
+              '<h3>Failed to load orders</h3>' +
+              '<p>Check server connection and try again</p>' +
+            '</div>';
           hideLoading();
         });
     }
 
-    function getStatusLabel(status) {
-      const labels = { pending: 'Pending', paid: 'Paid', accepted: 'Accepted', rejected: 'Rejected' };
-      return `<span class="status-badge ${status}">${labels[status] || status}</span>`;
-    }
-
-    function getActionButtons(order) {
-      if (order.status !== 'paid') return '<span class="no-action">-</span>';
-      return `
-        <button class="btn btn-sm btn-success" onclick="acceptOrder('${order.id}')">Accept</button>
-        <button class="btn btn-sm btn-danger" onclick="rejectOrder('${order.id}')">Reject</button>
-      `;
-    }
-
+    // -------------------------------------------------------
+    //  Accept / Reject Orders (preserved exactly)
+    // -------------------------------------------------------
     function acceptOrder(id) {
       if (!confirm('Accept this order?')) return;
       var printer = getBwPrinter();
-      fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ printer: printer }) })
-        .then(r => r.json())
-        .then(data => {
+      fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ printer: printer }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
           if (data.error) { alert(data.error); return; }
+          showToast('success', 'Order Accepted', 'Sent to printer. Auto-print will handle it shortly.');
           fetchOrders();
-          alert('Order accepted. The local printer agent (local-printer.js) will print it shortly with the correct copies.');
         })
         .catch(function() { alert('Failed'); });
     }
 
     function rejectOrder(id) {
       if (!confirm('Reject this order?')) return;
-      fetch('/api/admin/orders/' + id + '/reject', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-          alert(data.message);
+      fetch('/api/admin/orders/' + id + '/reject', { method: 'POST', headers: adminHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          showToast('error', 'Order Rejected', data.message || 'Order has been rejected');
           fetchOrders();
         })
-        .catch(() => alert('Failed'));
+        .catch(function() { alert('Failed'); });
     }
 
-    function savePublicUrl() {
-      var url = document.getElementById('publicUrl').value.trim();
-      if (url) {
-        localStorage.setItem('publicUrl', url);
-        showQR();
-      }
-    }
-
-    function showQR() {
-      var savedUrl = localStorage.getItem('publicUrl');
-      var apiUrl = '/api/qr';
-      if (savedUrl) {
-        apiUrl += '?url=' + encodeURIComponent(savedUrl);
-      }
-      var modal = document.getElementById('qrModal');
-      var imgDiv = document.getElementById('qrImage');
-      var urlP = document.getElementById('qrUrl');
-      modal.classList.remove('hidden');
-      imgDiv.innerHTML = '<p style="color:#9ca3af;">Generating QR...</p>';
-
-      fetch(apiUrl)
-        .then(r => r.json())
-        .then(data => {
-          imgDiv.innerHTML = '<img src="' + data.qr + '" alt="QR Code">';
-          urlP.textContent = data.url;
-        })
-        .catch(function() {
-          imgDiv.innerHTML = '<p style="color:#ef4444;">Failed to generate QR</p>';
-        });
-    }
-
-    (function loadSavedUrl() {
-      var saved = localStorage.getItem('publicUrl');
-      if (saved) {
-        document.getElementById('publicUrl').value = saved;
-      }
-    })();
-
+    // -------------------------------------------------------
+    //  Escape HTML
+    // -------------------------------------------------------
     function escapeHtml(text) {
-      const div = document.createElement('div');
+      var div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
-    document.getElementById('soundToggle').addEventListener('click', toggleSound);
-
+    // -------------------------------------------------------
+    //  Initialize
+    // -------------------------------------------------------
     fetchOrders();
-    setInterval(fetchOrders, 8000);
+    fetchPrinterStatus();
+    startPolling();
+    setInterval(fetchPrinterStatus, 15000);
 
     // Initialize Lucide icons
     lucide.createIcons();
 
-    // Request notification permission for desktop notifications (optional)
+    // Request notification permission for desktop notifications
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-
-    (function(){if(localStorage.getItem('notifDismissed')){var n=document.getElementById('topNotif');if(n)n.style.display='none';}})();
-    function dismissNotif(){var n=document.getElementById('topNotif');if(n)n.style.display='none';localStorage.setItem('notifDismissed','1');}
   </script>
 </body>
 </html>
