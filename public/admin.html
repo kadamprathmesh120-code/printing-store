@@ -714,7 +714,7 @@
       <div class="status-card green" id="scAutoprint">
         <div class="sc-icon">🟢</div>
         <div class="sc-value" id="autoprintValue">ON</div>
-        <div class="sc-label">Online Payment Auto Print</div>
+        <div class="sc-label">Razorpay Auto Print</div>
         <div class="sc-status"><span class="pulse-dot"></span> Active</div>
       </div>
       <div class="status-card blue" id="scPrinter">
@@ -951,18 +951,8 @@
           </span>
         </label>
       </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #f3f4f6;">
-        <div style="display:flex;align-items:center;gap:8px;font-size:0.85em;font-weight:600;color:#374151;">
-          <i data-lucide="zap" style="width:16px;height:16px;color:#f59e0b;"></i> Razorpay Auto-Print
-        </div>
-        <label class="toggle-switch active" id="razorpayAutoPrintToggle" style="cursor:pointer;user-select:none;">
-          <span class="toggle-track" style="display:block;width:44px;height:24px;background:#d1d5db;border-radius:12px;position:relative;transition:background .25s;">
-            <span class="toggle-thumb" style="display:block;width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .25s cubic-bezier(.22,1,.36,1);box-shadow:0 1px 3px rgba(0,0,0,0.15);"></span>
-          </span>
-        </label>
-      </div>
     </div>
+
 
     <!-- QR Modal -->
     <div id="qrModal" class="hidden">
@@ -1337,16 +1327,29 @@
     async function toggleRazorpayAutoPrint() {
       razorpayAutoPrintEnabled = !razorpayAutoPrintEnabled;
       localStorage.setItem('razorpayAutoPrint', razorpayAutoPrintEnabled ? 'on' : 'off');
-      var toggle = document.getElementById('razorpayAutoPrintToggle');
-      var track = toggle.querySelector('.toggle-track');
-      var thumb = toggle.querySelector('.toggle-thumb');
+      var card = document.getElementById('scAutoprint');
+      var value = document.getElementById('autoprintValue');
+      var icon = document.getElementById('autoPrintIcon');
+      var label = document.getElementById('autoPrintLabel');
+      var btn = document.getElementById('autoPrintToggle');
       if (razorpayAutoPrintEnabled) {
-        track.style.background = '#f59e0b';
-        thumb.style.transform = 'translateX(20px)';
+        card.className = 'status-card green';
+        card.querySelector('.sc-icon').textContent = '🟢';
+        value.textContent = 'ON';
+        card.querySelector('.sc-status').innerHTML = '<span class="pulse-dot"></span> Active';
+        label.textContent = 'Pause Online Auto Print';
+        btn.className = 'ctrl-btn warning';
+        icon.setAttribute('data-lucide', 'pause');
       } else {
-        track.style.background = '#d1d5db';
-        thumb.style.transform = 'translateX(0)';
+        card.className = 'status-card red';
+        card.querySelector('.sc-icon').textContent = '🔴';
+        value.textContent = 'OFF';
+        card.querySelector('.sc-status').innerHTML = '<span class="pulse-dot"></span> Paused';
+        label.textContent = 'Resume Online Auto Print';
+        btn.className = 'ctrl-btn success';
+        icon.setAttribute('data-lucide', 'play');
       }
+      lucide.createIcons();
       // Sync with server
       try {
         await fetch('/api/admin/razorpay-autoprint', {
@@ -1382,44 +1385,8 @@
       }
     })();
 
-    // Init razorpay auto-print toggle visual
-    (function() {
-      var toggle = document.getElementById('razorpayAutoPrintToggle');
-      var track = toggle.querySelector('.toggle-track');
-      var thumb = toggle.querySelector('.toggle-thumb');
-      if (razorpayAutoPrintEnabled) {
-        track.style.background = '#f59e0b';
-        thumb.style.transform = 'translateX(20px)';
-      }
-    })();
-
     document.getElementById('soundToggle').addEventListener('click', toggleSound);
     document.getElementById('voiceToggle').addEventListener('click', toggleVoice);
-    document.getElementById('razorpayAutoPrintToggle').addEventListener('click', toggleRazorpayAutoPrint);
-
-    // -------------------------------------------------------
-    //  Razorpay Auto-Print Toggle (syncs with server)
-    // -------------------------------------------------------
-    function toggleRazorpayAutoPrint() {
-      razorpayAutoPrintEnabled = !razorpayAutoPrintEnabled;
-      localStorage.setItem('razorpayAutoPrint', razorpayAutoPrintEnabled ? 'on' : 'off');
-      var toggle = document.getElementById('razorpayAutoPrintToggle');
-      var track = toggle.querySelector('.toggle-track');
-      var thumb = toggle.querySelector('.toggle-thumb');
-      if (razorpayAutoPrintEnabled) {
-        track.style.background = '#f59e0b';
-        thumb.style.transform = 'translateX(20px)';
-      } else {
-        track.style.background = '#d1d5db';
-        thumb.style.transform = 'translateX(0)';
-      }
-      // Sync with server
-      fetch('/api/admin/autoprint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: razorpayAutoPrintEnabled })
-      }).catch(function() { showToast('error', 'Failed to sync', 'Could not update server setting'); });
-    }
 
     // -------------------------------------------------------
     //  Test Notification
