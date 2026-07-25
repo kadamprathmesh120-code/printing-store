@@ -2,7 +2,7 @@ const https = require('https');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const { print } = require('pdf-to-printer');
+const { print, getPrinters } = require('pdf-to-printer');
 const { exec } = require('child_process');
 const { spawn } = require('child_process');
 const { promisify } = require('util');
@@ -16,6 +16,7 @@ if (fs.existsSync(PRINTER_CONFIG)) {
   try { BW_PRINTER = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || BW_PRINTER; } catch(e) {}
 }
 const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+const tracker = require('./printer-tracker');
 const TRACKING_FILE = path.join(__dirname, 'printed-orders.json');
 const DOWNLOAD_DIR = path.join(__dirname, 'downloads');
 
@@ -52,16 +53,38 @@ function downloadFile(url, dest) {
   });
 }
 
+async function sendPrinterHeartbeat() {
+  try {
+    var printers = await getPrinters();
+    var payload = JSON.stringify({ printers: printers });
+    var url = new URL(RENDER_URL + '/api/printer-heartbeat');
+    var mod = url.protocol === 'https:' ? https : http;
+
+    var req = mod.request(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    }, function(res) {});
+    req.on('error', function(e) {});
+    req.write(payload);
+    req.end();
+  } catch (e) {}
+}
+
 async function checkAndPrint() {
   try {
+    sendPrinterHeartbeat();
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
-    var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !printed[o.id]; });
+    var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !tracker.isOrderPrinted(o.id); });
     if (orders.length > 0) {
       console.log('Found', orders.length, 'total orders,', acceptedOrders.length, 'to print');
     }
     for (var i = 0; i < orders.length; i++) {
       var order = orders[i];
-      if (order.status === 'accepted' && !printed[order.id]) {
+      if (order.status === 'accepted' && !tracker.isOrderPrinted(order.id)) {
+        tracker.markOrderPrinted(order.id);
         var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
         console.log('New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
         console.log('Downloading:', fileUrl);
@@ -74,6 +97,7 @@ async function checkAndPrint() {
         var printer = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
         var isPdf = ext === '.pdf';
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
+        var copyNum = Math.max(1, parseInt(order.copies) || 1);
 
         if (order.is_id_copy && order.back_file_path) {
           // Combine front+back into single A4 image, print once
@@ -82,28 +106,19 @@ async function checkAndPrint() {
           await downloadFile(backUrl, backLocal);
           var combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + localFile + '" -backPath "' + backLocal + '" -outputPath "' + combinedPath + '"');
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '"');
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '" -copies ' + copyNum);
           console.log('Printed combined ID copy to', printer);
         } else if (isPdf) {
-          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
+          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplexlong' : 'simplex', paperSize: 'A4', copies: copyNum };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
-          var copiesToPrint = Math.max(1, order.copies || 1);
-          console.log('DEBUG: Printing order #' + order.id + ', file=' + order.file_name + ', copies=' + copiesToPrint + ', printer=' + printer + ', opts=' + JSON.stringify({monochrome: pdfOpts.monochrome, side: pdfOpts.side, pages: pdfOpts.pages}));
-          for (var c = 0; c < copiesToPrint; c++) {
-            var jobId = order.id + '-' + (c + 1) + '-' + Date.now();
-            console.log('DEBUG: Print attempt ' + (c + 1) + '/' + copiesToPrint + ' (jobId=' + jobId + ')');
-            await print(localFile, pdfOpts);
-            console.log('DEBUG: Done print attempt ' + (c + 1) + '/' + copiesToPrint);
-          }
-          console.log('Printed', copiesToPrint, 'copy' + (copiesToPrint > 1 ? 'ies' : '') + ' to', printer);
+          await print(localFile, pdfOpts);
+          console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);
         } else if (isImage) {
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
+          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '" -copies ' + copyNum);
         } else {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
         }
 
-        printed[order.id] = true;
-        savePrinted();
         console.log('Printed:', order.file_name, 'to', printer);
       }
     }

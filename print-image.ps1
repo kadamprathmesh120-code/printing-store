@@ -1,12 +1,16 @@
 param(
   [string]$filePath,
   [string]$printerName,
-  [double]$printScale = 1.0
+  [double]$printScale = 1.0,
+  [int]$copies = 1
 )
 Add-Type -AssemblyName System.Drawing
 $img = [System.Drawing.Image]::FromFile($filePath)
 $pd = New-Object System.Drawing.Printing.PrintDocument
 $pd.PrinterSettings.PrinterName = $printerName
+if ($copies -gt 1) {
+  $pd.PrinterSettings.Copies = [short]$copies
+}
 $pd.DefaultPageSettings.PaperSize = $pd.PrinterSettings.PaperSizes | Where-Object { $_.Kind -eq "A4" } | Select-Object -First 1
 $pd.add_PrintPage({
   param($sender, $e)

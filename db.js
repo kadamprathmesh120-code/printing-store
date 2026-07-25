@@ -46,6 +46,7 @@ try { db.exec(`ALTER TABLE orders ADD COLUMN price_before_discount REAL NOT NULL
 try { db.exec(`ALTER TABLE orders ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN pricing_type TEXT DEFAULT 'standard'`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN effective_pages INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN is_printed INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
 
 // Settings table for app config (autoprint toggle, etc.)
 db.exec(`
@@ -85,16 +86,20 @@ try {
       price_before_discount REAL NOT NULL DEFAULT 0,
       discount_amount REAL NOT NULL DEFAULT 0,
       pricing_type TEXT DEFAULT 'standard',
-      effective_pages INTEGER NOT NULL DEFAULT 0
+      effective_pages INTEGER NOT NULL DEFAULT 0,
+      is_printed INTEGER NOT NULL DEFAULT 0
     )
   `);
   db.exec(`INSERT INTO orders_new SELECT 
     id, customer_name, file_name, file_path, page_count, print_type, print_side, price, status, created_at,
     payment_method, razorpay_order_id, is_id_copy, back_file_name, back_file_path, back_enabled,
     copies, printer_name, mobile_number, order_notes, orientation, page_range,
-    0, 0, 0, 0, 'standard', 0
+    0, 0, 0, 0, 'standard', 0, 0
     FROM orders`);
   db.exec(`DROP TABLE orders`);
   db.exec(`ALTER TABLE orders_new RENAME TO orders`);
 } catch (e) {}
+
+try { db.exec(`ALTER TABLE orders ADD COLUMN is_printed INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+
 module.exports = db;

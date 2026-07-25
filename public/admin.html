@@ -1454,9 +1454,21 @@
         .then(function(r) { return r.json(); })
         .then(function(printers) {
           printerList = printers;
-          var bwFound = printers.some(function(p) { return p.name === KONICA_PRINTER; });
-          var kyoceraFound = printers.some(function(p) { return p.name === KYOCERA_PRINTER; });
-          var colorFound = printers.some(function(p) { return p.name === 'HP95224C (HP Smart Tank 580-590 series)'; });
+          var bwFound = printers.some(function(p) {
+            if (!p || !p.name) return false;
+            var name = p.name.toLowerCase();
+            return name.includes('konica') || name.includes('205i');
+          });
+          var kyoceraFound = printers.some(function(p) {
+            if (!p || !p.name) return false;
+            var name = p.name.toLowerCase();
+            return name.includes('kyocera') || name.includes('ma4000x');
+          });
+          var colorFound = printers.some(function(p) {
+            if (!p || !p.name) return false;
+            var name = p.name.toLowerCase();
+            return name.includes('hp95224c') || name.includes('smart tank');
+          });
           bwPrinterOnline = bwFound;
           kyoceraPrinterOnline = kyoceraFound;
           colorPrinterOnline = colorFound;

@@ -11,7 +11,20 @@ const pdfParse = require('pdf-parse');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const db = require('./db');
+const tracker = require('./printer-tracker');
 const execP = promisify(exec);
+
+function matchPrinter(pName, targetName) {
+  if (!pName || !targetName) return false;
+  if (pName === targetName) return true;
+  const pLower = pName.toLowerCase();
+  const tLower = targetName.toLowerCase();
+  if (pLower.includes(tLower) || tLower.includes(pLower)) return true;
+  if ((tLower.includes('205i') || tLower.includes('konica')) && (pLower.includes('205i') || pLower.includes('konica'))) return true;
+  if (tLower.includes('kyocera') && pLower.includes('kyocera')) return true;
+  if ((tLower.includes('hp95224c') || tLower.includes('smart tank')) && (pLower.includes('hp95224c') || pLower.includes('smart tank'))) return true;
+  return false;
+}
 
 // Admin password from environment variable (set in Render Dashboard)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
@@ -475,21 +488,24 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
             db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
             const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
             db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
-            try {
-              const printers = await getPrinters();
-              const hasPrinter = printers.some(p => p.name === printer);
-              if (hasPrinter) {
-                if (order.is_id_copy && order.back_file_path) {
-                  const frontPath = path.join(__dirname, 'uploads', order.file_path);
-                  const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-                  const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-                  await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
-                  await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
-                } else {
-                  await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+            if (!tracker.isOrderPrinted(oid)) {
+              tracker.markOrderPrinted(oid);
+              try {
+                const printers = await getPrinters();
+                const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+                if (hasPrinter) {
+                  if (order.is_id_copy && order.back_file_path) {
+                    const frontPath = path.join(__dirname, 'uploads', order.file_path);
+                    const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+                    const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+                    await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+                    await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                  } else {
+                    await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                  }
                 }
-              }
-            } catch (e) {}
+              } catch (e) {}
+            }
           }
         }
       }
@@ -534,6 +550,23 @@ app.post('/api/admin/autoprint', (req, res) => {
   }
 });
 
+let lastPrinterHeartbeat = { timestamp: 0, printers: [] };
+
+app.post('/api/printer-heartbeat', (req, res) => {
+  try {
+    const { printers } = req.body;
+    if (Array.isArray(printers)) {
+      lastPrinterHeartbeat = {
+        timestamp: Date.now(),
+        printers: printers
+      };
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Heartbeat failed' });
+  }
+});
+
 app.get('/api/admin/razorpay-autoprint', (req, res) => {
   try {
     const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
@@ -572,20 +605,19 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
   const ext = path.extname(fileName).toLowerCase();
   const isPdf = ext === '.pdf';
   const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
+  const copyNum = Math.max(1, parseInt(copies) || 1);
   if (isPdf) {
     const opts = {
       printer, silent: true,
       monochrome: printType === 'bw',
-      side: printType === 'bw' && printSide === 'both' ? 'duplex' : 'simplex',
-      paperSize: 'A4'
+      side: printSide === 'both' ? 'duplexlong' : 'simplex',
+      paperSize: 'A4',
+      copies: copyNum
     };
     if (pageRange && pageRange !== 'all') opts.pages = pageRange;
-    var copiesToPrint = Math.max(1, copies || 1);
-    for (var c = 0; c < copiesToPrint; c++) {
-      await printPdf(filePath, opts);
-    }
+    await printPdf(filePath, opts);
   } else if (isImage) {
-    await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '"');
+    await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '" -copies ' + copyNum);
   } else {
     await execP('print /D:"' + printer + '" "' + filePath + '"');
   }
@@ -611,21 +643,24 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
     db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, req.params.id);
 
     // Try direct print (for local server), falls back to local-printer.js polling
-    try {
-      const printers = await getPrinters();
-      const hasPrinter = printers.some(p => p.name === printer);
-      if (hasPrinter) {
-        if (order.is_id_copy && order.back_file_path) {
-          const frontPath = path.join(__dirname, 'uploads', order.file_path);
-          const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
-          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
-        } else {
-          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+    if (!tracker.isOrderPrinted(req.params.id)) {
+      tracker.markOrderPrinted(req.params.id);
+      try {
+        const printers = await getPrinters();
+        const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+        if (hasPrinter) {
+          if (order.is_id_copy && order.back_file_path) {
+            const frontPath = path.join(__dirname, 'uploads', order.file_path);
+            const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+            const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+            await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+          } else {
+            await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+          }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
 
     res.json({ success: true, message: 'Order accepted' });
   } catch (err) {
@@ -653,8 +688,20 @@ app.post('/api/admin/orders/:id/reject', (req, res) => {
 
 app.get('/api/admin/printers', async (req, res) => {
   try {
-    const list = await getPrinters();
-    res.json(list);
+    let list = [];
+    try {
+      list = await getPrinters();
+    } catch (e) {}
+
+    if (Array.isArray(list) && list.length > 0) {
+      return res.json(list);
+    }
+
+    if (Date.now() - lastPrinterHeartbeat.timestamp < 35000) {
+      return res.json(lastPrinterHeartbeat.printers);
+    }
+
+    res.json([]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to get printers' });
   }
@@ -668,6 +715,8 @@ app.post('/api/admin/print/:id', async (req, res) => {
     const BW_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
     const printer = req.body.printer || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
+
+    tracker.markOrderPrinted(order.id);
 
     if (order.is_id_copy && order.back_file_path) {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
