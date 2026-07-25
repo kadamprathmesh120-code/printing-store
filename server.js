@@ -26,18 +26,13 @@ function matchPrinter(pName, targetName) {
   return false;
 }
 
-// Admin password from environment variable (set in Render Dashboard)
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
-
-// ---------------------------------------------------------------------------
-// Admin Authentication — simple token-based session
-// Active tokens are stored in memory. They expire when the server restarts
-// or when the admin clicks Logout.
-// ---------------------------------------------------------------------------
-const activeAdminTokens = new Set();
-
-// Load environment variables from .env file (never commit .env)
+// Load environment variables from .env file
 require('dotenv').config();
+
+// Admin password from admin-password.js (local) or process.env (Render)
+let ADMIN_PASSWORD_FILE = '17062003';
+try { ADMIN_PASSWORD_FILE = require('./admin-password'); } catch (e) {}
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || ADMIN_PASSWORD_FILE || '17062003';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -149,6 +144,8 @@ app.get('/admin-dashboard', (req, res) => {
 
 app.use(express.static(publicDir));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const activeAdminTokens = new Set();
 
 // ---------------------------------------------------------------------------
 // Admin Login API — verify password and issue a session token
