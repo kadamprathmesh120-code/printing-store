@@ -73,6 +73,25 @@ async function sendPrinterHeartbeat() {
   } catch (e) {}
 }
 
+async function resolvePrinterName(targetName) {
+  if (!targetName) return BW_PRINTER;
+  try {
+    var printers = await getPrinters();
+    for (var i = 0; i < printers.length; i++) {
+      var p = printers[i];
+      if (p && p.name) {
+        var pName = p.name.toLowerCase();
+        var tName = targetName.toLowerCase();
+        if (p.name === targetName || pName.includes(tName) || tName.includes(pName)) return p.name;
+        if ((tName.includes('205i') || tName.includes('konica')) && (pName.includes('205i') || pName.includes('konica'))) return p.name;
+        if (tName.includes('kyocera') && pName.includes('kyocera')) return p.name;
+        if ((tName.includes('hp95224c') || tName.includes('smart tank')) && (pName.includes('hp95224c') || pName.includes('smart tank'))) return p.name;
+      }
+    }
+  } catch (e) {}
+  return targetName;
+}
+
 async function checkAndPrint() {
   try {
     sendPrinterHeartbeat();
@@ -94,7 +113,8 @@ async function checkAndPrint() {
         fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
         await downloadFile(fileUrl, localFile);
 
-        var printer = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
+        var requestedPrinter = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
+        var printer = await resolvePrinterName(requestedPrinter);
         console.log('DEBUG: order.id=' + order.id + ', copies=' + order.copies + ', printer=' + printer + ', file=' + order.file_name);
         var isPdf = ext === '.pdf';
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
