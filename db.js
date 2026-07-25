@@ -47,6 +47,14 @@ try { db.exec(`ALTER TABLE orders ADD COLUMN discount_amount REAL NOT NULL DEFAU
 try { db.exec(`ALTER TABLE orders ADD COLUMN pricing_type TEXT DEFAULT 'standard'`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN effective_pages INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
 
+// Settings table for app config (autoprint toggle, etc.)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )
+`);
+
 try {
   db.exec(`
     CREATE TABLE IF NOT EXISTS orders_new (

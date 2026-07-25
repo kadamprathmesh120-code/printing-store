@@ -54,6 +54,13 @@ function downloadFile(url, dest) {
 
 async function checkAndPrint() {
   try {
+    // Check auto print status first
+    var autoPrintStatus = await fetchJson(RENDER_URL + '/api/admin/autoprint');
+    if (!autoPrintStatus.enabled) {
+      console.log('Auto print is OFF — skipping this cycle');
+      return;
+    }
+
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
     var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !printed[o.id]; });
     if (orders.length > 0) {
@@ -88,8 +95,12 @@ async function checkAndPrint() {
           var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_type === 'bw' && order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
           var copiesToPrint = Math.max(1, order.copies || 1);
+          console.log('DEBUG: Printing order #' + order.id + ', file=' + order.file_name + ', copies=' + copiesToPrint + ', printer=' + printer + ', opts=' + JSON.stringify({monochrome: pdfOpts.monochrome, side: pdfOpts.side, pages: pdfOpts.pages}));
           for (var c = 0; c < copiesToPrint; c++) {
+            var jobId = order.id + '-' + (c + 1) + '-' + Date.now();
+            console.log('DEBUG: Print attempt ' + (c + 1) + '/' + copiesToPrint + ' (jobId=' + jobId + ')');
             await print(localFile, pdfOpts);
+            console.log('DEBUG: Done print attempt ' + (c + 1) + '/' + copiesToPrint);
           }
           console.log('Printed', copiesToPrint, 'copy' + (copiesToPrint > 1 ? 'ies' : '') + ' to', printer);
         } else if (isImage) {
@@ -118,7 +129,7 @@ console.log('Tracking file:', TRACKING_FILE);
 console.log('Already printed:', Object.keys(printed).length, 'orders');
 try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); console.log('Downloads dir ready'); } catch(e) { console.error('Failed to create downloads dir:', e.message); }
 console.log('');
-console.log('IMPORTANT: If the Konica printer prints extra copies, run this ONCE as Admin:');
+console.log('IMPORTANT: If the BW printer prints extra copies, run this ONCE as Admin:');
 console.log('  Set-PrintConfiguration -PrinterName "' + BW_PRINTER + '" -CopyCount 1');
 console.log('');
 console.log('Checking every 10 seconds...');

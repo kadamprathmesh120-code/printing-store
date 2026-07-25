@@ -11,7 +11,15 @@ const pdfParse = require('pdf-parse');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const db = require('./db');
+const ADMIN_PASSWORD = require('./admin-password');
 const execP = promisify(exec);
+
+// ---------------------------------------------------------------------------
+// Admin Authentication — simple token-based session
+// Active tokens are stored in memory. They expire when the server restarts
+// or when the admin clicks Logout.
+// ---------------------------------------------------------------------------
+const activeAdminTokens = new Set();
 
 // Load environment variables from .env file (never commit .env)
 require('dotenv').config();
@@ -105,8 +113,68 @@ const upload = multer({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const publicDir = fs.existsSync(path.join(__dirname, 'public')) ? path.join(__dirname, 'public') : __dirname;
+
+// ---------------------------------------------------------------------------
+// Block direct access to admin.html — redirect to login page instead.
+// The login page (admin-login.html) is always accessible.
+// ---------------------------------------------------------------------------
+app.get('/admin.html', (req, res) => {
+  res.redirect('/admin-login.html');
+});
+app.get('/admin', (req, res) => {
+  res.redirect('/admin-login.html');
+});
+
+// Serve admin.html only through the authenticated endpoint below
+app.get('/admin-dashboard', (req, res) => {
+  // The client-side JS checks sessionStorage for the token;
+  // this just serves the file. The API routes are token-protected.
+  res.sendFile(path.join(publicDir, 'admin.html'));
+});
+
 app.use(express.static(publicDir));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ---------------------------------------------------------------------------
+// Admin Login API — verify password and issue a session token
+// ---------------------------------------------------------------------------
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+  if (String(password) !== String(ADMIN_PASSWORD)) {
+    return res.status(401).json({ error: 'Wrong Password' });
+  }
+  // Generate a random token for this session
+  const token = crypto.randomBytes(32).toString('hex');
+  activeAdminTokens.add(token);
+  console.log('Admin logged in. Active sessions:', activeAdminTokens.size);
+  res.json({ success: true, token });
+});
+
+// ---------------------------------------------------------------------------
+// Admin Token Verification — check if a token is still valid
+// ---------------------------------------------------------------------------
+app.post('/api/admin/verify', (req, res) => {
+  const token = req.headers['x-admin-token'] || (req.body && req.body.token);
+  if (token && activeAdminTokens.has(token)) {
+    return res.json({ valid: true });
+  }
+  res.status(401).json({ valid: false, error: 'Not authenticated' });
+});
+
+// ---------------------------------------------------------------------------
+// Admin Logout — remove the token so it can no longer be used
+// ---------------------------------------------------------------------------
+app.post('/api/admin/logout', (req, res) => {
+  const token = req.headers['x-admin-token'] || (req.body && req.body.token);
+  if (token) {
+    activeAdminTokens.delete(token);
+    console.log('Admin logged out. Active sessions:', activeAdminTokens.size);
+  }
+  res.json({ success: true });
+});
 
 app.post('/api/log', (req, res) => {
   const { type, message } = req.body;
@@ -390,46 +458,109 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
     const BW_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
 
+    // Check auto-print setting
+    const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
+    const autoPrintEnabled = autoPrintRow ? autoPrintRow.value === '1' : true; // default ON
+
     if (Array.isArray(orderIds)) {
       for (const oid of orderIds) {
         db.prepare('UPDATE orders SET status = ?, razorpay_order_id = ? WHERE id = ? AND status = ?').run('paid', razorpayOrderId, oid, 'pending');
 
-        // Existing auto-accept and print logic — kept as-is
-        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
-        if (order) {
-          db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
-          const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
-          db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
-          try {
-            const printers = await getPrinters();
-            const hasPrinter = printers.some(p => p.name === printer);
-            if (hasPrinter) {
-              if (order.is_id_copy && order.back_file_path) {
-                const frontPath = path.join(__dirname, 'uploads', order.file_path);
-                const backPath = path.join(__dirname, 'uploads', order.back_file_path);
-                const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-                await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
-                await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
-              } else {
-                await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+        // Auto-accept and print only if enabled
+        if (autoPrintEnabled) {
+          const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
+          if (order) {
+            db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
+            const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+            db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
+            try {
+              const printers = await getPrinters();
+              const hasPrinter = printers.some(p => p.name === printer);
+              if (hasPrinter) {
+                if (order.is_id_copy && order.back_file_path) {
+                  const frontPath = path.join(__dirname, 'uploads', order.file_path);
+                  const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+                  const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+                  await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+                  await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                } else {
+                  await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                }
               }
-            }
-          } catch (e) {}
+            } catch (e) {}
+          }
         }
       }
     }
 
-    res.json({ success: true, message: 'Payment verified. Printing started.' });
+    res.json({ success: true, message: autoPrintEnabled ? 'Payment verified. Printing started.' : 'Payment verified. Waiting for admin approval.' });
   } catch (err) {
     console.error('Razorpay verify error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
+// ---------------------------------------------------------------------------
+// Admin Auth Middleware — protects all /api/admin/* routes below this point.
+// The login, verify, and logout routes are defined ABOVE this middleware
+// so they remain accessible without a token.
+// ---------------------------------------------------------------------------
+app.use('/api/admin', (req, res, next) => {
+  // Skip auth for login/verify/logout (already handled above)
+  if (req.path === '/login' || req.path === '/verify' || req.path === '/logout') {
+    return next();
+  }
+  const token = req.headers['x-admin-token'];
+  if (!token || !activeAdminTokens.has(token)) {
+    return res.status(401).json({ error: 'Not authenticated. Please log in.' });
+  }
+  next();
+});
+
 app.get('/api/admin/orders', (req, res) => {
   try {
     const orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
     res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Auto Print status (for local printer agent polling)
+app.get('/api/admin/autoprint', (req, res) => {
+  try {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('autoprint_enabled');
+    res.json({ enabled: row ? row.value === '1' : true });
+  } catch (err) {
+    res.json({ enabled: true }); // default ON
+  }
+});
+
+app.post('/api/admin/autoprint', (req, res) => {
+  try {
+    const { enabled } = req.body;
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('autoprint_enabled', enabled ? '1' : '0');
+    res.json({ success: true, enabled });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Razorpay Auto-Print setting (for auto-accept on payment verification)
+app.get('/api/admin/razorpay-autoprint', (req, res) => {
+  try {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
+    res.json({ enabled: row ? row.value === '1' : true });
+  } catch (err) {
+    res.json({ enabled: true }); // default ON
+  }
+});
+
+app.post('/api/admin/razorpay-autoprint', (req, res) => {
+  try {
+    const { enabled } = req.body;
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('razorpay_autoprint_enabled', enabled ? '1' : '0');
+    res.json({ success: true, enabled });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -734,5 +865,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Printing Store Server running at http://localhost:${PORT}`);
   console.log(`Customer page: http://localhost:${PORT}`);
-  console.log(`Admin page: http://localhost:${PORT}/admin.html`);
+  console.log(`Admin login: http://localhost:${PORT}/admin-login.html`);
 });

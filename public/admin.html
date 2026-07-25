@@ -714,7 +714,7 @@
       <div class="status-card green" id="scAutoprint">
         <div class="sc-icon">🟢</div>
         <div class="sc-value" id="autoprintValue">ON</div>
-        <div class="sc-label">Auto Print</div>
+        <div class="sc-label">Online Payment Auto Print</div>
         <div class="sc-status"><span class="pulse-dot"></span> Active</div>
       </div>
       <div class="status-card blue" id="scPrinter">
@@ -893,9 +893,9 @@
       <button class="ctrl-btn primary" onclick="fetchOrders()" id="refreshBtn">
         <i data-lucide="refresh-cw" style="width:18px;height:18px;"></i> Refresh
       </button>
-      <button class="ctrl-btn warning" onclick="toggleAutoPrint()" id="autoPrintToggle">
+      <button class="ctrl-btn warning" onclick="toggleRazorpayAutoPrint()" id="autoPrintToggle">
         <i data-lucide="pause" style="width:18px;height:18px;" id="autoPrintIcon"></i>
-        <span id="autoPrintLabel">Pause Auto Print</span>
+        <span id="autoPrintLabel">Pause Online Auto Print</span>
       </button>
       <button class="ctrl-btn secondary" onclick="showQR()" id="showQrBtn">
         <i data-lucide="qr-code" style="width:18px;height:18px;"></i> Customer QR
@@ -935,6 +935,28 @@
           <i data-lucide="bell" style="width:16px;height:16px;color:#2563eb;"></i> Notification Sound
         </div>
         <label class="toggle-switch active" id="soundToggle" style="cursor:pointer;user-select:none;">
+          <span class="toggle-track" style="display:block;width:44px;height:24px;background:#d1d5db;border-radius:12px;position:relative;transition:background .25s;">
+            <span class="toggle-thumb" style="display:block;width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .25s cubic-bezier(.22,1,.36,1);box-shadow:0 1px 3px rgba(0,0,0,0.15);"></span>
+          </span>
+        </label>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #f3f4f6;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.85em;font-weight:600;color:#374151;">
+          <i data-lucide="volume-2" style="width:16px;height:16px;color:#16a34a;"></i> Voice Alerts
+        </div>
+        <label class="toggle-switch active" id="voiceToggle" style="cursor:pointer;user-select:none;">
+          <span class="toggle-track" style="display:block;width:44px;height:24px;background:#d1d5db;border-radius:12px;position:relative;transition:background .25s;">
+            <span class="toggle-thumb" style="display:block;width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .25s cubic-bezier(.22,1,.36,1);box-shadow:0 1px 3px rgba(0,0,0,0.15);"></span>
+          </span>
+        </label>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid #f3f4f6;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.85em;font-weight:600;color:#374151;">
+          <i data-lucide="zap" style="width:16px;height:16px;color:#f59e0b;"></i> Razorpay Auto-Print
+        </div>
+        <label class="toggle-switch active" id="razorpayAutoPrintToggle" style="cursor:pointer;user-select:none;">
           <span class="toggle-track" style="display:block;width:44px;height:24px;background:#d1d5db;border-radius:12px;position:relative;transition:background .25s;">
             <span class="toggle-thumb" style="display:block;width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .25s cubic-bezier(.22,1,.36,1);box-shadow:0 1px 3px rgba(0,0,0,0.15);"></span>
           </span>
@@ -1042,6 +1064,8 @@
     // -------------------------------------------------------
     var knownOrderIds = new Set();
     var soundEnabled = localStorage.getItem('notifSound') !== 'off';
+    var voiceEnabled = localStorage.getItem('notifVoice') !== 'off';
+    var razorpayAutoPrintEnabled = localStorage.getItem('razorpayAutoPrint') !== 'off';
     var isFirstLoad = true;
     var isInitialLoad = true;
     var pendingNewIds = [];
@@ -1209,16 +1233,27 @@
       showToast('success', 'New Print Order', customerName + ' — ' + fileName, time);
     }
 
+// -------------------------------------------------------
+    //  Auto Print Toggle (syncs with server)
     // -------------------------------------------------------
-    //  Auto Print Toggle
-    // -------------------------------------------------------
-    function toggleAutoPrint() {
+    async function toggleAutoPrint() {
       autoPrintEnabled = !autoPrintEnabled;
       var icon = document.getElementById('autoPrintIcon');
       var label = document.getElementById('autoPrintLabel');
       var btn = document.getElementById('autoPrintToggle');
       var card = document.getElementById('scAutoprint');
       var value = document.getElementById('autoprintValue');
+
+      // Sync with server
+      try {
+        await fetch('/api/admin/autoprint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: autoPrintEnabled })
+        });
+      } catch (e) {
+        console.error('Failed to sync auto print:', e);
+      }
 
       if (autoPrintEnabled) {
         label.textContent = 'Pause Auto Print';
@@ -1278,6 +1313,53 @@
       }
     }
 
+    // -------------------------------------------------------
+    //  Voice Toggle
+    // -------------------------------------------------------
+    function toggleVoice() {
+      voiceEnabled = !voiceEnabled;
+      localStorage.setItem('notifVoice', voiceEnabled ? 'on' : 'off');
+      var toggle = document.getElementById('voiceToggle');
+      var track = toggle.querySelector('.toggle-track');
+      var thumb = toggle.querySelector('.toggle-thumb');
+      if (voiceEnabled) {
+        track.style.background = '#16a34a';
+        thumb.style.transform = 'translateX(20px)';
+      } else {
+        track.style.background = '#d1d5db';
+        thumb.style.transform = 'translateX(0)';
+      }
+    }
+
+    // -------------------------------------------------------
+    //  Razorpay Auto-Print Toggle
+    // -------------------------------------------------------
+    async function toggleRazorpayAutoPrint() {
+      razorpayAutoPrintEnabled = !razorpayAutoPrintEnabled;
+      localStorage.setItem('razorpayAutoPrint', razorpayAutoPrintEnabled ? 'on' : 'off');
+      var toggle = document.getElementById('razorpayAutoPrintToggle');
+      var track = toggle.querySelector('.toggle-track');
+      var thumb = toggle.querySelector('.toggle-thumb');
+      if (razorpayAutoPrintEnabled) {
+        track.style.background = '#f59e0b';
+        thumb.style.transform = 'translateX(20px)';
+      } else {
+        track.style.background = '#d1d5db';
+        thumb.style.transform = 'translateX(0)';
+      }
+      // Sync with server
+      try {
+        await fetch('/api/admin/razorpay-autoprint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: razorpayAutoPrintEnabled })
+        });
+      } catch (e) {
+        showToast('error', 'Failed to sync', 'Could not update server setting');
+      }
+      showToast('info', 'Razorpay Auto-Print', razorpayAutoPrintEnabled ? 'Enabled — orders auto-accept on payment' : 'Disabled — manual accept required');
+    }
+
     // Init sound toggle visual
     (function() {
       var toggle = document.getElementById('soundToggle');
@@ -1286,13 +1368,58 @@
       if (soundEnabled) {
         track.style.background = '#2563eb';
         thumb.style.transform = 'translateX(20px)';
-      } else {
-        track.style.background = '#d1d5db';
-        thumb.style.transform = 'translateX(0)';
+      }
+    })();
+
+    // Init voice toggle visual
+    (function() {
+      var toggle = document.getElementById('voiceToggle');
+      var track = toggle.querySelector('.toggle-track');
+      var thumb = toggle.querySelector('.toggle-thumb');
+      if (voiceEnabled) {
+        track.style.background = '#16a34a';
+        thumb.style.transform = 'translateX(20px)';
+      }
+    })();
+
+    // Init razorpay auto-print toggle visual
+    (function() {
+      var toggle = document.getElementById('razorpayAutoPrintToggle');
+      var track = toggle.querySelector('.toggle-track');
+      var thumb = toggle.querySelector('.toggle-thumb');
+      if (razorpayAutoPrintEnabled) {
+        track.style.background = '#f59e0b';
+        thumb.style.transform = 'translateX(20px)';
       }
     })();
 
     document.getElementById('soundToggle').addEventListener('click', toggleSound);
+    document.getElementById('voiceToggle').addEventListener('click', toggleVoice);
+    document.getElementById('razorpayAutoPrintToggle').addEventListener('click', toggleRazorpayAutoPrint);
+
+    // -------------------------------------------------------
+    //  Razorpay Auto-Print Toggle (syncs with server)
+    // -------------------------------------------------------
+    function toggleRazorpayAutoPrint() {
+      razorpayAutoPrintEnabled = !razorpayAutoPrintEnabled;
+      localStorage.setItem('razorpayAutoPrint', razorpayAutoPrintEnabled ? 'on' : 'off');
+      var toggle = document.getElementById('razorpayAutoPrintToggle');
+      var track = toggle.querySelector('.toggle-track');
+      var thumb = toggle.querySelector('.toggle-thumb');
+      if (razorpayAutoPrintEnabled) {
+        track.style.background = '#f59e0b';
+        thumb.style.transform = 'translateX(20px)';
+      } else {
+        track.style.background = '#d1d5db';
+        thumb.style.transform = 'translateX(0)';
+      }
+      // Sync with server
+      fetch('/api/admin/autoprint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: razorpayAutoPrintEnabled })
+      }).catch(function() { showToast('error', 'Failed to sync', 'Could not update server setting'); });
+    }
 
     // -------------------------------------------------------
     //  Test Notification
