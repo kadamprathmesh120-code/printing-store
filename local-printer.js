@@ -127,15 +127,24 @@ async function checkAndPrint() {
           await downloadFile(backUrl, backLocal);
           var combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
           await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + localFile + '" -backPath "' + backLocal + '" -outputPath "' + combinedPath + '"');
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '" -copies ' + copyNum);
+          if (copyNum > 1) {
+            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '" -copies ' + copyNum);
+          } else {
+            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '"');
+          }
           console.log('Printed combined ID copy to', printer);
         } else if (isPdf) {
-          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplexlong' : 'simplex', paperSize: 'A4', copies: copyNum };
+          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplexlong' : 'simplex', paperSize: 'A4' };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
+          if (copyNum > 1) pdfOpts.copies = copyNum;
           await print(localFile, pdfOpts);
           console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);
         } else if (isImage) {
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '" -copies ' + copyNum);
+          if (copyNum > 1) {
+            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '" -copies ' + copyNum);
+          } else {
+            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
+          }
         } else {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
         }

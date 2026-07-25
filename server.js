@@ -611,13 +611,17 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
       printer, silent: true,
       monochrome: printType === 'bw',
       side: printSide === 'both' ? 'duplexlong' : 'simplex',
-      paperSize: 'A4',
-      copies: copyNum
+      paperSize: 'A4'
     };
     if (pageRange && pageRange !== 'all') opts.pages = pageRange;
+    if (copyNum > 1) opts.copies = copyNum;
     await printPdf(filePath, opts);
   } else if (isImage) {
-    await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '" -copies ' + copyNum);
+    if (copyNum > 1) {
+      await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '" -copies ' + copyNum);
+    } else {
+      await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '"');
+    }
   } else {
     await execP('print /D:"' + printer + '" "' + filePath + '"');
   }
