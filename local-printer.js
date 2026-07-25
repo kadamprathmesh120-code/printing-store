@@ -95,6 +95,7 @@ async function checkAndPrint() {
         await downloadFile(fileUrl, localFile);
 
         var printer = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
+        console.log('DEBUG: order.id=' + order.id + ', copies=' + order.copies + ', printer=' + printer + ', file=' + order.file_name);
         var isPdf = ext === '.pdf';
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
         var copyNum = Math.max(1, parseInt(order.copies) || 1);
