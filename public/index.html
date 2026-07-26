@@ -1275,7 +1275,7 @@
         function pdfCheckDone() {
           done++;
           if (done === total) {
-            if (imageFiles.length === 0) { hideProgress(); SoundManager.upload(); goToSettings(); }
+            if (imageFiles.length === 0) { hideProgress(); goToSettings(); }
           }
         }
         for (var i = 0; i < pdfFiles.length; i++) {
@@ -1308,7 +1308,6 @@
       // Images → crop tool → print settings
       if (imageFiles.length > 0) {
         showProgress('Opening scanner...', 10);
-        SoundManager.upload();
         setTimeout(function() {
           hideProgress();
           startImageCrop(imageFiles, 0, function() {
@@ -3034,86 +3033,6 @@
       // Handled by onFilesSelected which is called from onchange
     });
 
-    // ── SoundManager ──────────────────────────────────────────────────────────
-    // Generates all UI sounds via Web Audio API — no audio files needed.
-    // Each sound is a short, non-intrusive synthesized tone.
-    var SoundManager = (function() {
-      var ctx = null;
-      function getCtx() {
-        if (!ctx) {
-          try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
-        }
-        return ctx;
-      }
-
-      // Core: play a tone at a given freq, type, start, duration, volume
-      function tone(ac, freq, type, start, dur, vol, fadeOut) {
-        var osc = ac.createOscillator();
-        var gain = ac.createGain();
-        osc.connect(gain);
-        gain.connect(ac.destination);
-        osc.type = type || 'sine';
-        osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(vol || 0.18, start);
-        if (fadeOut !== false) gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
-        osc.start(start);
-        osc.stop(start + dur + 0.01);
-      }
-
-      return {
-        // 🔔 Soft ascending chime — file selected/uploaded
-        upload: function() {
-          var ac = getCtx(); if (!ac) return;
-          var now = ac.currentTime;
-          tone(ac, 523.25, 'sine', now,        0.18, 0.15); // C5
-          tone(ac, 659.25, 'sine', now + 0.10, 0.18, 0.15); // E5
-          tone(ac, 783.99, 'sine', now + 0.20, 0.25, 0.15); // G5
-        },
-
-        // ✅ Warm confirmation chord — payment received
-        payment: function() {
-          var ac = getCtx(); if (!ac) return;
-          var now = ac.currentTime;
-          tone(ac, 392.00, 'sine', now,        0.40, 0.12); // G4
-          tone(ac, 523.25, 'sine', now,        0.40, 0.12); // C5
-          tone(ac, 659.25, 'sine', now,        0.40, 0.12); // E5
-          tone(ac, 783.99, 'sine', now + 0.05, 0.35, 0.14); // G5 (slight delay for warmth)
-        },
-
-        // 🖨️ Mechanical thump + low hum — print started
-        printStart: function() {
-          var ac = getCtx(); if (!ac) return;
-          var now = ac.currentTime;
-          // Short low thump
-          tone(ac, 80,  'triangle', now,        0.12, 0.30);
-          tone(ac, 140, 'square',   now + 0.05, 0.08, 0.08);
-          // Rising hum
-          var osc = ac.createOscillator();
-          var gain = ac.createGain();
-          osc.connect(gain); gain.connect(ac.destination);
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(120, now + 0.10);
-          osc.frequency.linearRampToValueAtTime(200, now + 0.45);
-          gain.gain.setValueAtTime(0.06, now + 0.10);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.50);
-          osc.start(now + 0.10); osc.stop(now + 0.55);
-        },
-
-        // 🎉 Celebratory ascending arpeggio — printing complete
-        complete: function() {
-          var ac = getCtx(); if (!ac) return;
-          var now = ac.currentTime;
-          var notes = [523.25, 659.25, 783.99, 1046.50]; // C5 E5 G5 C6
-          for (var i = 0; i < notes.length; i++) {
-            tone(ac, notes[i], 'sine', now + i * 0.11, 0.30, 0.14);
-          }
-          // Soft shimmer on top
-          tone(ac, 1318.51, 'sine', now + 0.38, 0.40, 0.07);
-        }
-      };
-    })();
-    // ─────────────────────────────────────────────────────────────────────────
-
     // ── VoiceManager ──────────────────────────────────────────────────────────
     // Lightweight wrapper around Web Speech API.
     // Stops any current speech before playing, never blocks user interactions.
@@ -3178,14 +3097,11 @@
         case 'paid':
           badge.textContent = 'Paid - Awaiting Approval';
           msg.textContent = 'Payment received! Admin will review your orders shortly.';
-          SoundManager.payment(); // ✅ Payment confirmation tone
           break;
         case 'accepted':
           badge.textContent = 'Accepted';
           msg.textContent = '';
           done.classList.remove('hidden');
-          SoundManager.printStart(); // 🖨️ Print-start sound
-          setTimeout(function() { SoundManager.complete(); }, 600); // 🎉 Completion chime after short pause
           break;
         case 'rejected':
           badge.textContent = 'Rejected';
