@@ -2,11 +2,74 @@ const https = require('https');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const { print, getPrinters } = require('pdf-to-printer');
-const { exec } = require('child_process');
-const { spawn } = require('child_process');
-const { promisify } = require('util');
-const execP = promisify(exec);
+const { exec, spawn } = require('child_process');
+// Don't import getPrinters — it spawns Powershell.exe without windowsHide (causes the flash loop)
+// We implement our own hidden version below
+// SumatraPDF path bundled with pdf-to-printer
+const SUMATRA = path.join(__dirname, 'node_modules', 'pdf-to-printer', 'dist', 'SumatraPDF-3.4.6-32.exe');
+
+// getPrinters replacement — runs the EXACT same WMI query as pdf-to-printer but fully hidden
+function getPrintersHidden() {
+  return new Promise(function(resolve) {
+    var query = 'Get-CimInstance Win32_Printer -Property DeviceID,Name,PrinterPaperNames | ForEach-Object { $_.Name }';
+    exec('powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "' + query + '"',
+      { windowsHide: true, timeout: 15000 },
+      function(err, stdout) {
+        if (err || !stdout) return resolve([]);
+        var names = stdout.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+        resolve(names.map(function(n) { return { name: n }; }));
+      }
+    );
+  });
+}
+
+
+// Run a PowerShell script with named parameters, fully hidden
+function runPsScript(psFile, params) {
+  return new Promise(function(resolve, reject) {
+    // Build param string e.g. -filePath "x" -printerName "y"
+    var paramStr = Object.entries(params).map(function(kv) {
+      return '-' + kv[0] + ' "' + String(kv[1]).replace(/"/g, '`"') + '"';
+    }).join(' ');
+    var fullCmd = 'powershell -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass' +
+                  ' -File "' + psFile + '" ' + paramStr;
+    exec(fullCmd, { windowsHide: true, timeout: 60000 }, function(err, stdout, stderr) {
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+// Print PDF silently using SumatraPDF via PowerShell Start-Process (no flash)
+function printPdfSilent(filePath, opts) {
+  return new Promise(function(resolve, reject) {
+    var sumatraArgs = [
+      '-print-to', '"' + opts.printer + '"',
+      '-silent',
+      '-exit-on-print'
+    ];
+    var settings = [];
+    if (opts.copies && opts.copies > 1) settings.push(opts.copies + 'x');
+    if (opts.side === 'duplex') settings.push('duplexlong');
+    if (opts.monochrome) settings.push('monochrome');
+    if (opts.pages) settings.push(opts.pages);
+    if (settings.length) sumatraArgs.push('-print-settings', settings.join(','));
+    sumatraArgs.push(filePath);
+
+    // Use spawn with windowsHide — proper arg array avoids any quoting/truncation issues
+    var child = spawn(SUMATRA, sumatraArgs, { windowsHide: true, detached: false });
+    child.on('close', function(code) { resolve(code); });
+    child.on('error', reject);
+  });
+}
+
+// Simple hidden exec (for non-PS commands)
+function execP(cmd) {
+  return new Promise(function(resolve, reject) {
+    exec(cmd, { windowsHide: true }, function(err, stdout, stderr) {
+      if (err) reject(err); else resolve({ stdout, stderr });
+    });
+  });
+}
 
 const RENDER_URL = 'https://printing-store.onrender.com';
 const BW_PRINTER_DEFAULT = 'KONICA MINOLTA 205i(36:33:9E)';
@@ -77,7 +140,7 @@ async function resolvePrinterName(targetName) {
   if (!targetName) return BW_PRINTER;
   var tName = (targetName || '').toLowerCase();
   if (tName.includes('205i') || tName.includes('konica')) return BW_PRINTER_DEFAULT;
-  if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER_DEFAULT;
+  if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
   try {
     var printers = await getPrinters();
     for (var i = 0; i < printers.length; i++) {
@@ -95,6 +158,7 @@ async function checkAndPrint() {
   try {
     sendPrinterHeartbeat();
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
+    if (!Array.isArray(orders)) return; // server not ready or returned an error object
     var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !tracker.isOrderPrinted(o.id); });
     if (orders.length > 0) {
       console.log('Found', orders.length, 'total orders,', acceptedOrders.length, 'to print');
@@ -124,25 +188,21 @@ async function checkAndPrint() {
           var backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
           await downloadFile(backUrl, backLocal);
           var combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + localFile + '" -backPath "' + backLocal + '" -outputPath "' + combinedPath + '"');
-          if (copyNum > 1) {
-            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '" -copies ' + copyNum);
-          } else {
-            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + combinedPath + '" -printerName "' + printer + '"');
-          }
+          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath: localFile, backPath: backLocal, outputPath: combinedPath });
+          var idPrintParams = { filePath: combinedPath, printerName: printer };
+          if (copyNum > 1) idPrintParams.copies = copyNum;
+          await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
           console.log('Printed combined ID copy to', printer);
         } else if (isPdf) {
           var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
           if (copyNum > 1) pdfOpts.copies = copyNum;
-          await print(localFile, pdfOpts);
+          await printPdfSilent(localFile, pdfOpts);
           console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);
         } else if (isImage) {
-          if (copyNum > 1) {
-            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '" -copies ' + copyNum);
-          } else {
-            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + localFile + '" -printerName "' + printer + '"');
-          }
+          var imgPrintParams = { filePath: localFile, printerName: printer };
+          if (copyNum > 1) imgPrintParams.copies = copyNum;
+          await runPsScript(path.join(__dirname, 'print-image.ps1'), imgPrintParams);
         } else {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
         }

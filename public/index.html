@@ -1828,6 +1828,10 @@
 
       // Populate premium order summary card
       populatePremiumSummary();
+
+      // Voice announcement — plays once when user reaches Review Order screen.
+      // Stopped automatically if user navigates away (showStep cancels it below).
+      VoiceManager.announce('Please complete your payment to start printing.');
 }
  
      // Populate premium order summary card
@@ -2764,6 +2768,7 @@
           // Show payment page
           document.getElementById('idcPayTotal').textContent = '₹' + totalPrice;
           document.getElementById('idcPayBtnAmount').textContent = totalPrice;
+          document.getElementById('idcPayBtnAmount2').textContent = totalPrice;
           document.getElementById('idcPayName').value = name;
           showStep('idcPayStep');
           btn.disabled = false; btn.textContent = 'Calculate Price';
@@ -2827,11 +2832,34 @@
     }
 
     function idcPayCash() {
-      fetch('/api/orders/' + currentOrderIds[0] + '/pay-cash', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-        .then(function(r) { return r.json(); })
-        .then(function() { updateStatusDisplay('paid'); showStep('stepStatus'); })
-        .catch(function() { alert('Cash payment failed'); });
+      if (!currentOrderIds || currentOrderIds.length === 0) {
+        alert('No order found. Please try again.');
+        return;
+      }
+      var btn = document.querySelector('.rpc-cash-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
+
+      // Mark ALL order IDs as cash-paid (in case of multiple ID copies in one session)
+      var promises = currentOrderIds.map(function(orderId) {
+        return fetch('/api/orders/' + orderId + '/pay-cash', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).then(function(r) { return r.json(); });
+      });
+
+      Promise.all(promises)
+        .then(function(results) {
+          var anyError = results.find(function(r) { return r.error; });
+          if (anyError) throw new Error(anyError.error);
+          updateStatusDisplay('accepted');
+          showStep('stepStatus');
+        })
+        .catch(function(err) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Pay with Cash'; }
+          alert('Cash payment failed: ' + (err.message || 'Server error. Please try again.'));
+        });
     }
+
 
     // --- Translations ---
     var translations = {
@@ -3005,7 +3033,33 @@
       // Handled by onFilesSelected which is called from onchange
     });
 
+    // ── VoiceManager ──────────────────────────────────────────────────────────
+    // Lightweight wrapper around Web Speech API.
+    // Stops any current speech before playing, never blocks user interactions.
+    var VoiceManager = {
+      _lastText: null,
+      announce: function(text) {
+        if (!('speechSynthesis' in window)) return; // browser doesn't support it
+        // Cancel whatever is currently playing
+        window.speechSynthesis.cancel();
+        var utter = new SpeechSynthesisUtterance(text);
+        utter.lang  = 'en-IN';   // Indian English accent (falls back to en if unavailable)
+        utter.rate  = 0.92;      // slightly slower for clarity
+        utter.pitch = 1.0;
+        utter.volume = 1.0;
+        this._lastText = text;
+        // Small delay so browser audio context is ready (required on some Chromium kiosk builds)
+        setTimeout(function() { window.speechSynthesis.speak(utter); }, 150);
+      },
+      stop: function() {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      }
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
     function showStep(id) {
+      // Stop any active voice announcement when navigating between screens
+      if (typeof VoiceManager !== 'undefined' && id !== 'stepReview') VoiceManager.stop();
       document.querySelectorAll('.step').forEach(function(c) { c.classList.remove('active'); c.style.display = 'none'; });
       var el = document.getElementById(id);
       if (el) {
