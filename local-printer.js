@@ -2,48 +2,56 @@ const https = require('https');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const { exec, spawn } = require('child_process');
+const { exec, spawn, execFile } = require('child_process');
 // Don't import getPrinters — it spawns Powershell.exe without windowsHide (causes the flash loop)
 // We implement our own hidden version below
 // SumatraPDF path bundled with pdf-to-printer
 const SUMATRA = path.join(__dirname, 'node_modules', 'pdf-to-printer', 'dist', 'SumatraPDF-3.4.6-32.exe');
 
-// getPrinters replacement — runs the EXACT same WMI query as pdf-to-printer but fully hidden
+var cachedPrinters = null;
+var lastPrinterCheck = 0;
+
+// getPrinters replacement — runs WMI query directly via execFile (no cmd.exe shell flash) & caches for 5 minutes
 function getPrintersHidden() {
+  var now = Date.now();
+  if (cachedPrinters && (now - lastPrinterCheck < 300000)) {
+    return Promise.resolve(cachedPrinters);
+  }
   return new Promise(function(resolve) {
-    var query = 'Get-CimInstance Win32_Printer -Property DeviceID,Name,PrinterPaperNames | ForEach-Object { $_.Name }';
-    exec('powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "' + query + '"',
-      { windowsHide: true, timeout: 15000 },
-      function(err, stdout) {
-        if (err || !stdout) return resolve([]);
-        var names = stdout.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(Boolean);
-        resolve(names.map(function(n) { return { name: n }; }));
-      }
-    );
+    var args = [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-Command', 'Get-CimInstance Win32_Printer -Property DeviceID,Name,PrinterPaperNames | ForEach-Object { $_.Name }'
+    ];
+    execFile('powershell.exe', args, { windowsHide: true, timeout: 15000 }, function(err, stdout) {
+      if (err || !stdout) return resolve(cachedPrinters || []);
+      var names = stdout.split(/\r?\n/).map(function(l) { return l.trim(); }).filter(Boolean);
+      cachedPrinters = names.map(function(n) { return { name: n }; });
+      lastPrinterCheck = Date.now();
+      resolve(cachedPrinters);
+    });
   });
 }
 
-
-// Run a PowerShell script with named parameters, fully hidden
+// Run a PowerShell script with named parameters, fully hidden via execFile (bypasses cmd.exe window)
 function runPsScript(psFile, params) {
   return new Promise(function(resolve, reject) {
-    // Build param string e.g. -filePath "x" -printerName "y"
-    var paramStr = Object.entries(params).map(function(kv) {
-      return '-' + kv[0] + ' "' + String(kv[1]).replace(/"/g, '`"') + '"';
-    }).join(' ');
-    var fullCmd = 'powershell -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass' +
-                  ' -File "' + psFile + '" ' + paramStr;
-    exec(fullCmd, { windowsHide: true, timeout: 60000 }, function(err, stdout, stderr) {
+    var args = ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', psFile];
+    if (params) {
+      Object.entries(params).forEach(function(kv) {
+        args.push('-' + kv[0], String(kv[1]));
+      });
+    }
+    execFile('powershell.exe', args, { windowsHide: true, timeout: 60000 }, function(err, stdout, stderr) {
       resolve({ stdout, stderr });
     });
   });
 }
 
-// Print PDF silently using SumatraPDF via PowerShell Start-Process (no flash)
+// Print PDF silently using SumatraPDF directly via spawn (no flash)
 function printPdfSilent(filePath, opts) {
   return new Promise(function(resolve, reject) {
     var sumatraArgs = [
-      '-print-to', '"' + opts.printer + '"',
+      '-print-to', opts.printer,
       '-silent',
       '-exit-on-print'
     ];
@@ -118,7 +126,7 @@ function downloadFile(url, dest) {
 
 async function sendPrinterHeartbeat() {
   try {
-    var printers = await getPrinters();
+    var printers = await getPrintersHidden();
     var payload = JSON.stringify({ printers: printers });
     var url = new URL(RENDER_URL + '/api/printer-heartbeat');
     var mod = url.protocol === 'https:' ? https : http;
@@ -142,7 +150,7 @@ async function resolvePrinterName(targetName) {
   if (tName.includes('205i') || tName.includes('konica')) return BW_PRINTER_DEFAULT;
   if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
   try {
-    var printers = await getPrinters();
+    var printers = await getPrintersHidden();
     for (var i = 0; i < printers.length; i++) {
       var p = printers[i];
       if (p && p.name) {
