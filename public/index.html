@@ -508,34 +508,29 @@
     <div id="stepHome" class="step active">
       <img src="printer-hero.png" alt="Kadam Xerox" style="width:100%;display:block;border-radius:0 0 16px 16px;">
 
-      <!-- Language Toggle -->
-      <div style="position:absolute;top:16px;right:16px;z-index:10;">
-        <button id="langToggle" onclick="toggleLang()" class="nx-lang-btn" style="background:#16a34a;color:#fff;border:none;padding:8px 12px;border-radius:20px;font-size:0.75em;font-weight:600;cursor:pointer;">EN</button>
-      </div>
-
       <!-- Action Cards -->
       <div class="nx-actions-section">
-        <h3 class="nx-section-title"><span class="nx-dot"></span> फाइल अपलोड करण्यासाठी पर्याय निवडा <span class="nx-dot"></span></h3>
+        <h3 class="nx-section-title"><span class="nx-dot"></span> Select Option to Upload File <span class="nx-dot"></span></h3>
         <div class="nx-action-cards">
           <label class="nx-action-card blue" for="fileInput">
             <div class="nx-ac-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg></div>
             <div class="nx-ac-title">UPLOAD</div>
             <div class="nx-ac-detail">PDF, JPG, PNG, DOC</div>
-            <div class="nx-ac-btn blue">अपलोड करा <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
+            <div class="nx-ac-btn blue">Upload <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
           </label>
           <div class="nx-action-card green" onclick="startIdCopy()" style="cursor:pointer;">
             <div class="nx-ac-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
             <div class="nx-ac-title">ID COPY</div>
-            <div class="nx-ac-desc">ID कॉपी करा</div>
-            <div class="nx-ac-detail">आधार, पॅन, DL इ.<br>चे फोटो घ्या</div>
-            <div class="nx-ac-btn green">ID कॉपी करा <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div class="nx-ac-desc">Copy ID Card</div>
+            <div class="nx-ac-detail">Take photos of<br>Aadhaar, PAN, DL, etc.</div>
+            <div class="nx-ac-btn green">Copy ID <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
           </div>
           <label class="nx-action-card purple" for="cameraInput">
             <div class="nx-ac-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
             <div class="nx-ac-title">CAMERA</div>
-            <div class="nx-ac-desc">कॅमेऱने फोटो घ्या</div>
-            <div class="nx-ac-detail">कॅमेऱने फोटो काढा<br>आणि प्रिंट करा</div>
-            <div class="nx-ac-btn purple">फोटो घ्या <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+            <div class="nx-ac-desc">Take Photo with Camera</div>
+            <div class="nx-ac-detail">Take photo with camera<br>and print</div>
+            <div class="nx-ac-btn purple">Take Photo <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
           </label>
         </div>
       </div>
@@ -543,16 +538,16 @@
       <!-- Security Banner -->
       <div class="nx-security-banner">
         <div class="nx-sb-left"><i data-lucide="shield-check" style="width:20px;height:20px;color:#2563eb;"></i></div>
-        <div class="nx-sb-text"><strong>तुमची फाइल सुरक्षित आहे.</strong><br><small>आम्ही तुमची फाइल 24 तासांत आपोआप डिलीट करतो.</small></div>
+        <div class="nx-sb-text"><strong>Your file is secure.</strong><br><small>We automatically delete your file within 24 hours.</small></div>
         <div class="nx-sb-arrow"><i data-lucide="chevron-right" style="width:18px;height:18px;color:#9ca3af;"></i></div>
       </div>
 
       <!-- Feature Tags -->
       <div class="nx-features-row">
-        <div class="nx-feature"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> 100% सुरक्षित<br><small>तुमच्या फाइलची पूर्ण सुरक्षा</small></div>
-        <div class="nx-feature"><i data-lucide="clock" style="width:14px;height:14px;"></i> जलद सेवा<br><small>काही क्षणात प्रिंट तयार</small></div>
-        <div class="nx-feature"><i data-lucide="award" style="width:14px;height:14px;"></i> बेस्ट क्वालिटी<br><small>स्वच्छ आणि उत्तम प्रिंट</small></div>
-        <div class="nx-feature"><i data-lucide="headphones" style="width:14px;height:14px;"></i> सहाय्य<br><small>आम्ही मदतीसाठी उपलब्ध</small></div>
+        <div class="nx-feature"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> 100% Secure<br><small>Complete security for your files</small></div>
+        <div class="nx-feature"><i data-lucide="clock" style="width:14px;height:14px;"></i> Fast Service<br><small>Print ready in seconds</small></div>
+        <div class="nx-feature"><i data-lucide="award" style="width:14px;height:14px;"></i> Best Quality<br><small>Clean and high quality print</small></div>
+        <div class="nx-feature"><i data-lucide="headphones" style="width:14px;height:14px;"></i> Support<br><small>We are available to help</small></div>
       </div>
     </div>
 
@@ -1049,23 +1044,23 @@
   <nav class="nx-bottom-nav" id="bottomNav">
     <button class="nx-nav-item active" onclick="navTo('home')" data-nav="home">
       <i data-lucide="home"></i>
-      <span>होम</span>
+      <span>Home</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('orders')" data-nav="orders">
       <i data-lucide="file-text"></i>
-      <span>माझे ऑर्डर</span>
+      <span>My Orders</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('upload')" data-nav="upload">
       <i data-lucide="upload-cloud"></i>
-      <span>अपलोड करा</span>
+      <span>Upload</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('prices')" data-nav="prices">
       <i data-lucide="tag"></i>
-      <span>किमती</span>
+      <span>Pricing</span>
     </button>
     <button class="nx-nav-item" onclick="navTo('contact')" data-nav="contact">
       <i data-lucide="phone"></i>
-      <span>संपर्क</span>
+      <span>Contact</span>
     </button>
   </nav>
 
@@ -1073,48 +1068,48 @@
   <div id="pagePrices" class="nx-page hidden">
     <div class="nx-page-header">
       <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
-      <h2>प्रिंटिंग सेवा दर</h2>
+      <h2>Printing Rates</h2>
     </div>
     <div class="nx-page-body">
       <div class="nx-price-card nx-price-bw">
         <div class="nx-price-icon bw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="6"/><rect x="7" y="16" width="10" height="4"/></svg></div>
         <div class="nx-price-info">
-          <div class="nx-price-title">B&W प्रिंट</div>
-          <div class="nx-price-desc">काळा व पांढरा प्रिंट</div>
+          <div class="nx-price-title">B&W Print</div>
+          <div class="nx-price-desc">Black & White Print</div>
         </div>
         <div class="nx-price-amount">₹5</div>
-        <div class="nx-price-unit">/पेज</div>
+        <div class="nx-price-unit">/page</div>
       </div>
       <div class="nx-price-card nx-price-color">
         <div class="nx-price-icon color"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="6"/><rect x="7" y="16" width="10" height="4"/></svg></div>
         <div class="nx-price-info">
-          <div class="nx-price-title">कलर प्रिंट</div>
-          <div class="nx-price-desc">रंगीबेरंगी प्रिंट</div>
+          <div class="nx-price-title">Color Print</div>
+          <div class="nx-price-desc">Color Print</div>
         </div>
         <div class="nx-price-amount">₹10</div>
-        <div class="nx-price-unit">/पेज</div>
+        <div class="nx-price-unit">/page</div>
       </div>
       <div class="nx-price-card nx-price-copy">
         <div class="nx-price-icon copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="6"/><rect x="7" y="16" width="10" height="4"/></svg></div>
         <div class="nx-price-info">
-          <div class="nx-price-title">ID कॉपी</div>
-          <div class="nx-price-desc">आधार/पॅन/DL कॉपी</div>
+          <div class="nx-price-title">ID Copy</div>
+          <div class="nx-price-desc">Aadhaar/PAN/DL Copy</div>
         </div>
         <div class="nx-price-amount">₹5</div>
-        <div class="nx-price-unit">/पेज</div>
+        <div class="nx-price-unit">/page</div>
       </div>
       <div class="nx-price-card nx-price-photocopy">
         <div class="nx-price-icon photocopy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><rect x="8" y="6" width="8" height="4"/><rect x="8" y="14" width="8" height="6"/></svg></div>
         <div class="nx-price-info">
-          <div class="nx-price-title">हार्ड कॉपी झेरॉक्स</div>
+          <div class="nx-price-title">Hard Copy Xerox</div>
           <div class="nx-price-desc">Photocopy</div>
         </div>
         <div class="nx-price-amount">₹2</div>
-        <div class="nx-price-unit">/पेज</div>
+        <div class="nx-price-unit">/page</div>
       </div>
       <div class="nx-note-card">
         <i data-lucide="info" style="width:16px;height:16px;color:#2563eb;"></i>
-        <span>दोन्ही बाजू प्रिंट = दुप्पट शीट्स × किमत. फाइल PDF असल्यास सर्वोत्तम गुणवत्ता मिळते.</span>
+        <span>Both side print = double sheets × price. PDF files get best quality.</span>
       </div>
     </div>
   </div>
@@ -1123,28 +1118,28 @@
   <div id="pageContact" class="nx-page hidden">
     <div class="nx-page-header">
       <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
-      <h2>संपर्क</h2>
+      <h2>Contact</h2>
     </div>
     <div class="nx-page-body">
       <div class="nx-contact-card">
         <div class="nx-cc-icon"><i data-lucide="map-pin"></i></div>
         <div class="nx-cc-info">
-          <div class="nx-cc-title">पत्ता</div>
+          <div class="nx-cc-title">Address</div>
           <div class="nx-cc-text">Kadam Xerox, Main Road, Maharashtra</div>
         </div>
       </div>
       <div class="nx-contact-card">
         <div class="nx-cc-icon"><i data-lucide="phone"></i></div>
         <div class="nx-cc-info">
-          <div class="nx-cc-title">फोन</div>
+          <div class="nx-cc-title">Phone</div>
           <div class="nx-cc-text">+91 9881093852</div>
         </div>
       </div>
       <div class="nx-contact-card">
         <div class="nx-cc-icon"><i data-lucide="clock"></i></div>
         <div class="nx-cc-info">
-          <div class="nx-cc-title">वेळ</div>
-          <div class="nx-cc-text">सोम - शनि: सकाळी 9 - रात्री 9</div>
+          <div class="nx-cc-title">Hours</div>
+          <div class="nx-cc-text">Mon - Sat: 9:00 AM - 9:00 PM</div>
         </div>
       </div>
     </div>
@@ -1154,14 +1149,14 @@
   <div id="pageOrders" class="nx-page hidden">
     <div class="nx-page-header">
       <button class="nx-page-back" onclick="navTo('home')"><i data-lucide="arrow-left" style="width:20px;height:20px;"></i></button>
-      <h2>माझे ऑर्डर</h2>
+      <h2>My Orders</h2>
     </div>
     <div class="nx-page-body">
       <div class="nx-empty-state">
         <i data-lucide="package" style="width:48px;height:48px;color:#d1d5db;"></i>
-        <p>अद्याप कोणतेही ऑर्डर नाहीत</p>
-        <p style="font-size:0.8em;color:#9ca3af;">प्रिंट करण्यासाठी फाइल अपलोड करा</p>
-        <button class="btn btn-primary" onclick="navTo('home')" style="margin-top:12px;">अपलोड करा</button>
+        <p>No orders yet</p>
+        <p style="font-size:0.8em;color:#9ca3af;">Upload files to print</p>
+        <button class="btn btn-primary" onclick="navTo('home')" style="margin-top:12px;">Upload</button>
       </div>
     </div>
   </div>
@@ -1212,8 +1207,8 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     var currentOrderIds = [];
-    var currentFilePages = {};
-    var currentLang = localStorage.getItem('lang') || 'en';
+    var currentLang = 'en';
+    localStorage.setItem('lang', 'en');
     var enhancedFiles = {};
     var scanQueue = [];
     var cropQueue = [];
@@ -2934,79 +2929,79 @@
         idCopyDesc: '86×54 mm ID card printing (Aadhar, PAN, etc.)',
       },
       mr: {
-        storeName: 'प्रिंटिंग स्टोर',
-        storeTagline: 'तुमचे डॉक्युमेंट्स प्रिंटिंगसाठी अपलोड करा',
-        uploadFile: 'फायल अपलोड करा',
+        storeName: 'Printing Store',
+        storeTagline: 'Upload your documents for printing',
+        uploadFile: 'Upload',
         uploadSub: 'PDF, DOC, DOCX, JPG, PNG',
-        docPrint: 'डॉक्युमेंट प्रिंटिंग',
-        docPrintDesc: 'PDF, DOC, इमेज',
-        idCopy: 'ID कॉपी',
-        idCopyDesc: 'आधार / पॅन कार्ड ८६×५४ मिमी',
-        chooseFiles: 'फायल निवडा',
+        docPrint: 'Document Printing',
+        docPrintDesc: 'PDF, DOC, images',
+        idCopy: 'ID Copy',
+        idCopyDesc: '86×54 mm ID card printing (Aadhaar, PAN, etc.)',
+        chooseFiles: 'Choose Files',
         fileHint: 'PDF, DOC, DOCX, JPG, PNG',
-        takePhoto: 'फोटो घ्या',
-        photoHint: 'डॉक्युमेंट कॅप्चर करण्यासाठी कॅमेरा वापरा',
-        processingFiles: 'फायल प्रक्रिया होत आहे...',
-        uploadedFiles: 'अपलोड केलेल्या फायल',
-        filesCountLabel: 'फायल निवडल्या',
-        addMore: 'आणखी जोडा',
-        nextSettings: 'पुढे: सेटिंग्ज',
-        printSettings: 'प्रिंट सेटिंग्ज',
-        settingsDesc: 'तुमचे डॉक्युमेंट कसे प्रिंट करायचे ते कॉन्फिगर करा',
-        copies: 'प्रती',
-        numberOfCopies: 'प्रतींची संख्या',
-        printType: 'प्रिंट प्रकार',
-        bwOption: 'काळे-पांढरे - ₹५/पेज',
-        colorOption: 'रंगीत - ₹१०/पेज',
-        printSide: 'प्रिंट बाजू',
-        singleSide: 'एकबाजू',
-        bothSides: 'दोन्ही बाजू',
-        orientation: 'दिशा',
-        portrait: 'पोर्ट्रेट',
-        landscape: 'लँडस्केप',
-        pageRange: 'पेज श्रेणी',
-        printAllPages: 'सर्व पेज',
-        printAllDesc: 'दस्तऐवजातील प्रत्येक पेज प्रिंट करा',
-        printCustomRange: 'सानुकूल श्रेणी',
-        printCustomDesc: 'प्रिंट करण्यासाठी पेज निर्दिष्ट करा',
-        pageRangeHint: 'रेंजसाठी डॅश (-) आणि स्वल्पविराम वापरा',
-        estimatedTotal: 'अंदाजे एकूण',
-        nextReview: 'पुढे: पुनरावलोकन',
-        reviewOrder: 'ऑर्डरचे पुनरावलोकन',
-        reviewDesc: 'कृपया पुष्टी करण्यापूर्वी तुमचे ऑर्डर तपासा',
-        totalPrice: 'एकूण किंमत',
-        namePlaceholder: 'तुमचे नाव',
-        mobilePlaceholder: 'मोबाईल नंबर (पर्यायी)',
-        notesPlaceholder: 'कोणतीही नोंद किंवा सूचना (पर्यायी)',
-        nextPayment: 'पेमेंटवर जा',
-        payment: 'पेमेंट',
-        paymentDesc: 'पेमेंट पद्धत निवडा आणि ऑर्डरची पुष्टी करा',
-        totalAmount: 'एकूण रक्कम',
-        payTitle: 'पेमेंट पद्धत',
-        cashOption: 'रोख',
-        cashMessage: 'कृपया ग्राहक घेण्यावेळी काउंटरवर रोख द्या.',
-        confirmOrderBtn: 'ऑर्डरची पुष्टी करा',
-        orderStatus: 'ऑर्डर स्थिती',
-        orderIdsLabel: 'ऑर्डर ID:',
-        pending: 'प्रतिक्षेत',
-        refreshStatus: 'स्थिती ताजी करा',
-        allReady: 'सर्व प्रिंट तयार! कृपया काउंटरवरून घ्या.',
-        uploadMore: 'आणखीन फायल अपलोड करा',
-        uploading: 'अपलोड होत आहे...',
-        confirming: 'पुष्टी होत आहे...',
-        enterName: 'कृपया तुमचे नाव प्रविष्ट करा',
-        selectFiles: 'कृपया फायल निवडा',
-        someFailed: 'काही ऑर्डर अयशल झाले. संपर्क करा.',
-        failedTryAgain: 'अयशल. पुन्हा प्रयत्न करा.',
-        back: 'मागे',
-        backToHome: 'मुखपृष्ठावर परत',
-        idCopyTitle: 'आधार / पॅन कार्ड कॉपी',
-        idCopyDesc: '८६×५४ मिमी आयडी कार्ड प्रिंटिंग (आधार, पॅन, इ.)',
+        takePhoto: 'Take Photo',
+        photoHint: 'Use camera to capture document',
+        processingFiles: 'Processing your files...',
+        uploadedFiles: 'Uploaded Files',
+        filesCountLabel: 'file(s) selected',
+        addMore: 'Add More',
+        nextSettings: 'Next: Settings',
+        printSettings: 'Print Settings',
+        settingsDesc: 'Configure how you want your documents printed',
+        copies: 'Copies',
+        numberOfCopies: 'Number of copies',
+        printType: 'Print Type',
+        bwOption: 'B&W - ₹5/page',
+        colorOption: 'Color - ₹10/page',
+        printSide: 'Print Side',
+        singleSide: 'Single Side',
+        bothSides: 'Both Sides',
+        orientation: 'Orientation',
+        portrait: 'Portrait',
+        landscape: 'Landscape',
+        pageRange: 'Page Range',
+        printAllPages: 'All pages',
+        printAllDesc: 'Print every page of the document',
+        printCustomRange: 'Custom range',
+        printCustomDesc: 'Specify pages to print',
+        pageRangeHint: 'Use dashes for ranges (-) and commas to separate',
+        estimatedTotal: 'Estimated Total',
+        nextReview: 'Next: Review',
+        reviewOrder: 'Review Order',
+        reviewDesc: 'Please check your order details before confirming',
+        totalPrice: 'Total Price',
+        namePlaceholder: 'Your Name',
+        mobilePlaceholder: 'Mobile Number (optional)',
+        notesPlaceholder: 'Any notes or instructions (optional)',
+        nextPayment: 'Continue to Payment',
+        payment: 'Payment',
+        paymentDesc: 'Select payment method and confirm your order',
+        totalAmount: 'Total Amount',
+        payTitle: 'Payment Method',
+        cashOption: 'Cash',
+        cashMessage: 'Please pay cash at the counter during pickup.',
+        confirmOrderBtn: 'Confirm Order',
+        orderStatus: 'Order Status',
+        orderIdsLabel: 'Order IDs:',
+        pending: 'Pending',
+        refreshStatus: 'Refresh Status',
+        allReady: 'All prints ready! Please collect from the counter.',
+        uploadMore: 'Upload More Files',
+        uploading: 'Uploading...',
+        confirming: 'Confirming...',
+        enterName: 'Please enter your name',
+        selectFiles: 'Please select files',
+        someFailed: 'Some orders failed. Contact support.',
+        failedTryAgain: 'Failed. Try again.',
+        back: 'Back',
+        backToHome: 'Back to Home',
+        idCopyTitle: 'Aadhaar / PAN Card Copy',
+        idCopyDesc: '86×54 mm ID card printing (Aadhaar, PAN, etc.)',
       }
     };
 
     function t(key) {
-      return translations[currentLang][key] || key;
+      return (translations.en && translations.en[key]) || key;
     }
 
     function applyLang() {
@@ -3016,12 +3011,13 @@
       document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
         el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
       });
-      document.getElementById('langToggle').textContent = currentLang === 'en' ? 'मराठी' : 'EN';
+      var lt = document.getElementById('langToggle');
+      if (lt) lt.style.display = 'none';
     }
 
     function toggleLang() {
-      currentLang = currentLang === 'en' ? 'mr' : 'en';
-      localStorage.setItem('lang', currentLang);
+      currentLang = 'en';
+      localStorage.setItem('lang', 'en');
       applyLang();
     }
 
