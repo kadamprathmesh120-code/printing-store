@@ -657,10 +657,16 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
           </button>
           <div class="qp-doc-label" onclick="openDocPreview()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
             <span>PREVIEW</span>
           </div>
         </div>
+
+        <!-- Prominent Preview Button -->
+        <button class="btn-preview-prominent" onclick="openDocPreview()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:12px;font-size:0.92em;font-weight:700;cursor:pointer;margin-bottom:12px;box-shadow:0 2px 8px rgba(37,99,235,0.08);transition:all 0.2s ease;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>👁️ Preview How It Will Print</span>
+        </button>
 
         <!-- Number of Copies -->
         <div class="qp-card">
@@ -816,7 +822,13 @@
     <div id="stepReview" class="step hidden">
       <button class="back-btn" onclick="showStep('stepSettings')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
       <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="reviewOrder">Review Order</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="reviewDesc">Please check your order details before confirming</p>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 12px;" data-i18n="reviewDesc">Please check your order details before confirming</p>
+
+      <!-- Prominent Preview Button in Review Step -->
+      <button class="btn-preview-prominent" onclick="openDocPreview()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:12px;font-size:0.92em;font-weight:700;cursor:pointer;margin-bottom:16px;box-shadow:0 2px 8px rgba(37,99,235,0.08);transition:all 0.2s ease;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>👁️ Preview How It Will Print</span>
+      </button>
 
       <div class="review-items" id="reviewItems"></div>
 
@@ -3960,7 +3972,18 @@ window.qpPreview = function() {
     }
 
     function openDocPreview(){
-      if(typeof selectedFiles==='undefined'||!selectedFiles.length)return;
+      if (typeof idcMode !== 'undefined' && idcMode === 'idcopy') {
+        var idcPrev = document.getElementById('idcPreview');
+        if (idcPrev) {
+          idcPrev.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+      }
+      if(typeof selectedFiles==='undefined'||!selectedFiles.length) {
+        var idcPrev = document.getElementById('idcPreview');
+        if (idcPrev) { idcPrev.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+        return;
+      }
       var f=selectedFiles[0].file,ext=f.name && f.name.indexOf('.') !== -1 ? f.name.split('.').pop().toLowerCase() : '';
       var isPdf=ext==='pdf',isImg=['jpg','jpeg','png','gif','webp','bmp','heic'].includes(ext);
       var isImageType=isImg||(!isPdf && f.type && f.type.startsWith('image/'));
