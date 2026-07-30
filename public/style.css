@@ -431,6 +431,38 @@ body {
   0% { left: -150%; }
   50%, 100% { left: 150%; }
 }
+/* --- Continuous Right-to-Left Scrolling Marquee Text --- */
+.marquee-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0 8px;
+}
+.marquee-content {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 32px;
+  animation: marqueeRightToLeft 12s linear infinite;
+  will-change: transform;
+}
+.live-wave-ticker:hover .marquee-content {
+  animation-play-state: paused;
+}
+@keyframes marqueeRightToLeft {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.marquee-item {
+  font-size: 0.76em;
+  color: #78350f;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .live-indicator {
   display: inline-flex;
   align-items: center;
