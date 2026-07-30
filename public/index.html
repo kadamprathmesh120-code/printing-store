@@ -3096,7 +3096,11 @@
             .then(function(r) { return r.json(); })
             .then(function(vData) {
               if (vData.error) throw new Error(vData.error);
-              updateStatusDisplay('accepted');
+              if (vData.message && vData.message.indexOf('Printing started') !== -1) {
+                updateStatusDisplay('accepted');
+              } else {
+                updateStatusDisplay('paid');
+              }
               showStep('stepStatus');
             }).catch(function(e) { alert('Verification failed: ' + e.message); });
           },
@@ -3136,7 +3140,7 @@
         .then(function(results) {
           var anyError = results.find(function(r) { return r.error; });
           if (anyError) throw new Error(anyError.error);
-          updateStatusDisplay('accepted');
+          updateStatusDisplay('paid');
           showStep('stepStatus');
         })
         .catch(function(err) {

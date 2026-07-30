@@ -477,17 +477,17 @@ app.post('/api/orders/:id/confirm-payment', (req, res) => {
   }
 });
 
-// Cash payment for ID copy (and regular orders) — marks order as paid + accepted for printing
+// Cash payment for ID copy (and regular orders) — marks order as paid (awaiting admin approval to print)
 app.post('/api/orders/:id/pay-cash', (req, res) => {
   try {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    // Allow pending orders to be marked as paid via cash
-    db.prepare('UPDATE orders SET status = ?, payment_method = ? WHERE id = ?').run('accepted', 'cash', req.params.id);
-    console.log(`Cash payment accepted for order ${req.params.id}`);
-    res.json({ success: true, message: 'Cash payment accepted. Order sent to print queue.' });
+    // Set status to 'paid' (Cash Confirmed - Awaiting Admin Approval to Print)
+    db.prepare('UPDATE orders SET status = ?, payment_method = ? WHERE id = ?').run('paid', 'cash', req.params.id);
+    console.log(`Cash payment recorded for order ${req.params.id}. Awaiting admin approval.`);
+    res.json({ success: true, message: 'Cash payment recorded. Waiting for admin approval.' });
   } catch (err) {
     console.error('pay-cash error:', err);
     res.status(500).json({ error: 'Server error: ' + err.message });
