@@ -1126,6 +1126,7 @@ function commitCropResult() {
 
 // ---------- Close modal ----------
 function closeModal() {
+  hideLoupe();
   if (modalEl) {
     modalEl.classList.add('hidden');
     modalEl.style.display = 'none';
@@ -1367,6 +1368,122 @@ function onPointerDown(e) {
   }
 }
 
+// ---------- Magnifying Loupe (Lens) Manager ----------
+var loupeEl = null;
+var loupeCtx = null;
+var loupeActive = false;
+
+function ensureLoupeElement() {
+  if (loupeEl) return;
+  loupeEl = document.createElement('div');
+  loupeEl.id = 'ocvLoupe';
+  loupeEl.style.cssText = 'position:fixed;width:110px;height:110px;border-radius:50%;border:3px solid #ffffff;box-shadow:0 6px 20px rgba(0,0,0,0.55),0 0 0 1.5px #16A34A;overflow:hidden;pointer-events:none;z-index:99999;display:none;opacity:0;transition:opacity 0.18s ease;background:#000;box-sizing:border-box;';
+  
+  var cvs = document.createElement('canvas');
+  cvs.id = 'ocvLoupeCanvas';
+  cvs.width = 110;
+  cvs.height = 110;
+  cvs.style.cssText = 'display:block;width:100%;height:100%;border-radius:50%;';
+  
+  var cross = document.createElement('div');
+  cross.style.cssText = 'position:absolute;top:50%;left:50%;width:16px;height:16px;transform:translate(-50%,-50%);pointer-events:none;';
+  cross.innerHTML = '<div style="position:absolute;top:7px;left:0;right:0;height:2px;background:#16A34A;box-shadow:0 0 2px #fff;"></div>' +
+                    '<div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:#16A34A;box-shadow:0 0 2px #fff;"></div>';
+  
+  loupeEl.appendChild(cvs);
+  loupeEl.appendChild(cross);
+  document.body.appendChild(loupeEl);
+  loupeCtx = cvs.getContext('2d');
+}
+
+function updateLoupe(targetPos, clientX, clientY) {
+  if (!canvasEl || !sourceImage || !targetPos) { hideLoupe(); return; }
+  ensureLoupeElement();
+
+  var lSize = 110;
+  var zoomFactor = 4; // 4x magnification
+
+  // 1. Smart edge detection position relative to touch/cursor
+  var lLeft = clientX - lSize / 2;
+  var lTop = clientY - lSize - 20; // 20px above touch
+  if (lTop < 10) {
+    lTop = clientY + 30; // flip below if near top screen edge
+  }
+  lLeft = Math.max(10, Math.min(window.innerWidth - lSize - 10, lLeft));
+  lTop = Math.max(10, Math.min(window.innerHeight - lSize - 10, lTop));
+
+  loupeEl.style.left = lLeft + 'px';
+  loupeEl.style.top = lTop + 'px';
+
+  if (!loupeActive) {
+    loupeActive = true;
+    loupeEl.style.display = 'block';
+    void loupeEl.offsetWidth;
+    loupeEl.style.opacity = '1';
+  }
+
+  // 2. Render 4x zoomed image onto loupeCtx
+  var lCtx = loupeCtx;
+  lCtx.clearRect(0, 0, lSize, lSize);
+  lCtx.save();
+  lCtx.imageSmoothingQuality = 'high';
+  lCtx.imageSmoothingEnabled = true;
+
+  lCtx.beginPath();
+  lCtx.arc(lSize / 2, lSize / 2, lSize / 2, 0, Math.PI * 2);
+  lCtx.clip();
+
+  var imgPt = canvasToImage(targetPos.x, targetPos.y);
+  var cropW = (lSize / zoomFactor) / displayScale;
+  var cropH = (lSize / zoomFactor) / displayScale;
+
+  var sx = imgPt.x - cropW / 2;
+  var sy = imgPt.y - cropH / 2;
+
+  var drawImg = getFilteredImage() || sourceImage;
+  lCtx.drawImage(drawImg, sx, sy, cropW, cropH, 0, 0, lSize, lSize);
+
+  // 3. Overlay zoomed green crop border inside loupe
+  var zoomOffsetX = lSize / 2 - targetPos.x * zoomFactor;
+  var zoomOffsetY = lSize / 2 - targetPos.y * zoomFactor;
+
+  lCtx.strokeStyle = '#16A34A';
+  lCtx.lineWidth = 2.5;
+  lCtx.beginPath();
+  for (var i = 0; i < corners.length; i++) {
+    var cx = corners[i].x * zoomFactor + zoomOffsetX;
+    var cy = corners[i].y * zoomFactor + zoomOffsetY;
+    if (i === 0) lCtx.moveTo(cx, cy);
+    else lCtx.lineTo(cx, cy);
+  }
+  lCtx.closePath();
+  lCtx.stroke();
+
+  // White & green target handle dot
+  var handleX = targetPos.x * zoomFactor + zoomOffsetX;
+  var handleY = targetPos.y * zoomFactor + zoomOffsetY;
+  lCtx.beginPath();
+  lCtx.arc(handleX, handleY, 7, 0, Math.PI * 2);
+  lCtx.fillStyle = '#ffffff';
+  lCtx.fill();
+  lCtx.strokeStyle = '#16A34A';
+  lCtx.lineWidth = 2.5;
+  lCtx.stroke();
+
+  lCtx.restore();
+}
+
+function hideLoupe() {
+  if (!loupeEl || !loupeActive) return;
+  loupeActive = false;
+  loupeEl.style.opacity = '0';
+  setTimeout(function() {
+    if (!loupeActive && loupeEl) {
+      loupeEl.style.display = 'none';
+    }
+  }, 180);
+}
+
 function onPointerMove(e) {
   if (!canvasEl || corners.length !== 4) return;
   var pos = getCanvasPos(e);
@@ -1375,6 +1492,7 @@ function onPointerMove(e) {
   if (pointerState.dragging) {
     var dx = pos.x - pointerState.startX;
     var dy = pos.y - pointerState.startY;
+    var activePos = pos;
 
     if (pointerState.handleType === 'corner') {
       var idx = pointerState.handleIdx;
@@ -1382,6 +1500,7 @@ function onPointerMove(e) {
         x: clamp(pointerState.startCorners[idx].x + dx, 0, w),
         y: clamp(pointerState.startCorners[idx].y + dy, 0, h)
       };
+      activePos = corners[idx];
     } else if (pointerState.handleType === 'mid') {
       var mi = pointerState.handleIdx;
       var ci = mi;
@@ -1394,8 +1513,10 @@ function onPointerMove(e) {
         x: clamp(pointerState.startCorners[cj].x + dx, 0, w),
         y: clamp(pointerState.startCorners[cj].y + dy, 0, h)
       };
+      activePos = { x: (corners[ci].x + corners[cj].x) / 2, y: (corners[ci].y + corners[cj].y) / 2 };
     }
     renderCrop();
+    updateLoupe(activePos, e.clientX, e.clientY);
     return;
   }
 
@@ -1409,6 +1530,7 @@ function onPointerMove(e) {
       };
     }
     renderCrop();
+    updateLoupe(pos, e.clientX, e.clientY);
     return;
   }
 
@@ -1417,6 +1539,7 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  hideLoupe();
   if (pointerState.dragging && corners.length === 4 && snapEnabled) {
     var edgeData = getEdgeData(canvasEl);
     if (pointerState.handleType === 'corner') {
@@ -1441,6 +1564,7 @@ function onTouchStart(e) {
   if (!canvasEl || corners.length !== 4) return;
 
   if (e.touches.length === 2) {
+    hideLoupe();
     touchState.pinching = true;
     touchState.lastDist = hypot(e.touches[0], e.touches[1]);
     touchState.startPanX = panX;
@@ -1478,6 +1602,7 @@ function onTouchMove(e) {
   var w = canvasEl.width, h = canvasEl.height;
 
   if (touchState.pinching && e.touches.length === 2) {
+    hideLoupe();
     var dist = hypot(e.touches[0], e.touches[1]);
     var scale = dist / touchState.lastDist;
     zoomLevel = clamp(touchState.startZoom * scale, 0.5, 5);
@@ -1494,6 +1619,9 @@ function onTouchMove(e) {
     var pos = getTouchPos(e);
     var dx = pos.x - touchState.startX;
     var dy = pos.y - touchState.startY;
+    var touchClientX = e.touches[0].clientX;
+    var touchClientY = e.touches[0].clientY;
+    var activePos = pos;
 
     if (touchState.handleType === 'corner') {
       var idx = touchState.handleIdx;
@@ -1501,6 +1629,7 @@ function onTouchMove(e) {
         x: clamp(touchState.startCorners[idx].x + dx, 0, w),
         y: clamp(touchState.startCorners[idx].y + dy, 0, h)
       };
+      activePos = corners[idx];
     } else if (touchState.handleType === 'mid') {
       var mi = touchState.handleIdx;
       corners[mi] = {
@@ -1511,8 +1640,10 @@ function onTouchMove(e) {
         x: clamp(touchState.startCorners[(mi + 1) % 4].x + dx, 0, w),
         y: clamp(touchState.startCorners[(mi + 1) % 4].y + dy, 0, h)
       };
+      activePos = { x: (corners[mi].x + corners[(mi + 1) % 4].x) / 2, y: (corners[mi].y + corners[(mi + 1) % 4].y) / 2 };
     }
     renderCrop();
+    updateLoupe(activePos, touchClientX, touchClientY);
     return;
   }
 
@@ -1527,12 +1658,14 @@ function onTouchMove(e) {
       };
     }
     renderCrop();
+    updateLoupe(pos, e.touches[0].clientX, e.touches[0].clientY);
     return;
   }
 }
 
 function onTouchEnd(e) {
   e.preventDefault();
+  hideLoupe();
   if (touchState.dragging && corners.length === 4) {
     var edgeData = getEdgeData(canvasEl);
     if (touchState.handleType === 'corner') {
