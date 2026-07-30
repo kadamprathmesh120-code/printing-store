@@ -3995,6 +3995,7 @@ window.qpPreview = function() {
       document.body.style.overflow='hidden';
     }
     function closeDocPreview(){
+      if (typeof resetQpZoom === 'function') resetQpZoom();
       var modal=document.getElementById('qpFullscreen');
       modal.classList.add('hidden');
       document.body.style.overflow='';
@@ -4005,6 +4006,82 @@ window.qpPreview = function() {
       var c=document.getElementById('qpFullscreenPages');
       if(c){c.innerHTML='';c.style.display='none';}
     }
+
+    /* ---------- Reusable 2-Finger Pinch to Zoom & Pan ---------- */
+    function enablePinchZoom(containerId, imgId) {
+      var modal = document.getElementById(containerId);
+      var img = document.getElementById(imgId);
+      if (!modal || !img) return function(){};
+
+      var currentScale = 1, currentPanX = 0, currentPanY = 0;
+      var startDist = 0, startScale = 1;
+      var startTouchX = 0, startTouchY = 0, startPanX = 0, startPanY = 0;
+      var lastTapTime = 0;
+
+      function updateTransform() {
+        img.style.transform = 'translate(' + currentPanX + 'px, ' + currentPanY + 'px) scale(' + currentScale + ')';
+        img.style.transition = 'transform 0.05s ease-out';
+      }
+
+      function resetZoom() {
+        currentScale = 1; currentPanX = 0; currentPanY = 0;
+        img.style.transform = 'none';
+        img.style.transition = 'transform 0.2s ease-out';
+      }
+
+      modal.addEventListener('touchstart', function(e) {
+        if (e.target.closest('.qp-fullscreen-close') || e.target.closest('.scan-zoom-close')) return;
+        if (e.touches.length === 1) {
+          var now = Date.now();
+          if (now - lastTapTime < 300) {
+            e.preventDefault();
+            if (currentScale > 1.2) { resetZoom(); }
+            else { currentScale = 2.5; currentPanX = 0; currentPanY = 0; updateTransform(); }
+            lastTapTime = 0; return;
+          }
+          lastTapTime = now;
+          if (currentScale > 1) {
+            startTouchX = e.touches[0].clientX; startTouchY = e.touches[0].clientY;
+            startPanX = currentPanX; startPanY = currentPanY;
+          }
+        }
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          startDist = Math.sqrt(dx * dx + dy * dy);
+          startScale = currentScale;
+        }
+      }, { passive: false });
+
+      modal.addEventListener('touchmove', function(e) {
+        if (e.target.closest('.qp-fullscreen-close') || e.target.closest('.scan-zoom-close')) return;
+        if (e.touches.length === 2 && startDist > 0) {
+          e.preventDefault();
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          currentScale = Math.min(5, Math.max(1, startScale * (dist / startDist)));
+          updateTransform();
+        } else if (e.touches.length === 1 && currentScale > 1) {
+          e.preventDefault();
+          var moveX = e.touches[0].clientX - startTouchX;
+          var moveY = e.touches[0].clientY - startTouchY;
+          currentPanX = startPanX + moveX; currentPanY = startPanY + moveY;
+          updateTransform();
+        }
+      }, { passive: false });
+
+      modal.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) startDist = 0;
+        if (currentScale < 1.05) { resetZoom(); }
+      });
+
+      return resetZoom;
+    }
+
+    var resetQpZoom = enablePinchZoom('qpFullscreen', 'qpFullscreenImg');
+    var resetScanZoom = enablePinchZoom('scanZoomModal', 'scanZoomImg');
   </script>
   <script src="opencv-crop.js?v=11"></script>
 </body>
