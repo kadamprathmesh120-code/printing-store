@@ -2219,11 +2219,14 @@
       if (side === 'front') idcFrontFile = f; else idcBackFile = f;
       var reader = new FileReader();
       reader.onload = function(e) {
+        if (side === 'front') idcFrontImgSrc = e.target.result;
+        else idcBackImgSrc = e.target.result;
         var img = document.getElementById('idc' + (side==='front'?'Front':'Back') + 'Img');
         img.src = e.target.result;
         img.classList.remove('hidden');
         document.getElementById('idc' + (side==='front'?'Front':'Back') + 'Empty').classList.add('hidden');
         document.getElementById('idc' + (side==='front'?'Front':'Back')).classList.add('has-img');
+        idcUpdatePreview();
         
         // Auto launch crop after selecting image
         setTimeout(function() {
@@ -2250,7 +2253,10 @@
             if (idcCurrent === 'front') idcFrontCropped = croppedFile; else idcBackCropped = croppedFile;
             var reader = new FileReader();
             reader.onload = function(e) {
+              if (idcCurrent === 'front') idcFrontImgSrc = e.target.result;
+              else idcBackImgSrc = e.target.result;
               document.getElementById('idc' + (idcCurrent==='front'?'Front':'Back') + 'Img').src = e.target.result;
+              idcUpdatePreview();
             };
             reader.readAsDataURL(croppedFile);
             document.getElementById('idcCropError').textContent = '';
@@ -2489,7 +2495,10 @@
 
         var reader = new FileReader();
         reader.onload = function(e) {
+          if (idcCurrent === 'front') idcFrontImgSrc = e.target.result;
+          else idcBackImgSrc = e.target.result;
           document.getElementById('idc' + (idcCurrent==='front'?'Front':'Back') + 'Img').src = e.target.result;
+          idcUpdatePreview();
         };
         reader.readAsDataURL(croppedFile);
 
