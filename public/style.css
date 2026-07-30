@@ -104,38 +104,39 @@ body {
 .nx-dot {
   width:6px; height:6px; border-radius:50%; background:#2563eb; display:inline-block;
 }
-.nx-action-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.nx-action-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
 .nx-action-card {
-  border-radius:16px; padding:16px 10px 14px; text-align:center;
+  border-radius:14px; padding:14px 4px 12px; text-align:center;
   background:#fff; border:2px solid #e2e8f0; cursor:pointer;
-  transition:all .2s cubic-bezier(0.16, 1, 0.3, 1); display:flex; flex-direction:column; align-items:center; gap:6px;
-  height:100%; box-sizing:border-box;
+  transition:all .2s cubic-bezier(0.16, 1, 0.3, 1); display:flex; flex-direction:column; align-items:center; gap:5px;
+  height:100%; box-sizing:border-box; overflow:hidden;
 }
 .nx-action-card:active { transform:scale(0.97); }
 .nx-action-card.blue { border-color:#bfdbfe; }
 .nx-action-card.green { border-color:#bbf7d0; }
 .nx-action-card.purple { border-color:#ddd6fe; }
 .nx-ac-icon {
-  width:48px; height:48px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
+  width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
+.nx-ac-icon svg { width:22px; height:22px; flex-shrink:0; }
 .nx-action-card.blue .nx-ac-icon { background:#dbeafe; color:#2563eb; }
 .nx-action-card.green .nx-ac-icon { background:#dcfce7; color:#16a34a; }
 .nx-action-card.purple .nx-ac-icon { background:#ede9fe; color:#7c3aed; }
-.nx-ac-title { font-size:0.78em; font-weight:700; color:#1e293b; letter-spacing:0.5px; }
+.nx-ac-title { font-size:0.75em; font-weight:700; color:#1e293b; letter-spacing:0.3px; }
 .nx-ac-desc { font-size:0.65em; color:#475569; font-weight:500; }
-.nx-ac-detail { font-size:0.58em; color:#94a3b8; line-height:1.4; margin-bottom:4px; }
+.nx-ac-detail { font-size:0.56em; color:#94a3b8; line-height:1.3; margin-bottom:2px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; max-width:100%; }
 .nx-ac-btn {
-  margin-top:auto; width:100%; height:48px; min-height:48px; max-height:48px;
-  padding:0 8px; border-radius:14px;
-  font-size:0.78em; font-weight:600; color:#fff; display:inline-flex;
-  align-items:center; justify-content:center; gap:6px; border:none; cursor:pointer;
+  margin-top:auto; width:100%; height:44px; min-height:44px; max-height:44px;
+  padding:0 4px; border-radius:12px;
+  font-size:0.72em; font-weight:600; color:#fff; display:inline-flex;
+  align-items:center; justify-content:center; gap:4px; border:none; cursor:pointer;
   white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.08);
   transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1); box-sizing:border-box;
-  font-family:inherit;
+  font-family:inherit; overflow:hidden;
 }
 .nx-ac-btn:active { transform:scale(0.97); }
-.nx-ac-btn svg { width:18px; height:18px; flex-shrink:0; }
+.nx-ac-btn svg { width:15px; height:15px; flex-shrink:0; }
 .nx-ac-btn.blue { background:#2563eb; }
 .nx-ac-btn.green { background:#16a34a; }
 .nx-ac-btn.purple { background:#7c3aed; }
@@ -445,9 +446,7 @@ body {
   position: relative;
   display: flex;
   align-items: center;
-  margin: 0 8px;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  margin: 0 6px;
 }
 .marquee-content {
   display: flex;
