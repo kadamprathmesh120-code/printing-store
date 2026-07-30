@@ -323,7 +323,7 @@ app.post('/api/upload', (req, res) => {
       }
 
       const copyCount = parseInt(copies) || 1;
-      const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
+      const initialStatus = 'pending';
       const stmt = db.prepare(`
         INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1126,7 +1126,7 @@ app.post('/api/upload-id-copy', (req, res) => {
         return res.status(400).json({ error: 'Color printing does not support Both Sides' });
       }
 
-      const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
+      const initialStatus = 'pending';
       const isBack = backEnabled === 'true' || backEnabled === true;
       const backFile = isBack && req.files && req.files.back && req.files.back[0] ? req.files.back[0] : null;
 
