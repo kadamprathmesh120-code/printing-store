@@ -3075,7 +3075,7 @@
             .then(function(r) { return r.json(); })
             .then(function(vData) {
               if (vData.error) throw new Error(vData.error);
-              updateStatusDisplay('paid');
+              updateStatusDisplay('accepted');
               showStep('stepStatus');
             }).catch(function(e) { alert('Verification failed: ' + e.message); });
           },
