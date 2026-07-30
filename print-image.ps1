@@ -11,6 +11,7 @@ $pd.PrinterSettings.PrinterName = $printerName
 if ($copies -gt 1) {
   $pd.PrinterSettings.Copies = [short]$copies
 }
+$pd.OriginAtMargins = $false
 $pd.DefaultPageSettings.PaperSize = $pd.PrinterSettings.PaperSizes | Where-Object { $_.Kind -eq "A4" } | Select-Object -First 1
 $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
 $pd.add_PrintPage({

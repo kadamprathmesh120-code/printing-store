@@ -11,18 +11,18 @@ $gr.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualit
 $gr.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
 $gr.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
 
-# 86mm x 54mm ID Card size at 300 DPI (2480x3508 A4 canvas)
-$cardW = 1016
-$cardH = 638
-$pageW = 2480
-$pageH = 3508
+# Exact 86mm x 54mm ID Card size at 300 DPI on 2480x3508 A4 page
+# 1mm = 11.81px (2480 / 210)
+$cardW = 1016   # 86mm
+$cardH = 638    # 54mm
+$pageW = 2480   # 210mm
+$pageH = 3508   # 297mm
+
+$marginTop = 295  # 25mm top margin
+$gap = 354        # 30mm gap between cards
 
 $hasFront = [string]::IsNullOrEmpty($frontPath) -eq $false -and (Test-Path $frontPath)
 $hasBack = [string]::IsNullOrEmpty($backPath) -eq $false -and (Test-Path $backPath)
-
-# Normal Mode Layout: Front at Top, Back at Bottom (vertical stack)
-$marginTop = 350
-$gap = 300
 
 if ($hasFront) {
   $frontImg = [System.Drawing.Image]::FromFile($frontPath)
