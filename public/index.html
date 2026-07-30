@@ -2752,7 +2752,7 @@
       var done = 0, total = (hasFront ? 1 : 0) + (hasBack ? 1 : 0);
       var cardImgs = [];
 
-      function placeCard(src, topOff, side) {
+      function placeCard(src, leftOff, topOff, side) {
         var img = new Image();
         img.onload = function() {
           var w = cardW, h = cardH;
@@ -2760,7 +2760,7 @@
           var cRatio = cardW / cardH;
           var fw = w, fh = h;
           if (iRatio > cRatio) { fh = w / iRatio; } else { fw = h * iRatio; }
-          var x = (a4W - fw) / 2;
+          var x = leftOff + (w - fw) / 2;
           var y = topOff + (h - fh) / 2;
           var el = document.createElement('img');
           el.src = src;
@@ -2780,8 +2780,17 @@
         img.src = src;
       }
 
-      if (hasFront) placeCard(idcFrontImgSrc, marginTop, 'front');
-      if (hasBack) placeCard(idcBackImgSrc, marginTop + cardH + gap, 'back');
+      if (hasFront && hasBack) {
+        var sideGap = 10 * pxPerMm;
+        var totalW = cardW * 2 + sideGap;
+        var startLeft = (a4W - totalW) / 2;
+        placeCard(idcFrontImgSrc, startLeft, marginTop, 'front');
+        placeCard(idcBackImgSrc, startLeft + cardW + sideGap, marginTop, 'back');
+      } else if (hasFront) {
+        placeCard(idcFrontImgSrc, (a4W - cardW) / 2, marginTop, 'front');
+      } else if (hasBack) {
+        placeCard(idcBackImgSrc, (a4W - cardW) / 2, marginTop, 'back');
+      }
     }
 
     function idcPreviewDragStart(e) {

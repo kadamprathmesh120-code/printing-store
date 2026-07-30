@@ -190,17 +190,22 @@ async function checkAndPrint() {
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
         var copyNum = Math.max(1, parseInt(order.copies) || 1);
 
-        if (order.is_id_copy && order.back_file_path) {
-          // Combine front+back into single A4 image, print once
-          var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
-          var backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
-          await downloadFile(backUrl, backLocal);
+        if (order.is_id_copy) {
+          // Combine front (+ back if available) into side-by-side A4 image (86x54 mm)
+          var backLocal = '';
+          if (order.back_file_path) {
+            var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
+            backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
+            await downloadFile(backUrl, backLocal);
+          }
           var combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
-          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath: localFile, backPath: backLocal, outputPath: combinedPath });
+          var psParams = { frontPath: localFile, outputPath: combinedPath };
+          if (backLocal) psParams.backPath = backLocal;
+          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), psParams);
           var idPrintParams = { filePath: combinedPath, printerName: printer };
           if (copyNum > 1) idPrintParams.copies = copyNum;
           await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
-          console.log('Printed combined ID copy to', printer);
+          console.log('Printed combined ID copy (86x54 mm) to', printer);
         } else if (isPdf) {
           var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;

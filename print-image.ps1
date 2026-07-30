@@ -12,19 +12,14 @@ if ($copies -gt 1) {
   $pd.PrinterSettings.Copies = [short]$copies
 }
 $pd.DefaultPageSettings.PaperSize = $pd.PrinterSettings.PaperSizes | Where-Object { $_.Kind -eq "A4" } | Select-Object -First 1
+$pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
 $pd.add_PrintPage({
   param($sender, $e)
-  $pageW = $e.PageBounds.Width
-  $pageH = $e.PageBounds.Height
-  $imgW = $img.Width
-  $imgH = $img.Height
-  $fitScale = [Math]::Min($pageW / $imgW, $pageH / $imgH)
-  $finalScale = $fitScale * $printScale
-  $drawW = [int]($imgW * $finalScale)
-  $drawH = [int]($imgH * $finalScale)
-  $x = [int](($pageW - $drawW) / 2)
-  $y = [int](($pageH - $drawH) / 2)
-  $e.Graphics.DrawImage($img, $x, $y, $drawW, $drawH)
+  $pw = $e.PageBounds.Width
+  $ph = $e.PageBounds.Height
+  $e.Graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $e.Graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+  $e.Graphics.DrawImage($img, 0, 0, $pw, $ph)
   $e.HasMorePages = $false
 })
 $pd.Print()

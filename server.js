@@ -588,9 +588,9 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
                 const printers = await getPrintersHidden();
                 const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
                 if (hasPrinter) {
-                  if (order.is_id_copy && order.back_file_path) {
+                  if (order.is_id_copy) {
                     const frontPath = path.join(__dirname, 'uploads', order.file_path);
-                    const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+                    const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
                     const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
                     await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
                     await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
@@ -745,9 +745,9 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
         const printers = await getPrintersHidden();
         const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
         if (hasPrinter) {
-          if (order.is_id_copy && order.back_file_path) {
+          if (order.is_id_copy) {
             const frontPath = path.join(__dirname, 'uploads', order.file_path);
-            const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+            const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
             const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
             await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
             await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
@@ -969,9 +969,9 @@ app.post('/api/admin/print/:id', async (req, res) => {
 
     tracker.markOrderPrinted(order.id);
 
-    if (order.is_id_copy && order.back_file_path) {
+    if (order.is_id_copy) {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
-      const backPath = path.join(__dirname, 'uploads', order.back_file_path);
+      const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
       const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
       await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
       await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
