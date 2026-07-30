@@ -2780,17 +2780,8 @@
         img.src = src;
       }
 
-      if (hasFront && hasBack) {
-        var sideGap = 10 * pxPerMm;
-        var totalW = cardW * 2 + sideGap;
-        var startLeft = (a4W - totalW) / 2;
-        placeCard(idcFrontImgSrc, startLeft, marginTop, 'front');
-        placeCard(idcBackImgSrc, startLeft + cardW + sideGap, marginTop, 'back');
-      } else if (hasFront) {
-        placeCard(idcFrontImgSrc, (a4W - cardW) / 2, marginTop, 'front');
-      } else if (hasBack) {
-        placeCard(idcBackImgSrc, (a4W - cardW) / 2, marginTop, 'back');
-      }
+      if (hasFront) placeCard(idcFrontImgSrc, (a4W - cardW) / 2, marginTop, 'front');
+      if (hasBack) placeCard(idcBackImgSrc, (a4W - cardW) / 2, marginTop + cardH + gap, 'back');
     }
 
     function idcPreviewDragStart(e) {
