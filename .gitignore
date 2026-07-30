@@ -1,8 +1,22 @@
-node_modules/
-uploads/
-downloads/
-printing.db
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+.env
+*.db
 *.db-shm
 *.db-wal
+uploads/
 printed-orders.json
-.env
+scratch/

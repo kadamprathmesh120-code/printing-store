@@ -509,6 +509,8 @@
     .oc-action-btn.accept:hover { background:#047857; }
     .oc-action-btn.reject { background:#fee2e2; color:#dc2626; }
     .oc-action-btn.reject:hover { background:#fecaca; }
+    .oc-action-btn.delete { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+    .oc-action-btn.delete:hover { background:#ef4444; color:#ffffff; }
 
     /* --- Toast Notifications --- */
     .kiosk-toast-container {
@@ -906,6 +908,9 @@
       <button class="ctrl-btn secondary" onclick="testNotification()" id="testNotifBtn">
         <i data-lucide="bell-ring" style="width:18px;height:18px;"></i> Test Notification
       </button>
+      <button class="ctrl-btn danger" onclick="deleteAllOrders()" id="deleteAllBtn" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;">
+        <i data-lucide="trash-2" style="width:18px;height:18px;"></i> Delete All Orders
+      </button>
     </div>
 
     <!-- Settings Panel (collapsible) -->
@@ -973,8 +978,11 @@
         <i data-lucide="layers" style="width:20px;height:20px;"></i>
         Order Feed
       </div>
-      <div class="kiosk-section-badge" id="totalOrdersBadge">
-        0 orders
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="kiosk-section-badge" id="totalOrdersBadge">0 orders</div>
+        <button onclick="deleteAllOrders()" class="oc-action-btn delete" style="padding:6px 14px;font-size:0.75em;min-height:auto;" title="Delete All Orders & Uploaded Files">
+          <i data-lucide="trash-2" style="width:12px;height:12px;"></i> Delete All
+        </button>
       </div>
     </div>
 
@@ -1712,14 +1720,14 @@
             '<i data-lucide="eye" style="width:12px;height:12px;"></i> View</a>';
         }
 
-        var actionBtns = '';
+        var actionBtns = '<div class="oc-actions">';
         if (o.status === 'paid') {
-          actionBtns =
-            '<div class="oc-actions">' +
-              '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\')"><i data-lucide="check" style="width:14px;height:14px;"></i> Accept</button>' +
-              '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>' +
-            '</div>';
+          actionBtns +=
+            '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\')"><i data-lucide="check" style="width:14px;height:14px;"></i> Accept</button>' +
+            '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         }
+        actionBtns += '<button class="oc-action-btn delete" onclick="deleteOrder(\'' + o.id + '\')" title="Delete Order & Uploaded Document"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>';
+        actionBtns += '</div>';
 
         var copiesDisplay = '';
         if (o.copies && o.copies > 1) {
@@ -1860,6 +1868,40 @@
         .catch(function() { alert('Failed'); });
     }
 
+    function deleteOrder(id) {
+      if (!confirm('Are you sure you want to delete this order and its uploaded document file permanently?')) return;
+      fetch('/api/admin/orders/' + id, { method: 'DELETE', headers: adminHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) {
+            alert('Error deleting order: ' + data.error);
+            return;
+          }
+          showToast('info', 'Order & File Deleted', 'Uploaded document and order record removed.');
+          knownOrderIds.delete(id);
+          fetchOrders();
+        })
+        .catch(function(err) { alert('Failed to delete order: ' + err.message); });
+    }
+
+    function deleteAllOrders() {
+      if (!confirm('⚠️ DANGER: Are you sure you want to delete ALL orders and ALL uploaded document files permanently? This action cannot be undone!')) {
+        return;
+      }
+      fetch('/api/admin/orders-all', { method: 'DELETE', headers: adminHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) {
+            alert('Error deleting all orders: ' + data.error);
+            return;
+          }
+          showToast('warning', 'All Orders & Files Deleted', data.message || 'All orders and uploaded files have been removed.');
+          knownOrderIds.clear();
+          fetchOrders();
+        })
+        .catch(function(err) { alert('Failed to delete all orders: ' + err.message); });
+    }
+
     // -------------------------------------------------------
     //  Escape HTML
     // -------------------------------------------------------
@@ -1875,7 +1917,6 @@
     fetchOrders();
     fetchPrinterStatus();
     startPolling();
-    setInterval(fetchPrinterStatus, 15000);
 
     // Initialize Lucide icons
     lucide.createIcons();

@@ -4,15 +4,81 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const qrcode = require('qrcode');
-const { exec } = require('child_process');
+const { exec, spawn, execFile } = require('child_process');
 const { promisify } = require('util');
-const { print: printPdf, getPrinters } = require('pdf-to-printer');
 const pdfParse = require('pdf-parse');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const db = require('./db');
 const tracker = require('./printer-tracker');
-const execP = promisify(exec);
+
+const SUMATRA = path.join(__dirname, 'node_modules', 'pdf-to-printer', 'dist', 'SumatraPDF-3.4.6-32.exe');
+
+let cachedPrinters = null;
+let lastPrinterCheck = 0;
+
+function getPrintersHidden() {
+  const now = Date.now();
+  if (cachedPrinters && (now - lastPrinterCheck < 300000)) {
+    return Promise.resolve(cachedPrinters);
+  }
+  return new Promise((resolve) => {
+    const args = [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-Command', 'Get-CimInstance Win32_Printer -Property DeviceID,Name,PrinterPaperNames | ForEach-Object { $_.Name }'
+    ];
+    execFile('powershell.exe', args, { windowsHide: true, timeout: 15000 }, (err, stdout) => {
+      if (err || !stdout) return resolve(cachedPrinters || []);
+      const names = stdout.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      cachedPrinters = names.map(n => ({ name: n }));
+      lastPrinterCheck = Date.now();
+      resolve(cachedPrinters);
+    });
+  });
+}
+
+function runPsScript(psFile, params) {
+  return new Promise((resolve, reject) => {
+    const args = ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', psFile];
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        args.push('-' + k, String(v));
+      });
+    }
+    execFile('powershell.exe', args, { windowsHide: true, timeout: 60000 }, (err, stdout, stderr) => {
+      if (err) reject(err); else resolve({ stdout, stderr });
+    });
+  });
+}
+
+function printPdfSilent(filePath, opts) {
+  return new Promise((resolve, reject) => {
+    const sumatraArgs = [
+      '-print-to', opts.printer,
+      '-silent',
+      '-exit-on-print'
+    ];
+    const settings = [];
+    if (opts.copies && opts.copies > 1) settings.push(opts.copies + 'x');
+    if (opts.side === 'duplex') settings.push('duplexlong');
+    if (opts.monochrome) settings.push('monochrome');
+    if (opts.pages) settings.push(opts.pages);
+    if (settings.length) sumatraArgs.push('-print-settings', settings.join(','));
+    sumatraArgs.push(filePath);
+
+    const child = spawn(SUMATRA, sumatraArgs, { windowsHide: true, detached: false });
+    child.on('close', (code) => { resolve(code); });
+    child.on('error', reject);
+  });
+}
+
+function execP(cmd) {
+  return new Promise((resolve, reject) => {
+    exec(cmd, { windowsHide: true }, (err, stdout, stderr) => {
+      if (err) reject(err); else resolve({ stdout, stderr });
+    });
+  });
+}
 
 function matchPrinter(pName, targetName) {
   if (!pName || !targetName) return false;
@@ -379,6 +445,20 @@ app.get('/api/orders/:id', (req, res) => {
   }
 });
 
+app.all('/api/orders/:id/mark-printed', (req, res) => {
+  try {
+    const id = req.params.id;
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+    if (order) {
+      tracker.markOrderPrinted(id);
+      deleteOrderFiles(order);
+    }
+    res.json({ success: true, message: 'Marked printed and files deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
 app.post('/api/orders/:id/confirm-payment', (req, res) => {
   try {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
@@ -505,14 +585,14 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
             db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
             if (!tracker.isOrderPrinted(oid)) {
               try {
-                const printers = await getPrinters();
+                const printers = await getPrintersHidden();
                 const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
                 if (hasPrinter) {
                   if (order.is_id_copy && order.back_file_path) {
                     const frontPath = path.join(__dirname, 'uploads', order.file_path);
                     const backPath = path.join(__dirname, 'uploads', order.back_file_path);
                     const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-                    await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+                    await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
                     await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
                   } else {
                     await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
@@ -630,13 +710,11 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
     };
     if (pageRange && pageRange !== 'all') opts.pages = pageRange;
     if (copyNum > 1) opts.copies = copyNum;
-    await printPdf(filePath, opts);
+    await printPdfSilent(filePath, opts);
   } else if (isImage) {
-    if (copyNum > 1) {
-      await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '" -copies ' + copyNum);
-    } else {
-      await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'print-image.ps1') + '" -filePath "' + filePath + '" -printerName "' + printer + '"');
-    }
+    const imgParams = { filePath, printerName: printer };
+    if (copyNum > 1) imgParams.copies = copyNum;
+    await runPsScript(path.join(__dirname, 'print-image.ps1'), imgParams);
   } else {
     await execP('print /D:"' + printer + '" "' + filePath + '"');
   }
@@ -664,14 +742,14 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
     // Try direct print (for local server), falls back to local-printer.js polling
     if (!tracker.isOrderPrinted(req.params.id)) {
       try {
-        const printers = await getPrinters();
+        const printers = await getPrintersHidden();
         const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
         if (hasPrinter) {
           if (order.is_id_copy && order.back_file_path) {
             const frontPath = path.join(__dirname, 'uploads', order.file_path);
             const backPath = path.join(__dirname, 'uploads', order.back_file_path);
             const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-            await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+            await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
             await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
           } else {
             await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
@@ -705,21 +783,175 @@ app.post('/api/admin/orders/:id/reject', (req, res) => {
   }
 });
 
+function deleteOrderFiles(order) {
+  if (!order) return;
+  const uploadsDir = path.join(__dirname, 'uploads');
+  if (order.file_path) {
+    const fp = path.join(uploadsDir, order.file_path);
+    if (fs.existsSync(fp)) {
+      try { fs.unlinkSync(fp); } catch (e) { console.error('Failed to delete file:', fp, e); }
+    }
+  }
+  if (order.back_file_path) {
+    const bp = path.join(uploadsDir, order.back_file_path);
+    if (fs.existsSync(bp)) {
+      try { fs.unlinkSync(bp); } catch (e) { console.error('Failed to delete back file:', bp, e); }
+    }
+  }
+  if (order.file_path) {
+    const cp = path.join(uploadsDir, 'combined_' + order.file_path);
+    if (fs.existsSync(cp)) {
+      try { fs.unlinkSync(cp); } catch (e) { console.error('Failed to delete combined file:', cp, e); }
+    }
+  }
+}
+
+app.delete('/api/admin/orders-all', (req, res) => {
+  try {
+    const orders = db.prepare('SELECT * FROM orders').all();
+    for (const order of orders) {
+      deleteOrderFiles(order);
+    }
+    db.prepare('DELETE FROM orders').run();
+
+    const uploadsDir = path.join(__dirname, 'uploads');
+    let deletedFileCount = 0;
+    if (fs.existsSync(uploadsDir)) {
+      const files = fs.readdirSync(uploadsDir);
+      for (const file of files) {
+        const filePath = path.join(uploadsDir, file);
+        try { fs.unlinkSync(filePath); deletedFileCount++; } catch (e) {}
+      }
+    }
+
+    res.json({ success: true, message: `Deleted all ${orders.length} orders and ${deletedFileCount} uploaded document files.` });
+  } catch (err) {
+    console.error('Delete all orders error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+app.delete('/api/admin/orders/:id', (req, res) => {
+  try {
+    if (req.params.id === 'all') {
+      const orders = db.prepare('SELECT * FROM orders').all();
+      for (const order of orders) {
+        deleteOrderFiles(order);
+      }
+      db.prepare('DELETE FROM orders').run();
+
+      const uploadsDir = path.join(__dirname, 'uploads');
+      let deletedFileCount = 0;
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        for (const file of files) {
+          const filePath = path.join(uploadsDir, file);
+          try { fs.unlinkSync(filePath); deletedFileCount++; } catch (e) {}
+        }
+      }
+
+      return res.json({ success: true, message: `Deleted all ${orders.length} orders and ${deletedFileCount} uploaded document files.` });
+    }
+
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    deleteOrderFiles(order);
+    db.prepare('DELETE FROM orders WHERE id = ?').run(req.params.id);
+
+    res.json({ success: true, message: 'Order and uploaded document deleted successfully' });
+  } catch (err) {
+    console.error('Delete order error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+app.post('/api/admin/cleanup-files', (req, res) => {
+  try {
+    const retentionMs = 24 * 60 * 60 * 1000;
+    const cutoffDate = new Date(Date.now() - retentionMs).toISOString();
+
+    const oldOrders = db.prepare(`
+      SELECT * FROM orders 
+      WHERE created_at < ? OR status IN ('accepted', 'rejected', 'payment_failed')
+    `).all(cutoffDate);
+
+    let deletedFilesCount = 0;
+    for (const order of oldOrders) {
+      deleteOrderFiles(order);
+      deletedFilesCount++;
+    }
+
+    const uploadsDir = path.join(__dirname, 'uploads');
+    let orphanCount = 0;
+    if (fs.existsSync(uploadsDir)) {
+      const files = fs.readdirSync(uploadsDir);
+      const now = Date.now();
+      for (const file of files) {
+        const filePath = path.join(uploadsDir, file);
+        try {
+          const stat = fs.statSync(filePath);
+          if (now - stat.mtimeMs > retentionMs) {
+            fs.unlinkSync(filePath);
+            orphanCount++;
+          }
+        } catch (e) {}
+      }
+    }
+
+    res.json({ success: true, message: `Cleaned uploaded documents for ${deletedFilesCount} orders and ${orphanCount} orphan files.` });
+  } catch (err) {
+    console.error('Cleanup error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+function autoCleanupUploadedDocuments() {
+  try {
+    const retentionMs = 24 * 60 * 60 * 1000; // 24 hours
+    const cutoffDate = new Date(Date.now() - retentionMs).toISOString();
+
+    const oldOrders = db.prepare(`
+      SELECT * FROM orders 
+      WHERE created_at < ? AND status IN ('accepted', 'rejected', 'payment_failed')
+    `).all(cutoffDate);
+
+    for (const order of oldOrders) {
+      deleteOrderFiles(order);
+    }
+
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      const files = fs.readdirSync(uploadsDir);
+      const now = Date.now();
+      for (const file of files) {
+        const filePath = path.join(uploadsDir, file);
+        try {
+          const stat = fs.statSync(filePath);
+          if (now - stat.mtimeMs > retentionMs) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (e) {}
+      }
+    }
+  } catch (err) {
+    console.error('Auto cleanup error:', err);
+  }
+}
+autoCleanupUploadedDocuments();
+setInterval(autoCleanupUploadedDocuments, 60 * 60 * 1000);
+
+
 app.get('/api/admin/printers', async (req, res) => {
   try {
-    let list = [];
-    try {
-      list = await getPrinters();
-    } catch (e) {}
-
-    if (Array.isArray(list) && list.length > 0) {
-      return res.json(list);
-    }
-
-    if (Date.now() - lastPrinterHeartbeat.timestamp < 35000) {
+    if (lastPrinterHeartbeat.printers && lastPrinterHeartbeat.printers.length > 0) {
       return res.json(lastPrinterHeartbeat.printers);
     }
-
+    if (cachedPrinters) {
+      return res.json(cachedPrinters);
+    }
     res.json([]);
   } catch (err) {
     res.status(500).json({ error: 'Failed to get printers' });
@@ -741,7 +973,7 @@ app.post('/api/admin/print/:id', async (req, res) => {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
       const backPath = path.join(__dirname, 'uploads', order.back_file_path);
       const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-      await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontPath + '" -backPath "' + backPath + '" -outputPath "' + combinedPath + '"');
+      await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
       await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
     } else {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
@@ -778,7 +1010,7 @@ app.get('/print/:id', async (req, res) => {
         try {
           var frontP = path.join(__dirname, 'uploads', order.file_path);
           var backP = path.join(__dirname, 'uploads', order.back_file_path);
-          await execP('powershell -NoProfile -ExecutionPolicy Bypass -File "' + path.join(__dirname, 'combine-idcopy.ps1') + '" -frontPath "' + frontP + '" -backPath "' + backP + '" -outputPath "' + combinedPath + '"');
+          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath: frontP, backPath: backP, outputPath: combinedPath });
         } catch(e){}
       }
       hasCombined = fs.existsSync(combinedPath);

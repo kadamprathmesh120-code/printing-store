@@ -164,7 +164,7 @@ async function resolvePrinterName(targetName) {
 
 async function checkAndPrint() {
   try {
-    sendPrinterHeartbeat();
+    // sendPrinterHeartbeat(); // Disabled printer polling
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
     if (!Array.isArray(orders)) return; // server not ready or returned an error object
     var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !tracker.isOrderPrinted(o.id); });
@@ -217,6 +217,21 @@ async function checkAndPrint() {
 
         tracker.markOrderPrinted(order.id);
         console.log('Printed:', order.file_name, 'to', printer);
+
+        // Notify server to mark printed & delete server uploads
+        try {
+          fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){});
+        } catch(e){}
+
+        // Clean up downloaded local files
+        try {
+          if (fs.existsSync(localFile)) { fs.unlinkSync(localFile); }
+          if (typeof backLocal !== 'undefined' && backLocal && fs.existsSync(backLocal)) { fs.unlinkSync(backLocal); }
+          if (typeof combinedPath !== 'undefined' && combinedPath && fs.existsSync(combinedPath)) { fs.unlinkSync(combinedPath); }
+          console.log('Deleted downloaded local files for order:', order.id);
+        } catch(e) {
+          console.error('Error deleting local downloaded files:', e.message);
+        }
       }
     }
   } catch (e) {

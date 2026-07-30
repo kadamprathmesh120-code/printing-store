@@ -1677,8 +1677,8 @@ function refreshPreview() {
 return {
   loadOpenCV: loadOpenCV,
 
-  openModal: function(image, idCopy, callback) {
-    openModal(image, idCopy, callback);
+  openModal: function(image, idCopy, callback, originalFile) {
+    openModal(image, idCopy, callback, originalFile);
   },
 
   setFilter: function(mode) {
