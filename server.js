@@ -52,6 +52,13 @@ function runPsScript(psFile, params) {
   });
 }
 
+function sanitizePageRange(rangeStr) {
+  if (!rangeStr || rangeStr === 'all') return 'all';
+  let cleaned = String(rangeStr).replace(/[^0-9,-]/g, '').trim();
+  cleaned = cleaned.replace(/^[,|-]+|[,|-]+$/g, '');
+  return cleaned || 'all';
+}
+
 function printPdfSilent(filePath, opts) {
   return new Promise((resolve, reject) => {
     const sumatraArgs = [
@@ -59,16 +66,22 @@ function printPdfSilent(filePath, opts) {
       '-silent',
       '-exit-on-print'
     ];
-    const settings = [];
-    // Always set copies explicitly (prevents printer driver default from doubling prints)
+    const settings = ['fit']; // Always fit page content to paper printable area (prevents blank/clipped pages)
     const copyCount = Math.max(1, parseInt(opts.copies) || 1);
     settings.push(copyCount + 'x');
-    if (opts.side === 'duplex') settings.push('duplexlong');
+    
+    if (opts.side === 'duplex') {
+      settings.push('duplexlong');
+    } else {
+      settings.push('simplex');
+    }
+
     if (opts.monochrome) settings.push('monochrome');
-    // Portrait/Landscape orientation
     if (opts.orientation === 'landscape') settings.push('landscape');
-    else settings.push('portrait');
-    if (opts.pages) settings.push(opts.pages);
+    
+    const cleanRange = sanitizePageRange(opts.pages);
+    if (cleanRange && cleanRange !== 'all') settings.push(cleanRange);
+
     if (settings.length) sumatraArgs.push('-print-settings', settings.join(','));
     sumatraArgs.push(filePath);
 
@@ -926,8 +939,9 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
       orientation: orient,
       paperSize: 'A4'
     };
-    if (pageRange && pageRange !== 'all') opts.pages = pageRange;
-    console.log(`[PRINT] File: ${fileName} | Type: ${printType} | Side: ${printSide} | Pages: ${pageRange||'all'} | Copies: ${copyNum} | Orientation: ${orient}`);
+    const cleanRange = sanitizePageRange(pageRange);
+    if (cleanRange && cleanRange !== 'all') opts.pages = cleanRange;
+    console.log(`[PRINT] File: ${fileName} | Type: ${printType} | Side: ${printSide} | Pages: ${cleanRange} | Copies: ${copyNum} | Orientation: ${orient}`);
     await printPdfSilent(filePath, opts);
   } else if (isImage) {
     const imgParams = { filePath, printerName: printer, copies: copyNum, orientation: orient };
