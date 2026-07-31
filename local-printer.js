@@ -178,6 +178,7 @@ async function checkAndPrint() {
     for (var i = 0; i < orders.length; i++) {
       var order = orders[i];
       if (order.status === 'accepted' && !tracker.isOrderPrinted(order.id)) {
+        tracker.markOrderPrinted(order.id); // Mark immediately to prevent duplicate prints
         var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
         console.log('New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
         console.log('Downloading:', fileUrl);

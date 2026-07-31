@@ -606,6 +606,7 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
             const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
             db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
             if (!tracker.isOrderPrinted(oid)) {
+              tracker.markOrderPrinted(oid); // Mark IMMEDIATELY to prevent double-print race condition with local-printer.js
               try {
                 const printers = await getPrintersHidden();
                 const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
@@ -619,7 +620,6 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
                   } else {
                     await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                   }
-                  tracker.markOrderPrinted(oid);
                 }
               } catch (e) {}
             }
@@ -783,6 +783,7 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
                   const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
                   db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
                   if (!tracker.isOrderPrinted(oid)) {
+                    tracker.markOrderPrinted(oid);
                     try {
                       const printers = await getPrintersHidden();
                       const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
@@ -796,7 +797,6 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
                         } else {
                           await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                         }
-                        tracker.markOrderPrinted(oid);
                       }
                     } catch (e) {}
                   }
@@ -958,6 +958,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
 
     // Try direct print (for local server), falls back to local-printer.js polling
     if (!tracker.isOrderPrinted(req.params.id)) {
+      tracker.markOrderPrinted(req.params.id); // Mark IMMEDIATELY to prevent double-print race condition with local-printer.js
       try {
         const printers = await getPrintersHidden();
         const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
@@ -971,7 +972,6 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
           } else {
             await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
           }
-          tracker.markOrderPrinted(req.params.id);
         }
       } catch (e) {}
     }
