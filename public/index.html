@@ -1344,6 +1344,35 @@
     </div>
   </div>
 
+  <!-- SMART POP-UP BANNER FOR ID CARD DETECTED IN NORMAL MODE -->
+  <div id="idCardDetectedModal" class="crop-overlay hidden" style="display:none;z-index:99999;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);">
+    <div class="idc-big-card animate-bounce-in" style="background:#ffffff;border-radius:24px;max-width:440px;width:92%;padding:26px 20px;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,0.4);position:relative;border:1px solid rgba(255,255,255,0.2);">
+      <button onclick="dismissIdNoticeAndContinue()" style="position:absolute;top:16px;right:16px;background:#f3f4f6;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1em;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;">✕</button>
+      
+      <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#dcfce7,#f0fdf4);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:2.2em;box-shadow:0 4px 12px rgba(16,185,129,0.2);">🪪✨</div>
+      
+      <h2 style="font-size:1.3em;font-weight:800;color:#111827;margin:0 0 6px;letter-spacing:-0.02em;">ID Card Detected! / आयडी कार्ड आढळले!</h2>
+      <p style="font-size:0.88em;color:#4b5563;margin:0 0 20px;line-height:1.45;">
+        You uploaded an <b>ID Card</b> (Aadhaar / PAN / License). For perfect <b>86×54 mm 2-sided layout printing</b>, use dedicated <b>ID Copy Mode</b>!
+      </p>
+      
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button onclick="switchToIdCopyFromNotice()" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;padding:14px 18px;border-radius:16px;font-size:0.98em;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:0 6px 16px rgba(5,150,105,0.35);text-align:left;">
+          <span style="font-size:1.5em;">🪪</span>
+          <div style="flex:1;">
+            <div>Switch to ID Copy Mode</div>
+            <div style="font-size:0.75em;font-weight:400;opacity:0.9;">86×54 mm card printing</div>
+          </div>
+          <span>➔</span>
+        </button>
+        
+        <button onclick="dismissIdNoticeAndContinue()" style="background:#f9fafb;color:#4b5563;border:1px solid #e5e7eb;padding:12px 18px;border-radius:16px;font-size:0.9em;font-weight:600;cursor:pointer;">
+          📄 Continue Normal Print
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     var currentOrderIds = [];
@@ -1353,6 +1382,57 @@
     var scanQueue = [];
     var cropQueue = [];
     var cropIndex = 0;
+
+    window.checkAndNotifyIdCard = function(corners, cw, ch, originalFile) {
+      if (typeof idcMode !== 'undefined' && idcMode === 'idcopy') return;
+      if (!corners || corners.length !== 4) return;
+
+      var topW = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
+      var botW = Math.hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y);
+      var leftH = Math.hypot(corners[3].x - corners[0].x, corners[3].y - corners[0].y);
+      var rightH = Math.hypot(corners[2].x - corners[1].x, corners[2].y - corners[1].y);
+
+      var meanW = (topW + botW) / 2;
+      var meanH = (leftH + rightH) / 2;
+      if (meanW < 10 || meanH < 10) return;
+
+      var aspect = Math.max(meanW / meanH, meanH / meanW);
+      var area = (meanW * meanH) / (cw * ch);
+
+      // ISO 7810 ID Card (Aadhaar / PAN / License) aspect ratio is ~1.586 (range: 1.42 to 1.76)
+      if (aspect >= 1.42 && aspect <= 1.76 && area >= 0.10 && area <= 0.70) {
+        window._pendingIdFile = originalFile;
+        var modal = document.getElementById('idCardDetectedModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.style.display = 'flex';
+        }
+      }
+    };
+
+    window.switchToIdCopyFromNotice = function() {
+      var modal = document.getElementById('idCardDetectedModal');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+      if (typeof OCV_CROP !== 'undefined' && OCV_CROP.cancel) OCV_CROP.cancel();
+
+      var f = window._pendingIdFile;
+      if (f) {
+        idcFrontFile = f;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          idcFrontImgSrc = e.target.result;
+          startIdCopy();
+        };
+        reader.readAsDataURL(f);
+      } else {
+        startIdCopy();
+      }
+    };
+
+    window.dismissIdNoticeAndContinue = function() {
+      var modal = document.getElementById('idCardDetectedModal');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+    };
     var cropRotation = 0;
     var cropImg = null;
     var cropOrigFile = null;
