@@ -134,9 +134,18 @@ function downloadFile(url, dest) {
     var file = fs.createWriteStream(dest);
     var mod = url.startsWith('https') ? https : http;
     mod.get(url, function(res) {
+      if (res.statusCode !== 200) {
+        file.close();
+        if (fs.existsSync(dest)) try { fs.unlinkSync(dest); } catch(e){}
+        return reject(new Error('Failed to download ' + url + ' (HTTP Status ' + res.statusCode + ')'));
+      }
       res.pipe(file);
       file.on('finish', function() { file.close(); resolve(); });
-    }).on('error', function(err) { fs.unlink(dest, function(){}); reject(err); });
+    }).on('error', function(err) {
+      file.close();
+      if (fs.existsSync(dest)) try { fs.unlinkSync(dest); } catch(e){}
+      reject(err);
+    });
   });
 }
 
@@ -161,9 +170,15 @@ async function sendPrinterHeartbeat() {
 }
 
 async function resolvePrinterName(targetName) {
-  if (!targetName) return BW_PRINTER;
+  var activeBw = BW_PRINTER_DEFAULT;
+  if (fs.existsSync(PRINTER_CONFIG)) {
+    try { activeBw = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || activeBw; } catch(e) {}
+  }
+  if (!targetName) return activeBw;
+
   var tName = (targetName || '').toLowerCase();
-  if (tName.includes('205i') || tName.includes('konica')) return BW_PRINTER_DEFAULT;
+  if (tName.includes('205i') || tName.includes('konica')) return 'KONICA MINOLTA 205i(36:33:9E)';
+  if (tName.includes('kyocera')) return 'Kyocera ECOSYS MA4000x KX';
   if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
   try {
     var printers = await getPrintersHidden();
@@ -175,8 +190,10 @@ async function resolvePrinterName(targetName) {
       }
     }
   } catch (e) {}
-  return targetName;
+  return activeBw;
 }
+
+var activePrints = new Set();
 
 async function checkAndPrint() {
   try {
@@ -189,68 +206,76 @@ async function checkAndPrint() {
     }
     for (var i = 0; i < orders.length; i++) {
       var order = orders[i];
-      if (order.status === 'accepted' && !tracker.isOrderPrinted(order.id)) {
-        tracker.markOrderPrinted(order.id); // Mark immediately to prevent duplicate prints
-        var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
-        console.log('New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
-        console.log('Downloading:', fileUrl);
-        var ext = path.extname(order.file_name).toLowerCase();
-        var localFile = path.join(DOWNLOAD_DIR, order.file_path);
+      if (order.status === 'accepted' && !tracker.isOrderPrinted(order.id) && !activePrints.has(order.id)) {
+        activePrints.add(order.id);
+        var backLocal = '';
+        var combinedPath = '';
+        var localFile = '';
+        try {
+          var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
+          console.log('New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
+          console.log('Downloading:', fileUrl);
+          var ext = path.extname(order.file_name).toLowerCase();
+          localFile = path.join(DOWNLOAD_DIR, order.file_path);
 
-        fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
-        await downloadFile(fileUrl, localFile);
+          fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
+          await downloadFile(fileUrl, localFile);
 
-        var requestedPrinter = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
-        var printer = await resolvePrinterName(requestedPrinter);
-        console.log('DEBUG: order.id=' + order.id + ', copies=' + order.copies + ', printer=' + printer + ', file=' + order.file_name);
-        var isPdf = ext === '.pdf';
-        var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
-        var copyNum = Math.max(1, parseInt(order.copies) || 1);
+          var requestedPrinter = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
+          var printer = await resolvePrinterName(requestedPrinter);
+          console.log('DEBUG: order.id=' + order.id + ', copies=' + order.copies + ', printer=' + printer + ', file=' + order.file_name);
+          var isPdf = ext === '.pdf';
+          var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
+          var copyNum = Math.max(1, parseInt(order.copies) || 1);
 
-        var orient = (order.orientation || 'portrait').toLowerCase();
-        if (order.is_id_copy) {
-          // Combine front (+ back if available) into side-by-side A4 image (86x54 mm)
-          var backLocal = '';
-          if (order.back_file_path) {
-            var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
-            backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
-            await downloadFile(backUrl, backLocal);
+          var orient = (order.orientation || 'portrait').toLowerCase();
+          if (order.is_id_copy) {
+            // Combine front (+ back if available) into side-by-side A4 image (86x54 mm)
+            if (order.back_file_path) {
+              var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
+              backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
+              await downloadFile(backUrl, backLocal);
+            }
+            combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
+            var psParams = { frontPath: localFile, outputPath: combinedPath };
+            if (backLocal) psParams.backPath = backLocal;
+            await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), psParams);
+            var idPrintParams = { filePath: combinedPath, printerName: printer, copies: copyNum, orientation: orient };
+            await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
+            console.log('Printed combined ID copy (86x54 mm) to', printer);
+          } else if (isPdf) {
+            var pdfOpts = { printer: printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4', copies: copyNum, orientation: orient };
+            if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
+            await printPdfSilent(localFile, pdfOpts);
+            console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);
+          } else if (isImage) {
+            var imgPrintParams = { filePath: localFile, printerName: printer, copies: copyNum, orientation: orient };
+            await runPsScript(path.join(__dirname, 'print-image.ps1'), imgPrintParams);
+          } else {
+            await execP('print /D:"' + printer + '" "' + localFile + '"');
           }
-          var combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
-          var psParams = { frontPath: localFile, outputPath: combinedPath };
-          if (backLocal) psParams.backPath = backLocal;
-          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), psParams);
-          var idPrintParams = { filePath: combinedPath, printerName: printer, copies: copyNum, orientation: orient };
-          await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
-          console.log('Printed combined ID copy (86x54 mm) to', printer);
-        } else if (isPdf) {
-          var pdfOpts = { printer: printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4', copies: copyNum, orientation: orient };
-          if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
-          await printPdfSilent(localFile, pdfOpts);
-          console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);
-        } else if (isImage) {
-          var imgPrintParams = { filePath: localFile, printerName: printer, copies: copyNum, orientation: orient };
-          await runPsScript(path.join(__dirname, 'print-image.ps1'), imgPrintParams);
-        } else {
-          await execP('print /D:"' + printer + '" "' + localFile + '"');
-        }
 
-        tracker.markOrderPrinted(order.id);
-        console.log('Printed:', order.file_name, 'to', printer);
+          tracker.markOrderPrinted(order.id);
+          console.log('Printed:', order.file_name, 'to', printer);
 
-        // Notify server to mark printed & delete server uploads
-        try {
-          fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){});
-        } catch(e){}
+          // Notify server to mark printed & delete server uploads
+          try {
+            fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){});
+          } catch(e){}
 
-        // Clean up downloaded local files
-        try {
-          if (fs.existsSync(localFile)) { fs.unlinkSync(localFile); }
-          if (typeof backLocal !== 'undefined' && backLocal && fs.existsSync(backLocal)) { fs.unlinkSync(backLocal); }
-          if (typeof combinedPath !== 'undefined' && combinedPath && fs.existsSync(combinedPath)) { fs.unlinkSync(combinedPath); }
-          console.log('Deleted downloaded local files for order:', order.id);
+          // Clean up downloaded local files
+          try {
+            if (localFile && fs.existsSync(localFile)) { fs.unlinkSync(localFile); }
+            if (backLocal && fs.existsSync(backLocal)) { fs.unlinkSync(backLocal); }
+            if (combinedPath && fs.existsSync(combinedPath)) { fs.unlinkSync(combinedPath); }
+            console.log('Deleted downloaded local files for order:', order.id);
+          } catch(e) {
+            console.error('Error deleting local downloaded files:', e.message);
+          }
         } catch(e) {
-          console.error('Error deleting local downloaded files:', e.message);
+          console.error('Failed to print order ' + order.id + ':', e.message);
+        } finally {
+          activePrints.delete(order.id);
         }
       }
     }

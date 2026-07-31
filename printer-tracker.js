@@ -75,8 +75,26 @@ function markOrderPrinted(orderId) {
   }
 }
 
+function unmarkOrderPrinted(orderId) {
+  if (!orderId) return;
+  const printed = getPrintedOrders();
+  delete printed[orderId];
+  try {
+    fs.writeFileSync(TRACKING_FILE, JSON.stringify(printed, null, 2));
+  } catch (e) {
+    console.error('Error writing printed-orders.json:', e.message);
+  }
+
+  try {
+    const db = require('./db');
+    db.prepare('UPDATE orders SET is_printed = 0 WHERE id = ?').run(orderId);
+  } catch (e) {}
+}
+
 module.exports = {
   getPrintedOrders,
   isOrderPrinted,
-  markOrderPrinted
+  markOrderPrinted,
+  unmarkOrderPrinted
 };
+

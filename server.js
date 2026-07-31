@@ -112,6 +112,36 @@ function matchPrinter(pName, targetName) {
   return false;
 }
 
+async function resolvePrinterName(targetName, isColor) {
+  const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
+  const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+  let bwPrinter = BW_PRINTER_DEFAULT;
+  const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
+  if (fs.existsSync(PRINTER_CONFIG)) {
+    try { bwPrinter = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || bwPrinter; } catch(e) {}
+  }
+
+  if (isColor) return COLOR_PRINTER;
+  if (!targetName) return bwPrinter;
+
+  const tName = String(targetName).toLowerCase();
+  if (tName.includes('205i') || tName.includes('konica')) return 'KONICA MINOLTA 205i(36:33:9E)';
+  if (tName.includes('kyocera')) return 'Kyocera ECOSYS MA4000x KX';
+  if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
+
+  try {
+    const printers = await getPrintersHidden();
+    for (const p of printers) {
+      if (p && p.name) {
+        const pName = p.name.toLowerCase();
+        if (p.name === targetName || pName.includes(tName) || tName.includes(pName)) return p.name;
+      }
+    }
+  } catch (e) {}
+
+  return bwPrinter;
+}
+
 // Load environment variables from .env file
 require('dotenv').config();
 
@@ -615,26 +645,27 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
         if (autoPrintEnabled) {
           const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
           if (order) {
-            db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
-            const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+            tracker.unmarkOrderPrinted(oid);
+            db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', oid);
+            const printer = await resolvePrinterName(order.printer_name, order.print_type === 'color');
             db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
-            if (!tracker.isOrderPrinted(oid)) {
-              tracker.markOrderPrinted(oid); // Mark IMMEDIATELY to prevent double-print race condition with local-printer.js
-              try {
-                const printers = await getPrintersHidden();
-                const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
-                if (hasPrinter) {
-                  if (order.is_id_copy) {
-                    const frontPath = path.join(__dirname, 'uploads', order.file_path);
-                    const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
-                    const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-                    await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-                    await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
-                  } else {
-                    await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
-                  }
+            try {
+              const printers = await getPrintersHidden();
+              const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+              if (hasPrinter) {
+                if (order.is_id_copy) {
+                  const frontPath = path.join(__dirname, 'uploads', order.file_path);
+                  const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
+                  const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+                  await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+                  await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
+                } else {
+                  await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                 }
-              } catch (e) {}
+                tracker.markOrderPrinted(oid);
+              }
+            } catch (e) {
+              console.error('Razorpay auto-print error:', e.message);
             }
           }
         }
@@ -792,26 +823,27 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
               if (autoPrintEnabled) {
                 const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
                 if (order) {
-                  db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
-                  const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+                  tracker.unmarkOrderPrinted(oid);
+                  db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', oid);
+                  const printer = await resolvePrinterName(order.printer_name, order.print_type === 'color');
                   db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
-                  if (!tracker.isOrderPrinted(oid)) {
-                    tracker.markOrderPrinted(oid);
-                    try {
-                      const printers = await getPrintersHidden();
-                      const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
-                      if (hasPrinter) {
-                        if (order.is_id_copy) {
-                          const frontPath = path.join(__dirname, 'uploads', order.file_path);
-                          const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
-                          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-                          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-                          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
-                        } else {
-                          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
-                        }
+                  try {
+                    const printers = await getPrintersHidden();
+                    const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+                    if (hasPrinter) {
+                      if (order.is_id_copy) {
+                        const frontPath = path.join(__dirname, 'uploads', order.file_path);
+                        const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
+                        const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+                        await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+                        await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
+                      } else {
+                        await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                       }
-                    } catch (e) {}
+                      tracker.markOrderPrinted(oid);
+                    }
+                  } catch (e) {
+                    console.error('Cashfree auto-print error:', e.message);
                   }
                 }
               }
@@ -870,6 +902,33 @@ app.post('/api/admin/autoprint', (req, res) => {
     res.json({ success: true, enabled });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/printer-config', (req, res) => {
+  try {
+    const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
+    let bwPrinter = 'Kyocera ECOSYS MA4000x KX';
+    if (fs.existsSync(PRINTER_CONFIG)) {
+      try { bwPrinter = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || bwPrinter; } catch(e){}
+    }
+    res.json({ bwPrinter });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/select-printer', (req, res) => {
+  try {
+    const { bwPrinter } = req.body;
+    if (!bwPrinter) return res.status(400).json({ error: 'bwPrinter required' });
+
+    const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
+    fs.writeFileSync(PRINTER_CONFIG, JSON.stringify({ bwPrinter }, null, 2));
+    console.log('[PRINTER] Active B&W printer switched to:', bwPrinter);
+    res.json({ success: true, bwPrinter });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update printer config' });
   }
 });
 
@@ -961,33 +1020,32 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
       return res.status(400).json({ error: `Cannot accept order with status "${order.status}"` });
     }
 
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', req.params.id);
+    tracker.unmarkOrderPrinted(req.params.id);
+    db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', req.params.id);
 
-    const BW_PRINTER = req.body.printer || 'Kyocera ECOSYS MA4000x KX';
-    const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
-    const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+    const printer = await resolvePrinterName(req.body.printer, order.print_type === 'color');
 
     // Save selected printer to order
     db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, req.params.id);
 
     // Try direct print (for local server), falls back to local-printer.js polling
-    if (!tracker.isOrderPrinted(req.params.id)) {
-      tracker.markOrderPrinted(req.params.id); // Mark IMMEDIATELY to prevent double-print race condition with local-printer.js
-      try {
-        const printers = await getPrintersHidden();
-        const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
-        if (hasPrinter) {
-          if (order.is_id_copy) {
-            const frontPath = path.join(__dirname, 'uploads', order.file_path);
-            const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
-            const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-            await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-            await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
-          } else {
-            await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
-          }
+    try {
+      const printers = await getPrintersHidden();
+      const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+      if (hasPrinter) {
+        if (order.is_id_copy) {
+          const frontPath = path.join(__dirname, 'uploads', order.file_path);
+          const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
+          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
+        } else {
+          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
         }
-      } catch (e) {}
+        tracker.markOrderPrinted(req.params.id);
+      }
+    } catch (e) {
+      console.error('Accept direct print error:', e.message);
     }
 
     res.json({ success: true, message: 'Order accepted' });
@@ -1106,7 +1164,7 @@ app.post('/api/admin/cleanup-files', (req, res) => {
 
     const oldOrders = db.prepare(`
       SELECT * FROM orders 
-      WHERE created_at < ? OR status IN ('accepted', 'rejected', 'payment_failed')
+      WHERE created_at < ? AND status IN ('accepted', 'rejected', 'payment_failed')
     `).all(cutoffDate);
 
     let deletedFilesCount = 0;
@@ -1194,11 +1252,7 @@ app.post('/api/admin/print/:id', async (req, res) => {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
-    const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
-    const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
-    const printer = req.body.printer || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
-
-    tracker.markOrderPrinted(order.id);
+    const printer = await resolvePrinterName(req.body.printer, order.print_type === 'color');
 
     if (order.is_id_copy) {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
@@ -1210,6 +1264,8 @@ app.post('/api/admin/print/:id', async (req, res) => {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
       await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
     }
+
+    tracker.markOrderPrinted(order.id);
 
     res.json({ success: true, message: `Sent to printer: ${printer}` });
   } catch (err) {
