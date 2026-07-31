@@ -2030,9 +2030,6 @@ function onPointerMove(e) {
     return;
   }
 
-    return;
-  }
-
   var h2 = getHandleAt(pos);
   canvasEl.style.cursor = h2 ? 'grab' : 'default';
 }
@@ -2136,9 +2133,6 @@ function onTouchMove(e) {
     }
     renderCrop();
     updateLoupe(activePos, touchClientX, touchClientY);
-    return;
-  }
-
     return;
   }
 }
