@@ -930,7 +930,7 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
     console.log(`[PRINT] File: ${fileName} | Type: ${printType} | Side: ${printSide} | Pages: ${pageRange||'all'} | Copies: ${copyNum} | Orientation: ${orient}`);
     await printPdfSilent(filePath, opts);
   } else if (isImage) {
-    const imgParams = { filePath, printerName: printer, copies: copyNum };
+    const imgParams = { filePath, printerName: printer, copies: copyNum, orientation: orient };
     await runPsScript(path.join(__dirname, 'print-image.ps1'), imgParams);
   } else {
     await execP('print /D:"' + printer + '" "' + filePath + '"');

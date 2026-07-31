@@ -2,15 +2,22 @@ param(
   [string]$filePath,
   [string]$printerName,
   [double]$printScale = 1.0,
-  [int]$copies = 1
+  [int]$copies = 1,
+  [string]$orientation = 'portrait'
 )
 Add-Type -AssemblyName System.Drawing
 $img = [System.Drawing.Image]::FromFile($filePath)
 $pd = New-Object System.Drawing.Printing.PrintDocument
 $pd.PrinterSettings.PrinterName = $printerName
 
-if ($copies -gt 1) {
-  $pd.PrinterSettings.Copies = [short]$copies
+# Always set copies explicitly so printer defaults don't override
+$pd.PrinterSettings.Copies = [short]([Math]::Max(1, $copies))
+
+# Set Landscape / Portrait orientation
+if ($orientation -eq 'landscape') {
+  $pd.DefaultPageSettings.Landscape = $true
+} else {
+  $pd.DefaultPageSettings.Landscape = $false
 }
 
 # Force Simplex (Single Side) to prevent duplex printer drivers from ejecting a 2nd blank page
