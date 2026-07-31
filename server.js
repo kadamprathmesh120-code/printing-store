@@ -587,7 +587,7 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
     }
 
     // Signature verified — mark all associated orders as paid
-    const BW_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
+    const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
 
     // Check auto-print setting
@@ -760,7 +760,7 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
         try {
           const resObj = JSON.parse(result);
           if (resObj.order_status === 'PAID') {
-            const BW_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
+            const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
             const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
 
             const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
@@ -949,7 +949,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
 
     db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', req.params.id);
 
-    const BW_PRINTER = req.body.printer || 'KONICA MINOLTA 205i(36:33:9E)';
+    const BW_PRINTER = req.body.printer || 'Kyocera ECOSYS MA4000x KX';
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
     const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
 
@@ -1180,7 +1180,7 @@ app.post('/api/admin/print/:id', async (req, res) => {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
-    const BW_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
+    const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
     const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
     const printer = req.body.printer || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
 

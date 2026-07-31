@@ -84,7 +84,7 @@ function execP(cmd) {
 }
 
 const RENDER_URL = 'https://printing-store.onrender.com';
-const BW_PRINTER_DEFAULT = 'KONICA MINOLTA 205i(36:33:9E)';
+const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
 const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
 var BW_PRINTER = BW_PRINTER_DEFAULT;
 if (fs.existsSync(PRINTER_CONFIG)) {
