@@ -1278,7 +1278,8 @@
       </div>
       <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
         <button class="idc-crop-btn" onclick="rotateCrop(-90)">↺</button>
-        <button class="idc-crop-btn" onclick="autoCropEdge()">Auto</button>
+        <button class="idc-crop-btn" style="background:#2563eb;font-weight:600;" onclick="autoCropEdge()">Auto</button>
+        <button class="idc-crop-btn" style="background:#4b5563;font-weight:600;" onclick="noCropEdge()">No Crop</button>
         <button class="idc-crop-btn" onclick="rotateCrop(90)">↻</button>
         <button class="idc-crop-btn" style="background:#059669;" onclick="confirmCrop()">✓ Crop</button>
       </div>
@@ -1300,7 +1301,7 @@
       <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
         <button class="idc-crop-btn" onclick="idcRotate(-90)">↺ Rotate</button>
         <button class="idc-crop-btn" onclick="idcRotate(90)">↻ Rotate</button>
-        <button class="idc-crop-btn" style="background:#ef4444;" onclick="idcResetCrop()">Reset</button>
+        <button class="idc-crop-btn" style="background:#4b5563;" onclick="idcResetCrop()">No Crop</button>
         <button class="idc-crop-btn" style="background:#059669;" onclick="idcConfirmCrop()">✓ Crop</button>
       </div>
       <div style="display:flex;justify-content:center;gap:12px;padding:4px 0;">
@@ -3913,6 +3914,13 @@
         };
         drawCropCanvas();
       }
+    }
+
+    function noCropEdge() {
+      var canvas = document.getElementById('cropCanvas');
+      if (!canvas) return;
+      cropRect = { x1: 0, y1: 0, x2: canvas.width, y2: canvas.height };
+      drawCropCanvas();
     }
 
     function confirmCrop() {

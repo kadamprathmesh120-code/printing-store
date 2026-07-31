@@ -1234,7 +1234,8 @@ function createModalHTML() {
         '<div style="display:flex;gap:4px;">' +
           '<button onclick="OCV_CROP.rotate(-90)" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">↺ Left</button>' +
           '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">↻ Right</button>' +
-          '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">Auto</button>' +
+          '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#2563eb;padding:8px 12px;font-weight:600;">Auto</button>' +
+          '<button onclick="OCV_CROP.noCrop()" class="ocv-btn" style="background:#4b5563;padding:8px 12px;font-weight:600;">No Crop</button>' +
         '</div>' +
       '</div>' +
       '<div id="ocvCropContainer" style="border-radius:8px;overflow:hidden;background:#000;position:relative;touch-action:none;display:flex;justify-content:center;min-height:200px;">' +
@@ -1833,6 +1834,17 @@ return {
       }
       if (loadingEl) loadingEl.style.display = 'none';
     });
+  },
+
+  noCrop: function() {
+    if (!canvasEl) return;
+    corners = [
+      { x: 0, y: 0 },
+      { x: canvasEl.width, y: 0 },
+      { x: canvasEl.width, y: canvasEl.height },
+      { x: 0, y: canvasEl.height }
+    ];
+    renderCrop();
   },
 
   toggleSnap: function() {
