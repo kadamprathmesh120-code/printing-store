@@ -180,47 +180,127 @@ function findQuadCornersPure(data, w, h) {
   return rawCorners;
 }
 
-// ---------- OpenCV-based detection ----------
+// ---------- OpenCV-based Multi-Stage Document Detection Pipeline ----------
+// Inspired by Adobe Scan / CamScanner / Microsoft Lens / Google Drive Scanner algorithms
+
 function detectCornersOpenCV(canvas) {
-  var src, gray, blurred, edges, dilated, thresh, kernel, contours, hierarchy;
+  var origW = canvas.width, origH = canvas.height;
+  if (origW < 10 || origH < 10) return null;
+
+  // Downscale image to target working size (max dim 600px) for fast, robust multi-pass analysis
+  var scale = Math.min(1.0, 600 / Math.max(origW, origH));
+  var procW = Math.round(origW * scale);
+  var procH = Math.round(origH * scale);
+
+  var procCanvas = document.createElement('canvas');
+  procCanvas.width = procW;
+  procCanvas.height = procH;
+  var pCtx = procCanvas.getContext('2d');
+  pCtx.drawImage(canvas, 0, 0, procW, procH);
+
   var matsToDelete = [];
   function m(v) { if (v) matsToDelete.push(v); return v; }
 
   try {
-    src = m(cv.imread(canvas));
-    gray = m(new cv.Mat());
-    blurred = m(new cv.Mat());
-    edges = m(new cv.Mat());
-    dilated = m(new cv.Mat());
-    thresh = m(new cv.Mat());
+    var src = m(cv.imread(procCanvas));
+    var gray = m(new cv.Mat());
+    var blurred = m(new cv.Mat());
 
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray, blurred, new cv.Size(7, 7), 0);
 
-    // Strategy 1: Edge-based detection (works for most documents)
-    cv.Canny(blurred, edges, 20, 80);
-    kernel = m(cv.Mat.ones(3, 3, cv.CV_8U));
-    cv.dilate(edges, dilated, kernel);
-    cv.dilate(dilated, dilated, kernel);
+    // Bilateral filter preserves sharp document edges while smoothing paper texture and noise
+    try {
+      cv.bilateralFilter(gray, blurred, 5, 40, 40);
+    } catch(e) {
+      cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    }
 
-    contours = m(new cv.MatVector());
-    hierarchy = m(new cv.Mat());
-    cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    var candidates = [];
 
-    var result = findBestQuadrilateral(contours, canvas.width, canvas.height);
-    if (result) return result;
+    // --- STAGE 1: Multi-Scale Adaptive Canny Edge Detection & Morphological Closing ---
+    var meanVal = cv.mean(blurred)[0] || 128;
+    var cannyConfigs = [
+      { low: Math.max(10, meanVal * 0.35), high: Math.min(230, meanVal * 1.1) },
+      { low: 25, high: 95 },
+      { low: 45, high: 150 }
+    ];
 
-    // Strategy 2: Region-based detection (low-contrast / solid-background docs)
-    cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
-    var meanScalar = cv.mean(thresh);
-    if (meanScalar && meanScalar[0] > 127) cv.bitwise_not(thresh, thresh);
+    var kernel3 = m(cv.Mat.ones(3, 3, cv.CV_8U));
 
-    contours = m(new cv.MatVector());
-    hierarchy = m(new cv.Mat());
-    cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    for (var cIdx = 0; cIdx < cannyConfigs.length; cIdx++) {
+      var cfg = cannyConfigs[cIdx];
+      var edges = m(new cv.Mat());
+      var morphed = m(new cv.Mat());
 
-    result = findBestQuadrilateral(contours, canvas.width, canvas.height);
-    return result;
+      cv.Canny(blurred, edges, cfg.low, cfg.high);
+
+      // Morphological Closing connects broken document borders and shadow gaps
+      cv.morphologyEx(edges, morphed, cv.MORPH_CLOSE, kernel3);
+      cv.dilate(morphed, morphed, kernel3);
+
+      extractContourCandidates(morphed, candidates, procW, procH);
+    }
+
+    // --- STAGE 2: Multi-Threshold Binarization (Otsu & Adaptive Gaussian) ---
+    var threshOtsu = m(new cv.Mat());
+    cv.threshold(blurred, threshOtsu, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+    extractContourCandidates(threshOtsu, candidates, procW, procH);
+
+    var threshInv = m(new cv.Mat());
+    cv.bitwise_not(threshOtsu, threshInv);
+    extractContourCandidates(threshInv, candidates, procW, procH);
+
+    var threshAdap = m(new cv.Mat());
+    cv.adaptiveThreshold(blurred, threshAdap, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 21, 4);
+    extractContourCandidates(threshAdap, candidates, procW, procH);
+
+    // --- STAGE 3: Hough Line Intersection Assembly (Handles shadowed/clipped edges) ---
+    try {
+      var houghEdges = m(new cv.Mat());
+      cv.Canny(blurred, houghEdges, 35, 110);
+      var houghQuads = extractHoughLineQuads(houghEdges, procW, procH);
+      for (var hq = 0; hq < houghQuads.length; hq++) {
+        candidates.push(houghQuads[hq]);
+      }
+    } catch(e) {}
+
+    if (candidates.length === 0) return null;
+
+    // Deduplicate candidates
+    candidates = deduplicateCandidates(candidates, procW, procH);
+
+    // --- STAGE 4: Edge Gradient Saliency Map & Multi-Factor Confidence Scoring Engine ---
+    var gradX = m(new cv.Mat());
+    var gradY = m(new cv.Mat());
+    var gradMag = m(new cv.Mat());
+    cv.Sobel(gray, gradX, cv.CV_32F, 1, 0, 3);
+    cv.Sobel(gray, gradY, cv.CV_32F, 0, 1, 3);
+    cv.magnitude(gradX, gradY, gradMag);
+
+    var bestQuad = null;
+    var bestScore = -1;
+
+    for (var i = 0; i < candidates.length; i++) {
+      var quad = candidates[i];
+      var score = scoreCandidateQuad(quad, procW, procH, gradMag);
+      if (score > bestScore) {
+        bestScore = score;
+        bestQuad = quad;
+      }
+    }
+
+    // High-confidence match (score >= 0.35)
+    if (bestQuad && bestScore >= 0.35) {
+      // Upscale corners back to original image space
+      return bestQuad.map(function(pt) {
+        return {
+          x: Math.round(Math.max(0, Math.min(origW, pt.x / scale))),
+          y: Math.round(Math.max(0, Math.min(origH, pt.y / scale)))
+        };
+      });
+    }
+
+    return null;
 
   } finally {
     for (var i = 0; i < matsToDelete.length; i++) {
@@ -229,41 +309,260 @@ function detectCornersOpenCV(canvas) {
   }
 }
 
-function findBestQuadrilateral(contours, imgW, imgH) {
-  var contourList = [];
-  for (var i = 0; i < contours.size(); i++) {
-    contourList.push({ index: i, area: cv.contourArea(contours.get(i)) });
-  }
-  contourList.sort(function(a, b) { return b.area - a.area; });
+// Extract quad candidates from contour matrices
+function extractContourCandidates(mat, candidateList, imgW, imgH) {
+  var contours = new cv.MatVector();
+  var hierarchy = new cv.Mat();
+  try {
+    cv.findContours(mat, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    var totalArea = imgW * imgH;
 
-  for (var ci = 0; ci < Math.min(contourList.length, 30); ci++) {
-    var cnt = contours.get(contourList[ci].index);
-    var area = contourList[ci].area;
-    if (area < imgW * imgH * 0.01) continue;
+    for (var i = 0; i < contours.size(); i++) {
+      var cnt = contours.get(i);
+      var area = cv.contourArea(cnt);
+      if (area < totalArea * 0.04) continue;
 
-    var peri = cv.arcLength(cnt, true);
-    var approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, Math.max(0.015 * peri, 8), true);
+      var peri = cv.arcLength(cnt, true);
+      var epsilons = [0.01 * peri, 0.02 * peri, 0.035 * peri, 0.05 * peri];
 
-    if (approx.rows === 4) {
-      var c = [];
-      for (var j = 0; j < 4; j++) {
-        c.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
-      }
-      c = orderCorners(c);
+      for (var epIdx = 0; epIdx < epsilons.length; epIdx++) {
+        var approx = new cv.Mat();
+        cv.approxPolyDP(cnt, approx, Math.max(epsilons[epIdx], 5), true);
 
-      if (!isConvex(c)) { approx.delete(); continue; }
-
-      var cw = Math.max(distance(c[0], c[1]), distance(c[3], c[2]));
-      var ch = Math.max(distance(c[0], c[3]), distance(c[1], c[2]));
-      if (cw > imgW * 0.04 && ch > imgH * 0.04 && cw < imgW * 1.05 && ch < imgH * 1.05) {
+        var pts = [];
+        if (approx.rows === 4) {
+          for (var j = 0; j < 4; j++) {
+            pts.push({ x: approx.data32S[j * 2], y: approx.data32S[j * 2 + 1] });
+          }
+        } else if (approx.rows > 4 && approx.rows <= 16) {
+          // Extract 4-extremal bounding quad for rounded/complex corners
+          var rawPts = [];
+          for (var k = 0; k < approx.rows; k++) {
+            rawPts.push({ x: approx.data32S[k * 2], y: approx.data32S[k * 2 + 1] });
+          }
+          pts = extract4ExtremalCorners(rawPts);
+        }
         approx.delete();
-        return c;
+
+        if (pts.length === 4) {
+          pts = orderCorners(pts);
+          if (isConvex(pts)) {
+            candidateList.push(pts);
+          }
+        }
       }
     }
-    approx.delete();
+  } catch(e) {
+  } finally {
+    try { contours.delete(); } catch(e) {}
+    try { hierarchy.delete(); } catch(e) {}
   }
-  return null;
+}
+
+// Extract 4 extremal corners from a multi-vertex polygon
+function extract4ExtremalCorners(pts) {
+  if (pts.length < 4) return [];
+  var tl = pts[0], tr = pts[0], br = pts[0], bl = pts[0];
+  var minTL = Infinity, maxTR = -Infinity, maxBR = -Infinity, minBL = Infinity;
+
+  for (var i = 0; i < pts.length; i++) {
+    var p = pts[i];
+    var sumSum = p.x + p.y;
+    var sumDiff = p.x - p.y;
+
+    if (sumSum < minTL) { minTL = sumSum; tl = p; }
+    if (sumDiff > maxTR) { maxTR = sumDiff; tr = p; }
+    if (sumSum > maxBR) { maxBR = sumSum; br = p; }
+    if (sumDiff < minBL) { minBL = sumDiff; bl = p; }
+  }
+
+  return [tl, tr, br, bl];
+}
+
+// Hough Line intersection assembly for partially visible/obscured edges
+function extractHoughLineQuads(edgesMat, imgW, imgH) {
+  var quads = [];
+  var linesMat = new cv.Mat();
+  try {
+    cv.HoughLinesP(edgesMat, linesMat, 1, Math.PI / 180, 35, Math.min(imgW, imgH) * 0.15, 15);
+    if (linesMat.rows < 4) return quads;
+
+    var horizLines = [];
+    var vertLines = [];
+
+    for (var i = 0; i < linesMat.rows; i++) {
+      var x1 = linesMat.data32S[i * 4];
+      var y1 = linesMat.data32S[i * 4 + 1];
+      var x2 = linesMat.data32S[i * 4 + 2];
+      var y2 = linesMat.data32S[i * 4 + 3];
+
+      var angle = Math.abs(Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI);
+      if (angle < 35 || angle > 145) {
+        horizLines.push({ x1: x1, y1: y1, x2: x2, y2: y2, avgY: (y1 + y2) / 2 });
+      } else if (angle > 55 && angle < 125) {
+        vertLines.push({ x1: x1, y1: y1, x2: x2, y2: y2, avgX: (x1 + x2) / 2 });
+      }
+    }
+
+    if (horizLines.length < 2 || vertLines.length < 2) return quads;
+
+    horizLines.sort(function(a, b) { return a.avgY - b.avgY; });
+    vertLines.sort(function(a, b) { return a.avgX - b.avgX; });
+
+    var topL = horizLines[0];
+    var botL = horizLines[horizLines.length - 1];
+    var leftL = vertLines[0];
+    var rightL = vertLines[vertLines.length - 1];
+
+    function lineIntersect(l1, l2) {
+      var A1 = l1.y2 - l1.y1, B1 = l1.x1 - l1.x2, C1 = A1 * l1.x1 + B1 * l1.y1;
+      var A2 = l2.y2 - l2.y1, B2 = l2.x1 - l2.x2, C2 = A2 * l2.x1 + B2 * l2.y1;
+      var det = A1 * B2 - A2 * B1;
+      if (Math.abs(det) < 1e-5) return null;
+      return { x: (B2 * C1 - B1 * C2) / det, y: (A1 * C2 - A2 * C1) / det };
+    }
+
+    var pTL = lineIntersect(topL, leftL);
+    var pTR = lineIntersect(topL, rightL);
+    var pBR = lineIntersect(botL, rightL);
+    var pBL = lineIntersect(botL, leftL);
+
+    if (pTL && pTR && pBR && pBL) {
+      var quad = orderCorners([pTL, pTR, pBR, pBL]);
+      var margin = 20;
+      var valid = quad.every(function(pt) {
+        return pt.x >= -margin && pt.x <= imgW + margin && pt.y >= -margin && pt.y <= imgH + margin;
+      });
+      if (valid && isConvex(quad)) quads.push(quad);
+    }
+  } catch(e) {
+  } finally {
+    try { linesMat.delete(); } catch(e) {}
+  }
+  return quads;
+}
+
+// Deduplicate nearly identical candidate quads
+function deduplicateCandidates(candidates, imgW, imgH) {
+  var unique = [];
+  var threshold = Math.min(imgW, imgH) * 0.05;
+
+  for (var i = 0; i < candidates.length; i++) {
+    var c = candidates[i];
+    var isDup = false;
+    for (var u = 0; u < unique.length; u++) {
+      var prev = unique[u];
+      var distSum = distance(c[0], prev[0]) + distance(c[1], prev[1]) +
+                    distance(c[2], prev[2]) + distance(c[3], prev[3]);
+      if (distSum / 4 < threshold) {
+        isDup = true;
+        break;
+      }
+    }
+    if (!isDup) unique.push(c);
+  }
+  return unique;
+}
+
+// Multi-Factor Confidence Scoring Engine
+function scoreCandidateQuad(quad, imgW, imgH, gradMag) {
+  // 1. Area Ratio Score (ideal: 15% to 90% of image area)
+  var area = calculateQuadArea(quad);
+  var totalArea = imgW * imgH;
+  var areaRatio = area / totalArea;
+
+  if (areaRatio < 0.05 || areaRatio > 0.98) return 0;
+
+  var sArea = 1.0;
+  if (areaRatio < 0.15) sArea = areaRatio / 0.15;
+  else if (areaRatio > 0.90) sArea = (0.98 - areaRatio) / 0.08;
+
+  // 2. Angle Regularity Score (ideal interior angle = 90 deg)
+  var angles = [
+    calculateAngle(quad[3], quad[0], quad[1]),
+    calculateAngle(quad[0], quad[1], quad[2]),
+    calculateAngle(quad[1], quad[2], quad[3]),
+    calculateAngle(quad[2], quad[3], quad[0])
+  ];
+
+  var angleDevSum = 0;
+  for (var a = 0; a < 4; a++) {
+    var dev = Math.abs(angles[a] - 90);
+    if (dev > 50) return 0;
+    angleDevSum += dev;
+  }
+  var sAngle = Math.max(0, 1.0 - (angleDevSum / 4) / 45.0);
+
+  // 3. Parallelism & Edge Symmetry Score
+  var topW = distance(quad[0], quad[1]);
+  var botW = distance(quad[3], quad[2]);
+  var leftH = distance(quad[0], quad[3]);
+  var rightH = distance(quad[1], quad[2]);
+
+  var wRatio = Math.min(topW, botW) / Math.max(topW, botW, 1e-5);
+  var hRatio = Math.min(leftH, rightH) / Math.max(leftH, rightH, 1e-5);
+  var sParallel = (wRatio + hRatio) / 2.0;
+
+  // 4. Aspect Ratio Score (standard documents range from 1.1 to 2.2)
+  var meanW = (topW + botW) / 2.0;
+  var meanH = (leftH + rightH) / 2.0;
+  var aspect = Math.max(meanW / Math.max(meanH, 1e-5), meanH / Math.max(meanW, 1e-5));
+  var sAspect = 1.0;
+  if (aspect < 1.1) sAspect = aspect / 1.1;
+  else if (aspect > 2.5) sAspect = Math.max(0, (4.0 - aspect) / 1.5);
+
+  // 5. Boundary Edge Gradient Score
+  var sGradient = sampleEdgeGradient(quad, imgW, imgH, gradMag);
+
+  // Composite Weighted Score
+  var compositeScore = (0.30 * sGradient) + (0.25 * sAngle) + (0.20 * sArea) + (0.15 * sParallel) + (0.10 * sAspect);
+  return compositeScore;
+}
+
+function calculateQuadArea(pts) {
+  var a = 0;
+  for (var i = 0; i < 4; i++) {
+    var j = (i + 1) % 4;
+    a += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+  }
+  return Math.abs(a) / 2.0;
+}
+
+function calculateAngle(p1, vertex, p2) {
+  var v1x = p1.x - vertex.x, v1y = p1.y - vertex.y;
+  var v2x = p2.x - vertex.x, v2y = p2.y - vertex.y;
+  var dot = v1x * v2x + v1y * v2y;
+  var mag1 = Math.sqrt(v1x * v1x + v1y * v1y);
+  var mag2 = Math.sqrt(v2x * v2x + v2y * v2y);
+  if (mag1 < 1e-5 || mag2 < 1e-5) return 90;
+  var cos = Math.max(-1.0, Math.min(1.0, dot / (mag1 * mag2)));
+  return Math.acos(cos) * 180.0 / Math.PI;
+}
+
+function sampleEdgeGradient(quad, imgW, imgH, gradMag) {
+  if (!gradMag || !gradMag.data32F) return 0.5;
+  var totalSum = 0;
+  var count = 0;
+
+  for (var side = 0; side < 4; side++) {
+    var p1 = quad[side];
+    var p2 = quad[(side + 1) % 4];
+    var steps = 15;
+    for (var k = 0; k <= steps; k++) {
+      var t = k / steps;
+      var x = Math.round(p1.x + t * (p2.x - p1.x));
+      var y = Math.round(p1.y + t * (p2.y - p1.y));
+      if (x >= 0 && x < imgW && y >= 0 && y < imgH) {
+        var val = gradMag.data32F[y * imgW + x];
+        totalSum += val;
+        count++;
+      }
+    }
+  }
+
+  if (count === 0) return 0.5;
+  var avgGrad = totalSum / count;
+  return Math.min(1.0, avgGrad / 120.0);
 }
 
 // Order 4 points as TL, TR, BR, BL using centroid angle
@@ -341,8 +640,21 @@ function detectCorners(callback) {
       } catch(e) {}
     }
     if (!detected) {
-      var imageData = tempCtx.getImageData(0, 0, iw, ih);
-      detected = findQuadCornersPure(imageData.data, iw, ih);
+      try {
+        var imageData = tempCtx.getImageData(0, 0, iw, ih);
+        detected = findQuadCornersPure(imageData.data, iw, ih);
+      } catch(e) {}
+    }
+    if (!detected || detected.length !== 4) {
+      // Document-proportional fallback: 5% inset margin quad
+      var mx = Math.round(iw * 0.05);
+      var my = Math.round(ih * 0.05);
+      detected = [
+        { x: mx, y: my },
+        { x: iw - mx, y: my },
+        { x: iw - mx, y: ih - my },
+        { x: mx, y: ih - my }
+      ];
     }
     // Convert detected corners from original image space to canvas display space
     if (detected && detected.length === 4) {
