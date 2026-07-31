@@ -761,21 +761,13 @@ function detectCorners(callback) {
         detected = detectCornersOpenCV(tempCanvas);
       } catch(e) {}
     }
-    if (!detected) {
-      try {
-        var imageData = tempCtx.getImageData(0, 0, iw, ih);
-        detected = findQuadCornersPure(imageData.data, iw, ih);
-      } catch(e) {}
-    }
+    // Full-frame document fallback: if no sub-document on a table background is detected, default to FULL PAGE (100% bounds)
     if (!detected || detected.length !== 4) {
-      // Document-proportional fallback: 5% inset margin quad
-      var mx = Math.round(iw * 0.05);
-      var my = Math.round(ih * 0.05);
       detected = [
-        { x: mx, y: my },
-        { x: iw - mx, y: my },
-        { x: iw - mx, y: ih - my },
-        { x: mx, y: ih - my }
+        { x: 0, y: 0 },
+        { x: iw, y: 0 },
+        { x: iw, y: ih },
+        { x: 0, y: ih }
       ];
     }
     // Convert detected corners from original image space to canvas display space
