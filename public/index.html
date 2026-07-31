@@ -2310,6 +2310,14 @@
         return;
       }
 
+      // Ask customer to confirm they will pay at the counter
+      var confirmed = window.confirm(
+        '💵 Cash Payment Confirmation\n\n' +
+        'Please pay the cash amount at the counter before your document is printed.\n\n' +
+        'Have you paid or will you pay cash at the counter?'
+      );
+      if (!confirmed) return;
+
       var formData = new FormData();
       formData.append('customerName', name);
       formData.append('printType', selectedPrintType);
