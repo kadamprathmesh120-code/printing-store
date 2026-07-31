@@ -1755,7 +1755,7 @@ function createModalHTML() {
       '</div>' +
       '<div style="display:flex;gap:8px;padding:12px 4px 4px;">' +
         '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.4;background:#4b5563;padding:10px 14px;">Cancel</button>' +
-        '<button onclick="OCV_CROP.cropDirect()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;">Next: Color Change ➔</button>' +
+        '<button onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;">Next: Color Change ➔</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(div);
