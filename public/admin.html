@@ -1725,7 +1725,7 @@
         var actionBtns = '<div class="oc-actions">';
         if (o.status === 'paid') {
           actionBtns +=
-            '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\')"><i data-lucide="check" style="width:14px;height:14px;"></i> Accept</button>' +
+            '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\', \'' + (o.payment_method || 'razorpay') + '\')"><i data-lucide="check" style="width:14px;height:14px;"></i> Accept</button>' +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         }
         actionBtns += '<button class="oc-action-btn delete" onclick="deleteOrder(\'' + o.id + '\')" title="Delete Order & Uploaded Document"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>';
@@ -1846,8 +1846,17 @@
     // -------------------------------------------------------
     //  Accept / Reject Orders (preserved exactly)
     // -------------------------------------------------------
-    function acceptOrder(id) {
-      if (!confirm('Accept this order?')) return;
+    function acceptOrder(id, paymentMethod) {
+      if (paymentMethod === 'cash') {
+        var cashConfirmed = confirm(
+          '💵 Cash Payment Check\n\n' +
+          'Has the customer paid CASH at the counter?\n\n' +
+          'Click OK to Accept & Print\nClick Cancel to go back'
+        );
+        if (!cashConfirmed) return;
+      } else {
+        if (!confirm('Accept this order and send to printer?')) return;
+      }
       var printer = getBwPrinter();
       fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ printer: printer }) })
         .then(function(r) { return r.json(); })
