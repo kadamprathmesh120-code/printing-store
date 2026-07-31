@@ -56,14 +56,18 @@ function printPdfSilent(filePath, opts) {
       '-exit-on-print'
     ];
     var settings = [];
-    if (opts.copies && opts.copies > 1) settings.push(opts.copies + 'x');
+    // Always set copies explicitly so printer driver default (2 copies) never overrides 1 copy
+    var copyCount = Math.max(1, parseInt(opts.copies) || 1);
+    settings.push(copyCount + 'x');
     if (opts.side === 'duplex') settings.push('duplexlong');
     if (opts.monochrome) settings.push('monochrome');
+    if (opts.orientation === 'landscape') settings.push('landscape');
+    else settings.push('portrait');
     if (opts.pages) settings.push(opts.pages);
     if (settings.length) sumatraArgs.push('-print-settings', settings.join(','));
     sumatraArgs.push(filePath);
 
-    // Use spawn with windowsHide — proper arg array avoids any quoting/truncation issues
+    console.log('[PRINT] SumatraPDF args:', sumatraArgs.join(' '));
     var child = spawn(SUMATRA, sumatraArgs, { windowsHide: true, detached: false });
     child.on('close', function(code) { resolve(code); });
     child.on('error', reject);
@@ -190,6 +194,7 @@ async function checkAndPrint() {
         var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
         var copyNum = Math.max(1, parseInt(order.copies) || 1);
 
+        var orient = (order.orientation || 'portrait').toLowerCase();
         if (order.is_id_copy) {
           // Combine front (+ back if available) into side-by-side A4 image (86x54 mm)
           var backLocal = '';
@@ -202,19 +207,16 @@ async function checkAndPrint() {
           var psParams = { frontPath: localFile, outputPath: combinedPath };
           if (backLocal) psParams.backPath = backLocal;
           await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), psParams);
-          var idPrintParams = { filePath: combinedPath, printerName: printer };
-          if (copyNum > 1) idPrintParams.copies = copyNum;
+          var idPrintParams = { filePath: combinedPath, printerName: printer, copies: copyNum, orientation: orient };
           await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
           console.log('Printed combined ID copy (86x54 mm) to', printer);
         } else if (isPdf) {
-          var pdfOpts = { printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4' };
+          var pdfOpts = { printer: printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4', copies: copyNum, orientation: orient };
           if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
-          if (copyNum > 1) pdfOpts.copies = copyNum;
           await printPdfSilent(localFile, pdfOpts);
           console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);
         } else if (isImage) {
-          var imgPrintParams = { filePath: localFile, printerName: printer };
-          if (copyNum > 1) imgPrintParams.copies = copyNum;
+          var imgPrintParams = { filePath: localFile, printerName: printer, copies: copyNum, orientation: orient };
           await runPsScript(path.join(__dirname, 'print-image.ps1'), imgPrintParams);
         } else {
           await execP('print /D:"' + printer + '" "' + localFile + '"');
