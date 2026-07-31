@@ -1684,12 +1684,13 @@ function openModal(image, idCopy, callback, originalFile) {
   canvasEl.style.width = Math.round(dispW) + 'px';
   canvasEl.style.height = Math.round(dispH) + 'px';
 
-  // Ensure container centers the canvas
+  // Ensure container fits exact image dimensions with no black side bars
   containerEl.style.display = 'flex';
   containerEl.style.alignItems = 'center';
   containerEl.style.justifyContent = 'center';
-  containerEl.style.width = (availW) + 'px';
+  containerEl.style.width = Math.round(dispW) + 'px';
   containerEl.style.height = Math.round(dispH) + 'px';
+  containerEl.style.background = 'transparent';
 
   // Compute display parameters for object-fit:contain
   computeDisplayParams();
@@ -1729,25 +1730,25 @@ function createModalHTML() {
   var div = document.createElement('div');
   div.id = 'ocvCropModal';
   div.className = 'hidden';
-  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:100;display:none;align-items:center;justify-content:center;overscroll-behavior:none;';
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:100;display:none;align-items:center;justify-content:center;overscroll-behavior:none;';
   var isId = isIdCopyMode;
   div.innerHTML =
-    '<div style="background:#1a1a2e;border-radius:16px;padding:10px;max-width:540px;width:96%;color:white;max-height:98vh;overflow-y:auto;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding:0 4px;">' +
+    '<div style="background:#1e293b;border-radius:16px;padding:12px;max-width:540px;width:96%;color:white;max-height:98vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px;">' +
         '<span id="ocvLoading" style="display:none;font-size:0.75em;color:#FFD700;">Detecting...</span>' +
-        '<div style="display:flex;gap:4px;">' +
-          '<button onclick="OCV_CROP.rotate(-90)" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">↺ Left</button>' +
-          '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#2a2a3e;padding:8px 12px;">↻ Right</button>' +
-          '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#2563eb;padding:8px 12px;font-weight:600;">Auto</button>' +
-          '<button onclick="OCV_CROP.noCrop()" class="ocv-btn" style="background:#4b5563;padding:8px 12px;font-weight:600;">No Crop</button>' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button onclick="OCV_CROP.rotate(-90)" class="ocv-btn" style="background:#334155;padding:8px 12px;border-radius:8px;">↺ Left</button>' +
+          '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#334155;padding:8px 12px;border-radius:8px;">↻ Right</button>' +
+          '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#2563eb;padding:8px 12px;font-weight:600;border-radius:8px;">Auto</button>' +
+          '<button onclick="OCV_CROP.noCrop()" class="ocv-btn" style="background:#475569;padding:8px 12px;font-weight:600;border-radius:8px;">No Crop</button>' +
         '</div>' +
       '</div>' +
-      '<div id="ocvCropContainer" style="border-radius:8px;overflow:hidden;background:#000;position:relative;touch-action:none;display:flex;justify-content:center;min-height:200px;">' +
-        '<canvas id="ocvCropCanvas" style="display:block;touch-action:none;"></canvas>' +
+      '<div id="ocvCropContainer" style="border-radius:10px;overflow:hidden;background:transparent;position:relative;touch-action:none;display:flex;justify-content:center;align-items:center;margin:0 auto;">' +
+        '<canvas id="ocvCropCanvas" style="display:block;touch-action:none;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3);"></canvas>' +
       '</div>' +
-      '<div style="display:flex;gap:8px;padding:12px 4px 4px;">' +
-        '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.4;background:#4b5563;padding:10px 14px;">Cancel</button>' +
-        '<button onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;">Next: Color Change ➔</button>' +
+      '<div style="display:flex;gap:10px;padding:12px 4px 4px;">' +
+        '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.4;background:#475569;padding:10px 14px;border-radius:10px;">Cancel</button>' +
+        '<button onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;border-radius:10px;">Next: Color Change ➔</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(div);
