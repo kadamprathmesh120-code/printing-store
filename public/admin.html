@@ -467,7 +467,7 @@
     .oc-preview-btn:hover { border-color:#2563eb; color:#2563eb; background:#eff6ff; }
 
     .oc-details-grid {
-      display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;
+      display:grid; grid-template-columns:repeat(3, 1fr); gap:8px 12px;
       margin-bottom:12px;
     }
     .oc-detail {
@@ -1741,6 +1741,19 @@
         var notesIcon = o.order_notes ? ' <span class="oc-notes-icon" title="' + escapeHtml(o.order_notes) + '">📝</span>' : '';
         var mobileDisplay = o.mobile_number ? ' <span style="font-size:0.72em;color:#9ca3af;">' + escapeHtml(o.mobile_number) + '</span>' : '';
 
+        var isCustomRange = o.page_range && o.page_range !== 'all';
+        var rangeLabel = isCustomRange ? escapeHtml(o.page_range) : 'All';
+        var rangeStyle = isCustomRange ? 'color:#d97706;font-weight:700;' : '';
+
+        var effPages = (o.effective_pages && o.effective_pages > 0) ? o.effective_pages : o.page_count;
+        var totalPdfPgs = o.page_count || 1;
+        var pagesVal = isCustomRange ? (effPages + ' of ' + totalPdfPgs) : totalPdfPgs;
+
+        var sheetsVal = o.total_sheets && o.total_sheets > 0 
+          ? o.total_sheets 
+          : (o.print_side === 'both' ? Math.ceil(effPages / 2) : effPages);
+        var sheetsDisplay = sheetsVal + (sheetsVal > 1 ? ' sheets' : ' sheet');
+
         return '<div class="' + cardClass + '">' +
           '<div class="oc-header">' +
             '<div class="oc-customer">' +
@@ -1759,7 +1772,9 @@
               previewBtn +
             '</div>' +
             '<div class="oc-details-grid">' +
-              '<div class="oc-detail"><span class="oc-detail-label">Pages</span><span class="oc-detail-value">' + o.page_count + '</span></div>' +
+              '<div class="oc-detail"><span class="oc-detail-label">Pages</span><span class="oc-detail-value">' + pagesVal + '</span></div>' +
+              '<div class="oc-detail"><span class="oc-detail-label">Page Range</span><span class="oc-detail-value" style="' + rangeStyle + '">' + rangeLabel + '</span></div>' +
+              '<div class="oc-detail"><span class="oc-detail-label">Sheets</span><span class="oc-detail-value">' + sheetsDisplay + '</span></div>' +
               '<div class="oc-detail"><span class="oc-detail-label">Copies</span>' + copiesDisplay + '</div>' +
               '<div class="oc-detail"><span class="oc-detail-label">Print Type</span><span class="oc-detail-value">' + typeLabel + '</span></div>' +
               '<div class="oc-detail"><span class="oc-detail-label">Sides</span><span class="oc-detail-value">' + sideLabel + '</span></div>' +
