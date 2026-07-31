@@ -1328,7 +1328,7 @@ function getTouchPos(e, index) {
 // Find which handle is near a point — returns {type:'corner'|'mid', index:number} or null
 function getHandleAt(pos) {
   var isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  var threshold = isTouch ? 40 : 28;
+  var threshold = isTouch ? 48 : 32;
 
   // Check corners first
   for (var i = 0; i < corners.length; i++) {
@@ -1339,6 +1339,18 @@ function getHandleAt(pos) {
   var mids = getMidpoints();
   for (var i = 0; i < mids.length; i++) {
     if (distance(pos, mids[i]) < threshold) return { type: 'mid', index: i };
+  }
+
+  // Proximity grab for touch: if touch is within 75px of a corner, grab closest corner
+  if (isTouch && corners.length === 4) {
+    var minDist = Infinity, bestIdx = -1;
+    for (var j = 0; j < 4; j++) {
+      var d = distance(pos, corners[j]);
+      if (d < minDist) { minDist = d; bestIdx = j; }
+    }
+    if (bestIdx !== -1 && minDist < 75) {
+      return { type: 'corner', index: bestIdx };
+    }
   }
 
   return null;
@@ -1864,13 +1876,6 @@ function onPointerDown(e) {
     pointerState.startCorners = corners.map(function(c) { return {x:c.x, y:c.y}; });
     return;
   }
-
-  if (isInsideQuad(pos)) {
-    pointerState.moving = true;
-    pointerState.startX = pos.x;
-    pointerState.startY = pos.y;
-    pointerState.startCorners = corners.map(function(c) { return {x:c.x, y:c.y}; });
-  }
 }
 
 // ---------- Magnifying Loupe (Lens) Manager ----------
@@ -2025,22 +2030,11 @@ function onPointerMove(e) {
     return;
   }
 
-  if (pointerState.moving) {
-    var dx = pos.x - pointerState.startX;
-    var dy = pos.y - pointerState.startY;
-    for (var i = 0; i < 4; i++) {
-      corners[i] = {
-        x: clamp(pointerState.startCorners[i].x + dx, 0, w),
-        y: clamp(pointerState.startCorners[i].y + dy, 0, h)
-      };
-    }
-    renderCrop();
-    updateLoupe(pos, e.clientX, e.clientY);
     return;
   }
 
   var h2 = getHandleAt(pos);
-  canvasEl.style.cursor = h2 ? 'grab' : (isInsideQuad(pos) ? 'move' : 'default');
+  canvasEl.style.cursor = h2 ? 'grab' : 'default';
 }
 
 function onPointerUp(e) {
@@ -2090,13 +2084,6 @@ function onTouchStart(e) {
       touchState.startY = pos.y;
       touchState.startCorners = corners.map(function(c) { return {x:c.x, y:c.y}; });
       return;
-    }
-
-    if (isInsideQuad(pos)) {
-      touchState.moving = true;
-      touchState.startX = pos.x;
-      touchState.startY = pos.y;
-      touchState.startCorners = corners.map(function(c) { return {x:c.x, y:c.y}; });
     }
   }
 }
@@ -2152,18 +2139,6 @@ function onTouchMove(e) {
     return;
   }
 
-  if (touchState.moving && e.touches.length === 1) {
-    var pos = getTouchPos(e);
-    var dx = pos.x - touchState.startX;
-    var dy = pos.y - touchState.startY;
-    for (var i = 0; i < 4; i++) {
-      corners[i] = {
-        x: clamp(touchState.startCorners[i].x + dx, 0, w),
-        y: clamp(touchState.startCorners[i].y + dy, 0, h)
-      };
-    }
-    renderCrop();
-    updateLoupe(pos, e.touches[0].clientX, e.touches[0].clientY);
     return;
   }
 }
