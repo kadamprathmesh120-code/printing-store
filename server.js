@@ -60,13 +60,19 @@ function printPdfSilent(filePath, opts) {
       '-exit-on-print'
     ];
     const settings = [];
-    if (opts.copies && opts.copies > 1) settings.push(opts.copies + 'x');
+    // Always set copies explicitly (prevents printer driver default from doubling prints)
+    const copyCount = Math.max(1, parseInt(opts.copies) || 1);
+    settings.push(copyCount + 'x');
     if (opts.side === 'duplex') settings.push('duplexlong');
     if (opts.monochrome) settings.push('monochrome');
+    // Portrait/Landscape orientation
+    if (opts.orientation === 'landscape') settings.push('landscape');
+    else settings.push('portrait');
     if (opts.pages) settings.push(opts.pages);
     if (settings.length) sumatraArgs.push('-print-settings', settings.join(','));
     sumatraArgs.push(filePath);
 
+    console.log('[PRINT] SumatraPDF args:', sumatraArgs.join(' '));
     const child = spawn(SUMATRA, sumatraArgs, { windowsHide: true, detached: false });
     child.on('close', (code) => { resolve(code); });
     child.on('error', reject);
@@ -609,9 +615,9 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
                     const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
                     const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
                     await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-                    await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                    await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                   } else {
-                    await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                    await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                   }
                   tracker.markOrderPrinted(oid);
                 }
@@ -786,9 +792,9 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
                           const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
                           const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
                           await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-                          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                         } else {
-                          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                         }
                         tracker.markOrderPrinted(oid);
                       }
@@ -905,24 +911,26 @@ app.use('/api/admin', (req, res, next) => {
   next();
 });
 
-async function printFile(filePath, fileName, printer, printType, printSide, pageRange, copies) {
+async function printFile(filePath, fileName, printer, printType, printSide, pageRange, copies, orientation) {
   const ext = path.extname(fileName).toLowerCase();
   const isPdf = ext === '.pdf';
   const isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
   const copyNum = Math.max(1, parseInt(copies) || 1);
+  const orient = (orientation || 'portrait').toLowerCase();
   if (isPdf) {
     const opts = {
-      printer, silent: true,
+      printer,
       monochrome: printType === 'bw',
       side: printSide === 'both' ? 'duplex' : 'simplex',
+      copies: copyNum,
+      orientation: orient,
       paperSize: 'A4'
     };
     if (pageRange && pageRange !== 'all') opts.pages = pageRange;
-    opts.copies = copyNum; // Always set explicitly — prevents printer driver default from printing extra copies
+    console.log(`[PRINT] File: ${fileName} | Type: ${printType} | Side: ${printSide} | Pages: ${pageRange||'all'} | Copies: ${copyNum} | Orientation: ${orient}`);
     await printPdfSilent(filePath, opts);
   } else if (isImage) {
-    const imgParams = { filePath, printerName: printer };
-    imgParams.copies = copyNum; // Always set explicitly
+    const imgParams = { filePath, printerName: printer, copies: copyNum };
     await runPsScript(path.join(__dirname, 'print-image.ps1'), imgParams);
   } else {
     await execP('print /D:"' + printer + '" "' + filePath + '"');
@@ -959,9 +967,9 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
             const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
             const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
             await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-            await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+            await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
           } else {
-            await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+            await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
           }
           tracker.markOrderPrinted(req.params.id);
         }
@@ -1183,10 +1191,10 @@ app.post('/api/admin/print/:id', async (req, res) => {
       const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
       const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
       await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-      await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+      await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
     } else {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
-      await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+      await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
     }
 
     res.json({ success: true, message: `Sent to printer: ${printer}` });
