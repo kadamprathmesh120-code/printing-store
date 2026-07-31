@@ -217,6 +217,31 @@ function detectCornersOpenCV(canvas) {
 
     var candidates = [];
 
+    // --- STAGE 0: Paper Sheet Color-Saliency Mask (White/Light Document Sheet) ---
+    try {
+      var hsv = m(new cv.Mat());
+      var rgbMat = m(new cv.Mat());
+      cv.cvtColor(src, rgbMat, cv.COLOR_RGBA2RGB);
+      cv.cvtColor(rgbMat, hsv, cv.COLOR_RGB2HSV);
+
+      var hsvPlanes = m(new cv.MatVector());
+      cv.split(hsv, hsvPlanes);
+      var satMat = hsvPlanes.get(1);
+      var valMat = hsvPlanes.get(2);
+
+      var valThresh = m(new cv.Mat());
+      var satThresh = m(new cv.Mat());
+      var paperMask = m(new cv.Mat());
+
+      cv.threshold(valMat, valThresh, 115, 255, cv.THRESH_BINARY);
+      cv.threshold(satMat, satThresh, 75, 255, cv.THRESH_BINARY_INV);
+      cv.bitwise_and(valThresh, satThresh, paperMask);
+
+      var kernel9 = m(cv.Mat.ones(9, 9, cv.CV_8U));
+      cv.morphologyEx(paperMask, paperMask, cv.MORPH_CLOSE, kernel9);
+      extractContourCandidates(paperMask, candidates, procW, procH);
+    } catch(e) {}
+
     // --- STAGE 1: Multi-Scale Adaptive Canny Edge Detection & Morphological Page Merging ---
     var meanVal = cv.mean(blurred)[0] || 128;
     var cannyConfigs = [
@@ -473,6 +498,16 @@ function deduplicateCandidates(candidates, imgW, imgH) {
 
 // Multi-Factor Confidence Scoring Engine (prioritizes OUTER paper boundaries)
 function scoreCandidateQuad(quad, imgW, imgH, gradMag, grayMat, allCandidates) {
+  // Reject camera frame boundaries (if 2 or more points hit the canvas margin within 8px)
+  var frameTouchCount = 0;
+  for (var ptIdx = 0; ptIdx < 4; ptIdx++) {
+    var p = quad[ptIdx];
+    if (p.x <= 8 || p.x >= imgW - 8 || p.y <= 8 || p.y >= imgH - 8) {
+      frameTouchCount++;
+    }
+  }
+  if (frameTouchCount >= 2) return 0.05;
+
   // 1. Area Ratio Score (ideal: 25% to 90% of total camera frame area)
   var area = calculateQuadArea(quad);
   var totalArea = imgW * imgH;
