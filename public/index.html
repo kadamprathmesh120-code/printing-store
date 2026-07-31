@@ -49,6 +49,7 @@
   <link rel="stylesheet" href="style.css?v=12">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js" onload="if(typeof lucide!=='undefined')lucide.createIcons()"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     body { font-family:'Inter',-apple-system,sans-serif; }
@@ -947,16 +948,19 @@
           <div class="rpc-methods">
             <span>💳 Cards</span><span>📱 UPI</span><span>🏦 Net Banking</span><span>👛 Wallets</span>
           </div>
-          <div class="rpc-btn-wrapper">
-            <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()">
+          <div class="rpc-btn-wrapper" style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()" style="flex:1;min-width:140px;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-              Pay ₹<span id="btnRazorpayAmount">0</span>
+              Razorpay ₹<span id="btnRazorpayAmount">0</span>
+            </button>
+            <button class="rpc-btn" id="btnCashfreeReview" onclick="payWithCashfree()" style="flex:1;min-width:140px;background:#6366f1;border-color:#6366f1;color:#fff;">
+              💳 Cashfree ₹<span id="btnCashfreeAmount">0</span>
             </button>
             <div id="priceBadge" class="price-badge hidden"></div>
           </div>
         </div>
         <div class="rpc-footer">
-          <span>🔒 Secured by Razorpay</span>
+          <span>🔒 Secured Gateway</span>
           <button class="rpc-cash-btn" onclick="payWithCash()">Pay with Cash instead</button>
         </div>
       </div>
@@ -1938,6 +1942,8 @@
       document.getElementById('reviewTotalPrice').textContent = '\u20B9' + totalPrice;
       document.getElementById('reviewTotalPriceRazorpay').textContent = '\u20B9' + totalPrice;
       document.getElementById('btnRazorpayAmount').textContent = totalPrice;
+      var btnCfAmt = document.getElementById('btnCashfreeAmount');
+      if (btnCfAmt) btnCfAmt.textContent = totalPrice;
 
       showStep('stepReview');
 
@@ -2146,6 +2152,148 @@
           document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
           btn.disabled = false;
           btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">0</span>';
+        });
+    }
+
+    function payWithCashfree() {
+      var name = document.getElementById('reviewName').value.trim();
+      if (!name) {
+        document.getElementById('reviewName').style.borderColor = '#ef4444';
+        document.getElementById('reviewName').focus();
+        return;
+      }
+      document.getElementById('reviewName').style.borderColor = '';
+      if (selectedFiles.length === 0) {
+        document.getElementById('paymentError').textContent = 'No files selected.';
+        return;
+      }
+
+      var btn = document.getElementById('btnCashfreeReview');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
+      }
+
+      var mobile = document.getElementById('reviewMobile').value.trim();
+      var formData = new FormData();
+      formData.append('customerName', name);
+      formData.append('printType', selectedPrintType);
+      formData.append('printSide', selectedPrintSide);
+      formData.append('paymentMethod', 'cashfree');
+      formData.append('mobileNumber', mobile);
+      formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
+      formData.append('orientation', selectedOrientation);
+      formData.append('copies', copiesCount);
+      formData.append('pageRange', selectedPageRange);
+
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
+        formData.append('files', fileToUpload);
+        if (selectedFiles[i].pages) {
+          formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
+        }
+      }
+
+      fetch('/api/upload', { method: 'POST', body: formData })
+        .then(function(r) {
+          if (!r.ok) { throw new Error('Server returned ' + r.status); }
+          return r.json();
+        })
+        .then(function(data) {
+          if (data.error) {
+            document.getElementById('paymentError').textContent = data.error;
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+            }
+            return;
+          }
+          currentOrderIds = data.orders.map(function(o) { return o.orderId; });
+
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Creating Session...';
+
+          fetch('/api/create-cashfree-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: data.totalPrice,
+              orderIds: currentOrderIds,
+              customerName: name,
+              customerMobile: mobile
+            })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(cfData) {
+            if (cfData.error) throw new Error(cfData.error);
+            if (!cfData.paymentSessionId) throw new Error('Failed to obtain Cashfree Payment Session');
+
+            if (typeof Cashfree === 'undefined') {
+              throw new Error('Cashfree SDK is not loaded. Please refresh the page and try again.');
+            }
+
+            var envMode = (cfData.environment === 'PROD' || cfData.environment === 'PRODUCTION') ? 'production' : 'sandbox';
+            var cashfree = Cashfree({ mode: envMode });
+
+            var checkoutOptions = {
+              paymentSessionId: cfData.paymentSessionId,
+              redirectTarget: "_modal"
+            };
+
+            cashfree.checkout(checkoutOptions).then(function(result) {
+              if (result.error) {
+                document.getElementById('paymentError').textContent = 'Cashfree Error: ' + (result.error.message || 'Payment cancelled');
+                if (btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+                }
+              } else {
+                fetch('/api/verify-cashfree-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ cashfreeOrderId: cfData.cashfreeOrderId, orderIds: currentOrderIds })
+                })
+                .then(function(vr) { return vr.json(); })
+                .then(function(vrData) {
+                  if (vrData.error) {
+                    document.getElementById('paymentError').textContent = 'Verification error: ' + vrData.error;
+                    if (btn) {
+                      btn.disabled = false;
+                      btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+                    }
+                    return;
+                  }
+                  document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+                  showStep('stepStatus');
+                })
+                .catch(function(e) {
+                  document.getElementById('paymentError').textContent = 'Verification failed: ' + e.message;
+                  if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+                  }
+                });
+              }
+            });
+
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+            }
+          })
+          .catch(function(err) {
+            document.getElementById('paymentError').textContent = 'Cashfree error: ' + (err.message || 'Try again.');
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+            }
+          });
+        })
+        .catch(function(err) {
+          document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">0</span>';
+          }
         });
     }
 

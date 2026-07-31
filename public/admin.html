@@ -1712,7 +1712,9 @@
 
         var payBadge = o.payment_method === 'cash'
           ? '<span class="oc-payment-badge cash">💵 Cash</span>'
-          : '<span class="oc-payment-badge razorpay">💳 Razorpay</span>';
+          : (o.payment_method === 'cashfree'
+            ? '<span class="oc-payment-badge cashfree" style="background:#6366f1;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">💳 Cashfree</span>'
+            : '<span class="oc-payment-badge razorpay">💳 Razorpay</span>');
 
         var previewBtn = '';
         if (o.file_path) {

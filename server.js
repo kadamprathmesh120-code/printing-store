@@ -9,6 +9,7 @@ const { promisify } = require('util');
 const pdfParse = require('pdf-parse');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const https = require('https');
 const db = require('./db');
 const tracker = require('./printer-tracker');
 
@@ -158,6 +159,20 @@ if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
   console.log('Razorpay instance created successfully');
 } else {
   console.warn('Razorpay not configured — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET');
+}
+
+// ---------------------------------------------------------------------------
+// Cashfree configuration — uses environment variables
+// ---------------------------------------------------------------------------
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+const CASHFREE_ENV = (process.env.CASHFREE_ENV || 'TEST').toUpperCase(); // 'TEST' (Sandbox) or 'PROD' (Production)
+
+if (CASHFREE_APP_ID && CASHFREE_SECRET_KEY) {
+  const maskedAppId = CASHFREE_APP_ID.substring(0, 4) + '...' + CASHFREE_APP_ID.slice(-4);
+  console.log('Cashfree App ID loaded:', maskedAppId, '| Env:', CASHFREE_ENV);
+} else {
+  console.warn('Cashfree NOT configured — set CASHFREE_APP_ID and CASHFREE_SECRET_KEY in .env if using Cashfree PG');
 }
 
 const storage = multer.diskStorage({
@@ -609,6 +624,194 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
     res.json({ success: true, message: autoPrintEnabled ? 'Payment verified. Printing started.' : 'Payment verified. Waiting for admin approval.' });
   } catch (err) {
     console.error('Razorpay verify error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Cashfree: create order & get payment_session_id
+app.post('/api/create-cashfree-order', async (req, res) => {
+  try {
+    if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+      return res.status(503).json({ error: 'Cashfree Payment Gateway is not configured on this server' });
+    }
+
+    const { amount, orderIds, customerName, customerMobile } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+
+    const cashfreeOrderId = 'CF_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const amountVal = Number(amount).toFixed(2);
+
+    const postData = JSON.stringify({
+      order_id: cashfreeOrderId,
+      order_amount: parseFloat(amountVal),
+      order_currency: 'INR',
+      customer_details: {
+        customer_id: 'cust_' + Date.now(),
+        customer_name: customerName || 'Customer',
+        customer_phone: customerMobile && customerMobile.length >= 10 ? customerMobile : '9999999999'
+      },
+      order_meta: {
+        return_url: `${req.protocol}://${req.get('host')}/api/verify-cashfree-payment?order_id={order_id}`
+      }
+    });
+
+    const host = CASHFREE_ENV === 'PROD' || CASHFREE_ENV === 'PRODUCTION' ? 'api.cashfree.com' : 'sandbox.cashfree.com';
+    const options = {
+      hostname: host,
+      port: 443,
+      path: '/pg/orders',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-client-id': CASHFREE_APP_ID,
+        'x-client-secret': CASHFREE_SECRET_KEY,
+        'x-api-version': '2023-08-01',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const request = https.request(options, (response) => {
+      let result = '';
+      response.on('data', (chunk) => { result += chunk; });
+      response.on('end', () => {
+        try {
+          const resObj = JSON.parse(result);
+          if (resObj.payment_session_id) {
+            if (Array.isArray(orderIds)) {
+              const stmt = db.prepare('UPDATE orders SET cashfree_order_id = ?, payment_method = ? WHERE id = ?');
+              for (const oid of orderIds) {
+                stmt.run(cashfreeOrderId, 'cashfree', oid);
+              }
+            }
+            return res.json({
+              success: true,
+              cashfreeOrderId: cashfreeOrderId,
+              paymentSessionId: resObj.payment_session_id,
+              environment: CASHFREE_ENV
+            });
+          } else {
+            console.error('Cashfree order creation error:', result);
+            return res.status(500).json({ error: resObj.message || 'Failed to create Cashfree order session' });
+          }
+        } catch (e) {
+          console.error('Cashfree response parse error:', e);
+          return res.status(500).json({ error: 'Invalid response from Cashfree API' });
+        }
+      });
+    });
+
+    request.on('error', (err) => {
+      console.error('Cashfree request error:', err);
+      return res.status(500).json({ error: 'Failed to communicate with Cashfree' });
+    });
+
+    request.write(postData);
+    request.end();
+
+  } catch (err) {
+    console.error('Cashfree order error:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// Cashfree: verify order status
+app.post('/api/verify-cashfree-payment', async (req, res) => {
+  try {
+    if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+      return res.status(503).json({ error: 'Cashfree Payment Gateway is not configured on this server' });
+    }
+
+    const { cashfreeOrderId, orderIds } = req.body;
+    const cfOrderId = cashfreeOrderId || req.query.order_id;
+
+    if (!cfOrderId) {
+      return res.status(400).json({ error: 'Missing Cashfree Order ID' });
+    }
+
+    const host = CASHFREE_ENV === 'PROD' || CASHFREE_ENV === 'PRODUCTION' ? 'api.cashfree.com' : 'sandbox.cashfree.com';
+    const options = {
+      hostname: host,
+      port: 443,
+      path: `/pg/orders/${encodeURIComponent(cfOrderId)}`,
+      method: 'GET',
+      headers: {
+        'x-client-id': CASHFREE_APP_ID,
+        'x-client-secret': CASHFREE_SECRET_KEY,
+        'x-api-version': '2023-08-01'
+      }
+    };
+
+    const request = https.request(options, (response) => {
+      let result = '';
+      response.on('data', (chunk) => { result += chunk; });
+      response.on('end', async () => {
+        try {
+          const resObj = JSON.parse(result);
+          if (resObj.order_status === 'PAID') {
+            const BW_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
+            const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+
+            const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
+            const autoPrintEnabled = autoPrintRow ? autoPrintRow.value === '1' : true;
+
+            const targetOrderIds = Array.isArray(orderIds) && orderIds.length > 0 ? orderIds : [];
+            if (targetOrderIds.length === 0) {
+              const rows = db.prepare('SELECT id FROM orders WHERE cashfree_order_id = ?').all(cfOrderId);
+              targetOrderIds.push(...rows.map(r => r.id));
+            }
+
+            for (const oid of targetOrderIds) {
+              db.prepare('UPDATE orders SET status = ?, payment_method = ?, cashfree_order_id = ? WHERE id = ? AND status = ?')
+                .run('paid', 'cashfree', cfOrderId, oid, 'pending');
+
+              if (autoPrintEnabled) {
+                const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
+                if (order) {
+                  db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('accepted', oid);
+                  const printer = order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER;
+                  db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
+                  if (!tracker.isOrderPrinted(oid)) {
+                    try {
+                      const printers = await getPrintersHidden();
+                      const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+                      if (hasPrinter) {
+                        if (order.is_id_copy) {
+                          const frontPath = path.join(__dirname, 'uploads', order.file_path);
+                          const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
+                          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+                          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+                          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                        } else {
+                          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies);
+                        }
+                        tracker.markOrderPrinted(oid);
+                      }
+                    } catch (e) {}
+                  }
+                }
+              }
+            }
+
+            return res.json({ success: true, message: autoPrintEnabled ? 'Cashfree payment verified. Printing started.' : 'Cashfree payment verified. Waiting for admin approval.' });
+          } else {
+            return res.status(400).json({ error: 'Payment status is ' + (resObj.order_status || 'PENDING') });
+          }
+        } catch (e) {
+          console.error('Cashfree verify parse error:', e);
+          return res.status(500).json({ error: 'Invalid response from Cashfree API' });
+        }
+      });
+    });
+
+    request.on('error', (err) => {
+      console.error('Cashfree verify request error:', err);
+      return res.status(500).json({ error: 'Failed to communicate with Cashfree' });
+    });
+
+    request.end();
+
+  } catch (err) {
+    console.error('Cashfree verify error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
