@@ -967,6 +967,24 @@
       <div id="paymentError" class="error"></div>
     </div>
 
+    <!-- Cash Confirmation Step -->
+    <div id="stepCashConfirm" class="step hidden">
+      <div style="text-align:center;padding:24px 8px;">
+        <div style="font-size:3rem;margin-bottom:12px;">💵</div>
+        <h2 style="margin-bottom:8px;font-size:1.3rem;">Cash Payment</h2>
+        <p style="color:#6b7280;font-size:0.95rem;margin-bottom:28px;line-height:1.6;">
+          Please pay the exact amount at the <strong>counter</strong>.<br>
+          Your document will be printed after cash is received.
+        </p>
+        <p style="font-weight:600;font-size:1.05rem;margin-bottom:24px;color:#374151;">Have you paid cash at the counter?</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <button id="btnCashYes" onclick="confirmCashPaid()" class="rpc-btn" style="background:#16a34a;border-color:#16a34a;color:#fff;min-width:160px;font-size:1rem;padding:12px 24px;">✅ Yes, I Paid</button>
+          <button onclick="cancelCashConfirm()" class="rpc-btn" style="background:#ef4444;border-color:#ef4444;color:#fff;min-width:160px;font-size:1rem;padding:12px 24px;">❌ No, Cancel</button>
+        </div>
+        <div id="cashConfirmError" style="color:#ef4444;margin-top:14px;font-size:0.88em;"></div>
+      </div>
+    </div>
+
     <!-- Step 6: Status (used for both old and new flow) -->
     <div id="stepStatus" class="step hidden">
       <h2 data-i18n="orderStatus">Order Status</h2>
@@ -2310,13 +2328,21 @@
         return;
       }
 
-      // Ask customer to confirm they will pay at the counter
-      var confirmed = window.confirm(
-        '💵 Cash Payment Confirmation\n\n' +
-        'Please pay the cash amount at the counter before your document is printed.\n\n' +
-        'Have you paid or will you pay cash at the counter?'
-      );
-      if (!confirmed) return;
+      // Store form data temporarily and show cash confirmation step
+      pendingCashName = name;
+      showStep('stepCashConfirm');
+    }
+
+    var pendingCashName = '';
+
+    function cancelCashConfirm() {
+      showStep('stepReview');
+    }
+
+    function confirmCashPaid() {
+      var name = pendingCashName;
+      var btn = document.getElementById('btnCashYes');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="rpc-spinner"></span> Placing order...'; }
 
       var formData = new FormData();
       formData.append('customerName', name);
@@ -2344,7 +2370,8 @@
         })
         .then(function(data) {
           if (data.error) {
-            document.getElementById('paymentError').textContent = data.error;
+            document.getElementById('cashConfirmError').textContent = data.error;
+            if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yes, I Paid'; }
             return;
           }
           currentOrderIds = data.orders.map(function(o) { return o.orderId; });
@@ -2353,7 +2380,8 @@
           updateStatusDisplay('paid');
         })
         .catch(function(err) {
-          document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+          document.getElementById('cashConfirmError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+          if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yes, I Paid'; }
         });
     }
 
