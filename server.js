@@ -641,6 +641,11 @@ app.post('/api/create-cashfree-order', async (req, res) => {
     const cashfreeOrderId = 'CF_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     const amountVal = Number(amount).toFixed(2);
 
+    const hostHeader = req.get('host') || '';
+    const isLocal = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1');
+    const baseUrl = isLocal ? 'https://printing-store.onrender.com' : `https://${hostHeader}`;
+    const returnUrl = `${baseUrl}/api/verify-cashfree-payment?order_id={order_id}`;
+
     const postData = JSON.stringify({
       order_id: cashfreeOrderId,
       order_amount: parseFloat(amountVal),
@@ -651,7 +656,7 @@ app.post('/api/create-cashfree-order', async (req, res) => {
         customer_phone: customerMobile && customerMobile.length >= 10 ? customerMobile : '9999999999'
       },
       order_meta: {
-        return_url: `${req.protocol}://${req.get('host')}/api/verify-cashfree-payment?order_id={order_id}`
+        return_url: returnUrl
       }
     });
 
