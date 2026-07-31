@@ -918,11 +918,11 @@ async function printFile(filePath, fileName, printer, printType, printSide, page
       paperSize: 'A4'
     };
     if (pageRange && pageRange !== 'all') opts.pages = pageRange;
-    if (copyNum > 1) opts.copies = copyNum;
+    opts.copies = copyNum; // Always set explicitly — prevents printer driver default from printing extra copies
     await printPdfSilent(filePath, opts);
   } else if (isImage) {
     const imgParams = { filePath, printerName: printer };
-    if (copyNum > 1) imgParams.copies = copyNum;
+    imgParams.copies = copyNum; // Always set explicitly
     await runPsScript(path.join(__dirname, 'print-image.ps1'), imgParams);
   } else {
     await execP('print /D:"' + printer + '" "' + filePath + '"');
