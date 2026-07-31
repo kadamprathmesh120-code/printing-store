@@ -1458,16 +1458,24 @@ function showPreviewModal() {
   if (!existing) {
     var div = document.createElement('div');
     div.id = 'ocvPreviewModal';
-    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
-    div.innerHTML = '<div id="ocvPreviewContainer" style="max-width:100%;max-height:80vh;overflow:hidden;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);"></div>' +
-      '<div style="margin-top:16px;display:flex;gap:12px;">' +
-      '<button id="ocvPreviewBack" style="padding:10px 24px;background:#6c757d;color:white;border:none;border-radius:6px;font-size:1em;cursor:pointer;">Back</button>' +
-      '<button id="ocvPreviewConfirm" style="padding:10px 24px;background:#28a745;color:white;border:none;border-radius:6px;font-size:1em;cursor:pointer;">Confirm Crop</button>' +
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:16px;box-sizing:border-box;backdrop-filter:blur(8px);';
+    div.innerHTML =
+      '<div style="width:100%;max-width:540px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 4px;">' +
+        '<span style="color:white;font-weight:700;font-size:1.05em;">Step 2: Select Color & Filter</span>' +
+        '<span style="color:#FFD700;font-size:0.82em;font-weight:600;">✨ Color Filters</span>' +
+      '</div>' +
+      '<div id="ocvPreviewContainer" style="max-width:100%;max-height:58vh;overflow:hidden;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;background:#000;"></div>' +
+      '<div id="ocvPreviewFilterBar" class="ocv-filter-bar" style="margin:10px 0;width:100%;max-width:540px;justify-content:center;display:flex;gap:8px;overflow-x:auto;"></div>' +
+      '<div style="display:flex;gap:12px;width:100%;max-width:540px;">' +
+        '<button id="ocvPreviewBack" class="ocv-btn ocv-cancel" style="flex:0.4;background:#4b5563;padding:12px 16px;font-size:0.95em;">↺ Re-crop</button>' +
+        '<button id="ocvPreviewConfirm" class="ocv-btn ocv-crop-btn" style="flex:1;background:#16A34A;padding:12px 16px;font-weight:700;font-size:1.05em;">✓ Save & Print</button>' +
       '</div>';
     document.body.appendChild(div);
 
     document.getElementById('ocvPreviewBack').onclick = function() {
       document.getElementById('ocvPreviewModal').style.display = 'none';
+      var cropM = document.getElementById('ocvCropModal');
+      if (cropM) cropM.style.display = 'flex';
     };
     document.getElementById('ocvPreviewConfirm').onclick = function() {
       document.getElementById('ocvPreviewModal').style.display = 'none';
@@ -1475,11 +1483,81 @@ function showPreviewModal() {
     };
     existing = div;
   }
+
+  // Hide crop modal when preview opens
+  var cropM = document.getElementById('ocvCropModal');
+  if (cropM) cropM.style.display = 'none';
+
   existing.style.display = 'flex';
   var container = document.getElementById('ocvPreviewContainer');
   container.innerHTML = '';
   container.appendChild(previewCanvas);
-  previewCanvas.style.cssText = 'max-width:100%;max-height:80vh;display:block;border-radius:4px;';
+  previewCanvas.style.cssText = 'max-width:100%;max-height:58vh;display:block;border-radius:4px;';
+
+  renderPreviewFilterBar();
+}
+
+function renderPreviewFilterBar() {
+  var bar = document.getElementById('ocvPreviewFilterBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+
+  var thumbW = 56, thumbH = 72;
+  FILTER_DEFS.forEach(function(f) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ocv-filter-thumb';
+    if (f.id === selectedFilter) wrap.classList.add('active');
+    wrap.setAttribute('data-filter', f.id);
+    wrap.onclick = function() {
+      selectedFilter = f.id;
+      updatePreviewFilterSelection();
+      if (previewCanvas && previewCanvas._unfilteredData) {
+        var pCtx = previewCanvas.getContext('2d');
+        var imageData = pCtx.createImageData(previewCanvas.width, previewCanvas.height);
+        imageData.data.set(previewCanvas._unfilteredData);
+        pCtx.putImageData(imageData, 0, 0);
+        applyFilter(pCtx, previewCanvas.width, previewCanvas.height, selectedFilter);
+      }
+    };
+
+    var cvs = document.createElement('canvas');
+    cvs.width = thumbW;
+    cvs.height = thumbH;
+    cvs.style.cssText = 'width:' + thumbW + 'px;height:' + thumbH + 'px;border-radius:6px;display:block;';
+
+    if (previewCanvas) {
+      var ctx = cvs.getContext('2d');
+      var pw = previewCanvas.width, ph = previewCanvas.height;
+      var scale = Math.min(thumbW / pw, thumbH / ph);
+      var dw = pw * scale, dh = ph * scale;
+      var dx = (thumbW - dw) / 2, dy = (thumbH - dh) / 2;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, thumbW, thumbH);
+      ctx.drawImage(previewCanvas, dx, dy, dw, dh);
+      if (f.id !== 'original') {
+        applyFilter(ctx, thumbW, thumbH, f.id);
+      }
+    }
+
+    var label = document.createElement('div');
+    label.className = 'ocv-filter-label';
+    label.textContent = f.label;
+
+    wrap.appendChild(cvs);
+    wrap.appendChild(label);
+    bar.appendChild(wrap);
+  });
+}
+
+function updatePreviewFilterSelection() {
+  var thumbs = document.querySelectorAll('#ocvPreviewFilterBar .ocv-filter-thumb');
+  thumbs.forEach(function(el) {
+    if (el.getAttribute('data-filter') === selectedFilter) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
 }
 
 // ---------- Commit crop result ----------
@@ -1675,10 +1753,9 @@ function createModalHTML() {
       '<div id="ocvCropContainer" style="border-radius:8px;overflow:hidden;background:#000;position:relative;touch-action:none;display:flex;justify-content:center;min-height:200px;">' +
         '<canvas id="ocvCropCanvas" style="display:block;touch-action:none;"></canvas>' +
       '</div>' +
-      '<div id="ocvFilterBar" class="ocv-filter-bar"></div>' +
-      '<div style="display:flex;gap:8px;padding:8px 4px 4px;">' +
-        '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.5;">Cancel</button>' +
-        '<button onclick="OCV_CROP.cropDirect()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#16A34A;">Done ✓</button>' +
+      '<div style="display:flex;gap:8px;padding:12px 4px 4px;">' +
+        '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.4;background:#4b5563;padding:10px 14px;">Cancel</button>' +
+        '<button onclick="OCV_CROP.cropDirect()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;">Next: Color Change ➔</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(div);
