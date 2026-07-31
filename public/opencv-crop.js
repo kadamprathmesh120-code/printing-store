@@ -217,7 +217,7 @@ function detectCornersOpenCV(canvas) {
 
     var candidates = [];
 
-    // --- STAGE 1: Multi-Scale Adaptive Canny Edge Detection & Morphological Closing ---
+    // --- STAGE 1: Multi-Scale Adaptive Canny Edge Detection & Morphological Page Merging ---
     var meanVal = cv.mean(blurred)[0] || 128;
     var cannyConfigs = [
       { low: Math.max(10, meanVal * 0.35), high: Math.min(230, meanVal * 1.1) },
@@ -226,6 +226,8 @@ function detectCornersOpenCV(canvas) {
     ];
 
     var kernel3 = m(cv.Mat.ones(3, 3, cv.CV_8U));
+    var kernel7 = m(cv.Mat.ones(7, 7, cv.CV_8U));
+    var kernel11 = m(cv.Mat.ones(11, 11, cv.CV_8U));
 
     for (var cIdx = 0; cIdx < cannyConfigs.length; cIdx++) {
       var cfg = cannyConfigs[cIdx];
@@ -234,11 +236,16 @@ function detectCornersOpenCV(canvas) {
 
       cv.Canny(blurred, edges, cfg.low, cfg.high);
 
-      // Morphological Closing connects broken document borders and shadow gaps
-      cv.morphologyEx(edges, morphed, cv.MORPH_CLOSE, kernel3);
+      // Morphological Closing with larger kernels merges inner table cells/text into full outer page mask
+      cv.morphologyEx(edges, morphed, cv.MORPH_CLOSE, kernel7);
       cv.dilate(morphed, morphed, kernel3);
 
       extractContourCandidates(morphed, candidates, procW, procH);
+
+      // Heavy morphological closing pass specifically to isolate outer document boundary
+      var heavyMorphed = m(new cv.Mat());
+      cv.morphologyEx(edges, heavyMorphed, cv.MORPH_CLOSE, kernel11);
+      extractContourCandidates(heavyMorphed, candidates, procW, procH);
     }
 
     // --- STAGE 2: Multi-Threshold Binarization (Otsu & Adaptive Gaussian) ---
@@ -282,7 +289,7 @@ function detectCornersOpenCV(canvas) {
 
     for (var i = 0; i < candidates.length; i++) {
       var quad = candidates[i];
-      var score = scoreCandidateQuad(quad, procW, procH, gradMag);
+      var score = scoreCandidateQuad(quad, procW, procH, gradMag, gray, candidates);
       if (score > bestScore) {
         bestScore = score;
         bestQuad = quad;
@@ -464,9 +471,9 @@ function deduplicateCandidates(candidates, imgW, imgH) {
   return unique;
 }
 
-// Multi-Factor Confidence Scoring Engine
-function scoreCandidateQuad(quad, imgW, imgH, gradMag) {
-  // 1. Area Ratio Score (ideal: 15% to 90% of image area)
+// Multi-Factor Confidence Scoring Engine (prioritizes OUTER paper boundaries)
+function scoreCandidateQuad(quad, imgW, imgH, gradMag, grayMat, allCandidates) {
+  // 1. Area Ratio Score (ideal: 25% to 90% of total camera frame area)
   var area = calculateQuadArea(quad);
   var totalArea = imgW * imgH;
   var areaRatio = area / totalArea;
@@ -474,7 +481,7 @@ function scoreCandidateQuad(quad, imgW, imgH, gradMag) {
   if (areaRatio < 0.05 || areaRatio > 0.98) return 0;
 
   var sArea = 1.0;
-  if (areaRatio < 0.15) sArea = areaRatio / 0.15;
+  if (areaRatio < 0.25) sArea = areaRatio / 0.25;
   else if (areaRatio > 0.90) sArea = (0.98 - areaRatio) / 0.08;
 
   // 2. Angle Regularity Score (ideal interior angle = 90 deg)
@@ -511,12 +518,92 @@ function scoreCandidateQuad(quad, imgW, imgH, gradMag) {
   if (aspect < 1.1) sAspect = aspect / 1.1;
   else if (aspect > 2.5) sAspect = Math.max(0, (4.0 - aspect) / 1.5);
 
-  // 5. Boundary Edge Gradient Score
+  // 5. Paper-to-Background Luminance Step (Differentiates outer white paper border from inner black table lines)
+  var sContrastStep = sampleBorderContrastStep(quad, imgW, imgH, grayMat);
+
+  // 6. Boundary Edge Gradient Score
   var sGradient = sampleEdgeGradient(quad, imgW, imgH, gradMag);
 
-  // Composite Weighted Score
-  var compositeScore = (0.30 * sGradient) + (0.25 * sAngle) + (0.20 * sArea) + (0.15 * sParallel) + (0.10 * sAspect);
+  // 7. Outer Enclosing Quad Preference (boost outer quads that enclose smaller inner candidate quads)
+  var sEnclosing = 0;
+  if (allCandidates && allCandidates.length > 1) {
+    var enclosesCount = 0;
+    for (var cIdx = 0; cIdx < allCandidates.length; cIdx++) {
+      var other = allCandidates[cIdx];
+      var otherArea = calculateQuadArea(other);
+      if (otherArea < area * 0.85) {
+        // Check if other quad centroid is inside this quad
+        var oCx = (other[0].x + other[1].x + other[2].x + other[3].x) / 4;
+        var oCy = (other[0].y + other[1].y + other[2].y + other[3].y) / 4;
+        if (isPointInsideQuad({ x: oCx, y: oCy }, quad)) {
+          enclosesCount++;
+        }
+      }
+    }
+    if (enclosesCount > 0) sEnclosing = Math.min(1.0, enclosesCount * 0.25);
+  }
+
+  // Composite Weighted Score (Heavy weight on sContrastStep and sEnclosing to lock onto OUTER paper boundary)
+  var compositeScore = (0.30 * sContrastStep) + (0.20 * sEnclosing) + (0.20 * sGradient) + (0.15 * sAngle) + (0.10 * sArea) + (0.05 * sParallel);
   return compositeScore;
+}
+
+function sampleBorderContrastStep(quad, imgW, imgH, grayMat) {
+  if (!grayMat || !grayMat.data) return 0.5;
+  var data = grayMat.data;
+  var insideSum = 0, outsideSum = 0, count = 0;
+
+  var cx = (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4;
+  var cy = (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4;
+
+  for (var side = 0; side < 4; side++) {
+    var p1 = quad[side];
+    var p2 = quad[(side + 1) % 4];
+    var steps = 12;
+    for (var k = 1; k < steps; k++) {
+      var t = k / steps;
+      var mx = p1.x + t * (p2.x - p1.x);
+      var my = p1.y + t * (p2.y - p1.y);
+
+      var dx = cx - mx;
+      var dy = cy - my;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 1e-3) continue;
+      var nx = (dx / dist) * 7; // 7px inset/outset test
+      var ny = (dy / dist) * 7;
+
+      var inX = Math.round(mx + nx);
+      var inY = Math.round(my + ny);
+      var outX = Math.round(mx - nx);
+      var outY = Math.round(my - ny);
+
+      if (inX >= 0 && inX < imgW && inY >= 0 && inY < imgH &&
+          outX >= 0 && outX < imgW && outY >= 0 && outY < imgH) {
+        var valIn = data[inY * imgW + inX];
+        var valOut = data[outY * imgW + outX];
+        insideSum += valIn;
+        outsideSum += valOut;
+        count++;
+      }
+    }
+  }
+
+  if (count === 0) return 0.5;
+  var avgIn = insideSum / count;
+  var avgOut = outsideSum / count;
+  var diff = Math.abs(avgIn - avgOut);
+  return Math.min(1.0, diff / 70.0);
+}
+
+function isPointInsideQuad(pt, quad) {
+  var inside = false;
+  for (var i = 0, j = 3; i < 4; j = i++) {
+    var xi = quad[i].x, yi = quad[i].y;
+    var xj = quad[j].x, yj = quad[j].y;
+    var intersect = ((yi > pt.y) !== (yj > pt.y)) && (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi + 1e-5) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
 }
 
 function calculateQuadArea(pts) {
