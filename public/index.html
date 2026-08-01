@@ -931,14 +931,14 @@
         <button class="btn btn-secondary" onclick="showStep('stepSettings')" data-i18n="back">Back</button>
       </div>
 
-      <!-- Razorpay Payment Card -->
+      <!-- Razorpay Payment Card (Hidden for now, Cashfree active) -->
       <div class="razorpay-payment-card">
         <div class="rpc-header">
           <div class="rpc-logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            <span>Pay with Razorpay</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span>Online Payment</span>
           </div>
-          <div class="rpc-badge">Recommended</div>
+          <div class="rpc-badge" style="background:#e0e7ff;color:#4338ca;">Cashfree</div>
         </div>
         <div class="rpc-body">
           <div class="rpc-amount">
@@ -946,21 +946,22 @@
             <span class="rpc-amount-value" id="reviewTotalPriceRazorpay">₹0</span>
           </div>
           <div class="rpc-methods">
-            <span>💳 Cards</span><span>📱 UPI</span><span>🏦 Net Banking</span><span>👛 Wallets</span>
+            <span>📱 UPI (GPay/PhonePe/Paytm)</span><span>💳 Cards</span><span>🏦 Net Banking</span>
           </div>
           <div class="rpc-btn-wrapper" style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()" style="flex:1;min-width:140px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <!-- Hidden Razorpay button (preserved intact in code for backup) -->
+            <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()" style="display:none;">
               Razorpay ₹<span id="btnRazorpayAmount">0</span>
             </button>
-            <button class="rpc-btn" id="btnCashfreeReview" onclick="payWithCashfree()" style="flex:1;min-width:140px;background:#6366f1;border-color:#6366f1;color:#fff;">
-              💳 Cashfree ₹<span id="btnCashfreeAmount">0</span>
+            <!-- Primary Cashfree Payment Button -->
+            <button class="rpc-btn" id="btnCashfreeReview" onclick="payWithCashfree()" style="width:100%;flex:1;background:#4f46e5;border-color:#4f46e5;color:#fff;font-size:1.05rem;padding:14px;border-radius:12px;font-weight:700;">
+              💳 Pay Online (UPI / Card / NetBanking) ₹<span id="btnCashfreeAmount">0</span>
             </button>
             <div id="priceBadge" class="price-badge hidden"></div>
           </div>
         </div>
         <div class="rpc-footer">
-          <span>🔒 Secured Gateway</span>
+          <span>🔒 100% Secured Payment</span>
           <button class="rpc-cash-btn" onclick="payWithCash()">Pay with Cash instead</button>
         </div>
       </div>
