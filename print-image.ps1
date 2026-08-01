@@ -84,11 +84,10 @@ $pd.add_PrintPage({
   $imgW   = [float]$img.Width
   $imgH   = [float]$img.Height
 
-  # Scale to fit the printable area while preserving aspect ratio (no cropping)
+  # Scale image to FILL the entire printable area (fit-to-page, may crop if very different aspect)
   $scaleX = $destW / $imgW
   $scaleY = $destH / $imgH
-  $scale  = [Math]::Min($scaleX, $scaleY)
-
+  $scale  = [Math]::Max($scaleX, $scaleY)
   $drawW  = $imgW * $scale
   $drawH  = $imgH * $scale
 
