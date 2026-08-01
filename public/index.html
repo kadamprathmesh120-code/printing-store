@@ -2272,6 +2272,9 @@
        } else {
          badgeHtml += '<span class="psc-badge standard">🟢 Standard Pricing</span>';
        }
+       badges.innerHTML = badgeHtml;
+     }
+
     function goToPaymentStep() {
       var name = document.getElementById('reviewName').value.trim();
       var mobile = document.getElementById('reviewMobile').value.trim();
