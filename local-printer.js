@@ -221,7 +221,9 @@ async function checkAndPrint() {
           fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
           await downloadFile(fileUrl, localFile);
 
-          var requestedPrinter = order.printer_name || (order.print_type === 'bw' ? BW_PRINTER : COLOR_PRINTER);
+          // Strictly restrict HP printer to Color orders only. B&W orders MUST go to Kyocera/Konica B&W printer.
+          var isColorOrder = (order.print_type === 'color');
+          var requestedPrinter = isColorOrder ? COLOR_PRINTER : (order.printer_name && !order.printer_name.toLowerCase().includes('hp') ? order.printer_name : BW_PRINTER);
           var printer = await resolvePrinterName(requestedPrinter);
           console.log('DEBUG: order.id=' + order.id + ', copies=' + order.copies + ', printer=' + printer + ', file=' + order.file_name);
           var isPdf = ext === '.pdf';
