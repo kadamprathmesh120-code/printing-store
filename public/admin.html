@@ -1175,16 +1175,8 @@
       // 1. Play Loud Chime (Web Audio API)
       playLoudChime();
 
-      // 2. Play Custom MP3 audio if saved in public/ folder (e.g. konica.mp3 or alert.mp3)
-      try {
-        var audio = new Audio('/konica.mp3');
-        audio.volume = 1.0;
-        audio.play().catch(function() {
-          var fallbackAudio = new Audio('/alert.mp3');
-          fallbackAudio.volume = 1.0;
-          fallbackAudio.play().catch(function() {});
-        });
-      } catch(e) {}
+      // 2. Play Custom MP3 audio if saved in public/ folder (e.g. konica.mp3, sound.mp3, alert.mp3)
+      playCustomAudioFile();
 
       // 3. Loud Speech Synthesis Voice Announcement (speaks printer name clearly for operator)
       if ('speechSynthesis' in window) {
@@ -1223,6 +1215,19 @@
         });
         setTimeout(function() { ctx.close(); }, 1400);
       } catch(e) {}
+    }
+
+    function playCustomAudioFile() {
+      var files = ['/konica.mp3', '/sound.mp3', '/alert.mp3', '/notification.mp3', '/printer.mp3', '/print.mp3', '/custom.mp3'];
+      function tryNext(index) {
+        if (index >= files.length) return;
+        var a = new Audio(files[index]);
+        a.volume = 1.0;
+        a.play().catch(function() {
+          tryNext(index + 1);
+        });
+      }
+      tryNext(0);
     }
 
     function playVoiceNotification(customerName, fileName, copies) {
