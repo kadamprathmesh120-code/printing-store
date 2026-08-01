@@ -5,10 +5,40 @@ param(
   [int]$copies = 1,
   [string]$orientation = 'portrait'
 )
+
 Add-Type -AssemblyName System.Drawing
-$img = [System.Drawing.Image]::FromFile($filePath)
+
+# Load image locking file to avoid GDI+ sharing issues
+$imgStream = [System.IO.File]::OpenRead($filePath)
+$img = [System.Drawing.Image]::FromStream($imgStream)
+
 $pd = New-Object System.Drawing.Printing.PrintDocument
 $pd.PrinterSettings.PrinterName = $printerName
+
+# Set max printer DPI for highest quality output
+try {
+  $maxDpiX = $pd.PrinterSettings.DefaultPageSettings.PrinterResolution.X
+  $maxDpiY = $pd.PrinterSettings.DefaultPageSettings.PrinterResolution.Y
+
+  # Find the highest resolution the printer supports
+  $bestRes = $pd.PrinterSettings.PrinterResolutions |
+    Where-Object { $_.Kind -eq 'Custom' -and $_.X -gt 0 } |
+    Sort-Object { $_.X } -Descending |
+    Select-Object -First 1
+
+  if ($null -eq $bestRes) {
+    $bestRes = $pd.PrinterSettings.PrinterResolutions |
+      Sort-Object { $_.X } -Descending |
+      Select-Object -First 1
+  }
+
+  if ($bestRes -ne $null) {
+    $pd.DefaultPageSettings.PrinterResolution = $bestRes
+    Write-Host "Set printer DPI: $($bestRes.X) x $($bestRes.Y)"
+  }
+} catch {
+  Write-Host "Note: Could not set printer DPI (non-critical): $_"
+}
 
 # Always set copies explicitly so printer defaults don't override
 $pd.PrinterSettings.Copies = [short]([Math]::Max(1, $copies))
@@ -23,7 +53,7 @@ if ($orientation -eq 'landscape') {
 # Force Simplex (Single Side) to prevent duplex printer drivers from ejecting a 2nd blank page
 $pd.DefaultPageSettings.Duplex = [System.Drawing.Printing.Duplex]::Simplex
 
-# Set zero margins so the printable area is maximum (full bleed as much as hardware allows)
+# Zero margins — maximize printable area (hardware margin still applies physically)
 $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
 $pd.OriginAtMargins = $false
 
@@ -39,35 +69,46 @@ $pd.add_PrintPage({
     return
   }
 
-  # Use Graphics ClipBounds (actual printable area) NOT PageBounds (full paper, which clips)
+  # ---- Highest quality GDI+ rendering flags ----
+  $e.Graphics.InterpolationMode   = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $e.Graphics.SmoothingMode       = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+  $e.Graphics.PixelOffsetMode     = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+  $e.Graphics.CompositingQuality  = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+  $e.Graphics.CompositingMode     = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
+
+  # Use VisibleClipBounds — actual printable area returned by the printer driver
   $clip   = $e.Graphics.VisibleClipBounds
-  $destW  = [int]$clip.Width
-  $destH  = [int]$clip.Height
+  $destW  = [float]$clip.Width
+  $destH  = [float]$clip.Height
 
-  $imgW   = $img.Width
-  $imgH   = $img.Height
+  $imgW   = [float]$img.Width
+  $imgH   = [float]$img.Height
 
-  # Scale image to FILL the printable area, maintaining aspect ratio
+  # Scale to fit the printable area while preserving aspect ratio (no cropping)
   $scaleX = $destW / $imgW
   $scaleY = $destH / $imgH
-  $scale  = [Math]::Min($scaleX, $scaleY)   # use Min to keep full image (no cropping)
+  $scale  = [Math]::Min($scaleX, $scaleY)
 
-  $drawW  = [int]($imgW * $scale)
-  $drawH  = [int]($imgH * $scale)
+  $drawW  = $imgW * $scale
+  $drawH  = $imgH * $scale
 
-  # Center the image within the printable area
-  $offsetX = [int](($destW - $drawW) / 2)
-  $offsetY = [int](($destH - $drawH) / 2)
+  # Center on printable area
+  $offsetX = ($destW - $drawW) / 2.0
+  $offsetY = ($destH - $drawH) / 2.0
 
-  $destRect = New-Object System.Drawing.Rectangle($offsetX, $offsetY, $drawW, $drawH)
+  $destRect = New-Object System.Drawing.RectangleF($offsetX, $offsetY, $drawW, $drawH)
 
-  $e.Graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-  $e.Graphics.SmoothingMode     = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-  $e.Graphics.PixelOffsetMode   = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+  # Full source rect — use entire image at full native resolution
+  $srcRect = New-Object System.Drawing.RectangleF(0, 0, $imgW, $imgH)
 
-  $e.Graphics.DrawImage($img, $destRect)
+  # DrawImage with explicit source rect prevents GDI+ internal thumbnail downsampling
+  $e.Graphics.DrawImage($img, $destRect, $srcRect, [System.Drawing.GraphicsUnit]::Pixel)
+
   $printed = $true
   $e.HasMorePages = $false
 })
+
 $pd.Print()
 $img.Dispose()
+$imgStream.Close()
+$imgStream.Dispose()

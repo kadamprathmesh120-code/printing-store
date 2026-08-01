@@ -62,7 +62,7 @@ function printPdfSilent(filePath, opts) {
       '-silent',
       '-exit-on-print'
     ];
-    var settings = ['fit']; // Always fit page content to paper printable area (prevents blank/clipped pages)
+    var settings = ['noscale']; // noscale = print PDF at native resolution (no downsampling, max quality)
     var copyCount = Math.max(1, parseInt(opts.copies) || 1);
     settings.push(copyCount + 'x');
     if (opts.side === 'duplex') {

@@ -4,42 +4,66 @@ param(
   [string]$outputPath
 )
 Add-Type -AssemblyName System.Drawing
-$bmp = New-Object System.Drawing.Bitmap(2480, 3508)
+
+# Use 600 DPI for maximum print quality (was 300 DPI which loses detail at print time)
+# 600 DPI on A4: 210mm x 297mm = 4961 x 7016 px
+$dpi   = 600
+$pageW = [int](210 * $dpi / 25.4)   # 4961
+$pageH = [int](297 * $dpi / 25.4)   # 7016
+
+$bmp = New-Object System.Drawing.Bitmap($pageW, $pageH)
+$bmp.SetResolution($dpi, $dpi)   # Embed 600 DPI metadata so printer knows the true resolution
+
 $gr = [System.Drawing.Graphics]::FromImage($bmp)
 $gr.Clear([System.Drawing.Color]::White)
-$gr.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$gr.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-$gr.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
 
-# Exact 86mm x 54mm ID Card size at 300 DPI on 2480x3508 A4 page
-# 1mm = 11.81px (2480 / 210)
-$cardW = 1016   # 86mm
-$cardH = 638    # 54mm
-$pageW = 2480   # 210mm
-$pageH = 3508   # 297mm
+# Highest quality rendering
+$gr.InterpolationMode  = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+$gr.SmoothingMode      = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+$gr.PixelOffsetMode    = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+$gr.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
 
-$marginTop = 295  # 25mm top margin
-$gap = 354        # 30mm gap between cards
+# Exact 86mm x 54mm ID Card at 600 DPI
+# 1mm = 600/25.4 = 23.62 px
+$mmToPx = $dpi / 25.4
+$cardW = [int](86 * $mmToPx)    # ~2031 px
+$cardH = [int](54 * $mmToPx)    # ~1275 px
+
+$marginTopMm = 25
+$gapMm       = 30
+$marginTop = [int]($marginTopMm * $mmToPx)
+$gap       = [int]($gapMm * $mmToPx)
 
 $hasFront = [string]::IsNullOrEmpty($frontPath) -eq $false -and (Test-Path $frontPath)
-$hasBack = [string]::IsNullOrEmpty($backPath) -eq $false -and (Test-Path $backPath)
+$hasBack  = [string]::IsNullOrEmpty($backPath)  -eq $false -and (Test-Path $backPath)
 
 if ($hasFront) {
-  $frontImg = [System.Drawing.Image]::FromFile($frontPath)
+  $frontStream = [System.IO.File]::OpenRead($frontPath)
+  $frontImg    = [System.Drawing.Image]::FromStream($frontStream)
   $fX = [int](($pageW - $cardW) / 2)
   $fY = $marginTop
-  $gr.DrawImage($frontImg, $fX, $fY, $cardW, $cardH)
+  $destF = New-Object System.Drawing.RectangleF($fX, $fY, $cardW, $cardH)
+  $srcF  = New-Object System.Drawing.RectangleF(0, 0, $frontImg.Width, $frontImg.Height)
+  $gr.DrawImage($frontImg, $destF, $srcF, [System.Drawing.GraphicsUnit]::Pixel)
   $frontImg.Dispose()
+  $frontStream.Close()
 }
 
 if ($hasBack) {
-  $backImg = [System.Drawing.Image]::FromFile($backPath)
+  $backStream = [System.IO.File]::OpenRead($backPath)
+  $backImg    = [System.Drawing.Image]::FromStream($backStream)
   $bX = [int](($pageW - $cardW) / 2)
   $bY = if ($hasFront) { $marginTop + $cardH + $gap } else { $marginTop }
-  $gr.DrawImage($backImg, $bX, $bY, $cardW, $cardH)
+  $destB = New-Object System.Drawing.RectangleF($bX, $bY, $cardW, $cardH)
+  $srcB  = New-Object System.Drawing.RectangleF(0, 0, $backImg.Width, $backImg.Height)
+  $gr.DrawImage($backImg, $destB, $srcB, [System.Drawing.GraphicsUnit]::Pixel)
   $backImg.Dispose()
+  $backStream.Close()
 }
 
 $gr.Dispose()
+
+# Save as PNG (lossless) — no quality loss
 $bmp.Save($outputPath, [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
+Write-Host "Saved combined ID copy at $dpi DPI: $outputPath"
