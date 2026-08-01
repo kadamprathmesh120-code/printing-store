@@ -3719,7 +3719,8 @@
       var nameEl = document.getElementById('summaryCustomerName');
       var name = nameEl ? nameEl.textContent : '';
       var msg = 'Hi Store! I placed an order. ' + name + ' (' + token + '). Please check my order status.';
-      var url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+      var storeNumber = '919881093852';
+      var url = 'https://wa.me/' + storeNumber + '?text=' + encodeURIComponent(msg);
       window.open(url, '_blank');
     }
 
