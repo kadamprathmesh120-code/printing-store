@@ -987,15 +987,74 @@
 
     <!-- Step 6: Status (used for both old and new flow) -->
     <div id="stepStatus" class="step hidden">
-      <h2 data-i18n="orderStatus">Order Status</h2>
-      <div class="order-id"><span data-i18n="orderIdsLabel">Order IDs:</span> <span id="orderIdsSpan"></span></div>
-      <div style="text-align:center;margin:16px 0;">
-        <span id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</span>
-      </div>
-      <p id="statusMessage" style="text-align:center;font-size:0.88em;color:#6b7280;"></p>
-      <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus">Refresh Status</button>
-      <div id="statusDone" class="hidden" style="margin-top:12px;">
-        <div class="success-message" data-i18n="allReady">All prints ready! Please collect from the counter.</div>
+      <div class="status-card-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h2 style="margin:0;font-size:1.35rem;font-weight:700;color:#1e293b;" data-i18n="orderStatus">Order Status</h2>
+          <span class="live-sync-tag"><span class="pulse-dot-green"></span> Live Updating</span>
+        </div>
+
+        <!-- Token Badge Display -->
+        <div class="token-badge-container">
+          <span id="shortTokenDisplay" class="token-badge">Token #P-----</span>
+          <button type="button" onclick="copyOrderToken()" class="btn-copy-token">📋 Copy Token</button>
+        </div>
+        <div class="order-id" style="text-align:center;"><span data-i18n="orderIdsLabel">Order Ref:</span> <span id="orderIdsSpan"></span></div>
+
+        <!-- Progress Stepper Timeline -->
+        <div class="stepper-progress">
+          <div id="stepperLineActive" class="stepper-line-active"></div>
+          
+          <div id="stepProgress1" class="step-item completed">
+            <div class="step-icon-circle">✓</div>
+            <div class="step-title">Order Placed</div>
+          </div>
+          
+          <div id="stepProgress2" class="step-item active">
+            <div id="step2IconCircle" class="step-icon-circle">💵</div>
+            <div id="step2Title" class="step-title">Payment</div>
+          </div>
+          
+          <div id="stepProgress3" class="step-item">
+            <div class="step-icon-circle">🖨️</div>
+            <div class="step-title">Printing</div>
+          </div>
+          
+          <div id="stepProgress4" class="step-item">
+            <div class="step-icon-circle">🎉</div>
+            <div class="step-title">Ready</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Notice Box (Cash vs Online) -->
+        <div id="noticeBox" class="notice-box cash">
+          <div class="notice-box-header">
+            <span id="noticeBoxIcon">💵</span>
+            <span id="noticeBoxTitle">Cash Payment Required at Counter</span>
+          </div>
+          <div id="noticeBoxBody" class="notice-box-body">
+            Show your Token ID at the store counter and pay cash to start printing.
+          </div>
+          <div id="noticeAmountPill" class="notice-amount-pill">Amount Due: ₹--</div>
+        </div>
+
+        <div style="text-align:center;margin:16px 0;">
+          <span id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</span>
+        </div>
+        <p id="statusMessage" style="text-align:center;font-size:0.88em;color:#6b7280;"></p>
+
+        <!-- Collapsible Order Breakdown Details -->
+        <div id="orderBreakdownBox" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin:16px 0;text-align:left;font-size:0.88rem;">
+          <div style="font-weight:700;color:#334155;margin-bottom:6px;display:flex;justify-content:space-between;">
+            <span>📋 Order Summary</span>
+            <span id="summaryCustomerName" style="color:#2563eb;"></span>
+          </div>
+          <div id="summaryDetailsContent" style="color:#64748b;line-height:1.5;"></div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus" style="width:100%;margin-top:8px;">Refresh Status</button>
+        <div id="statusDone" class="hidden" style="margin-top:12px;">
+          <div class="success-message" data-i18n="allReady">🎉 All prints ready! Please collect from Counter 1.</div>
+        </div>
       </div>
     </div>
 
@@ -3634,6 +3693,22 @@
     };
     // ─────────────────────────────────────────────────────────────────────────
 
+    var statusPollTimer = null;
+
+    function copyOrderToken() {
+      var txt = document.getElementById('shortTokenDisplay') ? document.getElementById('shortTokenDisplay').textContent : '';
+      if (!txt) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(txt).then(function() {
+          alert('Copied to clipboard: ' + txt);
+        }).catch(function() {
+          alert(txt);
+        });
+      } else {
+        alert(txt);
+      }
+    }
+
     function showStep(id) {
       // Stop any active voice announcement when navigating between screens
       if (typeof VoiceManager !== 'undefined' && id !== 'stepReview') VoiceManager.stop();
@@ -3647,6 +3722,13 @@
       var bn = document.getElementById('bottomNav');
       if (id === 'stepHome') { bn.style.display = 'flex'; } else { bn.style.display = 'none'; }
       renderHero();
+
+      if (id === 'stepStatus') {
+        startAutoStatusPolling();
+      } else if (statusPollTimer) {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+      }
     }
 
     function renderHero() {
@@ -3658,32 +3740,125 @@
 
     // --- Existing functions used by both old and new flow ---
 
-    function updateStatusDisplay(status) {
+    function updateStatusDisplay(status, orders) {
+      orders = orders || [];
       var badge = document.getElementById('statusBadge');
       var msg = document.getElementById('statusMessage');
       var done = document.getElementById('statusDone');
 
-      badge.className = 'status-badge ' + status;
-      done.classList.add('hidden');
+      var tokenDisplay = document.getElementById('shortTokenDisplay');
+      if (currentOrderIds.length > 0) {
+        var firstId = currentOrderIds[0];
+        var shortCode = 'Token #P-' + firstId.substring(0, 6).toUpperCase();
+        if (tokenDisplay) tokenDisplay.textContent = shortCode;
+        var orderIdsSpan = document.getElementById('orderIdsSpan');
+        if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
+      }
 
-      switch (status) {
-        case 'pending':
-          badge.textContent = t('pending');
-          msg.textContent = t('pendingMsg') || 'Waiting for payment confirmation...';
-          break;
-        case 'paid':
-          badge.textContent = 'Paid - Awaiting Approval';
-          msg.textContent = 'Payment received! Admin will review your orders shortly.';
-          break;
-        case 'accepted':
-          badge.textContent = 'Accepted';
-          msg.textContent = '';
-          done.classList.remove('hidden');
-          break;
-        case 'rejected':
-          badge.textContent = 'Rejected';
-          msg.textContent = 'Sorry, some orders were rejected. Contact the store.';
-          break;
+      var isCash = orders.some(function(o) { return o.payment_method === 'cash'; });
+      var totalPrice = orders.reduce(function(acc, o) { return acc + (o.price || 0); }, 0);
+      var customerName = orders.length > 0 ? (orders[0].customer_name || '') : '';
+      if (document.getElementById('summaryCustomerName')) {
+        document.getElementById('summaryCustomerName').textContent = customerName ? ('Customer: ' + customerName) : '';
+      }
+
+      // Render summary details
+      var summaryContent = document.getElementById('summaryDetailsContent');
+      if (summaryContent && orders.length > 0) {
+        summaryContent.innerHTML = orders.map(function(o) {
+          return '• <strong>' + escapeHtml(o.file_name) + '</strong> (' + (o.page_count || 1) + ' pgs, ' + (o.print_type === 'bw' ? 'B&W' : 'Color') + ', ' + (o.copies || 1) + ' copies) - <strong>₹' + o.price + '</strong>';
+        }).join('<br>');
+      }
+
+      // Stepper Elements
+      var line = document.getElementById('stepperLineActive');
+      var s1 = document.getElementById('stepProgress1');
+      var s2 = document.getElementById('stepProgress2');
+      var s3 = document.getElementById('stepProgress3');
+      var s4 = document.getElementById('stepProgress4');
+      var s2Icon = document.getElementById('step2IconCircle');
+      var s2Title = document.getElementById('step2Title');
+
+      if (isCash) {
+        if (s2Icon) s2Icon.textContent = '💵';
+        if (s2Title) s2Title.textContent = 'Pay Cash';
+      } else {
+        if (s2Icon) s2Icon.textContent = '💳';
+        if (s2Title) s2Title.textContent = 'Paid Online';
+      }
+
+      // Notice Box
+      var noticeBox = document.getElementById('noticeBox');
+      var nIcon = document.getElementById('noticeBoxIcon');
+      var nTitle = document.getElementById('noticeBoxTitle');
+      var nBody = document.getElementById('noticeBoxBody');
+      var nPill = document.getElementById('noticeAmountPill');
+
+      if (badge) badge.className = 'status-badge ' + status;
+      if (done) done.classList.add('hidden');
+
+      if (status === 'accepted') {
+        if (line) line.style.width = '100%';
+        if (s1) s1.className = 'step-item completed';
+        if (s2) s2.className = 'step-item completed';
+        if (s3) s3.className = 'step-item completed';
+        if (s4) s4.className = 'step-item completed active';
+
+        if (badge) badge.textContent = 'Ready for Collection';
+        if (msg) msg.textContent = 'All documents printed successfully!';
+        if (done) done.classList.remove('hidden');
+
+        if (noticeBox) {
+          noticeBox.className = 'notice-box online';
+          if (nIcon) nIcon.textContent = '🎉';
+          if (nTitle) nTitle.textContent = 'Prints Ready!';
+          if (nBody) nBody.textContent = 'Please collect your printed pages from Store Counter 1.';
+          if (nPill) nPill.style.display = 'none';
+        }
+      } else if (status === 'rejected') {
+        if (badge) badge.textContent = 'Order Rejected';
+        if (msg) msg.textContent = 'Sorry, your order was rejected. Please speak with store staff.';
+        if (line) line.style.width = '33%';
+      } else {
+        // Paid / Pending
+        if (isCash) {
+          if (line) line.style.width = '33%';
+          if (s1) s1.className = 'step-item completed';
+          if (s2) s2.className = 'step-item active';
+          if (s3) s3.className = 'step-item';
+          if (s4) s4.className = 'step-item';
+
+          if (badge) badge.textContent = 'Cash Order - Pay at Counter';
+          if (msg) msg.textContent = 'Please visit Counter 1 to pay cash and start printing.';
+
+          if (noticeBox) {
+            noticeBox.className = 'notice-box cash';
+            if (nIcon) nIcon.textContent = '💵';
+            if (nTitle) nTitle.textContent = 'Pay Cash at Store Counter';
+            if (nBody) nBody.textContent = 'Show your Token ID at Counter 1 and pay cash. Store staff will accept and print immediately.';
+            if (nPill) {
+              nPill.style.display = 'inline-block';
+              nPill.textContent = 'Amount Due: ₹' + totalPrice.toFixed(2);
+            }
+          }
+        } else {
+          if (line) line.style.width = '66%';
+          if (s1) s1.className = 'step-item completed';
+          if (s2) s2.className = 'step-item completed';
+          if (s3) s3.className = 'step-item active';
+          if (s4) s4.className = 'step-item';
+
+          if (badge) badge.textContent = 'Payment Received - Printing...';
+          if (msg) msg.textContent = 'Your payment was confirmed. Store admin is reviewing and printing your order.';
+
+          if (noticeBox) {
+            noticeBox.className = 'notice-box online';
+            if (nIcon) nIcon.textContent = '💳';
+            if (nTitle) nTitle.textContent = 'Online Payment Confirmed';
+            if (nBody) nBody.textContent = 'Payment of ₹' + totalPrice.toFixed(2) + ' received. Your files are in the print queue.';
+            if (nPill) nPill.style.display = 'none';
+          }
+        }
       }
     }
 
@@ -3698,13 +3873,20 @@
         var allDone = orders.every(function(o) { return o.status === 'accepted' || o.status === 'rejected'; });
 
         if (allDone) {
+          if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
           document.querySelector('#stepStatus .btn-secondary') && (document.querySelector('#stepStatus .btn-secondary').classList.add('hidden'));
           document.getElementById('stepStartOver').classList.remove('hidden');
         }
-        if (allAccepted) { updateStatusDisplay('accepted'); return; }
-        if (anyRejected) { updateStatusDisplay('rejected'); return; }
-        updateStatusDisplay('paid');
+        if (allAccepted) { updateStatusDisplay('accepted', orders); return; }
+        if (anyRejected) { updateStatusDisplay('rejected', orders); return; }
+        updateStatusDisplay('paid', orders);
       });
+    }
+
+    function startAutoStatusPolling() {
+      if (statusPollTimer) clearInterval(statusPollTimer);
+      checkAllStatus();
+      statusPollTimer = setInterval(checkAllStatus, 4000);
     }
 
     function startOver() {

@@ -1722,10 +1722,13 @@
             '<i data-lucide="eye" style="width:12px;height:12px;"></i> View</a>';
         }
 
+        var tokenStr = 'Token #P-' + o.id.substring(0, 6).toUpperCase();
+
         var actionBtns = '<div class="oc-actions">';
         if (o.status === 'paid') {
+          var acceptBtnLabel = isCash ? ('<i data-lucide="check" style="width:14px;height:14px;"></i> Collect ₹' + o.price + ' & Print') : '<i data-lucide="check" style="width:14px;height:14px;"></i> Accept';
           actionBtns +=
-            '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\', \'' + (o.payment_method || 'razorpay') + '\')"><i data-lucide="check" style="width:14px;height:14px;"></i> Accept</button>' +
+            '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\', \'' + (o.payment_method || 'razorpay') + '\')">' + acceptBtnLabel + '</button>' +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         }
         actionBtns += '<button class="oc-action-btn delete" onclick="deleteOrder(\'' + o.id + '\')" title="Delete Order & Uploaded Document"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>';
@@ -1754,13 +1757,19 @@
           : (o.print_side === 'both' ? Math.ceil(effPages / 2) : effPages);
         var sheetsDisplay = sheetsVal + (sheetsVal > 1 ? ' sheets' : ' sheet');
 
+        var cashCalloutBanner = isCash ? '<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:8px 12px;border-radius:10px;margin-bottom:12px;font-size:0.88rem;font-weight:800;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(245,158,11,0.15);">' +
+          '<span>📢 CALL: <span style="color:#b45309;font-size:1rem;text-decoration:underline;">' + escapeHtml(o.customer_name) + '</span></span>' +
+          '<span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;">Collect ₹' + o.price + ' Cash</span>' +
+        '</div>' : '';
+
         return '<div class="' + cardClass + '">' +
+          cashCalloutBanner +
           '<div class="oc-header">' +
             '<div class="oc-customer">' +
               '<div class="oc-avatar">' + initials + '</div>' +
               '<div>' +
                 '<div class="oc-name">' + escapeHtml(o.customer_name) + notesIcon + mobileDisplay + '</div>' +
-                '<div class="oc-time">' + dateStr + ' · ' + timeStr + '</div>' +
+                '<div class="oc-time">' + dateStr + ' · ' + timeStr + ' &nbsp;•&nbsp; <strong style="color:#475569;">' + tokenStr + '</strong></div>' +
               '</div>' +
             '</div>' +
             '<span class="oc-status-badge ' + statusBadge.cls + '">' + statusBadge.text + '</span>' +
@@ -1829,13 +1838,21 @@
 
           allOrders = orders;
 
-          // Cash alert
+          // Cash alert with Customer Name Callout
           var cashPaid = orders.filter(function(o) { return o.payment_method === 'cash' && o.status === 'paid'; });
           var cashAlert = document.getElementById('cashAlert');
           if (cashPaid.length > 0) {
             cashAlert.classList.remove('hidden');
             cashAlert.style.display = 'flex';
-            document.getElementById('cashAlertCount').textContent = cashPaid.length + ' Cash order' + (cashPaid.length > 1 ? 's' : '') + ' pending';
+            var callNames = cashPaid.map(function(o) {
+              var token = 'Token #P-' + o.id.substring(0, 6).toUpperCase();
+              return '<strong>' + escapeHtml(o.customer_name) + '</strong> (' + token + ' - ₹' + o.price + ')';
+            }).join(', ');
+            document.getElementById('cashAlertCount').innerHTML = '📢 Cash Payment Pending (' + cashPaid.length + ' order' + (cashPaid.length > 1 ? 's' : '') + ')';
+            var cashDescEl = cashAlert.querySelector('.alert-desc');
+            if (cashDescEl) {
+              cashDescEl.innerHTML = 'Call Customer: ' + callNames + ' — Collect cash before accepting.';
+            }
           } else {
             cashAlert.classList.add('hidden');
             cashAlert.style.display = 'none';
