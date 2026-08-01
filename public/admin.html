@@ -1729,11 +1729,13 @@
           var acceptBtnLabel = isCash ? ('<i data-lucide="check" style="width:14px;height:14px;"></i> Collect ₹' + o.price + ' & Print') : '<i data-lucide="check" style="width:14px;height:14px;"></i> Accept';
           actionBtns +=
             '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\', \'' + (o.payment_method || 'razorpay') + '\')">' + acceptBtnLabel + '</button>' +
+            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + o.price + '\')" title="Send 1-Tap Free WhatsApp notification to customer">💬 WhatsApp</button>' +
             '<button class="oc-action-btn reject" style="background:#f59e0b;border-color:#d97706;color:#fff;" onclick="reportMachineError(\'' + o.id + '\')" title="Notify customer of machine delay">⚠️ Machine Error</button>' +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         } else if (o.status === 'printer_error') {
           actionBtns +=
             '<button class="oc-action-btn accept" style="background:#059669;border-color:#059669;" onclick="resumeOrder(\'' + o.id + '\')">▶️ Resume Order</button>' +
+            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + o.price + '\')" title="Send 1-Tap Free WhatsApp notification to customer">💬 WhatsApp</button>' +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         }
         actionBtns += '<button class="oc-action-btn delete" onclick="deleteOrder(\'' + o.id + '\')" title="Delete Order & Uploaded Document"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>';
@@ -1946,6 +1948,19 @@
           fetchOrders();
         })
         .catch(function() { alert('Failed to resume order'); });
+    }
+
+    function sendWhatsAppToCustomer(mobile, name, id, price) {
+      var token = 'Token #P-' + id.substring(0, 6).toUpperCase();
+      var msg = 'Hi ' + (name || 'Customer') + '! Your printing order (' + token + ') is READY FOR PICKUP at Counter 1. Total Amount: ₹' + (price || '0') + '.';
+      var cleanNum = mobile ? mobile.replace(/[^0-9]/g, '') : '';
+      if (cleanNum && !cleanNum.startsWith('91') && cleanNum.length === 10) {
+        cleanNum = '91' + cleanNum;
+      }
+      var url = cleanNum 
+        ? ('https://wa.me/' + cleanNum + '?text=' + encodeURIComponent(msg))
+        : ('https://wa.me/?text=' + encodeURIComponent(msg));
+      window.open(url, '_blank');
     }
 
     function deleteOrder(id) {

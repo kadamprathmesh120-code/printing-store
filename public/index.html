@@ -1051,7 +1051,12 @@
           <div id="summaryDetailsContent" style="color:#64748b;line-height:1.5;"></div>
         </div>
 
-        <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus" style="width:100%;margin-top:8px;">Refresh Status</button>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus" style="flex:1;">Refresh Status</button>
+          <button class="btn" onclick="openCustomerWhatsApp()" style="flex:1;background:#25D366;border-color:#25D366;color:#ffffff;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <span>💬</span> WhatsApp Shop
+          </button>
+        </div>
         <div id="statusDone" class="hidden" style="margin-top:12px;">
           <div class="success-message" data-i18n="allReady">🎉 All prints ready! Please collect from Counter 1.</div>
         </div>
@@ -3707,6 +3712,15 @@
       } else {
         alert(txt);
       }
+    }
+
+    function openCustomerWhatsApp() {
+      var token = document.getElementById('shortTokenDisplay') ? document.getElementById('shortTokenDisplay').textContent : 'Token';
+      var nameEl = document.getElementById('summaryCustomerName');
+      var name = nameEl ? nameEl.textContent : '';
+      var msg = 'Hi Store! I placed an order. ' + name + ' (' + token + '). Please check my order status.';
+      var url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+      window.open(url, '_blank');
     }
 
     function showStep(id) {
