@@ -400,11 +400,14 @@ app.post('/api/upload', (req, res) => {
       let totalPdfPages = 0;
 
       // Helper function for tiered pricing
-      function calculateTieredPrice(sheets) {
+      function calculateTieredPrice(sheets, type) {
+        const isColor = (type === 'color');
+        const baseRate = isColor ? 10 : 5;
+        const bulkRate = isColor ? 8 : 3;
         if (sheets <= 20) {
-          return sheets * 5;
+          return sheets * baseRate;
         } else {
-          return 20 * 5 + (sheets - 20) * 3;
+          return 20 * baseRate + (sheets - 20) * bulkRate;
         }
       }
 
@@ -433,10 +436,11 @@ app.post('/api/upload', (req, res) => {
 
       // Calculate total price with tiered pricing on TOTAL sheets × copies
       const totalSheetsWithCopies = totalSheets * copyCount;
-      const totalTieredPrice = calculateTieredPrice(totalSheetsWithCopies);
+      const totalTieredPrice = calculateTieredPrice(totalSheetsWithCopies, printType);
       
-      // Calculate price before discount (as if all sheets at ₹5)
-      const totalPriceBeforeDiscount = totalSheetsWithCopies * 5;
+      // Calculate price before discount
+      const baseRate = printType === 'color' ? 10 : 5;
+      const totalPriceBeforeDiscount = totalSheetsWithCopies * baseRate;
       const totalDiscountAmount = Math.max(0, totalPriceBeforeDiscount - totalTieredPrice);
 
       // Distribute price proportionally to each file based on their sheet count

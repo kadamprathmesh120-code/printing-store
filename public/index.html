@@ -1935,17 +1935,21 @@
         totalSheets += sheets;
       }
 
-      // Tiered pricing: First 20 sheets at ₹5, remaining at ₹3 (applies to TOTAL sheets across ALL copies)
+      // Tiered pricing: B&W (₹5 base, ₹3 bulk) vs Color (₹10 base, ₹8 bulk)
+      var isColor = (selectedPrintType === 'color');
+      var baseRate = isColor ? 10 : 5;
+      var bulkRate = isColor ? 8 : 3;
+
       var calculateTieredPrice = function(sheets) {
-        if (sheets <= 20) return sheets * 5;
-        return 20 * 5 + (sheets - 20) * 3;
+        if (sheets <= 20) return sheets * baseRate;
+        return 20 * baseRate + (sheets - 20) * bulkRate;
       };
 
       var totalSheetsAllCopies = totalSheets * copiesCount;
       var totalPrice = calculateTieredPrice(totalSheetsAllCopies);
       
-      // Calculate savings compared to standard ₹5/sheet pricing
-      var standardPrice = totalSheetsAllCopies * 5;
+      // Calculate savings compared to standard pricing
+      var standardPrice = totalSheetsAllCopies * baseRate;
       var savings = Math.max(0, standardPrice - totalPrice);
       var isBulk = totalSheetsAllCopies > 20;
 
@@ -1980,7 +1984,7 @@
         totalPrice: totalPrice,
         savings: savings,
         isBulk: isBulk,
-        priceBeforeDiscount: totalSheetsAllCopies * 5
+        priceBeforeDiscount: totalSheetsAllCopies * baseRate
       };
 
       return totalPrice;
@@ -2174,14 +2178,18 @@
        document.getElementById('pscTotalSheets').textContent = totalSheetsAllCopies + ' (' + totalSheets + ' sheets × ' + copiesCount + ' copy' + (copiesCount !== 1 ? 'ies' : '') + ')';
        
        // Calculate pricing breakdown using TOTAL sheets across all copies
+       var isColor = (selectedPrintType === 'color');
+       var baseRate = isColor ? 10 : 5;
+       var bulkRate = isColor ? 8 : 3;
+
        var totalSheetsForPricing = pricing.totalSheetsAllCopies || (pricing.totalSheets * copiesCount);
        var first20Sheets = Math.min(totalSheetsAllCopies, 20);
        var remainingSheets = Math.max(0, totalSheetsAllCopies - 20);
-       var first20Cost = first20Sheets * 5;
-       var remainingCost = remainingSheets * 3;
+       var first20Cost = first20Sheets * baseRate;
+       var remainingCost = remainingSheets * bulkRate;
        
        var first20Label = document.querySelector('.psc-price-row .psc-price-label');
-       if (first20Label) first20Label.textContent = 'First 20 Sheets × ₹5';
+       if (first20Label) first20Label.textContent = 'First 20 Sheets × ₹' + baseRate;
        document.getElementById('pscFirst20Cost').textContent = '\u20B9' + first20Cost;
        
        var remainingRow = document.getElementById('pscRemainingRow');
