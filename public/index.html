@@ -922,13 +922,33 @@
       </div>
 
       <div class="contact-form">
+        <label style="font-size:0.85rem;font-weight:700;color:#374151;margin-bottom:6px;display:block;">Customer Details (Required)</label>
         <input type="text" id="reviewName" data-i18n-placeholder="namePlaceholder" placeholder="Your Name" required>
         <input type="tel" id="reviewMobile" data-i18n-placeholder="mobilePlaceholder" placeholder="Mobile Number (Required)" required>
         <textarea id="reviewNotes" data-i18n-placeholder="notesPlaceholder" placeholder="Any notes or instructions (optional)"></textarea>
+        <div id="reviewContactError" style="color:#ef4444;font-size:0.85rem;font-weight:600;margin-top:6px;"></div>
       </div>
 
-      <div class="bottom-bar">
+      <div class="bottom-bar" style="display:flex;gap:12px;margin-top:20px;">
         <button class="btn btn-secondary" onclick="showStep('stepSettings')" data-i18n="back">Back</button>
+        <button class="btn btn-primary" onclick="goToPaymentStep()" style="flex:1;background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;font-weight:700;font-size:1.05rem;padding:14px;border-radius:14px;border:none;box-shadow:0 8px 20px -4px rgba(79,70,229,0.4);display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
+          <span>Continue to Payment</span> ➔
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 5: Payment Settings & Checkout -->
+    <div id="stepPayment" class="step hidden">
+      <button class="back-btn" onclick="showStep('stepReview')">
+        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back to Review</span>
+      </button>
+
+      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Payment Settings</h2>
+      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 12px;">Select payment method and confirm your order</p>
+
+      <!-- Customer Summary Info Bar -->
+      <div id="paymentCustomerInfo" style="background:#f1f5f9;border:1px solid #cbd5e1;padding:10px 14px;border-radius:12px;font-size:0.85em;font-weight:600;color:#334155;margin-bottom:16px;">
+        👤 Customer Details
       </div>
 
       <!-- Premium Self-Service Kiosk Payment Card -->
@@ -2252,8 +2272,36 @@
        } else {
          badgeHtml += '<span class="psc-badge standard">🟢 Standard Pricing</span>';
        }
-       badges.innerHTML = badgeHtml;
-     }
+    function goToPaymentStep() {
+      var name = document.getElementById('reviewName').value.trim();
+      var mobile = document.getElementById('reviewMobile').value.trim();
+      var errEl = document.getElementById('reviewContactError');
+
+      if (!name) {
+        document.getElementById('reviewName').style.borderColor = '#ef4444';
+        document.getElementById('reviewName').focus();
+        if (errEl) errEl.textContent = 'Please enter your Name.';
+        return;
+      }
+      document.getElementById('reviewName').style.borderColor = '';
+
+      if (!mobile) {
+        document.getElementById('reviewMobile').style.borderColor = '#ef4444';
+        document.getElementById('reviewMobile').focus();
+        if (errEl) errEl.textContent = 'Please enter your Mobile Number.';
+        return;
+      }
+      document.getElementById('reviewMobile').style.borderColor = '';
+      if (errEl) errEl.textContent = '';
+
+      // Update customer details in Step 5 Payment Info Bar
+      var infoPill = document.getElementById('paymentCustomerInfo');
+      if (infoPill) {
+        infoPill.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;width:100%;"><span>👤 <strong>' + escapeHtml(name) + '</strong></span> <span>📱 ' + escapeHtml(mobile) + '</span></div>';
+      }
+
+      showStep('stepPayment');
+    }
 
     function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
