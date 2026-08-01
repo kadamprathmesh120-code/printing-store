@@ -1171,6 +1171,60 @@
       } catch(e) {}
     }
 
+    function playPrinterAlert(printerName, customerName, fileName, copies) {
+      // 1. Play Loud Chime (Web Audio API)
+      playLoudChime();
+
+      // 2. Play Custom MP3 audio if saved in public/ folder (e.g. konica.mp3 or alert.mp3)
+      try {
+        var audio = new Audio('/konica.mp3');
+        audio.volume = 1.0;
+        audio.play().catch(function() {
+          var fallbackAudio = new Audio('/alert.mp3');
+          fallbackAudio.volume = 1.0;
+          fallbackAudio.play().catch(function() {});
+        });
+      } catch(e) {}
+
+      // 3. Loud Speech Synthesis Voice Announcement (speaks printer name clearly for operator)
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          var pName = printerName || 'Printer';
+          var text = 'ATTENTION! Printing started on ' + pName + '! Customer: ' + (customerName || 'Walk in') + (copies > 1 ? ', ' + copies + ' copies.' : '.');
+          var utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'en-IN';
+          utter.rate = 0.95;
+          utter.pitch = 1.15;
+          utter.volume = 1.0;
+          setTimeout(function() {
+            window.speechSynthesis.speak(utter);
+          }, 300);
+        } catch(e) {}
+      }
+    }
+
+    function playLoudChime() {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var g = ctx.createGain();
+        g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.8, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+        
+        var notes = [880, 1108, 1318, 1760]; // Loud A-major chime
+        notes.forEach(function(freq, i) {
+          var o = ctx.createOscillator();
+          o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+          o.type = 'triangle';
+          o.connect(g);
+          o.start(ctx.currentTime + i * 0.1);
+          o.stop(ctx.currentTime + i * 0.1 + 0.25);
+        });
+        setTimeout(function() { ctx.close(); }, 1400);
+      } catch(e) {}
+    }
+
     function playVoiceNotification(customerName, fileName, copies) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       try {
@@ -1901,6 +1955,14 @@
         if (!confirm('Accept this order and send to printer?')) return;
       }
       var printer = getBwPrinter();
+      var targetOrder = allOrders ? allOrders.find(function(o) { return o.id === id; }) : null;
+      var cName = targetOrder ? targetOrder.customer_name : 'Customer';
+      var fName = targetOrder ? targetOrder.file_name : 'File';
+      var copies = targetOrder ? (targetOrder.copies || 1) : 1;
+
+      // Trigger loud printer sound & voice announcement so operator hears printer name
+      playPrinterAlert(printer, cName, fName, copies);
+
       fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ printer: printer }) })
         .then(function(r) { return r.json(); })
         .then(function(data) {
