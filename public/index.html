@@ -3794,10 +3794,34 @@
       var nBody = document.getElementById('noticeBoxBody');
       var nPill = document.getElementById('noticeAmountPill');
 
-      if (badge) badge.className = 'status-badge ' + status;
+      var anyPrinterError = orders.some(function(o) { return o.status === 'printer_error'; });
+
+      if (badge) badge.className = 'status-badge ' + (anyPrinterError ? 'rejected' : status);
       if (done) done.classList.add('hidden');
 
-      if (status === 'accepted') {
+      if (anyPrinterError) {
+        if (line) line.style.width = '66%';
+        if (s1) s1.className = 'step-item completed';
+        if (s2) s2.className = 'step-item completed';
+        if (s3) s3.className = 'step-item active';
+        if (s4) s4.className = 'step-item';
+
+        var s3Icon = s3 ? s3.querySelector('.step-icon-circle') : null;
+        if (s3Icon) s3Icon.textContent = '⚠️';
+
+        if (badge) badge.textContent = '⚠️ Machine Issue - Minor Delay';
+        if (msg) msg.textContent = 'The store printing machine encountered an issue. Staff is resolving it.';
+
+        if (noticeBox) {
+          noticeBox.className = 'notice-box cash';
+          if (nIcon) nIcon.textContent = '⚠️';
+          if (nTitle) nTitle.textContent = 'Store Printer Technical Delay';
+          if (nBody) nBody.textContent = 'Store admin reported a minor machine issue (Paper Jam / Refill). Store staff is resolving it. Your order will print as soon as the machine is ready!';
+          if (nPill) nPill.style.display = 'none';
+        }
+      } else if (status === 'accepted') {
+        var s3IconAcc = s3 ? s3.querySelector('.step-icon-circle') : null;
+        if (s3IconAcc) s3IconAcc.textContent = '🖨️';
         if (line) line.style.width = '100%';
         if (s1) s1.className = 'step-item completed';
         if (s2) s2.className = 'step-item completed';
@@ -3820,6 +3844,8 @@
         if (msg) msg.textContent = 'Sorry, your order was rejected. Please speak with store staff.';
         if (line) line.style.width = '33%';
       } else {
+        var s3IconDef = s3 ? s3.querySelector('.step-icon-circle') : null;
+        if (s3IconDef) s3IconDef.textContent = '🖨️';
         // Paid / Pending
         if (isCash) {
           if (line) line.style.width = '33%';

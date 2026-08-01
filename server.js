@@ -1072,6 +1072,39 @@ app.post('/api/admin/orders/:id/reject', (req, res) => {
   }
 });
 
+// Report Machine/Printer Error for an Order
+app.post('/api/admin/orders/:id/report-error', (req, res) => {
+  try {
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    const reason = req.body.reason || 'Paper Jam / Machine Error';
+    db.prepare('UPDATE orders SET status = ?, order_notes = ? WHERE id = ?').run('printer_error', reason, req.params.id);
+    console.log(`Machine error reported for order ${req.params.id}: ${reason}`);
+    res.json({ success: true, message: 'Machine error reported. Order status updated.' });
+  } catch (err) {
+    console.error('report-error failure:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// Resume Order from Printer Error back to Paid/Accepted
+app.post('/api/admin/orders/:id/resume', (req, res) => {
+  try {
+    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('paid', req.params.id);
+    console.log(`Order ${req.params.id} resumed from printer error back to paid.`);
+    res.json({ success: true, message: 'Order resumed. Ready for admin accept/print.' });
+  } catch (err) {
+    console.error('resume order failure:', err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
 function deleteOrderFiles(order) {
   if (!order) return;
   const uploadsDir = path.join(__dirname, 'uploads');
