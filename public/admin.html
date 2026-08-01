@@ -1173,18 +1173,22 @@
 
     function playPrinterAlert(printerName, customerName, fileName, copies, printType) {
       var pLower = (printerName || '').toLowerCase();
-      var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || printType === 'color';
-      var isKyocera = pLower.indexOf('kyocera') !== -1 || pLower.indexOf('ecosys') !== -1 || pLower.indexOf('taskalfa') !== -1 || printType === 'bw';
+      var isHp = pLower.indexOf('hp') !== -1 || pLower.indexOf('smart tank') !== -1 || pLower.indexOf('deskjet') !== -1 || pLower.indexOf('laserjet') !== -1;
+      var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || (printType === 'color' && !isHp);
+      var isKyocera = pLower.indexOf('kyocera') !== -1 || pLower.indexOf('ecosys') !== -1 || pLower.indexOf('taskalfa') !== -1 || (printType === 'bw' && !isHp);
 
-      if (isKonica) {
+      if (isHp) {
+        // Play HP sound file
+        playAudioFile(['/HP.mp3', '/Hp smart Tank.mp3', '/hp.mp3']);
+      } else if (isKonica) {
         // Play KONICA sound file
         playAudioFile(['/KONICA.mp3', '/Konica.mp3', '/konica.mp3', '/sound.mp3']);
       } else if (isKyocera) {
-        // Play KYOCERA sound file (when added in future)
+        // Play KYOCERA sound file
         playAudioFile(['/KYOCERA.mp3', '/Kyocera.mp3', '/kyocera.mp3']);
       } else {
         // Fallback check
-        playAudioFile(['/KONICA.mp3', '/konica.mp3', '/sound.mp3']);
+        playAudioFile(['/HP.mp3', '/KONICA.mp3', '/KYOCERA.mp3', '/sound.mp3']);
       }
     }
 
