@@ -2303,6 +2303,20 @@
       showStep('stepPayment');
     }
 
+    function dataURLtoBlob(dataurl, filename) {
+      if (!dataurl || typeof dataurl !== 'string' || !dataurl.startsWith('data:')) return dataurl;
+      try {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+        var bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while(n--) { u8arr[n] = bstr.charCodeAt(n); }
+        var blob = new Blob([u8arr], { type: mime });
+        if (filename) blob.name = filename;
+        return blob;
+      } catch(e) {
+        return dataurl;
+      }
+    }
+
     function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
       var mobile = document.getElementById('reviewMobile').value.trim();
@@ -2342,7 +2356,10 @@
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
-        formData.append('files', fileToUpload);
+        if (typeof fileToUpload === 'string') {
+          fileToUpload = dataURLtoBlob(fileToUpload, selectedFiles[i].file.name);
+        }
+        formData.append('files', fileToUpload, selectedFiles[i].file.name || 'file.png');
         if (selectedFiles[i].pages) {
           formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
         }
@@ -2473,7 +2490,10 @@
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
-        formData.append('files', fileToUpload);
+        if (typeof fileToUpload === 'string') {
+          fileToUpload = dataURLtoBlob(fileToUpload, selectedFiles[i].file.name);
+        }
+        formData.append('files', fileToUpload, selectedFiles[i].file.name || 'file.png');
         if (selectedFiles[i].pages) {
           formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
         }
@@ -2633,7 +2653,10 @@
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
-        formData.append('files', fileToUpload);
+        if (typeof fileToUpload === 'string') {
+          fileToUpload = dataURLtoBlob(fileToUpload, selectedFiles[i].file.name);
+        }
+        formData.append('files', fileToUpload, selectedFiles[i].file.name || 'file.png');
         if (selectedFiles[i].pages) {
           formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
         }
@@ -3477,10 +3500,18 @@
           fd.append('customerName', name);
           fd.append('printType', printType);
           fd.append('printSide', 'single');
-          fd.append('paymentMethod', 'razorpay');
-          fd.append('front', item.front);
-          if (item.back) { fd.append('back', item.back); fd.append('backEnabled', 'true'); }
-          else { fd.append('backEnabled', 'false'); }
+          fd.append('paymentMethod', 'cashfree');
+          
+          var frontBlob = (typeof item.front === 'string') ? dataURLtoBlob(item.front, item.frontName || 'id_front.png') : item.front;
+          fd.append('front', frontBlob, item.frontName || 'id_front.png');
+          
+          if (item.back) {
+            var backBlob = (typeof item.back === 'string') ? dataURLtoBlob(item.back, item.backName || 'id_back.png') : item.back;
+            fd.append('back', backBlob, item.backName || 'id_back.png');
+            fd.append('backEnabled', 'true');
+          } else {
+            fd.append('backEnabled', 'false');
+          }
           fetch('/api/upload-id-copy', { method: 'POST', body: fd })
             .then(function(r) { return r.json(); })
             .then(function(d) { if (d.error) reject(d.error); else resolve(d); })
