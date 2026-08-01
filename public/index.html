@@ -929,31 +929,13 @@
         <div id="reviewContactError" style="color:#ef4444;font-size:0.85rem;font-weight:600;margin-top:6px;"></div>
       </div>
 
-      <div class="bottom-bar" style="display:flex;gap:12px;margin-top:20px;">
+      <div class="bottom-bar">
         <button class="btn btn-secondary" onclick="showStep('stepSettings')" data-i18n="back">Back</button>
-        <button class="btn btn-primary" onclick="goToPaymentStep()" style="flex:1;background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;font-weight:700;font-size:1.05rem;padding:14px;border-radius:14px;border:none;box-shadow:0 8px 20px -4px rgba(79,70,229,0.4);display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
-          <span>Continue to Payment</span> ➔
-        </button>
-      </div>
-    </div>
-
-    <!-- Step 5: Payment Settings & Checkout -->
-    <div id="stepPayment" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepReview')">
-        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back to Review</span>
-      </button>
-
-      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Payment Settings</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 12px;">Select payment method and confirm your order</p>
-
-      <!-- Customer Summary Info Bar -->
-      <div id="paymentCustomerInfo" style="background:#f1f5f9;border:1px solid #cbd5e1;padding:10px 14px;border-radius:12px;font-size:0.85em;font-weight:600;color:#334155;margin-bottom:16px;">
-        👤 Customer Details
       </div>
 
       <!-- Premium Self-Service Kiosk Payment Card -->
       <div class="razorpay-payment-card kiosk-payment-card">
-        
+
         <!-- 1. Hero Amount Display Card -->
         <div class="kiosk-amount-card">
           <div class="kiosk-amount-subtitle">Secure Online Payment</div>
@@ -966,7 +948,7 @@
         </div>
 
         <div class="rpc-body kiosk-body">
-          
+
           <!-- 3. Payment Method Chips -->
           <div class="kiosk-chips-label">Supported Payment Methods</div>
           <div class="kiosk-chips-grid">
@@ -977,7 +959,7 @@
             <div class="kiosk-chip"><span class="chip-dot net"></span> Net Banking</div>
           </div>
 
-          <!-- 2. Primary Full-Width Payment Button & Hidden Backup Razorpay Button -->
+          <!-- Primary CTA Button & Hidden Backup Razorpay Button -->
           <div class="rpc-btn-wrapper kiosk-btn-wrapper">
             <!-- Hidden Razorpay button (preserved intact in code for backup) -->
             <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()" style="display:none;">
@@ -991,7 +973,7 @@
             <div class="kiosk-cta-subtext">UPI • Cards • Net Banking</div>
           </div>
 
-          <!-- 5. Secondary Outlined Cash Button -->
+          <!-- Secondary Outlined Cash Button -->
           <div class="kiosk-cash-wrapper">
             <button class="kiosk-cash-btn rpc-cash-btn" onclick="payWithCash()">
               💵 Pay at Counter
@@ -1000,7 +982,7 @@
 
         </div>
 
-        <!-- 6. Security & Features Guarantee Footer -->
+        <!-- Security & Features Guarantee Footer -->
         <div class="kiosk-features-footer">
           <div class="kiosk-feat-item">
             <span class="kiosk-feat-icon">🔒</span> 100% Secure Payment
