@@ -1171,34 +1171,24 @@
       } catch(e) {}
     }
 
-    function playPrinterAlert(printerName, customerName, fileName, copies) {
-      // Play ONLY the provided custom audio sound file (KONICA.mp3)
-      playCustomAudioFile();
+    function playPrinterAlert(printerName, customerName, fileName, copies, printType) {
+      var pLower = (printerName || '').toLowerCase();
+      var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || printType === 'color';
+      var isKyocera = pLower.indexOf('kyocera') !== -1 || pLower.indexOf('ecosys') !== -1 || pLower.indexOf('taskalfa') !== -1 || printType === 'bw';
+
+      if (isKonica) {
+        // Play KONICA sound file
+        playAudioFile(['/KONICA.mp3', '/Konica.mp3', '/konica.mp3', '/sound.mp3']);
+      } else if (isKyocera) {
+        // Play KYOCERA sound file (when added in future)
+        playAudioFile(['/KYOCERA.mp3', '/Kyocera.mp3', '/kyocera.mp3']);
+      } else {
+        // Fallback check
+        playAudioFile(['/KONICA.mp3', '/konica.mp3', '/sound.mp3']);
+      }
     }
 
-    function playLoudChime() {
-      try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var g = ctx.createGain();
-        g.connect(ctx.destination);
-        g.gain.setValueAtTime(0.8, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
-        
-        var notes = [880, 1108, 1318, 1760]; // Loud A-major chime
-        notes.forEach(function(freq, i) {
-          var o = ctx.createOscillator();
-          o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
-          o.type = 'triangle';
-          o.connect(g);
-          o.start(ctx.currentTime + i * 0.1);
-          o.stop(ctx.currentTime + i * 0.1 + 0.25);
-        });
-        setTimeout(function() { ctx.close(); }, 1400);
-      } catch(e) {}
-    }
-
-    function playCustomAudioFile() {
-      var files = ['/KONICA.mp3', '/Konica.mp3', '/konica.mp3', '/sound.mp3', '/alert.mp3', '/notification.mp3', '/printer.mp3', '/print.mp3', '/custom.mp3'];
+    function playAudioFile(files) {
       function tryNext(index) {
         if (index >= files.length) return;
         var a = new Audio(files[index]);
@@ -1939,14 +1929,15 @@
       } else {
         if (!confirm('Accept this order and send to printer?')) return;
       }
-      var printer = getBwPrinter();
       var targetOrder = allOrders ? allOrders.find(function(o) { return o.id === id; }) : null;
+      var printType = targetOrder ? targetOrder.print_type : 'bw';
+      var printer = (printType === 'color') ? getColorPrinter() : getBwPrinter();
       var cName = targetOrder ? targetOrder.customer_name : 'Customer';
       var fName = targetOrder ? targetOrder.file_name : 'File';
       var copies = targetOrder ? (targetOrder.copies || 1) : 1;
 
-      // Trigger loud printer sound & voice announcement so operator hears printer name
-      playPrinterAlert(printer, cName, fName, copies);
+      // Trigger printer-specific sound alert (KONICA.mp3 for Konica/Color)
+      playPrinterAlert(printer, cName, fName, copies, printType);
 
       fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ printer: printer }) })
         .then(function(r) { return r.json(); })
