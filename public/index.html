@@ -923,7 +923,7 @@
 
       <div class="contact-form">
         <input type="text" id="reviewName" data-i18n-placeholder="namePlaceholder" placeholder="Your Name" required>
-        <input type="tel" id="reviewMobile" data-i18n-placeholder="mobilePlaceholder" placeholder="Mobile Number (optional)">
+        <input type="tel" id="reviewMobile" data-i18n-placeholder="mobilePlaceholder" placeholder="Mobile Number (Required)" required>
         <textarea id="reviewNotes" data-i18n-placeholder="notesPlaceholder" placeholder="Any notes or instructions (optional)"></textarea>
       </div>
 
@@ -2219,12 +2219,20 @@
 
     function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
+      var mobile = document.getElementById('reviewMobile').value.trim();
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
         document.getElementById('reviewName').focus();
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
+      if (!mobile) {
+        document.getElementById('reviewMobile').style.borderColor = '#ef4444';
+        document.getElementById('reviewMobile').focus();
+        document.getElementById('paymentError').textContent = 'Mobile Number is required.';
+        return;
+      }
+      document.getElementById('reviewMobile').style.borderColor = '';
       if (selectedFiles.length === 0) {
         document.getElementById('paymentError').textContent = 'No files selected.';
         return;
@@ -2480,12 +2488,20 @@
 
     function payWithCash() {
       var name = document.getElementById('reviewName').value.trim();
+      var mobile = document.getElementById('reviewMobile').value.trim();
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
         document.getElementById('reviewName').focus();
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
+      if (!mobile) {
+        document.getElementById('reviewMobile').style.borderColor = '#ef4444';
+        document.getElementById('reviewMobile').focus();
+        document.getElementById('paymentError').textContent = 'Mobile Number is required.';
+        return;
+      }
+      document.getElementById('reviewMobile').style.borderColor = '';
       if (selectedFiles.length === 0) {
         document.getElementById('paymentError').textContent = 'No files selected.';
         return;
