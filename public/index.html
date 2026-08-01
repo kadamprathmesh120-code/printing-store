@@ -931,39 +931,68 @@
         <button class="btn btn-secondary" onclick="showStep('stepSettings')" data-i18n="back">Back</button>
       </div>
 
-      <!-- Razorpay Payment Card (Hidden for now, Cashfree active) -->
-      <div class="razorpay-payment-card">
-        <div class="rpc-header">
-          <div class="rpc-logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            <span>Online Payment</span>
+      <!-- Premium Self-Service Kiosk Payment Card -->
+      <div class="razorpay-payment-card kiosk-payment-card">
+        
+        <!-- 1. Hero Amount Display Card -->
+        <div class="kiosk-amount-card">
+          <div class="kiosk-amount-subtitle">Secure Online Payment</div>
+          <div class="kiosk-amount-hero">
+            PAY <span class="kiosk-currency">₹</span><span id="reviewTotalPriceRazorpay">0</span>
           </div>
-          <div class="rpc-badge" style="background:#e0e7ff;color:#4338ca;">Cashfree</div>
+          <div id="priceBadge" class="price-badge kiosk-price-badge hidden">
+            <span class="badge-standard">🛡️ No Extra Charges</span>
+          </div>
         </div>
-        <div class="rpc-body">
-          <div class="rpc-amount">
-            <span class="rpc-amount-label">Total Amount</span>
-            <span class="rpc-amount-value" id="reviewTotalPriceRazorpay">₹0</span>
+
+        <div class="rpc-body kiosk-body">
+          
+          <!-- 3. Payment Method Chips -->
+          <div class="kiosk-chips-label">Supported Payment Methods</div>
+          <div class="kiosk-chips-grid">
+            <div class="kiosk-chip"><span class="chip-dot gpay"></span> Google Pay</div>
+            <div class="kiosk-chip"><span class="chip-dot phonepe"></span> PhonePe</div>
+            <div class="kiosk-chip"><span class="chip-dot paytm"></span> Paytm</div>
+            <div class="kiosk-chip"><span class="chip-dot card"></span> Cards</div>
+            <div class="kiosk-chip"><span class="chip-dot net"></span> Net Banking</div>
           </div>
-          <div class="rpc-methods">
-            <span>📱 UPI (GPay/PhonePe/Paytm)</span><span>💳 Cards</span><span>🏦 Net Banking</span>
-          </div>
-          <div class="rpc-btn-wrapper" style="display:flex;gap:10px;flex-wrap:wrap;">
+
+          <!-- 2. Primary Full-Width Payment Button & Hidden Backup Razorpay Button -->
+          <div class="rpc-btn-wrapper kiosk-btn-wrapper">
             <!-- Hidden Razorpay button (preserved intact in code for backup) -->
             <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()" style="display:none;">
               Razorpay ₹<span id="btnRazorpayAmount">0</span>
             </button>
-            <!-- Primary Cashfree Payment Button -->
-            <button class="rpc-btn" id="btnCashfreeReview" onclick="payWithCashfree()" style="width:100%;flex:1;background:#4f46e5;border-color:#4f46e5;color:#fff;font-size:1.05rem;padding:14px;border-radius:12px;font-weight:700;">
-              💳 Pay Online (UPI / Card / NetBanking) ₹<span id="btnCashfreeAmount">0</span>
+
+            <!-- Large Primary CTA Payment Button -->
+            <button class="kiosk-cta-btn" id="btnCashfreeReview" onclick="payWithCashfree()">
+              🔒 Pay ₹<span id="btnCashfreeAmount">0</span>
             </button>
-            <div id="priceBadge" class="price-badge hidden"></div>
+            <div class="kiosk-cta-subtext">UPI • Cards • Net Banking</div>
+          </div>
+
+          <!-- 5. Secondary Outlined Cash Button -->
+          <div class="kiosk-cash-wrapper">
+            <button class="kiosk-cash-btn rpc-cash-btn" onclick="payWithCash()">
+              💵 Pay at Counter
+            </button>
+          </div>
+
+        </div>
+
+        <!-- 6. Security & Features Guarantee Footer -->
+        <div class="kiosk-features-footer">
+          <div class="kiosk-feat-item">
+            <span class="kiosk-feat-icon">🔒</span> 100% Secure Payment
+          </div>
+          <div class="kiosk-feat-item">
+            <span class="kiosk-feat-icon">⚡</span> Instant Payment Confirmation
+          </div>
+          <div class="kiosk-feat-item">
+            <span class="kiosk-feat-icon">🖨️</span> Print Starts Automatically
           </div>
         </div>
-        <div class="rpc-footer">
-          <span>🔒 100% Secured Payment</span>
-          <button class="rpc-cash-btn" onclick="payWithCash()">Pay with Cash instead</button>
-        </div>
+
       </div>
       <div id="paymentError" class="error"></div>
     </div>
@@ -2029,10 +2058,10 @@
       
       if (isBulk) {
         badge.innerHTML = '<span class="badge-bulk">🔥 Bulk Discount Applied</span>';
-        badge.className = 'price-badge bulk';
+        badge.className = 'price-badge kiosk-price-badge bulk';
       } else {
-        badge.innerHTML = '<span class="badge-standard">🟢 Standard Pricing</span>';
-        badge.className = 'price-badge standard';
+        badge.innerHTML = '<span class="badge-standard">🛡️ No Extra Charges</span>';
+        badge.className = 'price-badge kiosk-price-badge standard';
       }
       badge.classList.remove('hidden');
     }
