@@ -1252,26 +1252,40 @@
         <input type="tel" id="idcPayMobile" placeholder="Mobile Number (optional)">
       </div>
 
-      <!-- Razorpay Payment Card (Normal Mode Style) -->
-      <div class="razorpay-payment-card">
-        <div class="rpc-header">
-          <div class="rpc-logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            <span>Pay with Razorpay</span>
+      <!-- Payment Card -->
+      <div class="razorpay-payment-card kiosk-payment-card" style="margin-top:16px;">
+        <div class="kiosk-amount-card">
+          <div class="kiosk-amount-subtitle">Secure Online Payment</div>
+          <div class="kiosk-amount-hero">
+            PAY <span class="kiosk-currency">₹</span><span id="idcPayBtnAmountDisplay">0</span>
           </div>
-          <div class="rpc-badge">Recommended</div>
+          <div class="price-badge kiosk-price-badge">
+            <span class="badge-standard">🛡️ No Extra Charges</span>
+          </div>
         </div>
-        <div class="rpc-body">
-          <div class="rpc-amount">
-            <span class="rpc-amount-label">Total Amount</span>
-            <span class="rpc-amount-value" id="idcPayBtnAmountDisplay">₹0</span>
+
+        <div class="rpc-body kiosk-body">
+          <div class="kiosk-chips-label">Supported Payment Methods</div>
+          <div class="kiosk-chips-grid">
+            <div class="kiosk-chip"><span class="chip-dot gpay"></span> Google Pay</div>
+            <div class="kiosk-chip"><span class="chip-dot phonepe"></span> PhonePe</div>
+            <div class="kiosk-chip"><span class="chip-dot paytm"></span> Paytm</div>
+            <div class="kiosk-chip"><span class="chip-dot card"></span> Cards</div>
+            <div class="kiosk-chip"><span class="chip-dot net"></span> Net Banking</div>
           </div>
-          <div class="rpc-methods">
-            <span>💳 Cards</span><span>📱 UPI</span><span>🏦 Net Banking</span><span>👛 Wallets</span>
+
+          <div class="rpc-btn-wrapper kiosk-btn-wrapper">
+            <button class="kiosk-cta-btn" id="btnIdcOnline" onclick="idcPayOnline()">
+              🔒 Pay ₹<span id="idcPayBtnAmount2">0</span>
+            </button>
+            <div class="kiosk-cta-subtext">UPI • Cards • Net Banking</div>
           </div>
-          <button class="rpc-btn" id="btnIdcRazorpay" onclick="idcPayRazorpay()">Pay ₹<span id="idcPayBtnAmount2">0</span></button>
-          <div class="rpc-footer">or</div>
-          <button class="rpc-cash-btn" onclick="idcPayCash()">Pay with Cash</button>
+
+          <div class="kiosk-cash-wrapper">
+            <button class="kiosk-cash-btn rpc-cash-btn" onclick="idcPayCash()">
+              💵 Pay at Counter
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -3587,6 +3601,56 @@
           alert('Upload failed: ' + (err.message || err));
           btn.disabled = false; btn.textContent = 'Calculate Price';
         });
+    }
+
+    function idcPayOnline() {
+      var name = (document.getElementById('idcPayName') ? document.getElementById('idcPayName').value.trim() : '') || 'Customer';
+      var btn = document.getElementById('btnIdcOnline') || document.getElementById('btnIdcRazorpay');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="rpc-spinner"></span> Creating payment...';
+      }
+      var totalPrice = parseInt(document.getElementById('idcPayBtnAmount2').textContent) || 0;
+      fetch('/api/create-cashfree-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: totalPrice, orderIds: currentOrderIds, customerName: name })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(cfData) {
+        if (cfData.error) throw new Error(cfData.error);
+        if (!cfData.paymentSessionId) throw new Error('Failed to obtain Cashfree Payment Session');
+        if (typeof Cashfree === 'undefined') throw new Error('Payment SDK not loaded. Refresh page.');
+        var envMode = (cfData.environment === 'PRODUCTION' || cfData.environment === 'PROD') ? 'production' : 'sandbox';
+        var cashfree = Cashfree({ mode: envMode });
+        var checkoutOptions = { paymentSessionId: cfData.paymentSessionId, redirectTarget: '_modal' };
+        cashfree.checkout(checkoutOptions).then(function(result) {
+          if (result.error) {
+            alert('Payment cancelled or failed: ' + (result.error.message || 'Error'));
+            if (btn) { btn.disabled = false; btn.innerHTML = '🔒 Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>'; }
+          } else {
+            fetch('/api/verify-cashfree-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cashfreeOrderId: cfData.cashfreeOrderId, orderIds: currentOrderIds })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(vData) {
+              if (vData.error) throw new Error(vData.error);
+              showStep('stepStatus');
+              updateStatusDisplay('paid');
+            })
+            .catch(function(e) {
+              alert('Verification failed: ' + e.message);
+              if (btn) { btn.disabled = false; btn.innerHTML = '🔒 Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>'; }
+            });
+          }
+        });
+      })
+      .catch(function(err) {
+        console.warn('Cashfree error, falling back to Razorpay:', err);
+        idcPayRazorpay();
+      });
     }
 
     function idcPayRazorpay() {
