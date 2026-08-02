@@ -434,7 +434,7 @@
       letter-spacing:0.5px;
     }
     .oc-status-badge.paid { background:#dbeafe; color:#2563eb; }
-    .oc-status-badge.accepted { background:#dbeafe; color:#2563eb; }
+    .oc-status-badge.accepted { background:#d1fae5; color:#059669; }
     .oc-status-badge.rejected { background:#fee2e2; color:#dc2626; }
     .oc-status-badge.pending { background:#fef3c7; color:#b45309; }
     .oc-status-badge.payment_failed { background:#fee2e2; color:#dc2626; }
@@ -726,9 +726,9 @@
         <div class="sc-status"><span class="pulse-dot"></span> <span id="printerStatusText">Checking...</span></div>
       </div>
       <div class="status-card purple" id="scPrinting">
-        <div class="sc-icon">📄</div>
+        <div class="sc-icon">✅</div>
         <div class="sc-value" id="jobsPrintingValue">0</div>
-        <div class="sc-label">Jobs Printing</div>
+        <div class="sc-label">Completed Jobs</div>
       </div>
       <div class="status-card amber" id="scNewOrders">
         <div class="sc-icon">📥</div>
@@ -991,7 +991,7 @@
         All Orders <span class="tab-count" id="tabAllCount">0</span>
       </button>
       <button class="queue-tab" onclick="switchTab('printing')" id="tabPrinting">
-        🔵 Printing <span class="tab-count" id="tabPrintingCount">0</span>
+        📥 New Orders <span class="tab-count" id="tabPrintingCount">0</span>
       </button>
       <button class="queue-tab" onclick="switchTab('completed')" id="tabCompleted">
         🟢 Completed <span class="tab-count" id="tabCompletedCount">0</span>
@@ -1701,7 +1701,7 @@
       var labels = {
         pending: { text: '⏳ PENDING', cls: 'pending' },
         paid: { text: '🟢 PAID', cls: 'paid' },
-        accepted: { text: '🖨️ PRINTING', cls: 'accepted' },
+        accepted: { text: '✅ COMPLETED', cls: 'accepted' },
         rejected: { text: '🔴 REJECTED', cls: 'rejected' },
         payment_failed: { text: '🔴 FAILED', cls: 'payment_failed' }
       };
