@@ -645,6 +645,13 @@
     <div id="stepSettings" class="step hidden">
       <div class="qp-wrap">
 
+        <!-- Multi-file navigation switcher -->
+        <div id="qpFileSwitcher" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:8px 12px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;font-size:0.82em;font-weight:600;color:#334155;">
+          <button type="button" id="qpPrevFileBtn" onclick="switchPreviewFile(-1)" style="padding:6px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700;">◀ Prev File</button>
+          <span id="qpFileNavTitle" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;font-weight:700;">File 1 of 1</span>
+          <button type="button" id="qpNextFileBtn" onclick="switchPreviewFile(1)" style="padding:6px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700;">Next File ▶</button>
+        </div>
+
         <!-- Document Preview Card -->
         <div class="qp-doc-card" id="qpDocCard">
           <div class="qp-doc-preview" id="qpDocPreview" onclick="openDocPreview()" style="cursor:pointer;">
@@ -2087,6 +2094,9 @@
 
     function goToSettings() {
       document.getElementById('copiesValue').textContent = copiesCount;
+      if (typeof selectedFiles !== 'undefined' && selectedFiles.length) {
+        window.activePreviewIndex = selectedFiles.length - 1;
+      }
       updatePrice();
       showStep('stepSettings');
       setTimeout(function(){
@@ -4536,16 +4546,59 @@
         }
       });
     }
-window.qpPreview = function() {
+    window.activePreviewIndex = 0;
+
+    function switchPreviewFile(delta) {
+      if (!selectedFiles || !selectedFiles.length) return;
+      if (typeof window.activePreviewIndex !== 'number') window.activePreviewIndex = selectedFiles.length - 1;
+      window.activePreviewIndex += delta;
+      if (window.activePreviewIndex < 0) window.activePreviewIndex = 0;
+      if (window.activePreviewIndex >= selectedFiles.length) window.activePreviewIndex = selectedFiles.length - 1;
+      if (typeof window.qpPreview === 'function') window.qpPreview();
+    }
+
+    window.qpPreview = function() {
       try {
         var el = document.getElementById('qpDocPreview');
         if (!el) return;
         if (typeof selectedFiles === 'undefined' || !selectedFiles.length) {
           el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">No files selected</div>';
+          var switcher = document.getElementById('qpFileSwitcher');
+          if (switcher) switcher.style.display = 'none';
           return;
         }
-        // Show the last (most recently added) file in the preview
-        var sf = selectedFiles[selectedFiles.length - 1];
+
+        // Clamp activePreviewIndex safely
+        if (typeof window.activePreviewIndex !== 'number' || window.activePreviewIndex < 0 || window.activePreviewIndex >= selectedFiles.length) {
+          window.activePreviewIndex = selectedFiles.length - 1;
+        }
+
+        // Update Multi-File Switcher bar
+        var switcher = document.getElementById('qpFileSwitcher');
+        if (switcher) {
+          if (selectedFiles.length > 1) {
+            switcher.style.display = 'flex';
+            var titleEl = document.getElementById('qpFileNavTitle');
+            if (titleEl) {
+              var fn = selectedFiles[window.activePreviewIndex].file.name || 'File';
+              titleEl.textContent = '(' + (window.activePreviewIndex + 1) + '/' + selectedFiles.length + ') ' + fn;
+            }
+            var prevBtn = document.getElementById('qpPrevFileBtn');
+            var nextBtn = document.getElementById('qpNextFileBtn');
+            if (prevBtn) {
+              prevBtn.disabled = (window.activePreviewIndex === 0);
+              prevBtn.style.opacity = (window.activePreviewIndex === 0) ? '0.4' : '1';
+            }
+            if (nextBtn) {
+              nextBtn.disabled = (window.activePreviewIndex === selectedFiles.length - 1);
+              nextBtn.style.opacity = (window.activePreviewIndex === selectedFiles.length - 1) ? '0.4' : '1';
+            }
+          } else {
+            switcher.style.display = 'none';
+          }
+        }
+
+        var sf = selectedFiles[window.activePreviewIndex];
         var rawFile = sf.file;
         if (!rawFile) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">File data missing</div>'; return; }
         // Use cropped/enhanced file if available
@@ -4641,8 +4694,10 @@ window.qpPreview = function() {
         if (idcPrev) { idcPrev.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
         return;
       }
-      // Show the last (most recently added) file in the fullscreen preview
-      var rawF=selectedFiles[selectedFiles.length - 1].file;
+      if (typeof window.activePreviewIndex !== 'number' || window.activePreviewIndex < 0 || window.activePreviewIndex >= selectedFiles.length) {
+        window.activePreviewIndex = selectedFiles.length - 1;
+      }
+      var rawF=selectedFiles[window.activePreviewIndex].file;
       // Use cropped/enhanced file if available
       var f=(typeof enhancedFiles!=='undefined'&&enhancedFiles[rawF.name])?enhancedFiles[rawF.name]:rawF;
       var ext=f.name && f.name.indexOf('.')!==-1 ? f.name.split('.').pop().toLowerCase() : '';
