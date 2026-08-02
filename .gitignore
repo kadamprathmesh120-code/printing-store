@@ -20,3 +20,6 @@ node_modules
 uploads/
 printed-orders.json
 scratch/
+*.mp3
+*.apk
+downloads/
