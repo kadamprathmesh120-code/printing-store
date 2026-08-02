@@ -4544,7 +4544,8 @@ window.qpPreview = function() {
           el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">No files selected</div>';
           return;
         }
-        var sf = selectedFiles[0];
+        // Show the last (most recently added) file in the preview
+        var sf = selectedFiles[selectedFiles.length - 1];
         var rawFile = sf.file;
         if (!rawFile) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">File data missing</div>'; return; }
         // Use cropped/enhanced file if available
@@ -4640,7 +4641,8 @@ window.qpPreview = function() {
         if (idcPrev) { idcPrev.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
         return;
       }
-      var rawF=selectedFiles[0].file;
+      // Show the last (most recently added) file in the fullscreen preview
+      var rawF=selectedFiles[selectedFiles.length - 1].file;
       // Use cropped/enhanced file if available
       var f=(typeof enhancedFiles!=='undefined'&&enhancedFiles[rawF.name])?enhancedFiles[rawF.name]:rawF;
       var ext=f.name && f.name.indexOf('.')!==-1 ? f.name.split('.').pop().toLowerCase() : '';
