@@ -1919,9 +1919,10 @@
     }
 
     function countPagesInRange(rangeStr, maxPages) {
-      if (rangeStr === 'all') return maxPages;
+      if (!rangeStr || rangeStr === 'all') return maxPages || 1;
       var trimmed = rangeStr.replace(/\s/g, '');
-      if (!trimmed) return maxPages;
+      if (!trimmed) return maxPages || 1;
+      var effectiveMax = Math.max(1, parseInt(maxPages, 10) || 1);
       var parts = trimmed.split(',');
       var seen = {};
       var count = 0;
@@ -1929,18 +1930,18 @@
         var part = parts[pi];
         if (/^(\d+)$/.test(part)) {
           var n = parseInt(part, 10);
-          if (n >= 1 && n <= maxPages && !seen[n]) { seen[n] = true; count++; }
+          if (n >= 1 && n <= effectiveMax && !seen[n]) { seen[n] = true; count++; }
         } else if (/^(\d+)-(\d+)$/.test(part)) {
           var match = part.match(/^(\d+)-(\d+)$/);
           var start = parseInt(match[1], 10);
           var end = parseInt(match[2], 10);
           if (start > end) { var tmp = start; start = end; end = tmp; }
           for (var pi2 = start; pi2 <= end; pi2++) {
-            if (pi2 >= 1 && pi2 <= maxPages && !seen[pi2]) { seen[pi2] = true; count++; }
+            if (pi2 >= 1 && pi2 <= effectiveMax && !seen[pi2]) { seen[pi2] = true; count++; }
           }
         }
       }
-      return count || maxPages;
+      return count > 0 ? count : effectiveMax;
     }
 
     function updatePrice() {
@@ -2270,10 +2271,10 @@
       }
       document.getElementById('reviewName').style.borderColor = '';
 
-      if (!mobile) {
+      if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
         document.getElementById('reviewMobile').style.borderColor = '#ef4444';
         document.getElementById('reviewMobile').focus();
-        if (errEl) errEl.textContent = 'Please enter your Mobile Number.';
+        if (errEl) errEl.textContent = 'Please enter a valid 10-digit Mobile Number.';
         return;
       }
       document.getElementById('reviewMobile').style.borderColor = '';
