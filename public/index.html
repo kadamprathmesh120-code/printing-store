@@ -4799,37 +4799,103 @@
 
       Promise.all(renderPromises).then(function(results) {
         container.innerHTML = '';
-        var allPages = [];
+        var rawPages = [];
         results.forEach(function(res) {
-          if (res && res.length) allPages = allPages.concat(res);
+          if (res && res.length) rawPages = rawPages.concat(res);
         });
 
-        if (!allPages.length) {
+        if (!rawPages.length) {
           container.innerHTML = '<div style="color:#999;padding:40px;">Preview unavailable</div>';
           return;
         }
 
-        allPages.forEach(function(item, idx) {
+        // Apply Page Range filtering if custom page range specified
+        var filteredPages = rawPages;
+        if (selectedPageRange && selectedPageRange !== 'all') {
+          var parts = selectedPageRange.replace(/\s/g, '').split(',');
+          var selectedIndices = [];
+          parts.forEach(function(part) {
+            if (/^(\d+)$/.test(part)) {
+              var n = parseInt(part, 10);
+              if (n >= 1 && n <= rawPages.length) selectedIndices.push(n - 1);
+            } else if (/^(\d+)-(\d+)$/.test(part)) {
+              var m = part.match(/^(\d+)-(\d+)$/);
+              var s = parseInt(m[1], 10), e = parseInt(m[2], 10);
+              if (s > e) { var t = s; s = e; e = t; }
+              for (var k = s; k <= e; k++) {
+                if (k >= 1 && k <= rawPages.length) selectedIndices.push(k - 1);
+              }
+            }
+          });
+          if (selectedIndices.length > 0) {
+            filteredPages = selectedIndices.map(function(idx) { return rawPages[idx]; }).filter(Boolean);
+          }
+        }
+
+        if (!filteredPages.length) filteredPages = rawPages;
+
+        // Group into physical sheets based on pagesPerSheet (1-up, 2-up, 4-up)
+        var pps = selectedPagesPerSheet || 1;
+        var physicalSheetChunks = [];
+        for (var pi = 0; pi < filteredPages.length; pi += pps) {
+          physicalSheetChunks.push(filteredPages.slice(pi, pi + pps));
+        }
+
+        // Determine B&W filter style
+        var filterStyle = (selectedPrintType === 'bw') ? 'filter: grayscale(100%) contrast(108%);' : '';
+
+        // Render each physical A4 sheet card
+        physicalSheetChunks.forEach(function(chunk, sheetIdx) {
           var wrapper = document.createElement('div');
           wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;';
 
-          var pageCard = document.createElement('div');
-          pageCard.style.cssText = 'width:' + sheetWidth + ';aspect-ratio:' + sheetAspect + ';background:#fff;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;padding:8px;position:relative;';
+          var sheetCard = document.createElement('div');
+          sheetCard.style.cssText = 'width:' + sheetWidth + ';aspect-ratio:' + sheetAspect + ';background:#fff;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,0.35);overflow:hidden;position:relative;padding:12px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;';
 
-          if (item.type === 'image' || item.type === 'pdf') {
-            var pageImg = document.createElement('img');
-            pageImg.src = item.url;
-            pageImg.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;display:block;';
-            pageCard.appendChild(pageImg);
+          // Layout inside sheet depending on N-up (1-up, 2-up, 4-up)
+          var gridContainer = document.createElement('div');
+          gridContainer.style.cssText = 'width:100%;height:100%;display:grid;gap:8px;align-items:center;justify-items:center;' + filterStyle;
+
+          if (pps === 2) {
+            gridContainer.style.gridTemplateColumns = '1fr 1fr';
+            gridContainer.style.gridTemplateRows = '1fr';
+          } else if (pps === 4) {
+            gridContainer.style.gridTemplateColumns = '1fr 1fr';
+            gridContainer.style.gridTemplateRows = '1fr 1fr';
           } else {
-            pageCard.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" width="64" height="64"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
+            gridContainer.style.gridTemplateColumns = '1fr';
+            gridContainer.style.gridTemplateRows = '1fr';
           }
 
-          var label = document.createElement('div');
-          label.style.cssText = 'color:#e2e8f0;font-size:0.75em;margin-top:6px;text-align:center;font-weight:600;';
-          label.textContent = 'Page ' + (idx + 1) + ' of ' + allPages.length + ' — ' + item.fileName;
+          chunk.forEach(function(pageItem) {
+            var cell = document.createElement('div');
+            cell.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px dashed #cbd5e1;border-radius:4px;padding:4px;box-sizing:border-box;background:#f8fafc;';
 
-          wrapper.appendChild(pageCard);
+            if (pageItem.type === 'image' || pageItem.type === 'pdf') {
+              var pImg = document.createElement('img');
+              pImg.src = pageItem.url;
+              pImg.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;display:block;';
+              cell.appendChild(pImg);
+            } else {
+              cell.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>';
+            }
+            gridContainer.appendChild(cell);
+          });
+
+          sheetCard.appendChild(gridContainer);
+
+          // Calculate Sheet & Side details for badge
+          var isDuplex = (selectedPrintSide === 'both');
+          var sheetNum = Math.floor(sheetIdx / (isDuplex ? 2 : 1)) + 1;
+          var sideLabel = isDuplex ? (sheetIdx % 2 === 0 ? 'Front Side 📄' : 'Back Side 🔄') : '1-Sided';
+          var layoutLabel = pps + '-up (' + pps + ' pg/sheet)';
+          var bwLabel = (selectedPrintType === 'bw') ? ' • B&W' : ' • Color';
+
+          var label = document.createElement('div');
+          label.style.cssText = 'color:#e2e8f0;font-size:0.78em;margin-top:8px;text-align:center;font-weight:600;background:rgba(15,23,42,0.6);padding:4px 12px;border-radius:14px;';
+          label.textContent = 'Sheet ' + sheetNum + ' (' + sideLabel + ') • ' + layoutLabel + bwLabel;
+
+          wrapper.appendChild(sheetCard);
           wrapper.appendChild(label);
           container.appendChild(wrapper);
         });
