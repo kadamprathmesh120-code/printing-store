@@ -1594,6 +1594,7 @@
     var selectedPrintSide = 'single';
     var selectedOrientation = 'portrait';
     var selectedPageRange = 'all';
+    var selectedPagesPerSheet = 1;
 
     // --- ID Copy ---
     var idcMode = 'regular';
@@ -1880,6 +1881,7 @@
       selectedPrintSide = 'single';
       selectedOrientation = 'portrait';
       selectedPageRange = 'all';
+      selectedPagesPerSheet = 1;
       document.getElementById('pageRangeInput').value = 'all';
       document.getElementById('copiesValue').textContent = '1';
       showStep('stepHome');
