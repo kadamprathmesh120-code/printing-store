@@ -4098,6 +4098,9 @@
           }
         }
         renderFileCards();
+        // Refresh the print preview panel with the newly cropped file
+        if (typeof window.qpPreview === 'function') window.qpPreview();
+        if (typeof window.qpBar === 'function') window.qpBar();
         return;
       }
       var item = cropQueue[cropIndex];
@@ -4541,8 +4544,10 @@ window.qpPreview = function() {
           return;
         }
         var sf = selectedFiles[0];
-        var f = sf.file;
-        if (!f) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">File data missing</div>'; return; }
+        var rawFile = sf.file;
+        if (!rawFile) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-size:0.8em;">File data missing</div>'; return; }
+        // Use cropped/enhanced file if available
+        var f = (typeof enhancedFiles !== 'undefined' && enhancedFiles[rawFile.name]) ? enhancedFiles[rawFile.name] : rawFile;
         var ext = f.name ? (f.name.split('.').pop().toLowerCase()) : '';
         var p = sf.pages || 1;
         var isPdf = ext === 'pdf';
@@ -4634,7 +4639,10 @@ window.qpPreview = function() {
         if (idcPrev) { idcPrev.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
         return;
       }
-      var f=selectedFiles[0].file,ext=f.name && f.name.indexOf('.') !== -1 ? f.name.split('.').pop().toLowerCase() : '';
+      var rawF=selectedFiles[0].file;
+      // Use cropped/enhanced file if available
+      var f=(typeof enhancedFiles!=='undefined'&&enhancedFiles[rawF.name])?enhancedFiles[rawF.name]:rawF;
+      var ext=f.name && f.name.indexOf('.')!==-1 ? f.name.split('.').pop().toLowerCase() : '';
       var isPdf=ext==='pdf',isImg=['jpg','jpeg','png','gif','webp','bmp','heic'].includes(ext);
       var isImageType=isImg||(!isPdf && f.type && f.type.startsWith('image/'));
       var modal=document.getElementById('qpFullscreen');
@@ -4765,6 +4773,6 @@ window.qpPreview = function() {
     var resetQpZoom = enablePinchZoom('qpFullscreen', 'qpFullscreenImg');
     var resetScanZoom = enablePinchZoom('scanZoomModal', 'scanZoomImg');
   </script>
-  <script src="opencv-crop.js?v=11"></script>
+  <script src="opencv-crop.js?v=13"></script>
 </body>
 </html>

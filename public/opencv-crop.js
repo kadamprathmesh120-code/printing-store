@@ -1575,22 +1575,20 @@ function commitCropResult() {
   var origCorners = previewCanvas._origCorners;
   var imgW = previewCanvas._imgW || (sourceImage ? sourceImage.width : 0);
   var imgH = previewCanvas._imgH || (sourceImage ? sourceImage.height : 0);
-  var savedCorners = previewCanvas._savedCorners;
-
-  // Check if corners barely moved and no filter — pass original file through
-  var cornersMoved = false;
-  if (savedCorners && origCorners && origCorners.length === 4) {
-    var thresh = Math.max(imgW, imgH) * 0.02;
-    for (var ci = 0; ci < 4; ci++) {
-      var dx = Math.abs(origCorners[ci].x - savedCorners[ci].x);
-      var dy = Math.abs(origCorners[ci].y - savedCorners[ci].y);
-      if (dx > thresh || dy > thresh) { cornersMoved = true; break; }
-    }
-  } else {
-    cornersMoved = true;
+  
+  // Check if corners cover the FULL image (near all 4 boundaries) — only then skip crop
+  // Do NOT use savedCorners comparison: auto-detected crop corners would incorrectly appear "unmoved"
+  var coversFullImage = false;
+  if (origCorners && origCorners.length === 4 && imgW > 0 && imgH > 0 && selectedFilter === 'original') {
+    var edgeThresh = Math.max(imgW, imgH) * 0.03; // 3% of image
+    // Corners should be close to (0,0), (W,0), (W,H), (0,H)
+    var fullPts = [{x:0,y:0},{x:imgW,y:0},{x:imgW,y:imgH},{x:0,y:imgH}];
+    coversFullImage = origCorners.every(function(c, i) {
+      return Math.abs(c.x - fullPts[i].x) <= edgeThresh && Math.abs(c.y - fullPts[i].y) <= edgeThresh;
+    });
   }
 
-  if (!cornersMoved && selectedFilter === 'original' && previewCanvas._originalFile) {
+  if (coversFullImage && previewCanvas._originalFile) {
     currentCallback(previewCanvas._originalFile, 'original');
     closeModal();
     return;
@@ -1631,10 +1629,20 @@ function commitCropResult() {
   // Always export as PNG for maximum print quality
   fCtx.canvas.toBlob(function(blob) {
     if (!blob) return;
-    var fileName = sourceImage && sourceImage.src ? (sourceImage.src.split('/').pop() || 'cropped.png') : 'cropped.png';
-    if (fileName.startsWith('blob:')) fileName = 'cropped_' + Date.now() + '.png';
-    fileName = fileName.replace(/\.[^.]+$/, '.png');
-    var file = new File([blob], fileName, { type: 'image/png' });
+    // Derive filename from original file reference (same as cropDirect)
+    var ext = '.png';
+    var outType = 'image/png';
+    var baseName = 'cropped_' + Date.now();
+    if (_originalFileRef && _originalFileRef.name) {
+      var lastDot = _originalFileRef.name.lastIndexOf('.');
+      if (lastDot !== -1) {
+        baseName = _originalFileRef.name.substring(0, lastDot);
+      } else {
+        baseName = _originalFileRef.name;
+      }
+    }
+    var fileName = baseName + ext;
+    var file = new File([blob], fileName, { type: outType });
     currentCallback(file, selectedFilter);
     closeModal();
   }, 'image/png');
