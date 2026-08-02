@@ -82,6 +82,13 @@ function printPdfSilent(filePath, opts) {
     const cleanRange = sanitizePageRange(opts.pages);
     if (cleanRange && cleanRange !== 'all') settings.push(cleanRange);
 
+    const pps = parseInt(opts.pagesPerSheet) || 1;
+    if (pps === 2) {
+      settings.push('2-up');
+    } else if (pps === 4) {
+      settings.push('4-up');
+    }
+
     if (settings.length) sumatraArgs.push('-print-settings', settings.join(','));
     sumatraArgs.push(filePath);
 
@@ -378,6 +385,7 @@ app.post('/api/upload', (req, res) => {
       }
 
       const { customerName, printType, printSide, paymentMethod, mobileNumber, orderNotes, orientation, copies, pageRange } = req.body;
+      const pagesPerSheet = Math.max(1, parseInt(req.body.pagesPerSheet) || 1);
 
       if (!customerName || !printType || !printSide || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -390,8 +398,8 @@ app.post('/api/upload', (req, res) => {
       // Cash orders go directly to 'paid' so admin sees Accept button immediately
       const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type, pages_per_sheet)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orders = [];
@@ -427,7 +435,8 @@ app.post('/api/upload', (req, res) => {
         if (pageRange && pageRange !== 'all') {
           effectivePages = countPagesInRange(pageRange, pages);
         }
-        const sheets = printSide === 'both' ? Math.ceil(effectivePages / 2) : effectivePages;
+        var ppsPages = Math.ceil(effectivePages / pagesPerSheet);
+        const sheets = printSide === 'both' ? Math.ceil(ppsPages / 2) : ppsPages;
         
         fileSheets.push({ file, pages, effectivePages, sheets });
         totalSheets += sheets;
@@ -463,7 +472,7 @@ app.post('/api/upload', (req, res) => {
         const filePriceBeforeDiscount = sheets * copyCount * 5;
         const fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / totalPriceBeforeDiscount));
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard');
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard', pagesPerSheet);
 
         orders.push({
           orderId: id,

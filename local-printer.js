@@ -76,6 +76,13 @@ function printPdfSilent(filePath, opts) {
     var cleanRange = sanitizePageRange(opts.pages);
     if (cleanRange && cleanRange !== 'all') settings.push(cleanRange);
 
+    var pps = parseInt(opts.pagesPerSheet) || 1;
+    if (pps === 2) {
+      settings.push('2-up');
+    } else if (pps === 4) {
+      settings.push('4-up');
+    }
+
     if (settings.length) sumatraArgs.push('-print-settings', settings.join(','));
     sumatraArgs.push(filePath);
 
@@ -246,7 +253,7 @@ async function checkAndPrint() {
             await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
             console.log('Printed combined ID copy (86x54 mm) to', printer);
           } else if (isPdf) {
-            var pdfOpts = { printer: printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4', copies: copyNum, orientation: orient };
+            var pdfOpts = { printer: printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4', copies: copyNum, orientation: orient, pagesPerSheet: order.pages_per_sheet || 1 };
             if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
             await printPdfSilent(localFile, pdfOpts);
             console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);

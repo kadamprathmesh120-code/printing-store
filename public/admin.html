@@ -1821,6 +1821,8 @@
           '<span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;">Collect ₹' + o.price + ' Cash</span>' +
         '</div>' : '';
 
+        var ppsLabel = (o.pages_per_sheet && o.pages_per_sheet > 1) ? (' <span style="color:#7c3aed;font-weight:700;">(' + o.pages_per_sheet + '-up)</span>') : '';
+
         return '<div class="' + cardClass + '">' +
           cashCalloutBanner +
           '<div class="oc-header">' +
@@ -1845,7 +1847,7 @@
               '<div class="oc-detail"><span class="oc-detail-label">Sheets</span><span class="oc-detail-value">' + sheetsDisplay + '</span></div>' +
               '<div class="oc-detail"><span class="oc-detail-label">Copies</span>' + copiesDisplay + '</div>' +
               '<div class="oc-detail"><span class="oc-detail-label">Print Type</span><span class="oc-detail-value">' + typeLabel + '</span></div>' +
-              '<div class="oc-detail"><span class="oc-detail-label">Sides</span><span class="oc-detail-value">' + sideLabel + '</span></div>' +
+              '<div class="oc-detail"><span class="oc-detail-label">Sides</span><span class="oc-detail-value">' + sideLabel + ppsLabel + '</span></div>' +
             '</div>' +
           '</div>' +
           '<div class="oc-footer">' +

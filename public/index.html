@@ -740,6 +740,31 @@
           </div>
         </div>
 
+        <!-- Pages per Sheet -->
+        <div class="qp-card" id="qpPagesPerSheetCard">
+          <div class="qp-card-title">Pages per Sheet</div>
+          <div class="qp-pair" style="grid-template-columns:repeat(3, 1fr);">
+            <button class="qp-opt pill-option selected" data-value="1" onclick="selectPill(this,'pagesPerSheet')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">1 Page</span>
+                <span class="qp-opt-sub">Standard</span>
+              </div>
+            </button>
+            <button class="qp-opt pill-option" data-value="2" onclick="selectPill(this,'pagesPerSheet')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">2 Pages</span>
+                <span class="qp-opt-sub">Side by side</span>
+              </div>
+            </button>
+            <button class="qp-opt pill-option" data-value="4" onclick="selectPill(this,'pagesPerSheet')">
+              <div class="qp-opt-text">
+                <span class="qp-opt-label">4 Pages</span>
+                <span class="qp-opt-sub">Grid layout</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <!-- Orientation -->
         <div class="qp-card">
           <div class="qp-card-title">Orientation</div>
@@ -1904,6 +1929,8 @@
         selectedPrintSide = el.getAttribute('data-value');
       } else if (group === 'orientation') {
         selectedOrientation = el.getAttribute('data-value');
+      } else if (group === 'pagesPerSheet') {
+        selectedPagesPerSheet = parseInt(el.getAttribute('data-value'), 10) || 1;
       }
       updatePrice();
       if(typeof window.qpPreview==='function') window.qpPreview();
@@ -1968,9 +1995,11 @@
         var sf = selectedFiles[i];
         var maxP = sf.pages || 1;
         if (!maxP || maxP < 1) maxP = 1;
-        // Apply page range to each file individually
+        // Apply page range and pages-per-sheet to each file individually
         var p = countPagesInRange(pageRange, maxP);
-        var sheets = selectedPrintSide === 'both' ? Math.ceil(p / 2) : p;
+        var pps = selectedPagesPerSheet || 1;
+        var effectivePages = Math.ceil(p / pps);
+        var sheets = selectedPrintSide === 'both' ? Math.ceil(effectivePages / 2) : effectivePages;
         totalPages += p;
         totalSheets += sheets;
       }
@@ -2349,6 +2378,7 @@
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
+      formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
@@ -2483,6 +2513,7 @@
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
+      formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
@@ -2646,6 +2677,7 @@
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
+      formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
