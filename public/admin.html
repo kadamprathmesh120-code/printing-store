@@ -1233,16 +1233,42 @@
       tryNext(0);
     }
 
-    function playVoiceNotification(customerName, fileName, copies) {
+    function playVoiceNotificationOrder(order) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       try {
-        var msg = 'New order from ' + customerName + ', file ' + fileName + (copies > 1 ? ', ' + copies + ' copies' : '');
+        window.speechSynthesis.cancel();
+        
+        var customerName = (order && order.customer_name) ? order.customer_name : 'ग्राहक';
+        var shortToken = (order && order.id) ? order.id.substring(0, 6).toUpperCase() : '';
+        var price = (order && order.price) ? order.price : 0;
+        var isCash = order && (order.payment_method === 'cash');
+
+        var msg = '';
+        if (isCash) {
+          msg = 'नवीन कॅश ऑर्डर! ग्राहक ' + customerName + ', टोकन पी ' + shortToken + ', काउंटरवर ' + price + ' रुपये जमा करा.';
+        } else {
+          msg = 'नवीन ऑनलाईन पेमेंट ऑर्डर! ग्राहक ' + customerName + ', टोकन पी ' + shortToken + ', प्रिंटिंग सुरू झाले आहे.';
+        }
+
         var utter = new SpeechSynthesisUtterance(msg);
-        utter.lang = 'en-IN';
-        utter.rate = 1;
-        utter.pitch = 1;
-        speechSynthesis.speak(utter);
-      } catch(e) {}
+        utter.lang = 'mr-IN';
+        utter.rate = 0.85;   // Clear, unhurried pace (not so fast!)
+        utter.pitch = 1.0;
+        utter.volume = 1.0;  // Loudest output volume
+
+        // Pick native Marathi voice if installed on OS, else Indian voice fallback
+        var voices = window.speechSynthesis.getVoices();
+        var mrVoice = voices.find(function(v) { return v.lang && (v.lang.includes('mr') || v.lang.includes('marathi')); });
+        if (!mrVoice) mrVoice = voices.find(function(v) { return v.lang && v.lang.includes('hi'); });
+        if (!mrVoice) mrVoice = voices.find(function(v) { return v.lang && v.lang.includes('en-IN'); });
+        if (mrVoice) utter.voice = mrVoice;
+
+        setTimeout(function() {
+          window.speechSynthesis.speak(utter);
+        }, 200);
+      } catch(e) {
+        console.error('Voice alert error:', e);
+      }
     }
 
     function playCompletionSound() {
@@ -1463,7 +1489,8 @@
     // -------------------------------------------------------
     function testNotification() {
       playNotificationSound();
-      showToast('info', 'Test Notification', 'Sound and notification are working correctly', new Date().toLocaleTimeString());
+      playVoiceNotificationOrder({ customer_name: 'राहुल', id: 'TEST88', price: 25, payment_method: 'cash' });
+      showToast('info', 'Test Voice Notification', 'मराठी व्हॉईस अनाऊन्समेंट टेस्ट चालू आहे (कॅश ऑर्डर ₹25)', new Date().toLocaleTimeString());
     }
 
     // -------------------------------------------------------
@@ -1992,6 +2019,7 @@
             pendingNewIds = newOrders.map(function(o) { return o.id; });
             newOrders.reverse().forEach(function(o) {
               showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
+              playVoiceNotificationOrder(o);
             });
             unreadCount += newOrders.length;
             updateNotifBadge(unreadCount);
