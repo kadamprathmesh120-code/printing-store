@@ -1238,30 +1238,29 @@
       try {
         window.speechSynthesis.cancel();
         
-        var customerName = (order && order.customer_name) ? order.customer_name : 'ग्राहक';
+        var customerName = (order && order.customer_name) ? order.customer_name : 'Customer';
         var shortToken = (order && order.id) ? order.id.substring(0, 6).toUpperCase() : '';
         var price = (order && order.price) ? order.price : 0;
         var isCash = order && (order.payment_method === 'cash');
 
         var msg = '';
         if (isCash) {
-          msg = 'नवीन कॅश ऑर्डर! ग्राहक ' + customerName + ', टोकन पी ' + shortToken + ', काउंटरवर ' + price + ' रुपये जमा करा.';
+          msg = 'Naveen cash order! Grahak ' + customerName + ', Token P ' + shortToken + ', counter var ' + price + ' rupees jama kara.';
         } else {
-          msg = 'नवीन ऑनलाईन पेमेंट ऑर्डर! ग्राहक ' + customerName + ', टोकन पी ' + shortToken + ', प्रिंटिंग सुरू झाले आहे.';
+          msg = 'Naveen online payment order! Grahak ' + customerName + ', Token P ' + shortToken + ', printing shuru jhale aahe.';
         }
 
         var utter = new SpeechSynthesisUtterance(msg);
-        utter.lang = 'mr-IN';
+        utter.lang = 'en-IN';
         utter.rate = 0.85;   // Clear, unhurried pace (not so fast!)
         utter.pitch = 1.0;
         utter.volume = 1.0;  // Loudest output volume
 
-        // Pick native Marathi voice if installed on OS, else Indian voice fallback
+        // Pick Indian English voice for perfect Marathi accent on Windows
         var voices = window.speechSynthesis.getVoices();
-        var mrVoice = voices.find(function(v) { return v.lang && (v.lang.includes('mr') || v.lang.includes('marathi')); });
-        if (!mrVoice) mrVoice = voices.find(function(v) { return v.lang && v.lang.includes('hi'); });
-        if (!mrVoice) mrVoice = voices.find(function(v) { return v.lang && v.lang.includes('en-IN'); });
-        if (mrVoice) utter.voice = mrVoice;
+        var inVoice = voices.find(function(v) { return v.lang && (v.lang.includes('en-IN') || v.lang.includes('en_IN') || v.lang.includes('hi')); });
+        if (!inVoice) inVoice = voices.find(function(v) { return v.lang && v.lang.startsWith('en'); });
+        if (inVoice) utter.voice = inVoice;
 
         setTimeout(function() {
           window.speechSynthesis.speak(utter);
