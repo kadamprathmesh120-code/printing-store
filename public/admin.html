@@ -1909,6 +1909,32 @@
           '</div>';
         }
 
+        // Build right-side document preview panel
+        var previewBoxHtml = '';
+        if (o.file_path) {
+          var fExt = o.file_path.split('.').pop().toLowerCase();
+          var filePathEncoded = '/uploads/' + encodeURIComponent(o.file_path);
+          
+          if (['jpg', 'jpeg', 'png', 'webp'].includes(fExt)) {
+            previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
+              '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;">👁️ Preview</div>' +
+              '<img src="' + filePathEncoded + '" style="width:100%;height:105px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;" onclick="window.open(\'' + filePathEncoded + '\', \'_blank\')" title="Click to view full size">' +
+              '<a href="' + filePathEncoded + '" target="_blank" style="margin-top:4px;font-size:10px;font-weight:700;color:#0284c7;text-decoration:none;">Expand ↗</a>' +
+            '</div>';
+          } else if (fExt === 'pdf') {
+            previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
+              '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;">👁️ Preview</div>' +
+              '<iframe src="' + filePathEncoded + '#toolbar=0&navpanes=0&view=FitH" style="width:100%;height:105px;border-radius:6px;border:1px solid #cbd5e1;pointer-events:none;background:#fff;overflow:hidden;"></iframe>' +
+              '<a href="' + filePathEncoded + '" target="_blank" style="margin-top:4px;font-size:10px;font-weight:700;color:#0284c7;text-decoration:none;">Expand ↗</a>' +
+            '</div>';
+          } else {
+            previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
+              '<div style="font-size:32px;margin-bottom:4px;">📄</div>' +
+              '<a href="' + filePathEncoded + '" target="_blank" style="font-size:10px;font-weight:700;color:#0284c7;text-decoration:none;">View File ↗</a>' +
+            '</div>';
+          }
+        }
+
         return '<div class="' + cardClass + '">' +
           cashCalloutBanner +
           '<div class="oc-header">' +
@@ -1921,8 +1947,9 @@
             '</div>' +
             '<span class="oc-status-badge ' + statusBadge.cls + '">' + statusBadge.text + '</span>' +
           '</div>' +
-          '<div class="oc-body">' +
-            filesHtml +
+          '<div class="oc-body" style="display:flex;gap:12px;align-items:stretch;">' +
+            '<div style="flex:1;min-width:0;">' + filesHtml + '</div>' +
+            previewBoxHtml +
           '</div>' +
           '<div class="oc-footer">' +
             '<div>' + payBadge + '</div>' +
