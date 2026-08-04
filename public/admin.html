@@ -1233,38 +1233,75 @@
       tryNext(0);
     }
 
-    function playVoiceNotificationOrder(order) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+    function playPaytmSoundboxChime(isCash) {
       try {
-        window.speechSynthesis.cancel();
-        
-        var customerName = (order && order.customer_name) ? order.customer_name : 'Customer';
-        var shortToken = (order && order.id) ? order.id.substring(0, 6).toUpperCase() : '';
-        var price = (order && order.price) ? order.price : 0;
-        var isCash = order && (order.payment_method === 'cash');
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var g = ctx.createGain();
+        g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.35, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
 
-        var msg = '';
         if (isCash) {
-          msg = 'Naveen cash order! Grahak ' + customerName + ', Token P ' + shortToken + ', counter var ' + price + ' rupees jama kara.';
+          // Cash Soundbox Bell: 2 crisp high-pitched Paytm-style bells (880Hz, 1760Hz)
+          var o1 = ctx.createOscillator();
+          o1.type = 'sine';
+          o1.frequency.setValueAtTime(880, ctx.currentTime);
+          o1.connect(g);
+          o1.start(ctx.currentTime);
+          o1.stop(ctx.currentTime + 0.18);
+
+          var o2 = ctx.createOscillator();
+          o2.type = 'sine';
+          o2.frequency.setValueAtTime(1760, ctx.currentTime + 0.22);
+          o2.connect(g);
+          o2.start(ctx.currentTime + 0.22);
+          o2.stop(ctx.currentTime + 0.45);
         } else {
-          msg = 'Naveen online payment order! Grahak ' + customerName + ', Token P ' + shortToken + ', printing shuru jhale aahe.';
+          // Online Payment Success Chime: Upward 3-note harmonic chime (523Hz, 659Hz, 784Hz)
+          [523, 659, 784].forEach(function(freq, i) {
+            var o = ctx.createOscillator();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+            o.connect(g);
+            o.start(ctx.currentTime + i * 0.12);
+            o.stop(ctx.currentTime + i * 0.12 + 0.15);
+          });
         }
+
+        setTimeout(function() { try { ctx.close(); } catch(e){} }, 1000);
+      } catch(e) {}
+    }
+
+    function playVoiceNotificationOrder(order) {
+      if (!voiceEnabled) return;
+      try {
+        var isCash = order && (order.payment_method === 'cash');
+        
+        // 1. Play crisp Paytm Soundbox Chime
+        playPaytmSoundboxChime(isCash);
+
+        // 2. Speak pre-recorded simple clear announcement (NO names!)
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+
+        var msg = isCash 
+          ? 'New Cash Order! Please collect cash at counter.'
+          : 'New Online Payment Order! Printing started.';
 
         var utter = new SpeechSynthesisUtterance(msg);
         utter.lang = 'en-IN';
-        utter.rate = 0.85;   // Clear, unhurried pace (not so fast!)
+        utter.rate = 0.9;
         utter.pitch = 1.0;
-        utter.volume = 1.0;  // Loudest output volume
+        utter.volume = 1.0;
 
-        // Pick Indian English voice for perfect Marathi accent on Windows
         var voices = window.speechSynthesis.getVoices();
-        var inVoice = voices.find(function(v) { return v.lang && (v.lang.includes('en-IN') || v.lang.includes('en_IN') || v.lang.includes('hi')); });
+        var inVoice = voices.find(function(v) { return v.lang && (v.lang.includes('en-IN') || v.lang.includes('en_IN')); });
         if (!inVoice) inVoice = voices.find(function(v) { return v.lang && v.lang.startsWith('en'); });
         if (inVoice) utter.voice = inVoice;
 
         setTimeout(function() {
           window.speechSynthesis.speak(utter);
-        }, 200);
+        }, 500); // Small delay after chime
       } catch(e) {
         console.error('Voice alert error:', e);
       }
@@ -1487,9 +1524,8 @@
     //  Test Notification
     // -------------------------------------------------------
     function testNotification() {
-      playNotificationSound();
-      playVoiceNotificationOrder({ customer_name: 'राहुल', id: 'TEST88', price: 25, payment_method: 'cash' });
-      showToast('info', 'Test Voice Notification', 'मराठी व्हॉईस अनाऊन्समेंट टेस्ट चालू आहे (कॅश ऑर्डर ₹25)', new Date().toLocaleTimeString());
+      playVoiceNotificationOrder({ payment_method: 'cash' });
+      showToast('info', 'Test Soundbox Alert', '💵 Soundbox Cash Alert: New Cash Order! Please collect cash at counter.', new Date().toLocaleTimeString());
     }
 
     // -------------------------------------------------------
