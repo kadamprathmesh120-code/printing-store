@@ -1051,7 +1051,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
       if (['paid', 'payment_failed', 'pending', 'created'].includes(bOrder.status)) {
         tracker.unmarkOrderPrinted(bOrder.id);
         const finalPayMethod = (['payment_failed', 'pending', 'created'].includes(bOrder.status)) ? payMethod : (bOrder.payment_method || payMethod);
-        db.prepare("UPDATE orders SET status = 'accepted', payment_status = 'paid', payment_method = ?, is_printed = 0 WHERE id = ?").run(finalPayMethod, bOrder.id);
+        db.prepare("UPDATE orders SET status = 'accepted', payment_method = ?, is_printed = 0 WHERE id = ?").run(finalPayMethod, bOrder.id);
 
         const printer = await resolvePrinterName(req.body.printer, bOrder.print_type === 'color');
         db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, bOrder.id);
