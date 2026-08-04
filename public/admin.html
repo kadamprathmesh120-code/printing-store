@@ -1732,15 +1732,34 @@
         return;
       }
 
-      grid.innerHTML = orders.map(function(o) {
+      // Group orders by batch
+      var batchMap = {};
+      var batchList = [];
+      orders.forEach(function(o) {
+        var bKey = o.batch_id || o.cashfree_order_id || o.razorpay_order_id || (o.customer_name + '_' + (o.created_at ? o.created_at.substring(0, 16) : ''));
+        if (!batchMap[bKey]) {
+          batchMap[bKey] = [];
+          batchList.push(batchMap[bKey]);
+        }
+        batchMap[bKey].push(o);
+      });
+
+      grid.innerHTML = batchList.map(function(batch) {
+        var o = batch[0]; // primary order item
+        var isMulti = batch.length > 1;
         var date = new Date(o.created_at);
         var timeStr = date.toLocaleTimeString();
         var dateStr = date.toLocaleDateString();
-        var typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
-        var sideLabel = o.print_side === 'both' ? 'Both Sides' : 'Single';
-        var fileInfo = getFileIcon(o.file_name);
+
+        var totalPrice = batch.reduce(function(sum, item) { return sum + (item.price || 0); }, 0);
+        var totalSheets = batch.reduce(function(sum, item) { 
+          var effP = (item.effective_pages && item.effective_pages > 0) ? item.effective_pages : item.page_count;
+          var sh = (item.total_sheets && item.total_sheets > 0) ? item.total_sheets : (item.print_side === 'both' ? Math.ceil(effP / 2) : effP);
+          return sum + (sh * (item.copies || 1));
+        }, 0);
+
         var statusBadge = getStatusBadge(o.status);
-        var isNew = pendingNewIds.indexOf(o.id) !== -1;
+        var isNew = batch.some(function(item) { return pendingNewIds.indexOf(item.id) !== -1; });
         var isCash = o.payment_method === 'cash' && o.status === 'paid';
         var cardClass = 'order-card';
         if (isCash) cardClass += ' cash-highlight';
@@ -1754,82 +1773,114 @@
             ? '<span class="oc-payment-badge cashfree" style="background:#6366f1;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">💳 Cashfree</span>'
             : '<span class="oc-payment-badge razorpay">💳 Razorpay</span>');
 
-        var previewBtn = '';
-        if (o.file_path) {
-          previewBtn = '<a href="/uploads/' + encodeURIComponent(o.file_path) + '" target="_blank" class="oc-preview-btn" title="Preview">' +
-            '<i data-lucide="eye" style="width:12px;height:12px;"></i> View</a>';
-        }
-
         var tokenStr = 'Token #P-' + o.id.substring(0, 6).toUpperCase();
-
         var callBtn = o.mobile_number ? ('<a href="tel:' + escapeHtml(o.mobile_number) + '" class="oc-action-btn" style="background:#0284c7;border-color:#0284c7;color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:4px;" title="Call Customer">📞 Call</a>') : '';
 
         var actionBtns = '<div class="oc-actions">';
         if (o.status === 'paid') {
-          // Not yet accepted — show Collect/Accept button
           var acceptBtnLabel = isCash
-            ? ('<i data-lucide="check" style="width:14px;height:14px;"></i> Collect ₹' + o.price + ' & Print')
-            : '<i data-lucide="check" style="width:14px;height:14px;"></i> Accept';
+            ? ('<i data-lucide="check" style="width:14px;height:14px;"></i> Collect ₹' + totalPrice + ' & Print' + (isMulti ? ' All (' + batch.length + ')' : ''))
+            : ('<i data-lucide="check" style="width:14px;height:14px;"></i> Accept ' + (isMulti ? 'All (' + batch.length + ')' : ''));
           actionBtns +=
             '<button class="oc-action-btn accept" onclick="acceptOrder(\'' + o.id + '\', \'' + (o.payment_method || 'razorpay') + '\')">' + acceptBtnLabel + '</button>' +
-            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + o.price + '\')" title="Send 1-Tap Free WhatsApp notification to customer">💬 WhatsApp</button>' +
+            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + totalPrice + '\')" title="Send WhatsApp">💬 WhatsApp</button>' +
             callBtn +
-            '<button class="oc-action-btn reject" style="background:#f59e0b;border-color:#d97706;color:#fff;" onclick="reportMachineError(\'' + o.id + '\')" title="Notify customer of machine delay">⚠️ Machine Error</button>' +
+            '<button class="oc-action-btn reject" style="background:#f59e0b;border-color:#d97706;color:#fff;" onclick="reportMachineError(\'' + o.id + '\')">⚠️ Machine Error</button>' +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         } else if (o.status === 'payment_failed' || o.status === 'pending' || o.status === 'created') {
-          // Payment failed or pending — allow admin to accept if customer pays cash in store!
-          var acceptBtnLabel = '<i data-lucide="banknote" style="width:14px;height:14px;"></i> Collect Cash (₹' + o.price + ') & Print';
+          var acceptBtnLabel = '<i data-lucide="banknote" style="width:14px;height:14px;"></i> Collect Cash (₹' + totalPrice + ') & Print' + (isMulti ? ' All (' + batch.length + ')' : '');
           actionBtns +=
             '<button class="oc-action-btn accept" style="background:#059669;border-color:#059669;" onclick="acceptOrder(\'' + o.id + '\', \'cash\')">' + acceptBtnLabel + '</button>' +
-            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + o.price + '\')" title="Send 1-Tap Free WhatsApp notification to customer">💬 WhatsApp</button>' +
+            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + totalPrice + '\')" title="Send WhatsApp">💬 WhatsApp</button>' +
             callBtn +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         } else if (o.status === 'accepted') {
-          // Already accepted & sent to printer — NO accept button, just support actions
           actionBtns +=
-            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + o.price + '\')" title="Send 1-Tap Free WhatsApp notification to customer">💬 WhatsApp</button>' +
+            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + totalPrice + '\')" title="Send WhatsApp">💬 WhatsApp</button>' +
             callBtn +
-            '<button class="oc-action-btn reject" style="background:#f59e0b;border-color:#d97706;color:#fff;" onclick="reportMachineError(\'' + o.id + '\')" title="Notify customer of machine delay">⚠️ Machine Error</button>' +
+            '<button class="oc-action-btn reject" style="background:#f59e0b;border-color:#d97706;color:#fff;" onclick="reportMachineError(\'' + o.id + '\')">⚠️ Machine Error</button>' +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         } else if (o.status === 'printer_error') {
           actionBtns +=
             '<button class="oc-action-btn accept" style="background:#059669;border-color:#059669;" onclick="resumeOrder(\'' + o.id + '\')">▶️ Resume Order</button>' +
-            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + o.price + '\')" title="Send 1-Tap Free WhatsApp notification to customer">💬 WhatsApp</button>' +
+            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + totalPrice + '\')" title="Send WhatsApp">💬 WhatsApp</button>' +
             callBtn +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         }
-        actionBtns += '<button class="oc-action-btn delete" onclick="deleteOrder(\'' + o.id + '\')" title="Delete Order & Uploaded Document"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>';
+        actionBtns += '<button class="oc-action-btn delete" onclick="deleteOrder(\'' + o.id + '\')" title="Delete Order"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete</button>';
         actionBtns += '</div>';
-
-        var copiesDisplay = '';
-        if (o.copies && o.copies > 1) {
-          copiesDisplay = '<span class="oc-detail-value copies-highlight">×' + o.copies + '</span>';
-        } else {
-          copiesDisplay = '<span class="oc-detail-value">1</span>';
-        }
 
         var notesIcon = o.order_notes ? ' <span class="oc-notes-icon" title="' + escapeHtml(o.order_notes) + '">📝</span>' : '';
         var mobileDisplay = o.mobile_number ? ' <span style="font-size:0.72em;color:#9ca3af;">' + escapeHtml(o.mobile_number) + '</span>' : '';
 
-        var isCustomRange = o.page_range && o.page_range !== 'all';
-        var rangeLabel = isCustomRange ? escapeHtml(o.page_range) : 'All';
-        var rangeStyle = isCustomRange ? 'color:#d97706;font-weight:700;' : '';
-
-        var effPages = (o.effective_pages && o.effective_pages > 0) ? o.effective_pages : o.page_count;
-        var totalPdfPgs = o.page_count || 1;
-        var pagesVal = isCustomRange ? (effPages + ' of ' + totalPdfPgs) : totalPdfPgs;
-
-        var sheetsVal = o.total_sheets && o.total_sheets > 0 
-          ? o.total_sheets 
-          : (o.print_side === 'both' ? Math.ceil(effPages / 2) : effPages);
-        var sheetsDisplay = sheetsVal + (sheetsVal > 1 ? ' sheets' : ' sheet');
-
         var cashCalloutBanner = isCash ? '<div style="background:#fffbeb;border:1.5px solid #f59e0b;color:#92400e;padding:8px 12px;border-radius:10px;margin-bottom:12px;font-size:0.88rem;font-weight:800;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(245,158,11,0.15);">' +
           '<span>📢 CALL: <span style="color:#b45309;font-size:1rem;text-decoration:underline;">' + escapeHtml(o.customer_name) + '</span></span>' +
-          '<span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;">Collect ₹' + o.price + ' Cash</span>' +
+          '<span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;">Collect ₹' + totalPrice + ' Cash</span>' +
         '</div>' : '';
 
-        var ppsLabel = (o.pages_per_sheet && o.pages_per_sheet > 1) ? (' <span style="color:#7c3aed;font-weight:700;">(' + o.pages_per_sheet + '-up)</span>') : '';
+        var batchTag = isMulti ? (' <span style="background:#8b5cf6;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px;">📦 ' + batch.length + ' Files</span>') : '';
+
+        // Build files HTML section
+        var filesHtml = '';
+        if (isMulti) {
+          filesHtml += '<div style="margin:8px 0 10px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">' +
+            '<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">' +
+              '<span>Uploaded Files (' + batch.length + ')</span>' +
+              '<span>Total Sheets: ' + totalSheets + '</span>' +
+            '</div>';
+          batch.forEach(function(item) {
+            var fInfo = getFileIcon(item.file_name);
+            var fPreview = item.file_path ? ('<a href="/uploads/' + encodeURIComponent(item.file_path) + '" target="_blank" style="color:#0284c7;text-decoration:none;font-weight:600;font-size:11px;">View</a>') : '';
+            var typeLabel = item.print_type === 'bw' ? 'B&W' : 'Color';
+            var sideLabel = item.print_side === 'both' ? 'Both' : 'Single';
+            var effP = (item.effective_pages && item.effective_pages > 0) ? item.effective_pages : item.page_count;
+            var copiesTag = item.copies > 1 ? (' <span style="color:#d97706;font-weight:700;">×' + item.copies + '</span>') : '';
+
+            filesHtml += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#fff;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:4px;gap:8px;">' +
+              '<div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">' +
+                '<span style="font-size:14px;">' + fInfo.icon + '</span>' +
+                '<span style="font-size:12px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtml(item.file_name) + '">' + escapeHtml(item.file_name) + '</span>' +
+              '</div>' +
+              '<div style="display:flex;align-items:center;gap:6px;font-size:11px;white-space:nowrap;">' +
+                '<span style="background:#e0f2fe;color:#0369a1;padding:1px 5px;border-radius:4px;font-weight:600;">' + typeLabel + '</span>' +
+                '<span style="color:#64748b;">' + effP + ' pgs (' + sideLabel + ')' + copiesTag + '</span>' +
+                '<span style="font-weight:700;color:#0f172a;">₹' + item.price + '</span>' +
+                fPreview +
+              '</div>' +
+            '</div>';
+          });
+          filesHtml += '</div>';
+        } else {
+          // Single file view (original detail grid)
+          var fileInfo = getFileIcon(o.file_name);
+          var previewBtn = o.file_path ? ('<a href="/uploads/' + encodeURIComponent(o.file_path) + '" target="_blank" class="oc-preview-btn" title="Preview"><i data-lucide="eye" style="width:12px;height:12px;"></i> View</a>') : '';
+          var isCustomRange = o.page_range && o.page_range !== 'all';
+          var rangeLabel = isCustomRange ? escapeHtml(o.page_range) : 'All';
+          var rangeStyle = isCustomRange ? 'color:#d97706;font-weight:700;' : '';
+          var effPages = (o.effective_pages && o.effective_pages > 0) ? o.effective_pages : o.page_count;
+          var totalPdfPgs = o.page_count || 1;
+          var pagesVal = isCustomRange ? (effPages + ' of ' + totalPdfPgs) : totalPdfPgs;
+          var sheetsVal = o.total_sheets && o.total_sheets > 0 ? o.total_sheets : (o.print_side === 'both' ? Math.ceil(effPages / 2) : effPages);
+          var sheetsDisplay = sheetsVal + (sheetsVal > 1 ? ' sheets' : ' sheet');
+          var typeLabel = o.print_type === 'bw' ? 'B&W' : 'Color';
+          var sideLabel = o.print_side === 'both' ? 'Both Sides' : 'Single';
+          var ppsLabel = (o.pages_per_sheet && o.pages_per_sheet > 1) ? (' <span style="color:#7c3aed;font-weight:700;">(' + o.pages_per_sheet + '-up)</span>') : '';
+          var copiesDisplay = o.copies && o.copies > 1 ? ('<span class="oc-detail-value copies-highlight">×' + o.copies + '</span>') : '<span class="oc-detail-value">1</span>';
+
+          filesHtml += '<div class="oc-file-row">' +
+            '<div class="oc-file-icon ' + fileInfo.cls + '">' + fileInfo.icon + '</div>' +
+            '<div class="oc-file-name" title="' + escapeHtml(o.file_name) + '">' + escapeHtml(o.file_name) + '</div>' +
+            previewBtn +
+          '</div>' +
+          '<div class="oc-details-grid">' +
+            '<div class="oc-detail"><span class="oc-detail-label">Pages</span><span class="oc-detail-value">' + pagesVal + '</span></div>' +
+            '<div class="oc-detail"><span class="oc-detail-label">Page Range</span><span class="oc-detail-value" style="' + rangeStyle + '">' + rangeLabel + '</span></div>' +
+            '<div class="oc-detail"><span class="oc-detail-label">Sheets</span><span class="oc-detail-value">' + sheetsDisplay + '</span></div>' +
+            '<div class="oc-detail"><span class="oc-detail-label">Copies</span>' + copiesDisplay + '</div>' +
+            '<div class="oc-detail"><span class="oc-detail-label">Print Type</span><span class="oc-detail-value">' + typeLabel + '</span></div>' +
+            '<div class="oc-detail"><span class="oc-detail-label">Sides</span><span class="oc-detail-value">' + sideLabel + ppsLabel + '</span></div>' +
+          '</div>';
+        }
 
         return '<div class="' + cardClass + '">' +
           cashCalloutBanner +
@@ -1837,30 +1888,18 @@
             '<div class="oc-customer">' +
               '<div class="oc-avatar">' + initials + '</div>' +
               '<div>' +
-                '<div class="oc-name">' + escapeHtml(o.customer_name) + notesIcon + mobileDisplay + '</div>' +
+                '<div class="oc-name">' + escapeHtml(o.customer_name) + notesIcon + mobileDisplay + batchTag + '</div>' +
                 '<div class="oc-time">' + dateStr + ' · ' + timeStr + ' &nbsp;•&nbsp; <strong style="color:#475569;">' + tokenStr + '</strong></div>' +
               '</div>' +
             '</div>' +
             '<span class="oc-status-badge ' + statusBadge.cls + '">' + statusBadge.text + '</span>' +
           '</div>' +
           '<div class="oc-body">' +
-            '<div class="oc-file-row">' +
-              '<div class="oc-file-icon ' + fileInfo.cls + '">' + fileInfo.icon + '</div>' +
-              '<div class="oc-file-name" title="' + escapeHtml(o.file_name) + '">' + escapeHtml(o.file_name) + '</div>' +
-              previewBtn +
-            '</div>' +
-            '<div class="oc-details-grid">' +
-              '<div class="oc-detail"><span class="oc-detail-label">Pages</span><span class="oc-detail-value">' + pagesVal + '</span></div>' +
-              '<div class="oc-detail"><span class="oc-detail-label">Page Range</span><span class="oc-detail-value" style="' + rangeStyle + '">' + rangeLabel + '</span></div>' +
-              '<div class="oc-detail"><span class="oc-detail-label">Sheets</span><span class="oc-detail-value">' + sheetsDisplay + '</span></div>' +
-              '<div class="oc-detail"><span class="oc-detail-label">Copies</span>' + copiesDisplay + '</div>' +
-              '<div class="oc-detail"><span class="oc-detail-label">Print Type</span><span class="oc-detail-value">' + typeLabel + '</span></div>' +
-              '<div class="oc-detail"><span class="oc-detail-label">Sides</span><span class="oc-detail-value">' + sideLabel + ppsLabel + '</span></div>' +
-            '</div>' +
+            filesHtml +
           '</div>' +
           '<div class="oc-footer">' +
             '<div>' + payBadge + '</div>' +
-            '<div class="oc-price">₹' + o.price + '</div>' +
+            '<div class="oc-price">₹' + totalPrice + '</div>' +
             actionBtns +
           '</div>' +
         '</div>';

@@ -1034,41 +1034,53 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (!['paid', 'payment_failed', 'pending', 'created'].includes(order.status)) {
-      return res.status(400).json({ error: `Cannot accept order with status "${order.status}"` });
+
+    let batchOrders = [order];
+    if (order.batch_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE batch_id = ?').all(order.batch_id);
+    } else if (order.cashfree_order_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE cashfree_order_id = ?').all(order.cashfree_order_id);
+    } else if (order.razorpay_order_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE razorpay_order_id = ?').all(order.razorpay_order_id);
     }
 
-    tracker.unmarkOrderPrinted(req.params.id);
-    const payMethod = req.body.paymentMethod || (['payment_failed', 'pending', 'created'].includes(order.status) ? 'cash' : order.payment_method || 'cash');
-    db.prepare("UPDATE orders SET status = 'accepted', payment_status = 'paid', payment_method = ?, is_printed = 0 WHERE id = ?").run(payMethod, req.params.id);
+    const payMethod = req.body.paymentMethod || 'cash';
+    let count = 0;
 
-    const printer = await resolvePrinterName(req.body.printer, order.print_type === 'color');
+    for (const bOrder of batchOrders) {
+      if (['paid', 'payment_failed', 'pending', 'created'].includes(bOrder.status)) {
+        tracker.unmarkOrderPrinted(bOrder.id);
+        const finalPayMethod = (['payment_failed', 'pending', 'created'].includes(bOrder.status)) ? payMethod : (bOrder.payment_method || payMethod);
+        db.prepare("UPDATE orders SET status = 'accepted', payment_status = 'paid', payment_method = ?, is_printed = 0 WHERE id = ?").run(finalPayMethod, bOrder.id);
 
-    // Save selected printer to order
-    db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, req.params.id);
+        const printer = await resolvePrinterName(req.body.printer, bOrder.print_type === 'color');
+        db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, bOrder.id);
 
-    // Try direct print (for local server), falls back to local-printer.js polling
-    try {
-      const printers = await getPrintersHidden();
-      const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
-      if (hasPrinter) {
-        if (order.is_id_copy) {
-          const frontPath = path.join(__dirname, 'uploads', order.file_path);
-          const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
-          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
-          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-          await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
-        } else {
-          await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
+        try {
+          const printers = await getPrintersHidden();
+          const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+          if (hasPrinter) {
+            if (bOrder.is_id_copy) {
+              const frontPath = path.join(__dirname, 'uploads', bOrder.file_path);
+              const backPath = bOrder.back_file_path ? path.join(__dirname, 'uploads', bOrder.back_file_path) : '';
+              const combinedPath = path.join(__dirname, 'uploads', 'combined_' + bOrder.file_path);
+              await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+              await printFile(combinedPath, 'combined_' + bOrder.file_name, printer, bOrder.print_type, bOrder.print_side, bOrder.page_range, bOrder.copies, bOrder.orientation);
+            } else {
+              await printFile(path.join(__dirname, 'uploads', bOrder.file_path), bOrder.file_name, printer, bOrder.print_type, bOrder.print_side, bOrder.page_range, bOrder.copies, bOrder.orientation);
+            }
+            tracker.markOrderPrinted(bOrder.id);
+          }
+        } catch (e) {
+          console.error('Accept direct print error:', e.message);
         }
-        tracker.markOrderPrinted(req.params.id);
+        count++;
       }
-    } catch (e) {
-      console.error('Accept direct print error:', e.message);
     }
 
-    res.json({ success: true, message: 'Order accepted' });
+    res.json({ success: true, message: `Accepted ${count} order file(s)` });
   } catch (err) {
+    console.error('Accept batch error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -1079,13 +1091,21 @@ app.post('/api/admin/orders/:id/reject', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (order.status !== 'paid') {
-      return res.status(400).json({ error: `Cannot reject order with status "${order.status}"` });
+
+    let batchOrders = [order];
+    if (order.batch_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE batch_id = ?').all(order.batch_id);
+    } else if (order.cashfree_order_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE cashfree_order_id = ?').all(order.cashfree_order_id);
+    } else if (order.razorpay_order_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE razorpay_order_id = ?').all(order.razorpay_order_id);
     }
 
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('rejected', req.params.id);
+    for (const bOrder of batchOrders) {
+      db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('rejected', bOrder.id);
+    }
 
-    res.json({ success: true, message: 'Order rejected.' });
+    res.json({ success: true, message: `Rejected ${batchOrders.length} order file(s).` });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1199,10 +1219,21 @@ app.delete('/api/admin/orders/:id', (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    deleteOrderFiles(order);
-    db.prepare('DELETE FROM orders WHERE id = ?').run(req.params.id);
+    let batchOrders = [order];
+    if (order.batch_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE batch_id = ?').all(order.batch_id);
+    } else if (order.cashfree_order_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE cashfree_order_id = ?').all(order.cashfree_order_id);
+    } else if (order.razorpay_order_id) {
+      batchOrders = db.prepare('SELECT * FROM orders WHERE razorpay_order_id = ?').all(order.razorpay_order_id);
+    }
 
-    res.json({ success: true, message: 'Order and uploaded document deleted successfully' });
+    for (const bOrder of batchOrders) {
+      deleteOrderFiles(bOrder);
+      db.prepare('DELETE FROM orders WHERE id = ?').run(bOrder.id);
+    }
+
+    res.json({ success: true, message: `Deleted ${batchOrders.length} order file(s)` });
   } catch (err) {
     console.error('Delete order error:', err);
     res.status(500).json({ error: 'Server error: ' + err.message });
