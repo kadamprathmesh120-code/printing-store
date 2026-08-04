@@ -1743,6 +1743,9 @@
         orders = orders.filter(function(o) { return o.status === 'accepted'; });
       } else if (currentTab === 'failed') {
         orders = orders.filter(function(o) { return o.status === 'rejected' || o.status === 'payment_failed'; });
+      } else {
+        // 'all' tab — hide rejected orders from main view so rejected orders vanish!
+        orders = orders.filter(function(o) { return o.status !== 'rejected'; });
       }
 
       if (orders.length === 0) {
@@ -2043,13 +2046,26 @@
 
     function rejectOrder(id) {
       if (!confirm('Reject this order?')) return;
+      var target = allOrders ? allOrders.find(function(o) { return o.id === id; }) : null;
+      if (target) {
+        var bKey = target.batch_id || target.cashfree_order_id || target.razorpay_order_id;
+        if (bKey) {
+          allOrders = allOrders.filter(function(o) {
+            return o.batch_id !== bKey && o.cashfree_order_id !== bKey && o.razorpay_order_id !== bKey && o.id !== id;
+          });
+        } else {
+          allOrders = allOrders.filter(function(o) { return o.id !== id; });
+        }
+        renderOrders();
+      }
       fetch('/api/admin/orders/' + id + '/reject', { method: 'POST', headers: adminHeaders() })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          showToast('error', 'Order Rejected', data.message || 'Order has been rejected');
+          if (data.error) { alert(data.error); return; }
+          showToast('error', 'Order Rejected', data.message || 'Order rejected');
           fetchOrders();
         })
-        .catch(function() { alert('Failed'); });
+        .catch(function() { alert('Failed to reject order'); });
     }
 
     function reportMachineError(id) {
