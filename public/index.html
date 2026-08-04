@@ -1064,6 +1064,19 @@
         </div>
         <div class="order-id" style="text-align:center;"><span data-i18n="orderIdsLabel">Order Ref:</span> <span id="orderIdsSpan"></span></div>
 
+        <!-- High Priority English Notice Banner & 1-Tap WhatsApp Button -->
+        <div style="background:linear-gradient(135deg, #10B981, #059669);color:#ffffff;padding:16px;border-radius:16px;margin:14px 0;text-align:center;box-shadow:0 6px 18px rgba(16,185,129,0.3);border:2px solid #34D399;">
+          <div style="font-size:1.15rem;font-weight:900;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <span>📢 PLEASE INFORM THE SHOP COUNTER</span>
+          </div>
+          <p style="font-size:0.9rem;margin:0 0 12px;opacity:0.96;line-height:1.4;">
+            Show your <strong>Token Number</strong> at the shop counter or send 1-Tap WhatsApp to inform staff!
+          </p>
+          <button type="button" onclick="openCustomerWhatsApp()" style="background:#ffffff;color:#047857;font-weight:800;font-size:0.95rem;padding:12px 22px;border-radius:30px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+            <span style="font-size:1.25rem;">💬</span> Send Token via WhatsApp
+          </button>
+        </div>
+
         <!-- Progress Stepper Timeline -->
         <div class="stepper-progress">
           <div id="stepperLineActive" class="stepper-line-active"></div>
@@ -3955,8 +3968,12 @@
     function openCustomerWhatsApp() {
       var token = document.getElementById('shortTokenDisplay') ? document.getElementById('shortTokenDisplay').textContent : 'Token';
       var nameEl = document.getElementById('summaryCustomerName');
-      var name = nameEl ? nameEl.textContent : '';
-      var msg = 'Hi Store! I placed an order. ' + name + ' (' + token + '). Please check my order status.';
+      var rawName = nameEl ? nameEl.textContent : '';
+      var name = rawName.replace('Customer: ', '').trim();
+      var msg = 'Hello! I placed a print order at your store.\n\n' +
+                '🔖 ' + token + '\n' +
+                (name ? ('👤 Name: ' + name + '\n') : '') +
+                '\nPlease print my order.';
       var storeNumber = '919881093852';
       var url = 'https://wa.me/' + storeNumber + '?text=' + encodeURIComponent(msg);
       window.open(url, '_blank');
