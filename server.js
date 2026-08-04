@@ -399,11 +399,12 @@ app.post('/api/upload', (req, res) => {
       }
 
       const copyCount = parseInt(copies) || 1;
+      const batchId = 'batch_' + uuidv4();
       // Cash orders go directly to 'paid' so admin sees Accept button immediately
       const initialStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type, pages_per_sheet)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type, pages_per_sheet, batch_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orders = [];
@@ -476,7 +477,7 @@ app.post('/api/upload', (req, res) => {
         const filePriceBeforeDiscount = sheets * copyCount * 5;
         const fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / totalPriceBeforeDiscount));
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard', pagesPerSheet);
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard', pagesPerSheet, batchId);
 
         orders.push({
           orderId: id,
