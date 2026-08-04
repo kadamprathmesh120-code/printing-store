@@ -5,23 +5,22 @@ param(
 )
 Add-Type -AssemblyName System.Drawing
 
-# Use 600 DPI for maximum print quality (was 300 DPI which loses detail at print time)
-# 600 DPI on A4: 210mm x 297mm = 4961 x 7016 px
-$dpi   = 600
-$pageW = [int](210 * $dpi / 25.4)   # 4961
-$pageH = [int](297 * $dpi / 25.4)   # 7016
+# Use standard 300 DPI for fast crisp print quality (prevents slow processing)
+$dpi   = 300
+$pageW = [int](210 * $dpi / 25.4)   # 2480
+$pageH = [int](297 * $dpi / 25.4)   # 3508
 
 $bmp = New-Object System.Drawing.Bitmap($pageW, $pageH)
-$bmp.SetResolution($dpi, $dpi)   # Embed 600 DPI metadata so printer knows the true resolution
+$bmp.SetResolution($dpi, $dpi)   # Embed 300 DPI metadata
 
 $gr = [System.Drawing.Graphics]::FromImage($bmp)
 $gr.Clear([System.Drawing.Color]::White)
 
-# Highest quality rendering
-$gr.InterpolationMode  = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$gr.SmoothingMode      = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-$gr.PixelOffsetMode    = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-$gr.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+# Fast standard quality rendering
+$gr.InterpolationMode  = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBilinear
+$gr.SmoothingMode      = [System.Drawing.Drawing2D.SmoothingMode]::Default
+$gr.PixelOffsetMode    = [System.Drawing.Drawing2D.PixelOffsetMode]::Default
+$gr.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighSpeed
 
 # Exact 86mm x 54mm ID Card at 600 DPI
 # 1mm = 600/25.4 = 23.62 px

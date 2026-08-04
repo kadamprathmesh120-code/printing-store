@@ -71,7 +71,11 @@ function printPdfSilent(filePath, opts) {
       settings.push('simplex');
     }
     if (opts.monochrome) settings.push('monochrome');
-    if (opts.orientation === 'landscape') settings.push('landscape');
+    if (opts.orientation === 'landscape') {
+      settings.push('landscape');
+    } else if (opts.orientation === 'portrait') {
+      settings.push('portrait');
+    }
 
     var cleanRange = sanitizePageRange(opts.pages);
     if (cleanRange && cleanRange !== 'all') settings.push(cleanRange);
@@ -306,6 +310,6 @@ console.log('');
 console.log('IMPORTANT: If the BW printer prints extra copies, run this ONCE as Admin:');
 console.log('  Set-PrintConfiguration -PrinterName "' + BW_PRINTER + '" -CopyCount 1');
 console.log('');
-console.log('Checking every 10 seconds...');
+console.log('Checking every 3 seconds...');
 checkAndPrint();
-setInterval(checkAndPrint, 10000);
+setInterval(checkAndPrint, 3000);

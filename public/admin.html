@@ -1776,6 +1776,14 @@
             callBtn +
             '<button class="oc-action-btn reject" style="background:#f59e0b;border-color:#d97706;color:#fff;" onclick="reportMachineError(\'' + o.id + '\')" title="Notify customer of machine delay">⚠️ Machine Error</button>' +
             '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
+        } else if (o.status === 'payment_failed' || o.status === 'pending' || o.status === 'created') {
+          // Payment failed or pending — allow admin to accept if customer pays cash in store!
+          var acceptBtnLabel = '<i data-lucide="banknote" style="width:14px;height:14px;"></i> Collect Cash (₹' + o.price + ') & Print';
+          actionBtns +=
+            '<button class="oc-action-btn accept" style="background:#059669;border-color:#059669;" onclick="acceptOrder(\'' + o.id + '\', \'cash\')">' + acceptBtnLabel + '</button>' +
+            '<button class="oc-action-btn" style="background:#25D366;border-color:#25D366;color:#fff;" onclick="sendWhatsAppToCustomer(\'' + escapeHtml(o.mobile_number || '') + '\', \'' + escapeHtml(o.customer_name || '') + '\', \'' + o.id + '\', \'' + o.price + '\')" title="Send 1-Tap Free WhatsApp notification to customer">💬 WhatsApp</button>' +
+            callBtn +
+            '<button class="oc-action-btn reject" onclick="rejectOrder(\'' + o.id + '\')"><i data-lucide="x" style="width:14px;height:14px;"></i> Reject</button>';
         } else if (o.status === 'accepted') {
           // Already accepted & sent to printer — NO accept button, just support actions
           actionBtns +=
@@ -1960,7 +1968,7 @@
       // Trigger printer-specific sound alert (KONICA.mp3 for Konica/Color)
       playPrinterAlert(printer, cName, fName, copies, printType);
 
-      fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ printer: printer }) })
+      fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ printer: printer, paymentMethod: paymentMethod }) })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (data.error) { alert(data.error); return; }

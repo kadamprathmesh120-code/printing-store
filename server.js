@@ -77,7 +77,11 @@ function printPdfSilent(filePath, opts) {
     }
 
     if (opts.monochrome) settings.push('monochrome');
-    if (opts.orientation === 'landscape') settings.push('landscape');
+    if (opts.orientation === 'landscape') {
+      settings.push('landscape');
+    } else if (opts.orientation === 'portrait') {
+      settings.push('portrait');
+    }
     
     const cleanRange = sanitizePageRange(opts.pages);
     if (cleanRange && cleanRange !== 'all') settings.push(cleanRange);
@@ -1029,12 +1033,13 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (order.status !== 'paid') {
+    if (!['paid', 'payment_failed', 'pending', 'created'].includes(order.status)) {
       return res.status(400).json({ error: `Cannot accept order with status "${order.status}"` });
     }
 
     tracker.unmarkOrderPrinted(req.params.id);
-    db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', req.params.id);
+    const payMethod = req.body.paymentMethod || (['payment_failed', 'pending', 'created'].includes(order.status) ? 'cash' : order.payment_method || 'cash');
+    db.prepare("UPDATE orders SET status = 'accepted', payment_status = 'paid', payment_method = ?, is_printed = 0 WHERE id = ?").run(payMethod, req.params.id);
 
     const printer = await resolvePrinterName(req.body.printer, order.print_type === 'color');
 

@@ -12,42 +12,25 @@ Add-Type -AssemblyName System.Drawing
 $imgStream = [System.IO.File]::OpenRead($filePath)
 $img = [System.Drawing.Image]::FromStream($imgStream)
 
-$pd = New-Object System.Drawing.Printing.PrintDocument
-$pd.PrinterSettings.PrinterName = $printerName
-
-# Set max printer DPI for highest quality output
-try {
-  $maxDpiX = $pd.PrinterSettings.DefaultPageSettings.PrinterResolution.X
-  $maxDpiY = $pd.PrinterSettings.DefaultPageSettings.PrinterResolution.Y
-
-  # Find the highest resolution the printer supports
-  $bestRes = $pd.PrinterSettings.PrinterResolutions |
-    Where-Object { $_.Kind -eq 'Custom' -and $_.X -gt 0 } |
-    Sort-Object { $_.X } -Descending |
-    Select-Object -First 1
-
-  if ($null -eq $bestRes) {
-    $bestRes = $pd.PrinterSettings.PrinterResolutions |
-      Sort-Object { $_.X } -Descending |
-      Select-Object -First 1
-  }
-
-  if ($bestRes -ne $null) {
-    $pd.DefaultPageSettings.PrinterResolution = $bestRes
-    Write-Host "Set printer DPI: $($bestRes.X) x $($bestRes.Y)"
-  }
-} catch {
-  Write-Host "Note: Could not set printer DPI (non-critical): $_"
+# Auto-rotate image if customer requested orientation differs from native image dimensions
+if ($orientation -eq 'landscape' -and $img.Width -lt $img.Height) {
+  $img.RotateFlip([System.Drawing.RotateFlipType]::Rotate90FlipNone)
+} elseif ($orientation -eq 'portrait' -and $img.Width -gt $img.Height) {
+  $img.RotateFlip([System.Drawing.RotateFlipType]::Rotate270FlipNone)
 }
 
-# Always set copies explicitly so printer defaults don't override
+$pd = New-Object System.Drawing.Printing.PrintDocument
+$pd.PrinterSettings.PrinterName = $printerName
 $pd.PrinterSettings.Copies = [short]([Math]::Max(1, $copies))
 
-# Set Landscape / Portrait orientation
+# Inherit user's default Windows Printing Preferences
+# Set Landscape / Portrait orientation on BOTH DefaultPageSettings and PrinterSettings driver defaults
 if ($orientation -eq 'landscape') {
   $pd.DefaultPageSettings.Landscape = $true
+  try { $pd.PrinterSettings.DefaultPageSettings.Landscape = $true } catch {}
 } else {
   $pd.DefaultPageSettings.Landscape = $false
+  try { $pd.PrinterSettings.DefaultPageSettings.Landscape = $false } catch {}
 }
 
 # Force Simplex (Single Side) to prevent duplex printer drivers from ejecting a 2nd blank page
@@ -69,11 +52,11 @@ $pd.add_PrintPage({
     return
   }
 
-  # ---- Highest quality GDI+ rendering flags ----
-  $e.Graphics.InterpolationMode   = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-  $e.Graphics.SmoothingMode       = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-  $e.Graphics.PixelOffsetMode     = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-  $e.Graphics.CompositingQuality  = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+  # ---- Fast high-speed rendering flags ----
+  $e.Graphics.InterpolationMode   = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBilinear
+  $e.Graphics.SmoothingMode       = [System.Drawing.Drawing2D.SmoothingMode]::Default
+  $e.Graphics.PixelOffsetMode     = [System.Drawing.Drawing2D.PixelOffsetMode]::Default
+  $e.Graphics.CompositingQuality  = [System.Drawing.Drawing2D.CompositingQuality]::HighSpeed
   $e.Graphics.CompositingMode     = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
 
   # Use VisibleClipBounds — actual printable area returned by the printer driver
