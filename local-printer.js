@@ -208,7 +208,14 @@ var activePrints = new Set();
 
 async function checkAndPrint() {
   try {
-    // sendPrinterHeartbeat(); // Disabled printer polling
+    // Sync active B&W printer selection from Render server
+    try {
+      var serverCfg = await fetchJson(RENDER_URL + '/api/admin/printer-config');
+      if (serverCfg && serverCfg.bwPrinter) {
+        fs.writeFileSync(PRINTER_CONFIG, JSON.stringify({ bwPrinter: serverCfg.bwPrinter }, null, 2));
+      }
+    } catch(e) {}
+
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
     if (!Array.isArray(orders)) return; // server not ready or returned an error object
     var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !tracker.isOrderPrinted(o.id); });
@@ -232,9 +239,14 @@ async function checkAndPrint() {
           fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
           await downloadFile(fileUrl, localFile);
 
-          // Strictly restrict HP printer to Color orders only. B&W orders MUST go to Kyocera/Konica B&W printer.
+          // Dynamically fetch current active B&W printer
+          var activeBw = BW_PRINTER_DEFAULT;
+          if (fs.existsSync(PRINTER_CONFIG)) {
+            try { activeBw = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || activeBw; } catch(e) {}
+          }
+
           var isColorOrder = (order.print_type === 'color');
-          var requestedPrinter = isColorOrder ? COLOR_PRINTER : (order.printer_name && !order.printer_name.toLowerCase().includes('hp') ? order.printer_name : BW_PRINTER);
+          var requestedPrinter = isColorOrder ? COLOR_PRINTER : activeBw;
           var printer = await resolvePrinterName(requestedPrinter);
           console.log('DEBUG: order.id=' + order.id + ', copies=' + order.copies + ', printer=' + printer + ', file=' + order.file_name);
           var isPdf = ext === '.pdf';

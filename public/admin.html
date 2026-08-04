@@ -1096,6 +1096,18 @@
     function setActiveBwPrinter(which) {
       activeBwPrinter = which;
       localStorage.setItem('activeBwPrinter', which);
+      var fullPrinterName = (which === 'kyocera') ? KYOCERA_PRINTER : KONICA_PRINTER;
+
+      // Sync active printer selection to server printer-config.json
+      fetch('/api/admin/select-printer', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ bwPrinter: fullPrinterName })
+      }).then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) console.log('B&W printer synced to server:', fullPrinterName);
+        }).catch(function(e) { console.error('Failed to sync printer selection:', e); });
+
       // Update selector buttons
       document.getElementById('selectKonica').className = 'printer-select-btn' + (which === 'konica' ? ' active' : '');
       document.getElementById('selectKyocera').className = 'printer-select-btn' + (which === 'kyocera' ? ' active' : '');
@@ -1105,8 +1117,20 @@
       showToast('info', 'Active Printer Changed', 'B&W orders will now print on ' + label);
     }
 
-    // Initialize selector from saved preference
+    // Initialize selector from saved preference and server config
     (function() {
+      fetch('/api/admin/printer-config')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.bwPrinter) {
+            var isKonica = data.bwPrinter.toLowerCase().includes('205i') || data.bwPrinter.toLowerCase().includes('konica');
+            activeBwPrinter = isKonica ? 'konica' : 'kyocera';
+            localStorage.setItem('activeBwPrinter', activeBwPrinter);
+            document.getElementById('selectKonica').className = 'printer-select-btn' + (activeBwPrinter === 'konica' ? ' active' : '');
+            document.getElementById('selectKyocera').className = 'printer-select-btn' + (activeBwPrinter === 'kyocera' ? ' active' : '');
+            updatePrinterCards();
+          }
+        }).catch(function(e) {});
       document.getElementById('selectKonica').className = 'printer-select-btn' + (activeBwPrinter === 'konica' ? ' active' : '');
       document.getElementById('selectKyocera').className = 'printer-select-btn' + (activeBwPrinter === 'kyocera' ? ' active' : '');
     })();
