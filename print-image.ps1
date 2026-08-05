@@ -36,17 +36,13 @@ if ($orientation -eq 'landscape') {
 # Force Simplex (Single Side) to prevent duplex printer drivers from ejecting a 2nd blank page
 $pd.DefaultPageSettings.Duplex = [System.Drawing.Printing.Duplex]::Simplex
 
-# Enable Color Printing capability for HP printer
+# Enable Color Printing & set 300 DPI Quality for HP printer (matching Microsoft Edge)
 if ($printerName -like '*HP*' -or $printerName -like '*Smart Tank*') {
   $pd.DefaultPageSettings.Color = $true
   try { $pd.PrinterSettings.DefaultPageSettings.Color = $true } catch {}
 
-  # Set 300 DPI Quality ONLY for HP Printer
   try {
     $res300 = $pd.PrinterSettings.PrinterResolutions | Where-Object { $_.X -eq 300 -and $_.Y -eq 300 } | Select-Object -First 1
-    if (-not $res300) {
-      $res300 = $pd.PrinterSettings.PrinterResolutions | Where-Object { $_.X -ge 300 -and $_.Y -ge 300 } | Select-Object -First 1
-    }
     if ($res300) {
       $pd.DefaultPageSettings.PrinterResolution = $res300
       try { $pd.PrinterSettings.DefaultPageSettings.PrinterResolution = $res300 } catch {}
