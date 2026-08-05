@@ -1053,18 +1053,24 @@
     <div id="stepCashConfirm" class="step hidden">
       <div style="text-align:center;padding:24px 8px;">
         <div style="font-size:3rem;margin-bottom:12px;">💵</div>
-        <h2 style="margin-bottom:8px;font-size:1.3rem;">Cash Payment</h2>
-        <p style="color:#4b5563;font-size:0.95rem;margin-bottom:20px;line-height:1.6;">
-          Please pay cash at the <strong>shop counter</strong>.<br>
-          <span style="color:#059669;font-weight:700;">🤝 Change is available at counter for ₹100, ₹200 & ₹500 notes!</span><br>
-          Your document will be printed after cash is received.
-        </p>
-        <p style="font-weight:600;font-size:1.05rem;margin-bottom:24px;color:#374151;">Have you paid cash at the counter?</p>
-        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-          <button id="btnCashYes" onclick="confirmCashPaid()" class="rpc-btn" style="background:#16a34a;border-color:#16a34a;color:#fff;min-width:160px;font-size:1rem;padding:12px 24px;">✅ Yes, I Paid</button>
-          <button onclick="cancelCashConfirm()" class="rpc-btn" style="background:#ef4444;border-color:#ef4444;color:#fff;min-width:160px;font-size:1rem;padding:12px 24px;">❌ No, Cancel</button>
+        <h2 style="margin-bottom:8px;font-size:1.35rem;font-weight:800;color:#111827;">Confirm Cash Order</h2>
+        
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin:16px 0;text-align:left;line-height:1.5;">
+          <div style="font-size:0.92rem;font-weight:700;color:#1e293b;margin-bottom:8px;">📌 Easy 3-Step Process:</div>
+          <div style="font-size:0.88rem;color:#334155;margin-bottom:6px;">1️⃣ Click <strong>"Confirm & Get Token"</strong> below.</div>
+          <div style="font-size:0.88rem;color:#334155;margin-bottom:6px;">2️⃣ Show your <strong>Token #</strong> & pay cash at shop counter.</div>
+          <div style="font-size:0.88rem;color:#334155;">3️⃣ Collect your printed document!</div>
         </div>
-        <div id="cashConfirmError" style="color:#ef4444;margin-top:14px;font-size:0.88em;"></div>
+
+        <p style="color:#059669;font-size:0.9rem;font-weight:700;margin-bottom:20px;">
+          🤝 Change is available at counter for ₹100, ₹200 & ₹500 notes!
+        </p>
+
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <button id="btnCashYes" onclick="confirmCashPaid()" class="rpc-btn" style="background:#16a34a;border-color:#16a34a;color:#fff;min-width:180px;font-size:1.05rem;font-weight:800;padding:14px 24px;border-radius:12px;box-shadow:0 4px 12px rgba(22,163,74,0.3);">✅ Confirm & Get Token</button>
+          <button onclick="cancelCashConfirm()" class="rpc-btn" style="background:#64748b;border-color:#64748b;color:#fff;min-width:140px;font-size:0.95rem;padding:14px 20px;border-radius:12px;">↩️ Back</button>
+        </div>
+        <div id="cashConfirmError" style="color:#ef4444;margin-top:14px;font-size:0.88em;font-weight:600;"></div>
       </div>
     </div>
 
