@@ -108,12 +108,17 @@ function execP(cmd) {
 
 const RENDER_URL = 'https://printing-store.onrender.com';
 const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
+const COLOR_PRINTER_DEFAULT = 'HP95224C (HP Smart Tank 580-590 series)';
 const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
 var BW_PRINTER = BW_PRINTER_DEFAULT;
+var COLOR_PRINTER = COLOR_PRINTER_DEFAULT;
 if (fs.existsSync(PRINTER_CONFIG)) {
-  try { BW_PRINTER = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || BW_PRINTER; } catch(e) {}
+  try {
+    var cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8'));
+    BW_PRINTER = cfg.bwPrinter || BW_PRINTER;
+    COLOR_PRINTER = cfg.colorPrinter || COLOR_PRINTER;
+  } catch(e) {}
 }
-const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
 const tracker = require('./printer-tracker');
 const TRACKING_FILE = path.join(__dirname, 'printed-orders.json');
 const DOWNLOAD_DIR = path.join(__dirname, 'downloads');

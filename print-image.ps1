@@ -36,6 +36,10 @@ if ($orientation -eq 'landscape') {
 # Force Simplex (Single Side) to prevent duplex printer drivers from ejecting a 2nd blank page
 $pd.DefaultPageSettings.Duplex = [System.Drawing.Printing.Duplex]::Simplex
 
+# Enable Color Printing driver capability
+$pd.DefaultPageSettings.Color = $true
+try { $pd.PrinterSettings.DefaultPageSettings.Color = $true } catch {}
+
 # Zero margins — maximize printable area (hardware margin still applies physically)
 $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
 $pd.OriginAtMargins = $false
@@ -52,11 +56,11 @@ $pd.add_PrintPage({
     return
   }
 
-  # ---- Fast high-speed rendering flags ----
-  $e.Graphics.InterpolationMode   = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBilinear
-  $e.Graphics.SmoothingMode       = [System.Drawing.Drawing2D.SmoothingMode]::Default
-  $e.Graphics.PixelOffsetMode     = [System.Drawing.Drawing2D.PixelOffsetMode]::Default
-  $e.Graphics.CompositingQuality  = [System.Drawing.Drawing2D.CompositingQuality]::HighSpeed
+  # ---- High-Quality Color & Photo rendering flags ----
+  $e.Graphics.InterpolationMode   = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $e.Graphics.SmoothingMode       = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+  $e.Graphics.PixelOffsetMode     = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+  $e.Graphics.CompositingQuality  = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
   $e.Graphics.CompositingMode     = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
 
   # Use VisibleClipBounds — actual printable area returned by the printer driver
