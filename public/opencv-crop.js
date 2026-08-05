@@ -935,8 +935,8 @@ function applyFilter(ctx, w, h, mode) {
           if (remY >= 0) { var ri2 = remY * w + x; sR -= tmpR[ri2]; sG -= tmpG[ri2]; sB -= tmpB[ri2]; sL -= tmpL[ri2]; cnt--; }
         }
       }
-      // Clean shadow removal with background division (illumination flattening)
-      var targetPaper = 245;
+      // Pure White Background Paper Magic Filter (0% printer toner on paper background)
+      var targetPaper = 255;
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
@@ -946,34 +946,35 @@ function applyFilter(ctx, w, h, mode) {
           var bR = bgR[idx], bG = bgG[idx], bB = bgB[idx];
           var bL = bg[idx];
 
-          // Color detection (photo, stamp, seal, signature)
+          // Color detection (face photo, stamp, seal, signature)
           var isColor = Math.abs(origR - origG) > 14 || Math.abs(origG - origB) > 14 || Math.abs(origR - origB) > 14;
 
-          // 1. Division by local background flattens shadows completely
+          // 1. Local background division flattens lighting
           var normR = bR > 10 ? (origR / bR) * targetPaper : origR;
           var normG = bG > 10 ? (origG / bG) * targetPaper : origG;
           var normB = bB > 10 ? (origB / bB) * targetPaper : origB;
 
-          // 2. Soft blend with original to keep colors natural
-          var valR = isColor ? origR * 0.85 + normR * 0.15 : normR;
-          var valG = isColor ? origG * 0.85 + normG * 0.15 : normG;
-          var valB = isColor ? origB * 0.85 + normB * 0.15 : normB;
+          var valR = isColor ? origR : normR;
+          var valG = isColor ? origG : normG;
+          var valB = isColor ? origB : normB;
 
           var lum = valR * 0.299 + valG * 0.587 + valB * 0.114;
 
-          // 3. Text sharpening (ONLY for genuinely dark text, NEVER for paper shadows)
-          if (!isColor && origLum < bL * 0.52 && origLum < 130) {
-            var textDarkness = Math.min(1, (130 - origLum) / 100);
-            var k = 0.55 + 0.35 * textDarkness;
-            valR = valR * (1 - k);
-            valG = valG * (1 - k);
-            valB = valB * (1 - k);
-          } else if (!isColor && lum > 210) {
-            // Smooth paper whitening (removes light residual shadow tones completely)
-            var wFactor = Math.min(1, (lum - 210) / 40);
-            valR = valR + (255 - valR) * wFactor * 0.7;
-            valG = valG + (255 - valG) * wFactor * 0.7;
-            valB = valB + (255 - valB) * wFactor * 0.7;
+          if (!isColor) {
+            if (origLum < bL * 0.52 && origLum < 135) {
+              // Crisp dark text
+              var textDarkness = Math.min(1, (135 - origLum) / 100);
+              var k = 0.60 + 0.35 * textDarkness;
+              valR = valR * (1 - k);
+              valG = valG * (1 - k);
+              valB = valB * (1 - k);
+            } else if (lum > 160) {
+              // PURE CLEAN WHITE PAPER (255, 255, 255) — 0% grey ink printed!
+              var wFactor = Math.min(1, (lum - 160) / 45);
+              valR = valR + (255 - valR) * wFactor;
+              valG = valG + (255 - valG) * wFactor;
+              valB = valB + (255 - valB) * wFactor;
+            }
           }
 
           d[idx*4] = Math.round(Math.min(255, Math.max(0, valR)));
