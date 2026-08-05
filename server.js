@@ -1242,7 +1242,7 @@ app.delete('/api/admin/orders/:id', (req, res) => {
 
 app.post('/api/admin/cleanup-files', (req, res) => {
   try {
-    const retentionHours = parseInt(req.body?.retentionHours || process.env.PREVIEW_RETENTION_HOURS || '168', 10);
+    const retentionHours = parseInt(req.body?.retentionHours || process.env.PREVIEW_RETENTION_HOURS || '24', 10);
     const retentionMs = retentionHours * 60 * 60 * 1000;
     const cutoffDate = new Date(Date.now() - retentionMs).toISOString();
 
@@ -1283,7 +1283,7 @@ app.post('/api/admin/cleanup-files', (req, res) => {
 
 function autoCleanupUploadedDocuments() {
   try {
-    const retentionHours = parseInt(process.env.PREVIEW_RETENTION_HOURS || '168', 10); // 7 days retention for admin preview
+    const retentionHours = parseInt(process.env.PREVIEW_RETENTION_HOURS || '24', 10); // 1 day retention (24 hours) for admin preview
     const retentionMs = retentionHours * 60 * 60 * 1000;
     const cutoffDate = new Date(Date.now() - retentionMs).toISOString();
 
