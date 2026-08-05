@@ -2418,6 +2418,7 @@
       }
 
       _customerAudioPlayed = false;
+      unlockCustomerAudio();
       var btn = document.getElementById('btnRazorpayReview');
       btn.disabled = true;
       btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
