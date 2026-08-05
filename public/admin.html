@@ -1295,34 +1295,8 @@
       if (!voiceEnabled) return;
       try {
         var isCash = order && (order.payment_method === 'cash');
-        
-        // 1. Try playing custom uploaded MP3 audio file first!
-        playCustomAudioAlert(isCash, function() {
-          // 2. Fallback to Soundbox Chime & announcement if custom MP3 not uploaded yet
-          playPaytmSoundboxChime(isCash);
-
-          if (!('speechSynthesis' in window)) return;
-          window.speechSynthesis.cancel();
-
-          var msg = isCash 
-            ? 'New Cash Order! Please collect cash at counter.'
-            : 'New Online Payment Order! Printing started.';
-
-          var utter = new SpeechSynthesisUtterance(msg);
-          utter.lang = 'en-IN';
-          utter.rate = 0.9;
-          utter.pitch = 1.0;
-          utter.volume = 1.0;
-
-          var voices = window.speechSynthesis.getVoices();
-          var inVoice = voices.find(function(v) { return v.lang && (v.lang.includes('en-IN') || v.lang.includes('en_IN')); });
-          if (!inVoice) inVoice = voices.find(function(v) { return v.lang && v.lang.startsWith('en'); });
-          if (inVoice) utter.voice = inVoice;
-
-          setTimeout(function() {
-            window.speechSynthesis.speak(utter);
-          }, 450);
-        });
+        // Only plays custom uploaded audio file (cash_order.mp3 or online_order.mp3) if present
+        playCustomAudioAlert(isCash, null);
       } catch(e) {
         console.error('Voice alert error:', e);
       }
