@@ -1883,7 +1883,7 @@
             ? '<span class="oc-payment-badge cashfree" style="background:#6366f1;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">💳 Cashfree</span>'
             : '<span class="oc-payment-badge razorpay">💳 Razorpay</span>');
 
-        var tokenStr = 'Token #P-' + o.id.substring(0, 6).toUpperCase();
+        var tokenStr = 'Token #P-' + o.id.substring(0, 6).toUpperCase() + ' (₹' + totalPrice + ')';
         var callBtn = o.mobile_number ? ('<a href="tel:' + escapeHtml(o.mobile_number) + '" class="oc-action-btn" style="background:#0284c7;border-color:#0284c7;color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:4px;" title="Call Customer">📞 Call</a>') : '';
 
         var actionBtns = '<div class="oc-actions">';

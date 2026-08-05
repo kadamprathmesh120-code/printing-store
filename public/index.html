@@ -4040,17 +4040,23 @@
       var msg = document.getElementById('statusMessage');
       var done = document.getElementById('statusDone');
 
+      var isCash = orders.some(function(o) { return o.payment_method === 'cash'; });
+      var totalPrice = orders.reduce(function(acc, o) { return acc + (o.price || 0); }, 0);
+      if (!totalPrice) {
+        try {
+          var p = document.getElementById('pscFinalTotal');
+          if (p) totalPrice = parseInt(p.textContent.replace(/[^\d]/g,'')) || 0;
+        } catch(e) {}
+      }
+
       var tokenDisplay = document.getElementById('shortTokenDisplay');
       if (currentOrderIds.length > 0) {
         var firstId = currentOrderIds[0];
-        var shortCode = 'Token #P-' + firstId.substring(0, 6).toUpperCase();
+        var shortCode = 'Token #P-' + firstId.substring(0, 6).toUpperCase() + (totalPrice ? (' (₹' + totalPrice + ')') : '');
         if (tokenDisplay) tokenDisplay.textContent = shortCode;
         var orderIdsSpan = document.getElementById('orderIdsSpan');
         if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
       }
-
-      var isCash = orders.some(function(o) { return o.payment_method === 'cash'; });
-      var totalPrice = orders.reduce(function(acc, o) { return acc + (o.price || 0); }, 0);
       var customerName = orders.length > 0 ? (orders[0].customer_name || '') : '';
       if (document.getElementById('summaryCustomerName')) {
         document.getElementById('summaryCustomerName').textContent = customerName ? ('Customer: ' + customerName) : '';
