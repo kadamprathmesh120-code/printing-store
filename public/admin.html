@@ -1272,36 +1272,57 @@
       } catch(e) {}
     }
 
+    function playCustomAudioAlert(isCash, fallback) {
+      var files = isCash 
+        ? ['/cash_order.mp3', '/cash.mp3', '/cash_order.wav', '/cash.wav']
+        : ['/online_order.mp3', '/online.mp3', '/online_order.wav', '/online.wav'];
+
+      function tryNext(index) {
+        if (index >= files.length) {
+          if (fallback) fallback();
+          return;
+        }
+        var a = new Audio(files[index]);
+        a.volume = 1.0;
+        a.play()
+          .then(function() { console.log('Playing custom audio alert:', files[index]); })
+          .catch(function() { tryNext(index + 1); });
+      }
+      tryNext(0);
+    }
+
     function playVoiceNotificationOrder(order) {
       if (!voiceEnabled) return;
       try {
         var isCash = order && (order.payment_method === 'cash');
         
-        // 1. Play crisp Paytm Soundbox Chime
-        playPaytmSoundboxChime(isCash);
+        // 1. Try playing custom uploaded MP3 audio file first!
+        playCustomAudioAlert(isCash, function() {
+          // 2. Fallback to Soundbox Chime & announcement if custom MP3 not uploaded yet
+          playPaytmSoundboxChime(isCash);
 
-        // 2. Speak pre-recorded simple clear announcement (NO names!)
-        if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
+          if (!('speechSynthesis' in window)) return;
+          window.speechSynthesis.cancel();
 
-        var msg = isCash 
-          ? 'New Cash Order! Please collect cash at counter.'
-          : 'New Online Payment Order! Printing started.';
+          var msg = isCash 
+            ? 'New Cash Order! Please collect cash at counter.'
+            : 'New Online Payment Order! Printing started.';
 
-        var utter = new SpeechSynthesisUtterance(msg);
-        utter.lang = 'en-IN';
-        utter.rate = 0.9;
-        utter.pitch = 1.0;
-        utter.volume = 1.0;
+          var utter = new SpeechSynthesisUtterance(msg);
+          utter.lang = 'en-IN';
+          utter.rate = 0.9;
+          utter.pitch = 1.0;
+          utter.volume = 1.0;
 
-        var voices = window.speechSynthesis.getVoices();
-        var inVoice = voices.find(function(v) { return v.lang && (v.lang.includes('en-IN') || v.lang.includes('en_IN')); });
-        if (!inVoice) inVoice = voices.find(function(v) { return v.lang && v.lang.startsWith('en'); });
-        if (inVoice) utter.voice = inVoice;
+          var voices = window.speechSynthesis.getVoices();
+          var inVoice = voices.find(function(v) { return v.lang && (v.lang.includes('en-IN') || v.lang.includes('en_IN')); });
+          if (!inVoice) inVoice = voices.find(function(v) { return v.lang && v.lang.startsWith('en'); });
+          if (inVoice) utter.voice = inVoice;
 
-        setTimeout(function() {
-          window.speechSynthesis.speak(utter);
-        }, 500); // Small delay after chime
+          setTimeout(function() {
+            window.speechSynthesis.speak(utter);
+          }, 450);
+        });
       } catch(e) {
         console.error('Voice alert error:', e);
       }
