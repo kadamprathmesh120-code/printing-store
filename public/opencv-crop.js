@@ -936,7 +936,7 @@ function applyFilter(ctx, w, h, mode) {
         }
       }
       // White balance + shadow removal + ink black
-      var target = 210;
+      var target = 185;
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
@@ -949,32 +949,34 @@ function applyFilter(ctx, w, h, mode) {
           var valR = d[idx*4] * rScale;
           var valG = d[idx*4+1] * gScale;
           var valB = d[idx*4+2] * bScale;
-          // Contrast boost
-          valR = (valR - 128) * 1.4 + 128;
-          valG = (valG - 128) * 1.4 + 128;
-          valB = (valB - 128) * 1.4 + 128;
+          // Natural contrast boost (1.15x instead of 1.4x)
+          valR = (valR - 128) * 1.15 + 128;
+          valG = (valG - 128) * 1.15 + 128;
+          valB = (valB - 128) * 1.15 + 128;
           valR = Math.min(255, Math.max(0, valR));
           valG = Math.min(255, Math.max(0, valG));
           valB = Math.min(255, Math.max(0, valB));
           // Compute luminance after white balance
           var lum = valR * 0.299 + valG * 0.587 + valB * 0.114;
+          // Detect color saturation (photo, stamp, logo)
+          var isColor = Math.abs(valR - valG) > 15 || Math.abs(valG - valB) > 15 || Math.abs(valR - valB) > 15;
           // Shadow removal: anything darker than bg*0.55 is text/ink
           var shadowThresh = bL * 0.55;
-          if (lum < shadowThresh) {
-            // Push to ink black — darker pixels get more black
+          if (lum < shadowThresh && !isColor) {
+            // Push text to crisp ink black
             var darkness = 1 - (lum / shadowThresh); // 0..1
-            darkness = darkness * darkness; // sharpen the curve
-            var blackAmount = 0.85 + 0.15 * darkness;
+            darkness = darkness * darkness;
+            var blackAmount = 0.80 + 0.15 * darkness;
             valR = valR * (1 - blackAmount);
             valG = valG * (1 - blackAmount);
             valB = valB * (1 - blackAmount);
           }
-          // Background cleanup: anything brighter than bg*0.7 is paper — push to clean white
-          if (lum > bL * 0.7 && lum > 140) {
-            var whiteness = Math.min(1, (lum - 140) / 80);
-            valR = valR + (255 - valR) * whiteness * 0.5;
-            valG = valG + (255 - valG) * whiteness * 0.5;
-            valB = valB + (255 - valB) * whiteness * 0.5;
+          // Background cleanup: gentle white push only on non-color paper
+          if (lum > bL * 0.75 && lum > 175 && !isColor) {
+            var whiteness = Math.min(1, (lum - 175) / 70);
+            valR = valR + (255 - valR) * whiteness * 0.25;
+            valG = valG + (255 - valG) * whiteness * 0.25;
+            valB = valB + (255 - valB) * whiteness * 0.25;
           }
           d[idx*4] = Math.round(Math.min(255, Math.max(0, valR)));
           d[idx*4+1] = Math.round(Math.min(255, Math.max(0, valG)));
