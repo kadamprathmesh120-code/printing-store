@@ -1806,8 +1806,11 @@ function buildFilterThumbnails() {
 
     if (f.id === 'magic') {
       var badge = document.createElement('span');
-      badge.style.cssText = 'position:absolute;top:-8px;right:-2px;background:#16a34a;color:#fff;font-size:0.6rem;font-weight:800;padding:1px 5px;border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,0.5);z-index:5;letter-spacing:0.3px;';
-      badge.textContent = '⭐ BEST';
+      badge.className = 'ocv-best-badge';
+      badge.style.cssText = 'position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg, #16a34a 0%, #15803d 100%);color:#fff;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;box-shadow:0 3px 8px rgba(0,0,0,0.6);z-index:99;letter-spacing:0.4px;white-space:nowrap;border:1px solid rgba(255,255,255,0.4);';
+      badge.innerHTML = '⭐ BEST';
+      wrap.style.position = 'relative';
+      wrap.style.overflow = 'visible';
       wrap.appendChild(badge);
     }
 
@@ -1818,7 +1821,11 @@ function buildFilterThumbnails() {
 
     var label = document.createElement('div');
     label.className = 'ocv-filter-label';
-    label.textContent = f.label;
+    label.textContent = (f.id === 'magic') ? 'Magic Color' : f.label;
+    if (f.id === 'magic') {
+      label.style.color = '#22c55e';
+      label.style.fontWeight = '800';
+    }
 
     wrap.appendChild(cvs);
     wrap.appendChild(label);
