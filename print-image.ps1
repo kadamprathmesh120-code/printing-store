@@ -44,6 +44,15 @@ try { $pd.PrinterSettings.DefaultPageSettings.Color = $true } catch {}
 $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
 $pd.OriginAtMargins = $false
 
+# Force 300 DPI Printer Resolution for sharp print output
+try {
+  $res300 = $pd.PrinterSettings.PrinterResolutions | Where-Object { $_.X -ge 300 -and $_.Y -ge 300 } | Select-Object -First 1
+  if ($res300) {
+    $pd.DefaultPageSettings.PrinterResolution = $res300
+    try { $pd.PrinterSettings.DefaultPageSettings.PrinterResolution = $res300 } catch {}
+  }
+} catch {}
+
 # Set A4 paper size if available
 $a4 = $pd.PrinterSettings.PaperSizes | Where-Object { $_.Kind -eq 'A4' } | Select-Object -First 1
 if ($a4) { $pd.DefaultPageSettings.PaperSize = $a4 }

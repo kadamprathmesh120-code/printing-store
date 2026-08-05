@@ -16,11 +16,11 @@ $bmp.SetResolution($dpi, $dpi)   # Embed 300 DPI metadata
 $gr = [System.Drawing.Graphics]::FromImage($bmp)
 $gr.Clear([System.Drawing.Color]::White)
 
-# Fast standard quality rendering
-$gr.InterpolationMode  = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBilinear
-$gr.SmoothingMode      = [System.Drawing.Drawing2D.SmoothingMode]::Default
-$gr.PixelOffsetMode    = [System.Drawing.Drawing2D.PixelOffsetMode]::Default
-$gr.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighSpeed
+# High quality 300 DPI rendering
+$gr.InterpolationMode  = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+$gr.SmoothingMode      = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+$gr.PixelOffsetMode    = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+$gr.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
 
 # Exact 86mm x 54mm ID Card at 600 DPI
 # 1mm = 600/25.4 = 23.62 px
