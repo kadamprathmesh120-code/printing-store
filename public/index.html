@@ -1026,7 +1026,7 @@
               <span>💵 2. PAY CASH AT COUNTER</span>
             </div>
             <p style="font-size:0.82rem;color:#166534;margin:0 0 10px;line-height:1.3;">
-              Pay cash when collecting prints at counter. <strong>(Change available for ₹100/₹200/₹500 notes!)</strong>
+              Pay cash when collecting prints at the shop counter!
             </p>
             <button class="rpc-cash-btn" onclick="payWithCash()" style="width:100%;background:#16a34a;color:#ffffff;font-weight:800;font-size:1rem;padding:12px;border-radius:10px;border:none;cursor:pointer;box-shadow:0 4px 10px rgba(22,163,74,0.25);">
               💵 Pay Cash at Counter (₹<span class="cash-amount-span">0</span>)
@@ -1060,19 +1060,6 @@
           <div style="font-size:0.88rem;color:#334155;margin-bottom:6px;">1️⃣ Click <strong>"Confirm & Get Token"</strong> below.</div>
           <div style="font-size:0.88rem;color:#334155;margin-bottom:6px;">2️⃣ Show your <strong>Token #</strong> & pay cash at shop counter.</div>
           <div style="font-size:0.88rem;color:#334155;">3️⃣ Collect your printed document!</div>
-        </div>
-
-        <!-- Interactive Cash Note & Change Selector -->
-        <div style="background:#f0fdf4;border:2px solid #a7f3d0;border-radius:14px;padding:14px;margin:16px 0;text-align:center;">
-          <div style="font-size:0.92rem;font-weight:800;color:#065f46;margin-bottom:8px;">💵 Will you give exact cash or need change?</div>
-          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;margin-bottom:10px;">
-            <button type="button" class="cash-note-btn selected" onclick="selectCashNote(this, 'exact')" style="padding:10px 4px;border:2px solid #10b981;background:#10b981;color:#fff;border-radius:8px;font-size:0.82rem;font-weight:800;cursor:pointer;">Exact Cash</button>
-            <button type="button" class="cash-note-btn" onclick="selectCashNote(this, 50)" style="padding:10px 4px;border:2px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;font-size:0.82rem;font-weight:800;cursor:pointer;">₹50 Note</button>
-            <button type="button" class="cash-note-btn" onclick="selectCashNote(this, 100)" style="padding:10px 4px;border:2px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;font-size:0.82rem;font-weight:800;cursor:pointer;">₹100 Note</button>
-            <button type="button" class="cash-note-btn" onclick="selectCashNote(this, 200)" style="padding:10px 4px;border:2px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;font-size:0.82rem;font-weight:800;cursor:pointer;">₹200 Note</button>
-            <button type="button" class="cash-note-btn" onclick="selectCashNote(this, 500)" style="padding:10px 4px;border:2px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;font-size:0.82rem;font-weight:800;cursor:pointer;">₹500 Note</button>
-          </div>
-          <div id="cashChangeDisplay" style="font-size:0.88rem;font-weight:800;color:#047857;">🤝 Giving Exact Cash</div>
         </div>
 
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
@@ -2723,38 +2710,6 @@
     }
 
     var pendingCashName = '';
-    var selectedCashNoteVal = 'exact';
-
-    function selectCashNote(btn, val) {
-      document.querySelectorAll('.cash-note-btn').forEach(function(b) {
-        b.style.borderColor = '#cbd5e1';
-        b.style.background = '#fff';
-        b.style.color = '#334155';
-      });
-      btn.style.borderColor = '#10b981';
-      btn.style.background = '#10b981';
-      btn.style.color = '#fff';
-      selectedCashNoteVal = val;
-
-      var currentTotal = 0;
-      try {
-        var p = document.getElementById('pscFinalTotal');
-        if (p) currentTotal = parseInt(p.textContent.replace(/[^\d]/g,'')) || 0;
-      } catch(e) {}
-
-      var disp = document.getElementById('cashChangeDisplay');
-      if (val === 'exact') {
-        disp.textContent = '🤝 Giving Exact Cash' + (currentTotal ? (' (₹' + currentTotal + ')') : '');
-      } else {
-        var noteVal = parseInt(val);
-        if (noteVal >= currentTotal) {
-          var changeAmt = noteVal - currentTotal;
-          disp.innerHTML = '💡 Shopkeeper will keep <strong>₹' + changeAmt + ' change</strong> ready for your ₹' + noteVal + ' note!';
-        } else {
-          disp.textContent = 'Note amount (₹' + noteVal + ') is less than order total.';
-        }
-      }
-    }
 
     function cancelCashConfirm() {
       showStep('stepPayment');
@@ -2765,27 +2720,13 @@
       var btn = document.getElementById('btnCashYes');
       if (btn) { btn.disabled = true; btn.innerHTML = '<span class="rpc-spinner"></span> Placing order...'; }
 
-      var userNotes = document.getElementById('reviewNotes').value.trim();
-      var changeNote = '';
-      if (selectedCashNoteVal !== 'exact') {
-        var noteVal = parseInt(selectedCashNoteVal);
-        var currentTotal = 0;
-        try {
-          var p = document.getElementById('pscFinalTotal');
-          if (p) currentTotal = parseInt(p.textContent.replace(/[^\d]/g,'')) || 0;
-        } catch(e) {}
-        var changeAmt = Math.max(0, noteVal - currentTotal);
-        changeNote = '[💵 Paying ₹' + noteVal + ' Note — Keep ₹' + changeAmt + ' Change Ready]';
-      }
-      var combinedNotes = (changeNote ? (changeNote + ' ') : '') + userNotes;
-
       var formData = new FormData();
       formData.append('customerName', name);
       formData.append('printType', selectedPrintType);
       formData.append('printSide', selectedPrintSide);
       formData.append('paymentMethod', 'cash');
       formData.append('mobileNumber', document.getElementById('reviewMobile').value.trim());
-      formData.append('orderNotes', combinedNotes.trim());
+      formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
