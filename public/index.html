@@ -2417,6 +2417,7 @@
         return;
       }
 
+      _customerAudioPlayed = false;
       var btn = document.getElementById('btnRazorpayReview');
       btn.disabled = true;
       btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
@@ -4032,7 +4033,68 @@
       window._heroUrls = [];
     }
 
-    // --- Existing functions used by both old and new flow ---
+    // --- Customer Success Audio Sequence (Google Pay Chime 0.8s -> 0.5s Pause -> Uploaded MP3) ---
+    var _customerAudioPlayed = false;
+
+    function playCustomerSuccessAudioSequence() {
+      if (_customerAudioPlayed) return;
+      _customerAudioPlayed = true;
+      try {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) {
+          playUploadedVoiceMP3();
+          return;
+        }
+        var ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+        var now = ctx.currentTime;
+
+        // 1. Google Pay-style chime: Tone 1 (659.25Hz E5 for 0.18s) -> Tone 2 (1046.50Hz C6 + 1318.51Hz E6 for 0.62s)
+        var osc1 = ctx.createOscillator();
+        var osc2 = ctx.createOscillator();
+        var gain = ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+
+        osc1.frequency.setValueAtTime(659.25, now);
+        osc1.frequency.setValueAtTime(1046.50, now + 0.18);
+        osc2.frequency.setValueAtTime(1318.51, now + 0.18);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(0.35, now + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.25, now + 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.35, now + 0.22);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.80);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(now);
+        osc1.stop(now + 0.80);
+        osc2.start(now + 0.18);
+        osc2.stop(now + 0.80);
+
+        // 2. Pause 0.5s (0.8s chime + 0.5s pause = 1.3s total delay)
+        setTimeout(function() {
+          playUploadedVoiceMP3();
+        }, 1300);
+
+      } catch(e) {
+        console.error('Customer audio sequence error:', e);
+        playUploadedVoiceMP3();
+      }
+    }
+
+    function playUploadedVoiceMP3() {
+      var audio = new Audio('/announcements.mp3');
+      audio.play().catch(function(err) {
+        console.log('Voice announcement playback:', err);
+      });
+    }
 
     function updateStatusDisplay(status, orders) {
       orders = orders || [];
@@ -4183,6 +4245,9 @@
             if (nTitle) nTitle.textContent = 'Online Payment Confirmed';
             if (nBody) nBody.textContent = 'Payment of ₹' + totalPrice.toFixed(2) + ' received. Your files are in the print queue.';
             if (nPill) nPill.style.display = 'none';
+          }
+          if (!isCash && (status === 'paid' || status === 'accepted')) {
+            playCustomerSuccessAudioSequence();
           }
         }
       }
