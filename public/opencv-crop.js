@@ -1800,8 +1800,16 @@ function buildFilterThumbnails() {
   FILTER_DEFS.forEach(function(f) {
     var wrap = document.createElement('div');
     wrap.className = 'ocv-filter-thumb';
+    wrap.style.position = 'relative';
     wrap.setAttribute('data-filter', f.id);
     wrap.onclick = function() { OCV_CROP.setFilter(f.id); };
+
+    if (f.id === 'magic') {
+      var badge = document.createElement('span');
+      badge.style.cssText = 'position:absolute;top:-8px;right:-2px;background:#16a34a;color:#fff;font-size:0.6rem;font-weight:800;padding:1px 5px;border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,0.5);z-index:5;letter-spacing:0.3px;';
+      badge.textContent = '⭐ BEST';
+      wrap.appendChild(badge);
+    }
 
     var cvs = document.createElement('canvas');
     cvs.width = thumbW;
@@ -1845,8 +1853,14 @@ function updateFilterSelection() {
   thumbs.forEach(function(el) {
     if (el.getAttribute('data-filter') === selectedFilter) {
       el.classList.add('active');
+      if (selectedFilter === 'magic') {
+        el.style.border = '2px solid #16a34a';
+        el.style.boxShadow = '0 0 10px rgba(22,163,74,0.4)';
+      }
     } else {
       el.classList.remove('active');
+      el.style.border = 'none';
+      el.style.boxShadow = 'none';
     }
   });
 }
