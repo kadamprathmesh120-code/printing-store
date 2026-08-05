@@ -935,53 +935,47 @@ function applyFilter(ctx, w, h, mode) {
           if (remY >= 0) { var ri2 = remY * w + x; sR -= tmpR[ri2]; sG -= tmpG[ri2]; sB -= tmpB[ri2]; sL -= tmpL[ri2]; cnt--; }
         }
       }
-      // OKEN Scanner / CamScanner Magic Color Algorithm
+      // White balance + shadow removal + ink black
+      var target = 210;
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
-          var origR = d[idx*4], origG = d[idx*4+1], origB = d[idx*4+2];
-          var origLum = origR * 0.299 + origG * 0.587 + origB * 0.114;
-
-          var bR = bgR[idx], bG = bgG[idx], bB = bgB[idx];
           var bL = bg[idx];
-
-          // 1. Division by local background to normalize illumination/shadows
-          var rNorm = bR > 15 ? Math.min(255, (origR / bR) * 255) : origR;
-          var gNorm = bG > 15 ? Math.min(255, (origG / bG) * 255) : origG;
-          var bNorm = bB > 15 ? Math.min(255, (origB / bB) * 255) : origB;
-          var normLum = rNorm * 0.299 + gNorm * 0.587 + bNorm * 0.114;
-
-          // 2. Color saturation detection (photos, stamps, logos, blue watermarks)
-          var maxC = Math.max(origR, origG, origB);
-          var minC = Math.min(origR, origG, origB);
-          var isColor = (maxC - minC) > 14;
-
-          var valR = rNorm, valG = gNorm, valB = bNorm;
-
-          if (isColor) {
-            // Keep original colors for photo, emblem, stamp & watermark, boost color saturation slightly
-            var meanC = (origR + origG + origB) / 3;
-            valR = Math.min(255, Math.max(0, meanC + (origR - meanC) * 1.25));
-            valG = Math.min(255, Math.max(0, meanC + (origG - meanC) * 1.25));
-            valB = Math.min(255, Math.max(0, meanC + (origB - meanC) * 1.25));
-          } else {
-            // Non-color pixel: distinguish Paper vs Text
-            if (origLum < bL * 0.55 && origLum < 145) {
-              // Crisp Ink Black for text, lines, QR code & table borders
-              var darkRatio = Math.min(1, (145 - origLum) / 100);
-              var k = 0.65 + 0.35 * darkRatio;
-              valR = rNorm * (1 - k);
-              valG = gNorm * (1 - k);
-              valB = bNorm * (1 - k);
-            } else {
-              // PURE CLEAN WHITE PAPER (#FFFFFF) like OKEN Scanner
-              var whiteRatio = Math.min(1, Math.max(0, (normLum - 130) / 50));
-              valR = rNorm + (255 - rNorm) * whiteRatio;
-              valG = gNorm + (255 - gNorm) * whiteRatio;
-              valB = bNorm + (255 - bNorm) * whiteRatio;
-            }
+          var bR2 = bgR[idx], bG2 = bgG[idx], bB2 = bgB[idx];
+          // White balance: scale so background becomes target
+          var rScale = bR2 > 15 ? target / bR2 : 1;
+          var gScale = bG2 > 15 ? target / bG2 : 1;
+          var bScale = bB2 > 15 ? target / bB2 : 1;
+          var valR = d[idx*4] * rScale;
+          var valG = d[idx*4+1] * gScale;
+          var valB = d[idx*4+2] * bScale;
+          // Contrast boost
+          valR = (valR - 128) * 1.4 + 128;
+          valG = (valG - 128) * 1.4 + 128;
+          valB = (valB - 128) * 1.4 + 128;
+          valR = Math.min(255, Math.max(0, valR));
+          valG = Math.min(255, Math.max(0, valG));
+          valB = Math.min(255, Math.max(0, valB));
+          // Compute luminance after white balance
+          var lum = valR * 0.299 + valG * 0.587 + valB * 0.114;
+          // Shadow removal: anything darker than bg*0.55 is text/ink
+          var shadowThresh = bL * 0.55;
+          if (lum < shadowThresh) {
+            // Push to ink black — darker pixels get more black
+            var darkness = 1 - (lum / shadowThresh); // 0..1
+            darkness = darkness * darkness; // sharpen the curve
+            var blackAmount = 0.85 + 0.15 * darkness;
+            valR = valR * (1 - blackAmount);
+            valG = valG * (1 - blackAmount);
+            valB = valB * (1 - blackAmount);
           }
-
+          // Background cleanup: anything brighter than bg*0.7 is paper — push to clean white
+          if (lum > bL * 0.7 && lum > 140) {
+            var whiteness = Math.min(1, (lum - 140) / 80);
+            valR = valR + (255 - valR) * whiteness * 0.5;
+            valG = valG + (255 - valG) * whiteness * 0.5;
+            valB = valB + (255 - valB) * whiteness * 0.5;
+          }
           d[idx*4] = Math.round(Math.min(255, Math.max(0, valR)));
           d[idx*4+1] = Math.round(Math.min(255, Math.max(0, valG)));
           d[idx*4+2] = Math.round(Math.min(255, Math.max(0, valB)));
