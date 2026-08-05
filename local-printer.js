@@ -231,6 +231,7 @@ async function checkAndPrint() {
       var order = orders[i];
       if (order.status === 'accepted' && !tracker.isOrderPrinted(order.id) && !activePrints.has(order.id)) {
         activePrints.add(order.id);
+        tracker.markOrderPrinted(order.id);
         var backLocal = '';
         var combinedPath = '';
         var localFile = '';
@@ -285,7 +286,6 @@ async function checkAndPrint() {
             await execP('print /D:"' + printer + '" "' + localFile + '"');
           }
 
-          tracker.markOrderPrinted(order.id);
           console.log('Printed:', order.file_name, 'to', printer);
 
           // Notify server to mark printed & delete server uploads

@@ -46,32 +46,10 @@ function markOrderPrinted(orderId) {
 
   try {
     const db = require('./db');
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
     db.prepare('UPDATE orders SET is_printed = 1 WHERE id = ?').run(orderId);
-
-    if (order) {
-      const uploadsDir = path.join(__dirname, 'uploads');
-      if (order.file_path) {
-        const fp = path.join(uploadsDir, order.file_path);
-        if (fs.existsSync(fp)) {
-          try { fs.unlinkSync(fp); console.log(`Deleted uploaded document for printed order ${orderId}: ${order.file_path}`); } catch(e){}
-        }
-      }
-      if (order.back_file_path) {
-        const bp = path.join(uploadsDir, order.back_file_path);
-        if (fs.existsSync(bp)) {
-          try { fs.unlinkSync(bp); console.log(`Deleted uploaded back file for printed order ${orderId}: ${order.back_file_path}`); } catch(e){}
-        }
-      }
-      if (order.file_path) {
-        const cp = path.join(uploadsDir, 'combined_' + order.file_path);
-        if (fs.existsSync(cp)) {
-          try { fs.unlinkSync(cp); console.log(`Deleted combined file for printed order ${orderId}`); } catch(e){}
-        }
-      }
-    }
+    // Document files are retained for Admin Preview and cleaned up by scheduled auto-cleanup (or manual delete).
   } catch (e) {
-    console.error('Error deleting printed order files:', e.message);
+    console.error('Error updating printed status in DB:', e.message);
   }
 }
 

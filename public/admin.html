@@ -691,6 +691,18 @@
   <!-- Main Content -->
   <main class="kiosk-main">
 
+    <!-- Audio Unlock Banner -->
+    <div id="soundUnlockBanner" onclick="unlockAudio()" style="background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);color:#fff;padding:12px 18px;border-radius:12px;margin-bottom:16px;font-size:0.92rem;font-weight:700;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.25);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🔊</span>
+        <div>
+          <div>Enable Sound & Voice Announcements</div>
+          <div style="font-size:0.78rem;font-weight:400;opacity:0.9;">Click anywhere on this page to allow automatic order sound alerts!</div>
+        </div>
+      </div>
+      <button style="background:#fff;color:#1d4ed8;border:none;padding:6px 14px;border-radius:8px;font-weight:800;font-size:0.82rem;cursor:pointer;">Enable Sound 🔊</button>
+    </div>
+
     <!-- Cash Alert -->
     <div id="cashAlert" class="kiosk-alert-banner warning hidden" style="display:none;">
       <span class="alert-icon">💰</span>
@@ -905,8 +917,14 @@
       <button class="ctrl-btn secondary" onclick="toggleSettings()" id="settingsToggle">
         <i data-lucide="sliders" style="width:18px;height:18px;"></i> Printer Settings
       </button>
-      <button class="ctrl-btn secondary" onclick="testNotification()" id="testNotifBtn">
-        <i data-lucide="bell-ring" style="width:18px;height:18px;"></i> Test Notification
+      <button class="ctrl-btn secondary" onclick="testHpAlert()" id="testHpBtn" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">
+        <i data-lucide="volume-2" style="width:18px;height:18px;"></i> Test HP Alert
+      </button>
+      <button class="ctrl-btn secondary" onclick="testKonicaAlert()" id="testKonicaBtn" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">
+        <i data-lucide="printer" style="width:18px;height:18px;"></i> Test Konica Alert
+      </button>
+      <button class="ctrl-btn secondary" onclick="testKyoceraAlert()" id="testKyoceraBtn" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;">
+        <i data-lucide="zap" style="width:18px;height:18px;"></i> Test Kyocera Alert
       </button>
       <button class="ctrl-btn danger" onclick="deleteAllOrders()" id="deleteAllBtn" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;">
         <i data-lucide="trash-2" style="width:18px;height:18px;"></i> Delete All Orders
@@ -968,6 +986,24 @@
           <p id="qrUrl" class="qr-url"></p>
           <p class="qr-hint">Scan to open customer upload page</p>
           <button class="qr-modal-close" onclick="document.getElementById('qrModal').classList.add('hidden')">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Document Preview Modal -->
+    <div id="adminDocModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(15,23,42,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;">
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:16px;width:100%;max-width:960px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+        <div style="padding:14px 20px;background:#1e293b;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;color:#fff;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <span style="font-size:20px;">📄</span>
+            <span id="adminDocTitle" style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Document Preview</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <a id="adminDocOpenLink" href="#" target="_blank" style="padding:6px 14px;background:#2563eb;color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">Open in New Tab ↗</a>
+            <button onclick="closeAdminPreview()" style="background:#334155;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;">✕ Close</button>
+          </div>
+        </div>
+        <div id="adminDocBody" style="flex:1;padding:16px;display:flex;align-items:center;justify-content:center;overflow:auto;background:#090d16;">
         </div>
       </div>
     </div>
@@ -1272,35 +1308,25 @@
       } catch(e) {}
     }
 
-    function playCustomAudioAlert(isCash, fallback) {
-      var files = isCash 
-        ? ['/cash_order.mp3', '/cash.mp3', '/cash_order.wav', '/cash.wav']
-        : ['/online_order.mp3', '/online.mp3', '/online_order.wav', '/online.wav'];
-
-      function tryNext(index) {
-        if (index >= files.length) {
-          if (fallback) fallback();
-          return;
-        }
-        var a = new Audio(files[index]);
-        a.volume = 1.0;
-        a.play()
-          .then(function() { console.log('Playing custom audio alert:', files[index]); })
-          .catch(function() { tryNext(index + 1); });
-      }
-      tryNext(0);
-    }
-
-    function playVoiceNotificationOrder(order) {
-      if (!voiceEnabled) return;
+    var audioUnlocked = false;
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
       try {
-        var isCash = order && (order.payment_method === 'cash');
-        // Only plays custom uploaded audio file (cash_order.mp3 or online_order.mp3) if present
-        playCustomAudioAlert(isCash, null);
-      } catch(e) {
-        console.error('Voice alert error:', e);
-      }
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume();
+        playNotificationSound();
+      } catch(e) {}
+      var banner = document.getElementById('soundUnlockBanner');
+      if (banner) banner.style.display = 'none';
+      console.log('🔊 Audio unlocked by user click.');
     }
+
+    document.addEventListener('click', unlockAudio, { passive: true });
+    document.addEventListener('touchstart', unlockAudio, { passive: true });
+    document.addEventListener('keydown', unlockAudio, { passive: true });
+
+
 
     function playCompletionSound() {
       if (!soundEnabled) return;
@@ -1516,11 +1542,21 @@
     document.getElementById('voiceToggle').addEventListener('click', toggleVoice);
 
     // -------------------------------------------------------
-    //  Test Notification
+    //  Test Printer Announcements
     // -------------------------------------------------------
-    function testNotification() {
-      playVoiceNotificationOrder({ payment_method: 'cash' });
-      showToast('info', 'Test Soundbox Alert', '💵 Soundbox Cash Alert: New Cash Order! Please collect cash at counter.', new Date().toLocaleTimeString());
+    function testHpAlert() {
+      playPrinterAlert(HP_COLOR_PRINTER, 'Test Customer', 'test.pdf', 1, 'color');
+      showToast('info', '🔊 HP Printer Alert Test', 'Playing HP.mp3 printer announcement...', new Date().toLocaleTimeString());
+    }
+
+    function testKonicaAlert() {
+      playPrinterAlert(KONICA_PRINTER, 'Test Customer', 'test.pdf', 1, 'bw');
+      showToast('info', '🖨️ Konica Printer Alert Test', 'Playing KONICA.mp3 printer announcement...', new Date().toLocaleTimeString());
+    }
+
+    function testKyoceraAlert() {
+      playPrinterAlert(KYOCERA_PRINTER, 'Test Customer', 'test.pdf', 1, 'bw');
+      showToast('info', '⚡ Kyocera Printer Alert Test', 'Playing KYOCERA.mp3 printer announcement...', new Date().toLocaleTimeString());
     }
 
     // -------------------------------------------------------
@@ -1923,7 +1959,7 @@
             '</div>';
           batch.forEach(function(item) {
             var fInfo = getFileIcon(item.file_name);
-            var fPreview = item.file_path ? ('<a href="/uploads/' + encodeURIComponent(item.file_path) + '" target="_blank" style="color:#0284c7;text-decoration:none;font-weight:600;font-size:11px;">View</a>') : '';
+            var fPreview = item.file_path ? ('<button onclick="openAdminPreview(\'' + escapeHtml(item.file_path) + '\', \'' + escapeHtml(item.file_name) + '\')" style="background:#eff6ff;color:#0284c7;border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;font-weight:700;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" title="Preview Document">👁️ View</button>') : '';
             var typeLabel = item.print_type === 'bw' ? 'B&W' : 'Color';
             var sideLabel = item.print_side === 'both' ? 'Both' : 'Single';
             var effP = (item.effective_pages && item.effective_pages > 0) ? item.effective_pages : item.page_count;
@@ -1946,7 +1982,7 @@
         } else {
           // Single file view (original detail grid)
           var fileInfo = getFileIcon(o.file_name);
-          var previewBtn = o.file_path ? ('<a href="/uploads/' + encodeURIComponent(o.file_path) + '" target="_blank" class="oc-preview-btn" title="Preview"><i data-lucide="eye" style="width:12px;height:12px;"></i> View</a>') : '';
+          var previewBtn = o.file_path ? ('<button onclick="openAdminPreview(\'' + escapeHtml(o.file_path) + '\', \'' + escapeHtml(o.file_name) + '\')" class="oc-preview-btn" style="cursor:pointer;" title="Preview Document"><i data-lucide="eye" style="width:12px;height:12px;"></i> View</button>') : '';
           var isCustomRange = o.page_range && o.page_range !== 'all';
           var rangeLabel = isCustomRange ? escapeHtml(o.page_range) : 'All';
           var rangeStyle = isCustomRange ? 'color:#d97706;font-weight:700;' : '';
@@ -1979,24 +2015,30 @@
         var previewBoxHtml = '';
         if (o.file_path) {
           var fExt = o.file_path.split('.').pop().toLowerCase();
-          var filePathEncoded = '/uploads/' + encodeURIComponent(o.file_path);
+          var filePathEncoded = '/uploads/' + encodeURIComponent(o.file_path) + '?v=' + Date.now();
+          var isPrinted = (o.status === 'accepted' || o.is_printed === 1);
+          var badgeText = isPrinted ? '✅ Printed' : '👁️ Preview';
+          var badgeBg = isPrinted ? 'background:#dcfce7;color:#15803d;' : 'background:#e0f2fe;color:#0369a1;';
           
           if (['jpg', 'jpeg', 'png', 'webp'].includes(fExt)) {
             previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
-              '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;">👁️ Preview</div>' +
-              '<img src="' + filePathEncoded + '" style="width:100%;height:105px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;" onclick="window.open(\'' + filePathEncoded + '\', \'_blank\')" title="Click to view full size">' +
-              '<a href="' + filePathEncoded + '" target="_blank" style="margin-top:4px;font-size:10px;font-weight:700;color:#0284c7;text-decoration:none;">Expand ↗</a>' +
+              '<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-bottom:4px;' + badgeBg + '">' + badgeText + '</div>' +
+              '<img src="' + filePathEncoded + '" style="width:100%;height:105px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;" onclick="openAdminPreview(\'' + escapeHtml(o.file_path) + '\', \'' + escapeHtml(o.file_name) + '\')" title="Click to open preview">' +
+              '<button onclick="openAdminPreview(\'' + escapeHtml(o.file_path) + '\', \'' + escapeHtml(o.file_name) + '\')" style="background:none;border:none;margin-top:4px;font-size:10px;font-weight:700;color:#0284c7;cursor:pointer;">Expand ↗</button>' +
             '</div>';
           } else if (fExt === 'pdf') {
             previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
-              '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px;">👁️ Preview</div>' +
-              '<iframe src="' + filePathEncoded + '#toolbar=0&navpanes=0&view=FitH" style="width:100%;height:105px;border-radius:6px;border:1px solid #cbd5e1;pointer-events:none;background:#fff;overflow:hidden;"></iframe>' +
-              '<a href="' + filePathEncoded + '" target="_blank" style="margin-top:4px;font-size:10px;font-weight:700;color:#0284c7;text-decoration:none;">Expand ↗</a>' +
+              '<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-bottom:4px;' + badgeBg + '">' + badgeText + '</div>' +
+              '<div onclick="openAdminPreview(\'' + escapeHtml(o.file_path) + '\', \'' + escapeHtml(o.file_name) + '\')" style="width:100%;height:105px;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#eff6ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;" title="Click to open full PDF preview">' +
+                '<div style="font-size:32px;">📄</div>' +
+                '<div style="font-size:10px;font-weight:700;color:#1d4ed8;">PDF Document</div>' +
+              '</div>' +
+              '<button onclick="openAdminPreview(\'' + escapeHtml(o.file_path) + '\', \'' + escapeHtml(o.file_name) + '\')" style="background:none;border:none;margin-top:4px;font-size:10px;font-weight:700;color:#0284c7;cursor:pointer;">Expand ↗</button>' +
             '</div>';
           } else {
             previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
               '<div style="font-size:32px;margin-bottom:4px;">📄</div>' +
-              '<a href="' + filePathEncoded + '" target="_blank" style="font-size:10px;font-weight:700;color:#0284c7;text-decoration:none;">View File ↗</a>' +
+              '<button onclick="openAdminPreview(\'' + escapeHtml(o.file_path) + '\', \'' + escapeHtml(o.file_name) + '\')" style="background:none;border:none;font-size:10px;font-weight:700;color:#0284c7;cursor:pointer;">View File ↗</button>' +
             '</div>';
           }
         }
@@ -2059,7 +2101,6 @@
             pendingNewIds = newOrders.map(function(o) { return o.id; });
             newOrders.reverse().forEach(function(o) {
               showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
-              playVoiceNotificationOrder(o);
             });
             unreadCount += newOrders.length;
             updateNotifBadge(unreadCount);

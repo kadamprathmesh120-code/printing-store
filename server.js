@@ -534,9 +534,9 @@ app.all('/api/orders/:id/mark-printed', (req, res) => {
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
     if (order) {
       tracker.markOrderPrinted(id);
-      deleteOrderFiles(order);
+      // Files are retained for admin preview and cleaned up based on PREVIEW_RETENTION_HOURS
     }
-    res.json({ success: true, message: 'Marked printed and files deleted' });
+    res.json({ success: true, message: 'Marked printed successfully. Document retained for admin preview.' });
   } catch (err) {
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
@@ -671,6 +671,7 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
               const printers = await getPrintersHidden();
               const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
               if (hasPrinter) {
+                tracker.markOrderPrinted(oid);
                 if (order.is_id_copy) {
                   const frontPath = path.join(__dirname, 'uploads', order.file_path);
                   const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
@@ -680,7 +681,6 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
                 } else {
                   await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                 }
-                tracker.markOrderPrinted(oid);
               }
             } catch (e) {
               console.error('Razorpay auto-print error:', e.message);
@@ -849,6 +849,7 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
                     const printers = await getPrintersHidden();
                     const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
                     if (hasPrinter) {
+                      tracker.markOrderPrinted(oid);
                       if (order.is_id_copy) {
                         const frontPath = path.join(__dirname, 'uploads', order.file_path);
                         const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
@@ -858,7 +859,6 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
                       } else {
                         await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
                       }
-                      tracker.markOrderPrinted(oid);
                     }
                   } catch (e) {
                     console.error('Cashfree auto-print error:', e.message);
@@ -1060,6 +1060,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
           const printers = await getPrintersHidden();
           const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
           if (hasPrinter) {
+            tracker.markOrderPrinted(bOrder.id);
             if (bOrder.is_id_copy) {
               const frontPath = path.join(__dirname, 'uploads', bOrder.file_path);
               const backPath = bOrder.back_file_path ? path.join(__dirname, 'uploads', bOrder.back_file_path) : '';
@@ -1069,7 +1070,6 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
             } else {
               await printFile(path.join(__dirname, 'uploads', bOrder.file_path), bOrder.file_name, printer, bOrder.print_type, bOrder.print_side, bOrder.page_range, bOrder.copies, bOrder.orientation);
             }
-            tracker.markOrderPrinted(bOrder.id);
           }
         } catch (e) {
           console.error('Accept direct print error:', e.message);
@@ -1242,7 +1242,8 @@ app.delete('/api/admin/orders/:id', (req, res) => {
 
 app.post('/api/admin/cleanup-files', (req, res) => {
   try {
-    const retentionMs = 24 * 60 * 60 * 1000;
+    const retentionHours = parseInt(req.body?.retentionHours || process.env.PREVIEW_RETENTION_HOURS || '168', 10);
+    const retentionMs = retentionHours * 60 * 60 * 1000;
     const cutoffDate = new Date(Date.now() - retentionMs).toISOString();
 
     const oldOrders = db.prepare(`
@@ -1273,7 +1274,7 @@ app.post('/api/admin/cleanup-files', (req, res) => {
       }
     }
 
-    res.json({ success: true, message: `Cleaned uploaded documents for ${deletedFilesCount} orders and ${orphanCount} orphan files.` });
+    res.json({ success: true, message: `Cleaned uploaded documents older than ${retentionHours} hours (${deletedFilesCount} orders, ${orphanCount} orphan files).` });
   } catch (err) {
     console.error('Cleanup error:', err);
     res.status(500).json({ error: 'Server error: ' + err.message });
@@ -1282,7 +1283,8 @@ app.post('/api/admin/cleanup-files', (req, res) => {
 
 function autoCleanupUploadedDocuments() {
   try {
-    const retentionMs = 24 * 60 * 60 * 1000; // 24 hours
+    const retentionHours = parseInt(process.env.PREVIEW_RETENTION_HOURS || '168', 10); // 7 days retention for admin preview
+    const retentionMs = retentionHours * 60 * 60 * 1000;
     const cutoffDate = new Date(Date.now() - retentionMs).toISOString();
 
     const oldOrders = db.prepare(`
@@ -1336,6 +1338,7 @@ app.post('/api/admin/print/:id', async (req, res) => {
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
     const printer = await resolvePrinterName(req.body.printer, order.print_type === 'color');
+    tracker.markOrderPrinted(order.id);
 
     if (order.is_id_copy) {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
@@ -1347,8 +1350,6 @@ app.post('/api/admin/print/:id', async (req, res) => {
       const frontPath = path.join(__dirname, 'uploads', order.file_path);
       await printFile(frontPath, order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
     }
-
-    tracker.markOrderPrinted(order.id);
 
     res.json({ success: true, message: `Sent to printer: ${printer}` });
   } catch (err) {
