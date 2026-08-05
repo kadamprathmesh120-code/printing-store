@@ -2101,6 +2101,10 @@
             pendingNewIds = newOrders.map(function(o) { return o.id; });
             newOrders.reverse().forEach(function(o) {
               showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
+              // Trigger printer sound alert (HP.mp3, KONICA.mp3, or KYOCERA.mp3) automatically when new online/cash orders arrive!
+              var printType = o.print_type || 'bw';
+              var printer = o.printer_name || ((printType === 'color') ? getColorPrinter() : getBwPrinter());
+              playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType);
             });
             unreadCount += newOrders.length;
             updateNotifBadge(unreadCount);
