@@ -1928,6 +1928,15 @@
           '<span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.8rem;">Collect ₹' + totalPrice + ' Cash</span>' +
         '</div>' : '';
 
+        var notesCalloutBanner = '';
+        if (o.order_notes) {
+          var isChangeNote = o.order_notes.indexOf('Change') !== -1;
+          notesCalloutBanner = '<div style="background:' + (isChangeNote ? '#fef3c7' : '#f1f5f9') + ';border:1.5px solid ' + (isChangeNote ? '#f59e0b' : '#cbd5e1') + ';color:' + (isChangeNote ? '#92400e' : '#334155') + ';padding:8px 12px;border-radius:10px;margin-bottom:10px;font-size:0.88rem;font-weight:800;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">' +
+            '<span>' + (isChangeNote ? '💡 CHANGE ALERT:' : '📝 Notes:') + '</span>' +
+            '<span>' + escapeHtml(o.order_notes) + '</span>' +
+          '</div>';
+        }
+
         var batchTag = isMulti ? (' <span style="background:#8b5cf6;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px;">📦 ' + batch.length + ' Files</span>') : '';
 
         // Build files HTML section
@@ -2020,6 +2029,7 @@
 
         return '<div class="' + cardClass + '">' +
           cashCalloutBanner +
+          notesCalloutBanner +
           '<div class="oc-header">' +
             '<div class="oc-customer">' +
               '<div class="oc-avatar">' + initials + '</div>' +
