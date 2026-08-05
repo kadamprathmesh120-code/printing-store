@@ -1468,8 +1468,12 @@ function showPreviewModal() {
         '<span style="color:white;font-weight:700;font-size:1.05em;">Step 2: Select Color & Filter</span>' +
         '<span style="color:#FFD700;font-size:0.82em;font-weight:600;">✨ Color Filters</span>' +
       '</div>' +
-      '<div id="ocvPreviewContainer" style="max-width:100%;max-height:58vh;overflow:hidden;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;background:#000;"></div>' +
-      '<div id="ocvPreviewFilterBar" class="ocv-filter-bar" style="margin:10px 0;width:100%;max-width:540px;justify-content:center;display:flex;gap:8px;overflow-x:auto;"></div>' +
+      '<div id="ocvPreviewContainer" style="max-width:100%;max-height:54vh;overflow:hidden;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;background:#000;"></div>' +
+      '<div style="background:rgba(22,163,74,0.18);border:1.5px solid #16a34a;border-radius:10px;padding:8px 12px;margin:8px 0;width:100%;max-width:540px;display:flex;align-items:center;justify-content:space-between;color:#22c55e;font-size:0.8rem;font-weight:700;box-sizing:border-box;box-shadow:0 0 10px rgba(22,163,74,0.25);">' +
+        '<span>⭐ Recommended: <strong>Magic Color</strong> (Removes shadows & 100% HD Text)</span>' +
+        '<span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:800;white-space:nowrap;">BEST PRINT</span>' +
+      '</div>' +
+      '<div id="ocvPreviewFilterBar" class="ocv-filter-bar" style="margin:12px 0 10px;width:100%;max-width:540px;justify-content:center;display:flex;gap:12px;overflow:visible;padding-top:8px;"></div>' +
       '<div style="display:flex;gap:12px;width:100%;max-width:540px;">' +
         '<button id="ocvPreviewBack" class="ocv-btn ocv-cancel" style="flex:0.4;background:#4b5563;padding:12px 16px;font-size:0.95em;">↺ Re-crop</button>' +
         '<button id="ocvPreviewConfirm" class="ocv-btn ocv-crop-btn" style="flex:1;background:#16A34A;padding:12px 16px;font-weight:700;font-size:1.05em;">✓ Save & Print</button>' +
@@ -1510,6 +1514,8 @@ function renderPreviewFilterBar() {
   FILTER_DEFS.forEach(function(f) {
     var wrap = document.createElement('div');
     wrap.className = 'ocv-filter-thumb';
+    wrap.style.position = 'relative';
+    wrap.style.overflow = 'visible';
     if (f.id === selectedFilter) wrap.classList.add('active');
     wrap.setAttribute('data-filter', f.id);
     wrap.onclick = function() {
@@ -1523,6 +1529,14 @@ function renderPreviewFilterBar() {
         applyFilter(pCtx, previewCanvas.width, previewCanvas.height, selectedFilter);
       }
     };
+
+    if (f.id === 'magic') {
+      var badge = document.createElement('span');
+      badge.className = 'ocv-best-badge';
+      badge.style.cssText = 'position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg, #16a34a 0%, #15803d 100%);color:#fff;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;box-shadow:0 3px 8px rgba(0,0,0,0.6);z-index:99;letter-spacing:0.4px;white-space:nowrap;border:1px solid rgba(255,255,255,0.4);';
+      badge.innerHTML = '⭐ BEST';
+      wrap.appendChild(badge);
+    }
 
     var cvs = document.createElement('canvas');
     cvs.width = thumbW;
@@ -1546,6 +1560,10 @@ function renderPreviewFilterBar() {
     var label = document.createElement('div');
     label.className = 'ocv-filter-label';
     label.textContent = f.label;
+    if (f.id === 'magic') {
+      label.style.color = '#22c55e';
+      label.style.fontWeight = '800';
+    }
 
     wrap.appendChild(cvs);
     wrap.appendChild(label);
@@ -1558,8 +1576,14 @@ function updatePreviewFilterSelection() {
   thumbs.forEach(function(el) {
     if (el.getAttribute('data-filter') === selectedFilter) {
       el.classList.add('active');
+      if (selectedFilter === 'magic') {
+        el.style.border = '2px solid #16a34a';
+        el.style.boxShadow = '0 0 10px rgba(22,163,74,0.4)';
+      }
     } else {
       el.classList.remove('active');
+      el.style.border = 'none';
+      el.style.boxShadow = 'none';
     }
   });
 }
