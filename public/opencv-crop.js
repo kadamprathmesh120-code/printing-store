@@ -935,49 +935,47 @@ function applyFilter(ctx, w, h, mode) {
           if (remY >= 0) { var ri2 = remY * w + x; sR -= tmpR[ri2]; sG -= tmpG[ri2]; sB -= tmpB[ri2]; sL -= tmpL[ri2]; cnt--; }
         }
       }
-      // White balance + shadow removal + ink black
-      var target = 185;
+      // Clean shadow removal with background division (illumination flattening)
+      var targetPaper = 245;
       for (var y = 0; y < h; y++) {
         for (var x = 0; x < w; x++) {
           var idx = y * w + x;
+          var origR = d[idx*4], origG = d[idx*4+1], origB = d[idx*4+2];
+          var origLum = origR * 0.299 + origG * 0.587 + origB * 0.114;
+
+          var bR = bgR[idx], bG = bgG[idx], bB = bgB[idx];
           var bL = bg[idx];
-          var bR2 = bgR[idx], bG2 = bgG[idx], bB2 = bgB[idx];
-          // White balance: scale so background becomes target
-          var rScale = bR2 > 15 ? target / bR2 : 1;
-          var gScale = bG2 > 15 ? target / bG2 : 1;
-          var bScale = bB2 > 15 ? target / bB2 : 1;
-          var valR = d[idx*4] * rScale;
-          var valG = d[idx*4+1] * gScale;
-          var valB = d[idx*4+2] * bScale;
-          // Natural contrast boost (1.15x instead of 1.4x)
-          valR = (valR - 128) * 1.15 + 128;
-          valG = (valG - 128) * 1.15 + 128;
-          valB = (valB - 128) * 1.15 + 128;
-          valR = Math.min(255, Math.max(0, valR));
-          valG = Math.min(255, Math.max(0, valG));
-          valB = Math.min(255, Math.max(0, valB));
-          // Compute luminance after white balance
+
+          // Color detection (photo, stamp, seal, signature)
+          var isColor = Math.abs(origR - origG) > 14 || Math.abs(origG - origB) > 14 || Math.abs(origR - origB) > 14;
+
+          // 1. Division by local background flattens shadows completely
+          var normR = bR > 10 ? (origR / bR) * targetPaper : origR;
+          var normG = bG > 10 ? (origG / bG) * targetPaper : origG;
+          var normB = bB > 10 ? (origB / bB) * targetPaper : origB;
+
+          // 2. Soft blend with original to keep colors natural
+          var valR = isColor ? origR * 0.85 + normR * 0.15 : normR;
+          var valG = isColor ? origG * 0.85 + normG * 0.15 : normG;
+          var valB = isColor ? origB * 0.85 + normB * 0.15 : normB;
+
           var lum = valR * 0.299 + valG * 0.587 + valB * 0.114;
-          // Detect color saturation (photo, stamp, logo)
-          var isColor = Math.abs(valR - valG) > 15 || Math.abs(valG - valB) > 15 || Math.abs(valR - valB) > 15;
-          // Shadow removal: anything darker than bg*0.55 is text/ink
-          var shadowThresh = bL * 0.55;
-          if (lum < shadowThresh && !isColor) {
-            // Push text to crisp ink black
-            var darkness = 1 - (lum / shadowThresh); // 0..1
-            darkness = darkness * darkness;
-            var blackAmount = 0.80 + 0.15 * darkness;
-            valR = valR * (1 - blackAmount);
-            valG = valG * (1 - blackAmount);
-            valB = valB * (1 - blackAmount);
+
+          // 3. Text sharpening (ONLY for genuinely dark text, NEVER for paper shadows)
+          if (!isColor && origLum < bL * 0.52 && origLum < 130) {
+            var textDarkness = Math.min(1, (130 - origLum) / 100);
+            var k = 0.55 + 0.35 * textDarkness;
+            valR = valR * (1 - k);
+            valG = valG * (1 - k);
+            valB = valB * (1 - k);
+          } else if (!isColor && lum > 210) {
+            // Smooth paper whitening (removes light residual shadow tones completely)
+            var wFactor = Math.min(1, (lum - 210) / 40);
+            valR = valR + (255 - valR) * wFactor * 0.7;
+            valG = valG + (255 - valG) * wFactor * 0.7;
+            valB = valB + (255 - valB) * wFactor * 0.7;
           }
-          // Background cleanup: gentle white push only on non-color paper
-          if (lum > bL * 0.75 && lum > 175 && !isColor) {
-            var whiteness = Math.min(1, (lum - 175) / 70);
-            valR = valR + (255 - valR) * whiteness * 0.25;
-            valG = valG + (255 - valG) * whiteness * 0.25;
-            valB = valB + (255 - valB) * whiteness * 0.25;
-          }
+
           d[idx*4] = Math.round(Math.min(255, Math.max(0, valR)));
           d[idx*4+1] = Math.round(Math.min(255, Math.max(0, valG)));
           d[idx*4+2] = Math.round(Math.min(255, Math.max(0, valB)));
