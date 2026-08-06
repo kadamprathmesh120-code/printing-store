@@ -2000,7 +2000,11 @@
     var _imageCropCb = null;
     function startImageCrop(files, idx, cb) {
       _imageCropCb = cb;
-      if (idx >= files.length) { if (cb) cb(); return; }
+      if (idx >= files.length) {
+        hideProgress();
+        if (cb) cb();
+        return;
+      }
       var f = files[idx];
       showProgress('Processing image...', Math.round(((idx + 1) / files.length) * 100));
       processAutoMagicColor(f, function(magicFile) {
@@ -2432,6 +2436,7 @@
     }
 
     function goToSettings() {
+      hideProgress();
       document.getElementById('copiesValue').textContent = copiesCount;
       if (typeof selectedFiles !== 'undefined' && selectedFiles.length) {
         window.activePreviewIndex = selectedFiles.length - 1;
@@ -4603,6 +4608,7 @@
     // --- Crop Regular (same as before) ---
 
     function openCrop(index) {
+      hideProgress();
       try {
         var sf = selectedFiles[index];
         if (!sf || !sf.file) { alert('File not found'); return; }
