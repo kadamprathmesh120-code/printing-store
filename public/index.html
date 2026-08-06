@@ -2519,13 +2519,15 @@
           .catch(function(err) {
             document.getElementById('paymentError').textContent = 'Razorpay error: ' + (err.message || 'Try again.');
             btn.disabled = false;
-            btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
+            var displayPrice = (data && data.totalPrice) || (window.currentPricing && window.currentPricing.totalPrice) || 5;
+            btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + displayPrice + '</span>';
           });
         })
         .catch(function(err) {
           document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
           btn.disabled = false;
-          btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">0</span>';
+          var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
+          btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + displayPrice + '</span>';
         });
     }
 
@@ -2679,7 +2681,8 @@
           document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">0</span>';
+            var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
+            btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + displayPrice + '</span>';
           }
         });
     }

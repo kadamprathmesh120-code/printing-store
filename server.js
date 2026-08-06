@@ -257,12 +257,12 @@ if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt'];
+    const allowed = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt', '.heic', '.heif', '.webp', '.bmp', '.tif', '.tiff', '.ppt', '.pptx', '.xls', '.xlsx', '.csv', '.rtf'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error(`File type ${ext} not allowed`));
+      cb(new Error(`File type ${ext} not allowed. Allowed types: PDF, Word, Excel, PowerPoint, Images, Text`));
     }
   },
   limits: { fileSize: 100 * 1024 * 1024 }
@@ -438,9 +438,12 @@ app.post('/api/upload', (req, res) => {
         let pages = await getPageCount(file.path, ext);
 
         const manualPages = req.body['pageCount_' + file.originalname];
-        if (manualPages) pages = parseInt(manualPages, 10);
+        if (manualPages !== undefined && manualPages !== null && manualPages !== '') {
+          const parsed = parseInt(manualPages, 10);
+          if (!isNaN(parsed) && parsed >= 1) pages = parsed;
+        }
 
-        if (!pages || pages < 1) pages = 1;
+        if (!pages || isNaN(pages) || pages < 1) pages = 1;
 
         // Use page range to determine effective page count for pricing
         var effectivePages = pages;
@@ -448,19 +451,21 @@ app.post('/api/upload', (req, res) => {
           effectivePages = countPagesInRange(pageRange, pages);
         }
         var ppsPages = Math.ceil(effectivePages / pagesPerSheet);
-        const sheets = printSide === 'both' ? Math.ceil(ppsPages / 2) : ppsPages;
+        const sheets = Math.max(1, printSide === 'both' ? Math.ceil(ppsPages / 2) : ppsPages);
         
         fileSheets.push({ file, pages, effectivePages, sheets });
         totalSheets += sheets;
         totalPdfPages += effectivePages;
       }
 
+      totalSheets = Math.max(1, totalSheets);
+
       // Calculate total price with tiered pricing on TOTAL sheets × copies
-      const totalSheetsWithCopies = totalSheets * copyCount;
-      const totalTieredPrice = calculateTieredPrice(totalSheetsWithCopies, printType);
+      const totalSheetsWithCopies = Math.max(1, totalSheets * copyCount);
+      const baseRate = printType === 'color' ? 10 : 5;
+      const totalTieredPrice = Math.max(baseRate, calculateTieredPrice(totalSheetsWithCopies, printType));
       
       // Calculate price before discount
-      const baseRate = printType === 'color' ? 10 : 5;
       const totalPriceBeforeDiscount = totalSheetsWithCopies * baseRate;
       const totalDiscountAmount = Math.max(0, totalPriceBeforeDiscount - totalTieredPrice);
 
