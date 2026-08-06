@@ -1727,27 +1727,286 @@
       }
     }
 
+    // --- Automatic Magic Color Image Enhancement Pipeline ---
+    function processAutoMagicColor(file, callback) {
+      var ext = (file.name || '').split('.').pop().toLowerCase();
+      if (!['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp', 'bmp'].includes(ext)) {
+        callback(file);
+        return;
+      }
+
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+        try {
+          var canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          var ctx = canvas.getContext('2d');
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0);
+
+          magicColorPipeline(ctx, canvas.width, canvas.height);
+
+          canvas.toBlob(function(blob) {
+            if (!blob) { callback(file); return; }
+            var magicFile = new File([blob], file.name || 'document.jpg', { type: 'image/jpeg' });
+            magicFile.isMagicEnhanced = true;
+            callback(magicFile);
+          }, 'image/jpeg', 0.95);
+        } catch(e) {
+          console.warn('Auto Magic Color error:', e);
+          callback(file);
+        }
+      };
+      img.onerror = function() {
+        URL.revokeObjectURL(url);
+        callback(file);
+      };
+      img.src = url;
+    }
+
+    function magicColorPipeline(ctx, w, h) {
+      var imageData = ctx.getImageData(0, 0, w, h);
+      var d = imageData.data;
+      var len = w * h;
+
+      var sumR = 0, sumG = 0, sumB = 0;
+      for (var i = 0; i < len * 4; i += 4) { sumR += d[i]; sumG += d[i+1]; sumB += d[i+2]; }
+      var avgR = sumR / len, avgG = sumG / len, avgB = sumB / len;
+      var avgAll = (avgR + avgG + avgB) / 3;
+      var sr = avgAll / (avgR || 1), sg = avgAll / (avgG || 1), sb = avgAll / (avgB || 1);
+      for (var i = 0; i < len * 4; i += 4) {
+        d[i] = Math.min(255, d[i] * sr);
+        d[i+1] = Math.min(255, d[i+1] * sg);
+        d[i+2] = Math.min(255, d[i+2] * sb);
+      }
+
+      var lum = new Float32Array(len);
+      for (var i = 0; i < len; i++) { var idx = i * 4; lum[i] = d[idx] * 0.299 + d[idx+1] * 0.587 + d[idx+2] * 0.114; }
+
+      var bgRadius = Math.max(7, Math.round(Math.min(w, h) * 0.06));
+      if (bgRadius % 2 === 0) bgRadius++;
+      var bg = boxBlur(lum, w, h, bgRadius);
+      var globalTarget = Math.min(250, Math.max(230, percentile(lum, len, 0.92)));
+      for (var i = 0; i < len; i++) {
+        var b = bg[i];
+        var scale = b > 8 ? globalTarget / b : 1.0;
+        scale = Math.max(0.3, Math.min(3.0, scale));
+        d[i*4] = Math.min(255, Math.max(0, d[i*4] * scale));
+        d[i*4+1] = Math.min(255, Math.max(0, d[i*4+1] * scale));
+        d[i*4+2] = Math.min(255, Math.max(0, d[i*4+2] * scale));
+      }
+
+      for (var i = 0; i < len; i++) { var idx = i * 4; lum[i] = d[idx] * 0.299 + d[idx+1] * 0.587 + d[idx+2] * 0.114; }
+
+      var claheMap = clahe(lum, w, h, 4.0, Math.round(Math.min(w, h) / 18));
+
+      for (var i = 0; i < len; i++) {
+        var origLum = lum[i];
+        var enhanced = claheMap[i];
+        var blendCLAHE = 0.95;
+        var blended = origLum * (1 - blendCLAHE) + enhanced * blendCLAHE;
+        if (origLum > 248) blended = origLum * 0.8 + enhanced * 0.2;
+        if (origLum < 30) blended = origLum * 0.1 + enhanced * 0.9;
+        var ratio = blended / (origLum || 1);
+        d[i*4] = Math.min(255, Math.max(0, d[i*4] * ratio));
+        d[i*4+1] = Math.min(255, Math.max(0, d[i*4+1] * ratio));
+        d[i*4+2] = Math.min(255, Math.max(0, d[i*4+2] * ratio));
+      }
+
+      var blurRadius = Math.max(1, Math.round(Math.min(w, h) * 0.003));
+      var blurKernel = generateGaussianKernel(blurRadius);
+      var blurred = convolutionFloat(lum, w, h, blurKernel, blurRadius);
+      var sharpenAmount = 1.8;
+      for (var i = 0; i < len; i++) {
+        var diff = lum[i] - blurred[i];
+        var factor = 1.0;
+        if (lum[i] < 25) factor = 0.3;
+        else if (lum[i] > 240) factor = 0.5;
+        var adj = diff * sharpenAmount * factor;
+        for (var c = 0; c < 3; c++) {
+          d[i*4+c] = Math.min(255, Math.max(0, d[i*4+c] + adj));
+        }
+      }
+
+      for (var i = 0; i < len; i++) {
+        var r = d[i*4], g = d[i*4+1], b = d[i*4+2];
+        var minChan = Math.min(r, g, b);
+        if (minChan > 200) {
+          var push = (minChan - 200) / 55;
+          push = Math.min(1, push);
+          d[i*4] = Math.min(255, r + (255 - r) * push);
+          d[i*4+1] = Math.min(255, g + (255 - g) * push);
+          d[i*4+2] = Math.min(255, b + (255 - b) * push);
+        }
+      }
+
+      for (var i = 0; i < len; i++) {
+        var r = d[i*4], g = d[i*4+1], b = d[i*4+2];
+        var maxChan = Math.max(r, g, b);
+        if (maxChan < 60) {
+          var push = (60 - maxChan) / 60;
+          d[i*4] = Math.round(r - r * push * 0.6);
+          d[i*4+1] = Math.round(g - g * push * 0.6);
+          d[i*4+2] = Math.round(b - b * push * 0.6);
+        }
+      }
+
+      var hist = new Int32Array(256);
+      for (var i = 0; i < len; i++) { var v = Math.round(d[i*4] * 0.299 + d[i*4+1] * 0.587 + d[i*4+2] * 0.114); hist[Math.min(255, Math.max(0, v))]++; }
+      var total = len; var lo = 0, hi = 255, count = 0;
+      for (var i = 0; i < 256; i++) { count += hist[i]; if (count >= total * 0.005) { lo = i; break; } }
+      count = 0;
+      for (var i = 255; i >= 0; i--) { count += hist[i]; if (count >= total * 0.01) { hi = i; break; } }
+      var range = hi - lo;
+      if (range > 15) {
+        for (var i = 0; i < len; i++) {
+          for (var c = 0; c < 3; c++) {
+            var v = (d[i*4+c] - lo) / range * 255;
+            d[i*4+c] = Math.min(255, Math.max(0, Math.round(v)));
+          }
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function boxBlur(src, w, h, radius) {
+      var dst = new Float32Array(w * h);
+      var r = Math.floor(radius / 2);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var sum = 0, count = 0;
+          for (var kx = -r; kx <= r; kx++) {
+            var px = x + kx;
+            if (px >= 0 && px < w) { sum += src[y * w + px]; count++; }
+          }
+          dst[y * w + x] = sum / count;
+        }
+      }
+      var result = new Float32Array(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var sum = 0, count = 0;
+          for (var ky = -r; ky <= r; ky++) {
+            var py = y + ky;
+            if (py >= 0 && py < h) { sum += dst[py * w + x]; count++; }
+          }
+          result[y * w + x] = sum / count;
+        }
+      }
+      return result;
+    }
+
+    function percentile(arr, len, p) {
+      var sorted = new Float32Array(arr);
+      sorted.sort(function(a, b) { return a - b; });
+      return sorted[Math.floor((len - 1) * p)];
+    }
+
+    function clahe(src, w, h, clipLimit, tileSize) {
+      tileSize = Math.max(8, Math.min(tileSize, 128));
+      var tilesX = Math.ceil(w / tileSize);
+      var tilesY = Math.ceil(h / tileSize);
+      var cdfs = [];
+      for (var ty = 0; ty < tilesY; ty++) {
+        for (var tx = 0; tx < tilesX; tx++) {
+          var hist = new Int32Array(256);
+          var startX = tx * tileSize, startY = ty * tileSize;
+          var endX = Math.min(startX + tileSize, w), endY = Math.min(startY + tileSize, h);
+          for (var y = startY; y < endY; y++) {
+            for (var x = startX; x < endX; x++) { hist[Math.round(src[y * w + x])]++; }
+          }
+          var total = (endX - startX) * (endY - startY);
+          var clipValue = Math.round(clipLimit * total / 256);
+          var excess = 0;
+          for (var i = 0; i < 256; i++) { if (hist[i] > clipValue) { excess += hist[i] - clipValue; hist[i] = clipValue; } }
+          var redist = Math.floor(excess / 256);
+          for (var i = 0; i < 256; i++) hist[i] += redist;
+          var cdf = new Float32Array(256);
+          var sum = 0;
+          for (var i = 0; i < 256; i++) { sum += hist[i]; cdf[i] = sum; }
+          var cdfMin = cdf[0], cdfRange = sum - cdfMin;
+          for (var i = 0; i < 256; i++) cdf[i] = cdfRange > 0 ? (cdf[i] - cdfMin) / cdfRange * 255 : 0;
+          cdfs.push(cdf);
+        }
+      }
+      var result = new Float32Array(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var tx = Math.floor(x / tileSize);
+          var ty = Math.floor(y / tileSize);
+          if (tx >= tilesX - 1) tx = tilesX - 2;
+          if (ty >= tilesY - 1) ty = tilesY - 2;
+          var px = (x - tx * tileSize) / tileSize;
+          var py = (y - ty * tileSize) / tileSize;
+          px = Math.max(0, Math.min(1, px));
+          py = Math.max(0, Math.min(1, py));
+          var val = Math.round(src[y * w + x]);
+          var idxTL = ty * tilesX + tx;
+          var idxTR = ty * tilesX + (tx + 1);
+          var idxBL = (ty + 1) * tilesX + tx;
+          var idxBR = (ty + 1) * tilesX + (tx + 1);
+          result[y * w + x] = cdfs[idxTL][val] * (1-px) * (1-py) + cdfs[idxTR][val] * px * (1-py) + cdfs[idxBL][val] * (1-px) * py + cdfs[idxBR][val] * px * py;
+        }
+      }
+      return result;
+    }
+
+    function generateGaussianKernel(radius) {
+      var size = radius * 2 + 1;
+      var kernel = new Float32Array(size);
+      var sigma = radius / 2;
+      var sum = 0;
+      for (var i = 0; i < size; i++) {
+        var x = i - radius;
+        kernel[i] = Math.exp(-(x * x) / (2 * sigma * sigma));
+        sum += kernel[i];
+      }
+      for (var i = 0; i < size; i++) kernel[i] /= sum;
+      return kernel;
+    }
+
+    function convolutionFloat(src, w, h, kernel, radius) {
+      var dst = new Float32Array(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var sum = 0;
+          for (var k = -radius; k <= radius; k++) {
+            var px = x + k;
+            if (px >= 0 && px < w) sum += src[y * w + px] * kernel[k + radius];
+            else sum += src[y * w + x] * kernel[k + radius];
+          }
+          dst[y * w + x] = sum;
+        }
+      }
+      var result = new Float32Array(w * h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 0; x < w; x++) {
+          var sum = 0;
+          for (var k = -radius; k <= radius; k++) {
+            var py = y + k;
+            if (py >= 0 && py < h) sum += dst[py * w + x] * kernel[k + radius];
+            else sum += dst[y * w + x] * kernel[k + radius];
+          }
+          result[y * w + x] = sum;
+        }
+      }
+      return result;
+    }
+
     var _imageCropQueue = [];
     var _imageCropCb = null;
     function startImageCrop(files, idx, cb) {
       _imageCropCb = cb;
       if (idx >= files.length) { if (cb) cb(); return; }
       var f = files[idx];
-      var img = new Image();
-      img.onload = function() {
-        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
-          OCV_CROP.openModal(img, false, function(croppedFile, filter) {
-            if (croppedFile) {
-              selectedFiles.push({ file: croppedFile, pages: 1 });
-            }
-            startImageCrop(files, idx + 1, cb);
-          }, f);
-        } else {
-          selectedFiles.push({ file: f, pages: 1 });
-          startImageCrop(files, idx + 1, cb);
-        }
-      };
-      img.src = URL.createObjectURL(f);
+      showProgress('Enhancing document photo (Magic Color)...', Math.round(((idx + 1) / files.length) * 100));
+      processAutoMagicColor(f, function(magicFile) {
+        selectedFiles.push({ file: magicFile, pages: 1 });
+        startImageCrop(files, idx + 1, cb);
+      });
     }
 
     function onPdfDone() {
@@ -1887,7 +2146,7 @@
             '<div class="file-thumb' + (isPdf ? ' pdf' : isImage ? ' image' : ' doc') + '" style="overflow:hidden;position:relative;' + (isPdf ? 'background:#fff;' : '') + '">' + thumbHtml + '</div>' +
             '<div class="file-info">' +
               '<div class="fi-name">' + escapeHtml(f.name) + '</div>' +
-              '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + '</div>' +
+              '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + (isImage ? ' <span style="color:#22c55e;font-weight:700;">✨ Magic Color</span>' : '') + '</div>' +
             '</div>' +
             '<div class="file-actions" style="gap:8px;">' +
               (isImage ? '<button class="file-btn crop-btn" onclick="openCrop(' + i + ')" title="Crop Image" style="background:#16A34A;color:#fff;width:auto;padding:0 12px;font-size:0.82em;font-weight:700;gap:4px;border-radius:8px;"><i data-lucide="crop" style="width:18px;height:18px;"></i> Crop</button>' : '') +
