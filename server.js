@@ -908,6 +908,90 @@ app.all('/api/verify-cashfree-payment', async (req, res) => {
   }
 });
 
+// Background polling worker: Automatically verifies pending Cashfree payments every 8 seconds
+// (Solves issue where customer closes tab/browser after UPI payment before JS callback fires)
+function autoCheckPendingCashfreeOrders() {
+  if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) return;
+  try {
+    const pendingOrders = db.prepare(`
+      SELECT DISTINCT cashfree_order_id 
+      FROM orders 
+      WHERE status = 'pending' 
+        AND cashfree_order_id IS NOT NULL 
+        AND created_at >= datetime('now', '-30 minutes')
+    `).all();
+
+    for (const row of pendingOrders) {
+      const cfOrderId = row.cashfree_order_id;
+      if (!cfOrderId) continue;
+
+      const host = (CASHFREE_ENV === 'PROD' || CASHFREE_ENV === 'PRODUCTION') ? 'api.cashfree.com' : 'sandbox.cashfree.com';
+      const options = {
+        hostname: host,
+        port: 443,
+        path: `/pg/orders/${encodeURIComponent(cfOrderId)}`,
+        method: 'GET',
+        headers: {
+          'x-client-id': CASHFREE_APP_ID,
+          'x-client-secret': CASHFREE_SECRET_KEY,
+          'x-api-version': '2023-08-01'
+        }
+      };
+
+      const req = https.request(options, (response) => {
+        let result = '';
+        response.on('data', (chunk) => { result += chunk; });
+        response.on('end', async () => {
+          try {
+            const resObj = JSON.parse(result);
+            if (resObj && resObj.order_status === 'PAID') {
+              console.log(`[CASHFREE AUTO-POLL] Verified PAID order ${cfOrderId}. Auto-accepting & printing...`);
+              
+              const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
+              const autoPrintEnabled = autoPrintRow ? autoPrintRow.value === '1' : true;
+
+              const targetOrders = db.prepare('SELECT * FROM orders WHERE cashfree_order_id = ? AND status = ?').all(cfOrderId, 'pending');
+
+              for (const order of targetOrders) {
+                db.prepare('UPDATE orders SET status = ?, payment_method = ? WHERE id = ?').run('paid', 'cashfree', order.id);
+
+                if (autoPrintEnabled) {
+                  tracker.unmarkOrderPrinted(order.id);
+                  db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', order.id);
+                  const printer = await resolvePrinterName(order.printer_name, order.print_type === 'color');
+                  db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, order.id);
+                  try {
+                    const printers = await getPrintersHidden();
+                    const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+                    if (hasPrinter) {
+                      tracker.markOrderPrinted(order.id);
+                      if (order.is_id_copy) {
+                        const frontPath = path.join(__dirname, 'uploads', order.file_path);
+                        const backPath = order.back_file_path ? path.join(__dirname, 'uploads', order.back_file_path) : '';
+                        const combinedPath = path.join(__dirname, 'uploads', 'combined_' + order.file_path);
+                        await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+                        await printFile(combinedPath, 'combined_' + order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
+                      } else {
+                        await printFile(path.join(__dirname, 'uploads', order.file_path), order.file_name, printer, order.print_type, order.print_side, order.page_range, order.copies, order.orientation);
+                      }
+                    }
+                  } catch (e) {
+                    console.error('Cashfree auto-poll print error:', e.message);
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        });
+      });
+      req.on('error', () => {});
+      req.end();
+    }
+  } catch (e) {}
+}
+
+setInterval(autoCheckPendingCashfreeOrders, 8000);
+
 // ---------------------------------------------------------------------------
 // Public /api/admin/* endpoints (accessible without admin token — for
 // local-printer.js agent and Razorpay auto-print setting)
