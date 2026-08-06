@@ -2028,11 +2028,34 @@
         return;
       }
       var f = files[idx];
-      showProgress('Processing image...', Math.round(((idx + 1) / files.length) * 100));
-      processAutoMagicColor(f, function(magicFile) {
-        selectedFiles.push({ file: f, magicFile: magicFile, pages: 1 });
-        startImageCrop(files, idx + 1, cb);
-      });
+      hideProgress();
+      var img = new Image();
+      var url = URL.createObjectURL(f);
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
+          OCV_CROP.openModal(img, false, function(croppedFile, filter) {
+            var baseFile = croppedFile || f;
+            processAutoMagicColor(baseFile, function(magicFile) {
+              selectedFiles.push({ file: baseFile, magicFile: magicFile, pages: 1 });
+              startImageCrop(files, idx + 1, cb);
+            });
+          }, f);
+        } else {
+          processAutoMagicColor(f, function(magicFile) {
+            selectedFiles.push({ file: f, magicFile: magicFile, pages: 1 });
+            startImageCrop(files, idx + 1, cb);
+          });
+        }
+      };
+      img.onerror = function() {
+        URL.revokeObjectURL(url);
+        processAutoMagicColor(f, function(magicFile) {
+          selectedFiles.push({ file: f, magicFile: magicFile, pages: 1 });
+          startImageCrop(files, idx + 1, cb);
+        });
+      };
+      img.src = url;
     }
 
     function onPdfDone() {
