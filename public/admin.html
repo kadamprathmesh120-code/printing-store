@@ -1247,11 +1247,13 @@
     }
 
     var playedAlertOrders = new Set();
+    var _adminActiveAudio = null;
+
     function playPrinterAlert(printerName, customerName, fileName, copies, printType, orderId) {
-      if (orderId) {
-        if (playedAlertOrders.has(orderId)) return; // Prevent double/duplicate audio announcement for the same order
-        playedAlertOrders.add(orderId);
-      }
+      var alertKey = orderId || (printerName + '_' + (customerName || '') + '_' + (fileName || ''));
+      if (playedAlertOrders.has(alertKey)) return; // Prevent double/duplicate audio announcement for the same order
+      playedAlertOrders.add(alertKey);
+
       var pLower = (printerName || '').toLowerCase();
       var isHp = pLower.indexOf('hp') !== -1 || pLower.indexOf('smart tank') !== -1 || pLower.indexOf('deskjet') !== -1 || pLower.indexOf('laserjet') !== -1;
       var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || (printType === 'color' && !isHp);
@@ -1273,9 +1275,14 @@
     }
 
     function playAudioFile(files) {
+      if (_adminActiveAudio) {
+        try { _adminActiveAudio.pause(); _adminActiveAudio.currentTime = 0; } catch(e) {}
+        _adminActiveAudio = null;
+      }
       function tryNext(index) {
         if (index >= files.length) return;
         var a = new Audio(files[index]);
+        _adminActiveAudio = a;
         a.volume = 1.0;
         a.play().catch(function() {
           tryNext(index + 1);

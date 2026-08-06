@@ -4431,24 +4431,17 @@
       }
     }
 
+    var _customerActiveVoiceAudio = null;
     function playUploadedVoiceMP3() {
-      if (_unlockedAudioElement) {
-        _unlockedAudioElement.currentTime = 0;
-        _unlockedAudioElement.volume = 1.0;
-        var p = _unlockedAudioElement.play();
-        if (p !== undefined) {
-          p.catch(function(err) {
-            console.log('Voice playback retry:', err);
-            var a = new Audio('/announcements.mp3?v=' + Date.now());
-            a.play().catch(function(e) {});
-          });
-        }
-      } else {
-        var audio = new Audio('/announcements.mp3?v=' + Date.now());
-        audio.play().catch(function(err) {
-          console.log('Voice announcement playback:', err);
-        });
+      if (_customerActiveVoiceAudio) {
+        try { _customerActiveVoiceAudio.pause(); _customerActiveVoiceAudio.currentTime = 0; } catch(e) {}
+        _customerActiveVoiceAudio = null;
       }
+      var audio = new Audio('/announcements.mp3?v=' + Date.now());
+      _customerActiveVoiceAudio = audio;
+      audio.play().catch(function(err) {
+        console.log('Voice announcement playback:', err);
+      });
     }
 
     function updateStatusDisplay(status, orders) {
