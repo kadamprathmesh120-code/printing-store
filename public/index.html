@@ -4300,7 +4300,7 @@
             if (nBody) nBody.textContent = 'Payment of ₹' + totalPrice.toFixed(2) + ' received. Your files are in the print queue.';
             if (nPill) nPill.style.display = 'none';
           }
-          if (!isCash && (status === 'paid' || status === 'accepted')) {
+          if (status === 'accepted') {
             playCustomerSuccessAudioSequence();
           }
         }
