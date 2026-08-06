@@ -2002,9 +2002,9 @@
       _imageCropCb = cb;
       if (idx >= files.length) { if (cb) cb(); return; }
       var f = files[idx];
-      showProgress('Enhancing document photo (Magic Color)...', Math.round(((idx + 1) / files.length) * 100));
+      showProgress('Processing image...', Math.round(((idx + 1) / files.length) * 100));
       processAutoMagicColor(f, function(magicFile) {
-        selectedFiles.push({ file: magicFile, pages: 1 });
+        selectedFiles.push({ file: f, magicFile: magicFile, pages: 1 });
         startImageCrop(files, idx + 1, cb);
       });
     }
@@ -2146,7 +2146,7 @@
             '<div class="file-thumb' + (isPdf ? ' pdf' : isImage ? ' image' : ' doc') + '" style="overflow:hidden;position:relative;' + (isPdf ? 'background:#fff;' : '') + '">' + thumbHtml + '</div>' +
             '<div class="file-info">' +
               '<div class="fi-name">' + escapeHtml(f.name) + '</div>' +
-              '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + (isImage ? ' <span style="color:#22c55e;font-weight:700;">✨ Magic Color</span>' : '') + '</div>' +
+              '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + (isImage ? (selectedPrintType === 'color' ? ' <span style="color:#3b82f6;font-weight:700;">📷 Original Color</span>' : ' <span style="color:#22c55e;font-weight:700;">✨ Magic Color</span>') : '') + '</div>' +
             '</div>' +
             '<div class="file-actions" style="gap:8px;">' +
               (isImage ? '<button class="file-btn crop-btn" onclick="openCrop(' + i + ')" title="Crop Image" style="background:#16A34A;color:#fff;width:auto;padding:0 12px;font-size:0.82em;font-weight:700;gap:4px;border-radius:8px;"><i data-lucide="crop" style="width:18px;height:18px;"></i> Crop</button>' : '') +
@@ -2234,6 +2234,7 @@
             bothPills.classList.remove('hidden');
           }
         }
+        renderFileCards();
       } else if (group === 'printSide') {
         selectedPrintSide = el.getAttribute('data-value');
       } else if (group === 'orientation') {
@@ -2695,13 +2696,15 @@
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
 
       for (var i = 0; i < selectedFiles.length; i++) {
-        var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
+        var sf = selectedFiles[i];
+        var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
+        var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, selectedFiles[i].file.name);
+          fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
         }
-        formData.append('files', fileToUpload, selectedFiles[i].file.name || 'file.png');
-        if (selectedFiles[i].pages) {
-          formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
+        formData.append('files', fileToUpload, sf.file.name || 'file.png');
+        if (sf.pages) {
+          formData.append('pageCount_' + sf.file.name, sf.pages);
         }
       }
 
@@ -2832,13 +2835,15 @@
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
 
       for (var i = 0; i < selectedFiles.length; i++) {
-        var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
+        var sf = selectedFiles[i];
+        var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
+        var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, selectedFiles[i].file.name);
+          fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
         }
-        formData.append('files', fileToUpload, selectedFiles[i].file.name || 'file.png');
-        if (selectedFiles[i].pages) {
-          formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
+        formData.append('files', fileToUpload, sf.file.name || 'file.png');
+        if (sf.pages) {
+          formData.append('pageCount_' + sf.file.name, sf.pages);
         }
       }
 
@@ -2997,13 +3002,15 @@
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
 
       for (var i = 0; i < selectedFiles.length; i++) {
-        var fileToUpload = enhancedFiles[selectedFiles[i].file.name] || selectedFiles[i].file;
+        var sf = selectedFiles[i];
+        var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
+        var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, selectedFiles[i].file.name);
+          fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
         }
-        formData.append('files', fileToUpload, selectedFiles[i].file.name || 'file.png');
-        if (selectedFiles[i].pages) {
-          formData.append('pageCount_' + selectedFiles[i].file.name, selectedFiles[i].pages);
+        formData.append('files', fileToUpload, sf.file.name || 'file.png');
+        if (sf.pages) {
+          formData.append('pageCount_' + sf.file.name, sf.pages);
         }
       }
 
