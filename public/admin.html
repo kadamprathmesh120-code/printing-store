@@ -1097,6 +1097,7 @@
     //  State
     // -------------------------------------------------------
     var knownOrderIds = new Set();
+    var knownPaidOrderIds = new Set();
     var soundEnabled = localStorage.getItem('notifSound') !== 'off';
     var voiceEnabled = localStorage.getItem('notifVoice') !== 'off';
     var razorpayAutoPrintEnabled = localStorage.getItem('razorpayAutoPrint') !== 'off';
@@ -1214,6 +1215,8 @@
     try {
       var saved = sessionStorage.getItem('knownOrderIds');
       if (saved) { JSON.parse(saved).forEach(function(id) { knownOrderIds.add(id); }); }
+      var savedPaid = sessionStorage.getItem('knownPaidOrderIds');
+      if (savedPaid) { JSON.parse(savedPaid).forEach(function(id) { knownPaidOrderIds.add(id); }); }
     } catch(e) {}
 
     // -------------------------------------------------------
@@ -2107,24 +2110,31 @@
           if (refreshBtn) refreshBtn.style.opacity = '1';
           if (!Array.isArray(orders)) { hideLoading(); return; }
 
-          var newOrders = [];
+          var newPaidOrders = [];
           if (!isFirstLoad) {
-            newOrders = orders.filter(function(o) { return !knownOrderIds.has(o.id); });
+            newPaidOrders = orders.filter(function(o) {
+              return (o.status === 'paid' || o.status === 'accepted') && !knownPaidOrderIds.has(o.id);
+            });
           }
-          orders.forEach(function(o) { knownOrderIds.add(o.id); });
+          orders.forEach(function(o) {
+            knownOrderIds.add(o.id);
+            if (o.status === 'paid' || o.status === 'accepted') {
+              knownPaidOrderIds.add(o.id);
+            }
+          });
           try { sessionStorage.setItem('knownOrderIds', JSON.stringify(Array.from(knownOrderIds))); } catch(e) {}
+          try { sessionStorage.setItem('knownPaidOrderIds', JSON.stringify(Array.from(knownPaidOrderIds))); } catch(e) {}
 
-          if (newOrders.length > 0) {
-            playNotificationSound();
-            pendingNewIds = newOrders.map(function(o) { return o.id; });
-            newOrders.reverse().forEach(function(o) {
+          if (newPaidOrders.length > 0) {
+            pendingNewIds = newPaidOrders.map(function(o) { return o.id; });
+            newPaidOrders.reverse().forEach(function(o) {
               showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
-              // Trigger printer sound alert (HP.mp3, KONICA.mp3, or KYOCERA.mp3) automatically when new online/cash orders arrive!
+              // Trigger printer sound alert (HP.mp3, KONICA.mp3, or KYOCERA.mp3) ONLY when payment is confirmed!
               var printType = o.print_type || 'bw';
               var printer = o.printer_name || ((printType === 'color') ? getColorPrinter() : getBwPrinter());
               playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType, o.id);
             });
-            unreadCount += newOrders.length;
+            unreadCount += newPaidOrders.length;
             updateNotifBadge(unreadCount);
           }
           isFirstLoad = false;
