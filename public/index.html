@@ -4310,19 +4310,11 @@
           if (_customerAudioContext.state === 'suspended') {
             _customerAudioContext.resume();
           }
-        }
-      } catch(e) {}
-
-      try {
-        _unlockedAudioElement = new Audio('/announcements.mp3');
-        _unlockedAudioElement.volume = 0.01;
-        var p = _unlockedAudioElement.play();
-        if (p !== undefined) {
-          p.then(function() {
-            _unlockedAudioElement.pause();
-            _unlockedAudioElement.currentTime = 0;
-            _unlockedAudioElement.volume = 1.0;
-          }).catch(function(e) {});
+          var buffer = _customerAudioContext.createBuffer(1, 1, 22050);
+          var source = _customerAudioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(_customerAudioContext.destination);
+          source.start(0);
         }
       } catch(e) {}
     }
