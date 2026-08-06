@@ -788,17 +788,18 @@ app.post('/api/create-cashfree-order', async (req, res) => {
   }
 });
 
-// Cashfree: verify order status
-app.post('/api/verify-cashfree-payment', async (req, res) => {
+// Cashfree: verify order status (supports both GET return_url browser redirect & POST API call)
+app.all('/api/verify-cashfree-payment', async (req, res) => {
   try {
     if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
       return res.status(503).json({ error: 'Cashfree Payment Gateway is not configured on this server' });
     }
 
-    const { cashfreeOrderId, orderIds } = req.body;
+    const { cashfreeOrderId, orderIds } = req.body || {};
     const cfOrderId = cashfreeOrderId || req.query.order_id;
 
     if (!cfOrderId) {
+      if (req.method === 'GET') return res.redirect('/?payment=failed&error=missing_order_id');
       return res.status(400).json({ error: 'Missing Cashfree Order ID' });
     }
 
@@ -835,8 +836,8 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
             }
 
             for (const oid of targetOrderIds) {
-              db.prepare('UPDATE orders SET status = ?, payment_method = ?, cashfree_order_id = ? WHERE id = ? AND status = ?')
-                .run('paid', 'cashfree', cfOrderId, oid, 'pending');
+              db.prepare('UPDATE orders SET status = ?, payment_method = ?, cashfree_order_id = ? WHERE id = ?')
+                .run('paid', 'cashfree', cfOrderId, oid);
 
               if (autoPrintEnabled) {
                 const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
@@ -867,12 +868,19 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
               }
             }
 
+            if (req.method === 'GET') {
+              return res.redirect('/?payment=success&order_id=' + encodeURIComponent(cfOrderId));
+            }
             return res.json({ success: true, message: autoPrintEnabled ? 'Cashfree payment verified. Printing started.' : 'Cashfree payment verified. Waiting for admin approval.' });
           } else {
+            if (req.method === 'GET') {
+              return res.redirect('/?payment=failed&status=' + encodeURIComponent(resObj.order_status || 'PENDING'));
+            }
             return res.status(400).json({ error: 'Payment status is ' + (resObj.order_status || 'PENDING') });
           }
         } catch (e) {
           console.error('Cashfree verify parse error:', e);
+          if (req.method === 'GET') return res.redirect('/?payment=failed&error=parse_error');
           return res.status(500).json({ error: 'Invalid response from Cashfree API' });
         }
       });
@@ -880,6 +888,7 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
 
     request.on('error', (err) => {
       console.error('Cashfree verify request error:', err);
+      if (req.method === 'GET') return res.redirect('/?payment=failed&error=network_error');
       return res.status(500).json({ error: 'Failed to communicate with Cashfree' });
     });
 
@@ -887,6 +896,7 @@ app.post('/api/verify-cashfree-payment', async (req, res) => {
 
   } catch (err) {
     console.error('Cashfree verify error:', err);
+    if (req.method === 'GET') return res.redirect('/?payment=failed&error=server_error');
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -906,7 +916,7 @@ app.get('/api/admin/orders', (req, res) => {
 
 app.get('/api/admin/autoprint', (req, res) => {
   try {
-    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('autoprint_enabled');
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
     res.json({ enabled: row ? row.value === '1' : true });
   } catch (err) {
     res.json({ enabled: true });
@@ -916,8 +926,10 @@ app.get('/api/admin/autoprint', (req, res) => {
 app.post('/api/admin/autoprint', (req, res) => {
   try {
     const { enabled } = req.body;
-    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('autoprint_enabled', enabled ? '1' : '0');
-    res.json({ success: true, enabled });
+    const val = enabled ? '1' : '0';
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('razorpay_autoprint_enabled', val);
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('autoprint_enabled', val);
+    res.json({ success: true, enabled: !!enabled });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -979,8 +991,10 @@ app.get('/api/admin/razorpay-autoprint', (req, res) => {
 app.post('/api/admin/razorpay-autoprint', (req, res) => {
   try {
     const { enabled } = req.body;
-    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('razorpay_autoprint_enabled', enabled ? '1' : '0');
-    res.json({ success: true, enabled });
+    const val = enabled ? '1' : '0';
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('razorpay_autoprint_enabled', val);
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('autoprint_enabled', val);
+    res.json({ success: true, enabled: !!enabled });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

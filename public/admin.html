@@ -1153,7 +1153,7 @@
       showToast('info', 'Active Printer Changed', 'B&W orders will now print on ' + label);
     }
 
-    // Initialize selector from saved preference and server config
+    // Initialize selector and auto-print status from server config
     (function() {
       fetch('/api/admin/printer-config')
         .then(function(r) { return r.json(); })
@@ -1165,6 +1165,13 @@
             document.getElementById('selectKonica').className = 'printer-select-btn' + (activeBwPrinter === 'konica' ? ' active' : '');
             document.getElementById('selectKyocera').className = 'printer-select-btn' + (activeBwPrinter === 'kyocera' ? ' active' : '');
             updatePrinterCards();
+          }
+        }).catch(function(e) {});
+      fetch('/api/admin/razorpay-autoprint')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && typeof data.enabled === 'boolean') {
+            updateAutoPrintUI(data.enabled);
           }
         }).catch(function(e) {});
       document.getElementById('selectKonica').className = 'printer-select-btn' + (activeBwPrinter === 'konica' ? ' active' : '');
@@ -1474,18 +1481,16 @@
       }
     }
 
-    // -------------------------------------------------------
-    //  Razorpay Auto-Print Toggle
-    // -------------------------------------------------------
-    async function toggleRazorpayAutoPrint() {
-      razorpayAutoPrintEnabled = !razorpayAutoPrintEnabled;
-      localStorage.setItem('razorpayAutoPrint', razorpayAutoPrintEnabled ? 'on' : 'off');
+    function updateAutoPrintUI(enabled) {
+      razorpayAutoPrintEnabled = enabled;
+      localStorage.setItem('razorpayAutoPrint', enabled ? 'on' : 'off');
       var card = document.getElementById('scAutoprint');
       var value = document.getElementById('autoprintValue');
       var icon = document.getElementById('autoPrintIcon');
       var label = document.getElementById('autoPrintLabel');
       var btn = document.getElementById('autoPrintToggle');
-      if (razorpayAutoPrintEnabled) {
+      if (!card || !value || !icon || !label || !btn) return;
+      if (enabled) {
         card.className = 'status-card green';
         card.querySelector('.sc-icon').textContent = '🟢';
         value.textContent = 'ON';
@@ -1502,18 +1507,26 @@
         btn.className = 'ctrl-btn success';
         icon.setAttribute('data-lucide', 'play');
       }
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // -------------------------------------------------------
+    //  Razorpay Auto-Print Toggle
+    // -------------------------------------------------------
+    async function toggleRazorpayAutoPrint() {
+      var newState = !razorpayAutoPrintEnabled;
+      updateAutoPrintUI(newState);
       // Sync with server
       try {
         await fetch('/api/admin/razorpay-autoprint', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled: razorpayAutoPrintEnabled })
+          body: JSON.stringify({ enabled: newState })
         });
       } catch (e) {
         showToast('error', 'Failed to sync', 'Could not update server setting');
       }
-      showToast('info', 'Razorpay Auto-Print', razorpayAutoPrintEnabled ? 'Enabled — orders auto-accept on payment' : 'Disabled — manual accept required');
+      showToast('info', 'Razorpay Auto-Print', newState ? 'Enabled — orders auto-accept on payment' : 'Disabled — manual accept required');
     }
 
     // Init sound toggle visual
