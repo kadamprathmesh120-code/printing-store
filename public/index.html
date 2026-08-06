@@ -2174,12 +2174,13 @@
       container.innerHTML = '';
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
+        var displayFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
         var f = sf.file;
         var ext = f.name.split('.').pop().toLowerCase();
         var isPdf = ext === 'pdf';
-        var isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+        var isImage = ['jpg', 'jpeg', 'png', 'heic', 'webp', 'bmp'].includes(ext);
         var thumbHtml;
-        var url = URL.createObjectURL(f);
+        var url = URL.createObjectURL(displayFile);
         window._thumbUrls.push(url);
         if (isImage) {
           thumbHtml = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">';
@@ -4669,11 +4670,22 @@
       if (cropIndex >= cropQueue.length) {
         for (var key in enhancedFiles) {
           for (var si = 0; si < selectedFiles.length; si++) {
-            if (selectedFiles[si].file.name === key) { selectedFiles[si].file = enhancedFiles[key]; break; }
+            if (selectedFiles[si].file.name === key) {
+              var newCropped = enhancedFiles[key];
+              selectedFiles[si].file = newCropped;
+              (function(item, newFile) {
+                processAutoMagicColor(newFile, function(newMagic) {
+                  item.magicFile = newMagic;
+                  renderFileCards();
+                  if (typeof window.qpPreview === 'function') window.qpPreview();
+                  if (typeof window.qpBar === 'function') window.qpBar();
+                });
+              })(selectedFiles[si], newCropped);
+              break;
+            }
           }
         }
         renderFileCards();
-        // Refresh the print preview panel with the newly cropped file
         if (typeof window.qpPreview === 'function') window.qpPreview();
         if (typeof window.qpBar === 'function') window.qpBar();
         return;
