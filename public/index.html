@@ -3960,17 +3960,8 @@
     var VoiceManager = {
       _lastText: null,
       announce: function(text) {
-        if (!('speechSynthesis' in window)) return; // browser doesn't support it
-        // Cancel whatever is currently playing
-        window.speechSynthesis.cancel();
-        var utter = new SpeechSynthesisUtterance(text);
-        utter.lang  = 'en-IN';   // Indian English accent (falls back to en if unavailable)
-        utter.rate  = 0.92;      // slightly slower for clarity
-        utter.pitch = 1.0;
-        utter.volume = 1.0;
-        this._lastText = text;
-        // Small delay so browser audio context is ready (required on some Chromium kiosk builds)
-        setTimeout(function() { window.speechSynthesis.speak(utter); }, 150);
+        // Text-to-speech disabled — system uses MP3 audio files exclusively
+        return;
       },
       stop: function() {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
