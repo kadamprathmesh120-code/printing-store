@@ -55,7 +55,7 @@ function sanitizePageRange(rangeStr) {
 }
 
 // Print PDF silently using SumatraPDF directly via spawn (no flash)
-function printPdfSilent(filePath, opts) {
+function printSinglePdfPage(filePath, opts) {
   return new Promise(function(resolve, reject) {
     var sumatraArgs = [
       '-print-to', opts.printer,
@@ -63,8 +63,6 @@ function printPdfSilent(filePath, opts) {
       '-exit-on-print'
     ];
     var settings = ['fit', 'paper=A4']; // fit = stretch content to printable area on A4 paper
-    var copyCount = Math.max(1, parseInt(opts.copies) || 1);
-    settings.push(copyCount + 'x');
     if (opts.side === 'duplex') {
       settings.push('duplexlong');
     } else {
@@ -95,6 +93,15 @@ function printPdfSilent(filePath, opts) {
     child.on('close', function(code) { resolve(code); });
     child.on('error', reject);
   });
+}
+
+async function printPdfSilent(filePath, opts) {
+  var copyCount = Math.max(1, parseInt(opts.copies) || 1);
+  console.log('[PRINT] Printing PDF:', filePath, '| Requested copies:', copyCount);
+  for (var i = 0; i < copyCount; i++) {
+    console.log('[PRINT] Printing set ' + (i + 1) + ' of ' + copyCount + ' to ' + opts.printer + '...');
+    await printSinglePdfPage(filePath, opts);
+  }
 }
 
 // Simple hidden exec (for non-PS commands)

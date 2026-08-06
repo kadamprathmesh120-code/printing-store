@@ -59,7 +59,7 @@ function sanitizePageRange(rangeStr) {
   return cleaned || 'all';
 }
 
-function printPdfSilent(filePath, opts) {
+function printSinglePdfPage(filePath, opts) {
   return new Promise((resolve, reject) => {
     const sumatraArgs = [
       '-print-to', opts.printer,
@@ -67,8 +67,6 @@ function printPdfSilent(filePath, opts) {
       '-exit-on-print'
     ];
     const settings = ['fit']; // Always fit page content to paper printable area (prevents blank/clipped pages)
-    const copyCount = Math.max(1, parseInt(opts.copies) || 1);
-    settings.push(copyCount + 'x');
     
     if (opts.side === 'duplex') {
       settings.push('duplexlong');
@@ -101,6 +99,15 @@ function printPdfSilent(filePath, opts) {
     child.on('close', (code) => { resolve(code); });
     child.on('error', reject);
   });
+}
+
+async function printPdfSilent(filePath, opts) {
+  const copyCount = Math.max(1, parseInt(opts.copies) || 1);
+  console.log(`[PRINT] Printing PDF: ${filePath} | Total requested copies: ${copyCount}`);
+  for (let i = 0; i < copyCount; i++) {
+    console.log(`[PRINT] Printing set ${i + 1} of ${copyCount}...`);
+    await printSinglePdfPage(filePath, opts);
+  }
 }
 
 function execP(cmd) {

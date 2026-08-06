@@ -107,7 +107,12 @@ $pd.add_PrintPage({
   $e.HasMorePages = $false
 })
 
-$pd.Print()
+# Perform printing for requested number of copies/sets
+$copyNum = [Math]::Max(1, $copies)
+for ($i = 0; $i -lt $copyNum; $i++) {
+  $pd.Print()
+}
+
 $img.Dispose()
 $imgStream.Close()
 $imgStream.Dispose()
