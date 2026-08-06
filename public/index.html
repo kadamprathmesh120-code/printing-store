@@ -1717,13 +1717,14 @@
 
       // Images → crop tool → print settings
       if (imageFiles.length > 0) {
+        showStep('stepSettings');
         showProgress('Opening scanner...', 10);
         setTimeout(function() {
           hideProgress();
           startImageCrop(imageFiles, 0, function() {
             goToSettings();
           });
-        }, 300);
+        }, 150);
       }
     }
 
