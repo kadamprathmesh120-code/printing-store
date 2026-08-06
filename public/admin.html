@@ -1243,7 +1243,12 @@
       } catch(e) {}
     }
 
-    function playPrinterAlert(printerName, customerName, fileName, copies, printType) {
+    var playedAlertOrders = new Set();
+    function playPrinterAlert(printerName, customerName, fileName, copies, printType, orderId) {
+      if (orderId) {
+        if (playedAlertOrders.has(orderId)) return; // Prevent double/duplicate audio announcement for the same order
+        playedAlertOrders.add(orderId);
+      }
       var pLower = (printerName || '').toLowerCase();
       var isHp = pLower.indexOf('hp') !== -1 || pLower.indexOf('smart tank') !== -1 || pLower.indexOf('deskjet') !== -1 || pLower.indexOf('laserjet') !== -1;
       var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || (printType === 'color' && !isHp);
@@ -2117,7 +2122,7 @@
               // Trigger printer sound alert (HP.mp3, KONICA.mp3, or KYOCERA.mp3) automatically when new online/cash orders arrive!
               var printType = o.print_type || 'bw';
               var printer = o.printer_name || ((printType === 'color') ? getColorPrinter() : getBwPrinter());
-              playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType);
+              playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType, o.id);
             });
             unreadCount += newOrders.length;
             updateNotifBadge(unreadCount);
@@ -2185,7 +2190,7 @@
       var copies = targetOrder ? (targetOrder.copies || 1) : 1;
 
       // Trigger printer-specific sound alert (KONICA.mp3 for Konica/Color)
-      playPrinterAlert(printer, cName, fName, copies, printType);
+      playPrinterAlert(printer, cName, fName, copies, printType, id);
 
       fetch('/api/admin/orders/' + id + '/accept', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ printer: printer, paymentMethod: paymentMethod }) })
         .then(function(r) { return r.json(); })
