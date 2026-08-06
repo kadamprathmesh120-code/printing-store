@@ -2142,7 +2142,7 @@
           allOrders = orders;
 
           // Cash alert with Customer Name Callout
-          var cashPaid = orders.filter(function(o) { return o.payment_method === 'cash' && o.status === 'paid'; });
+          var cashPaid = orders.filter(function(o) { return o.payment_method === 'cash' && (o.status === 'pending' || o.status === 'paid'); });
           var cashAlert = document.getElementById('cashAlert');
           if (cashPaid.length > 0) {
             cashAlert.classList.remove('hidden');
