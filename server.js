@@ -1352,13 +1352,14 @@ app.delete('/api/admin/orders/:id', (req, res) => {
 
 app.post('/api/admin/cleanup-files', (req, res) => {
   try {
+    const forceAll = req.body?.forceAll !== false;
     const retentionHours = parseInt(req.body?.retentionHours || process.env.PREVIEW_RETENTION_HOURS || '24', 10);
-    const retentionMs = retentionHours * 60 * 60 * 1000;
-    const cutoffDate = new Date(Date.now() - retentionMs).toISOString();
+    const retentionMs = forceAll ? 0 : retentionHours * 60 * 60 * 1000;
+    const cutoffDate = forceAll ? new Date(Date.now() + 86400000).toISOString() : new Date(Date.now() - retentionMs).toISOString();
 
     const oldOrders = db.prepare(`
       SELECT * FROM orders 
-      WHERE created_at < ? AND status IN ('accepted', 'rejected', 'payment_failed')
+      WHERE created_at < ?
     `).all(cutoffDate);
 
     let deletedFilesCount = 0;
@@ -1376,7 +1377,7 @@ app.post('/api/admin/cleanup-files', (req, res) => {
         const filePath = path.join(uploadsDir, file);
         try {
           const stat = fs.statSync(filePath);
-          if (now - stat.mtimeMs > retentionMs) {
+          if (forceAll || (now - stat.mtimeMs > retentionMs)) {
             fs.unlinkSync(filePath);
             orphanCount++;
           }
@@ -1384,7 +1385,7 @@ app.post('/api/admin/cleanup-files', (req, res) => {
       }
     }
 
-    res.json({ success: true, message: `Cleaned uploaded documents older than ${retentionHours} hours (${deletedFilesCount} orders, ${orphanCount} orphan files).` });
+    res.json({ success: true, message: `Successfully deleted customer uploaded files (${deletedFilesCount} orders cleaned, ${orphanCount} files deleted).` });
   } catch (err) {
     console.error('Cleanup error:', err);
     res.status(500).json({ error: 'Server error: ' + err.message });
