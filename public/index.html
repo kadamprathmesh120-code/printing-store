@@ -1474,6 +1474,7 @@
       </div>
       <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
         <button class="idc-crop-btn" onclick="idcRotate(90)" style="background:#7c3aed;font-weight:700;">🔄 Rotate</button>
+        <button class="idc-crop-btn" style="background:#2563eb;font-weight:700;" onclick="idcAutoDetect()" id="idcAutoBtn">Auto</button>
         <button class="idc-crop-btn" style="background:#4b5563;" onclick="idcResetCrop()">No Crop</button>
         <button class="idc-crop-btn" style="background:#059669;" onclick="idcConfirmCrop()">✓ Crop</button>
       </div>
@@ -3382,6 +3383,85 @@
       idcCropX2 = canvas.width - pad; idcCropY2 = canvas.height - pad;
       idcConstrainRatio();
       idcDrawCanvas();
+    }
+
+    function idcAutoDetect() {
+      var btn = document.getElementById('idcAutoBtn');
+      if (btn) { btn.textContent = '...'; btn.disabled = true; }
+      var canvas = document.getElementById('idcCanvas');
+      var ctx = canvas.getContext('2d');
+      var w = canvas.width, h = canvas.height;
+      try {
+        var imageData = ctx.getImageData(0, 0, w, h);
+        var data = imageData.data;
+        // Build grayscale + blur
+        var gray = new Float32Array(w * h);
+        for (var i = 0; i < w * h; i++) {
+          gray[i] = data[i*4] * 0.299 + data[i*4+1] * 0.587 + data[i*4+2] * 0.114;
+        }
+        var blurred = new Float32Array(w * h);
+        for (var y = 1; y < h - 1; y++) {
+          for (var x = 1; x < w - 1; x++) {
+            blurred[y*w+x] = (gray[(y-1)*w+x-1]+gray[(y-1)*w+x]+gray[(y-1)*w+x+1]+
+                              gray[y*w+x-1]+gray[y*w+x]+gray[y*w+x+1]+
+                              gray[(y+1)*w+x-1]+gray[(y+1)*w+x]+gray[(y+1)*w+x+1])/9;
+          }
+        }
+        // Sobel edges
+        var edges = new Float32Array(w * h), maxEdge = 0;
+        for (var y = 1; y < h - 1; y++) {
+          for (var x = 1; x < w - 1; x++) {
+            var gx = -blurred[(y-1)*w+x-1]+blurred[(y-1)*w+x+1]-2*blurred[y*w+x-1]+2*blurred[y*w+x+1]-blurred[(y+1)*w+x-1]+blurred[(y+1)*w+x+1];
+            var gy = -blurred[(y-1)*w+x-1]-2*blurred[(y-1)*w+x]-blurred[(y-1)*w+x+1]+blurred[(y+1)*w+x-1]+2*blurred[(y+1)*w+x]+blurred[(y+1)*w+x+1];
+            edges[y*w+x] = Math.sqrt(gx*gx + gy*gy);
+            if (edges[y*w+x] > maxEdge) maxEdge = edges[y*w+x];
+          }
+        }
+        var threshold = maxEdge * 0.15;
+        var margin = Math.round(Math.min(w, h) * 0.04);
+        // Scan edges for document boundary
+        var leftSum=0, rightSum=0, topSum=0, bottomSum=0, rowCount=0, colCount=0;
+        for (var y = margin; y < h - margin; y++) {
+          var firstX=-1, lastX=-1;
+          for (var x = margin; x < w - margin; x++) {
+            if (edges[y*w+x] > threshold) { if (firstX<0) firstX=x; lastX=x; }
+          }
+          if (firstX>=0 && lastX>firstX && (lastX-firstX)>w*0.05) {
+            leftSum+=firstX; rightSum+=lastX; rowCount++;
+          }
+        }
+        for (var x = margin; x < w - margin; x++) {
+          var firstY=-1, lastY=-1;
+          for (var y = margin; y < h - margin; y++) {
+            if (edges[y*w+x] > threshold) { if (firstY<0) firstY=y; lastY=y; }
+          }
+          if (firstY>=0 && lastY>firstY && (lastY-firstY)>h*0.05) {
+            topSum+=firstY; bottomSum+=lastY; colCount++;
+          }
+        }
+        if (rowCount > 3 && colCount > 3) {
+          var newX1 = Math.max(2, Math.round(leftSum/rowCount) - 4);
+          var newY1 = Math.max(2, Math.round(topSum/colCount) - 4);
+          var newX2 = Math.min(w-2, Math.round(rightSum/rowCount) + 4);
+          var newY2 = Math.min(h-2, Math.round(bottomSum/colCount) + 4);
+          if ((newX2-newX1) > w*0.1 && (newY2-newY1) > h*0.1) {
+            idcCropX1 = newX1; idcCropY1 = newY1;
+            idcCropX2 = newX2; idcCropY2 = newY2;
+            idcDrawCanvas();
+            document.getElementById('idcCropError').textContent = '';
+            if (btn) { btn.textContent = 'Auto'; btn.disabled = false; }
+            return;
+          }
+        }
+        // fallback — just tighten margins
+        var pad = Math.round(Math.min(w,h)*0.06);
+        idcCropX1=pad; idcCropY1=pad; idcCropX2=w-pad; idcCropY2=h-pad;
+        idcDrawCanvas();
+        document.getElementById('idcCropError').textContent = 'Could not detect edges. Adjust manually.';
+      } catch(e) {
+        document.getElementById('idcCropError').textContent = 'Auto-detect failed.';
+      }
+      if (btn) { btn.textContent = 'Auto'; btn.disabled = false; }
     }
 
     function idcConfirmCrop() {
