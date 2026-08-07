@@ -1543,13 +1543,15 @@ function showPreviewModal() {
         '</div>' +
         '<button id="ocvPreviewHelpBtn" style="background:none;border:1.5px solid #d1d5db;cursor:pointer;padding:5px 10px;border-radius:20px;color:#374151;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:3px;">\u2753 Help</button>' +
       '</div>' +
-      // Tip Banner
+      // Tip Banner (Persuasive Magic Color recommendation)
       '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
-        '<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">' +
-          '<span style="font-size:1.1rem;margin-top:1px;">ℹ️</span>' +
-          '<div style="font-size:0.8rem;color:#1e40af;line-height:1.5;">' +
-            'Tip: <strong style="color:#2563eb;">Magic Color</strong> is best for Black &amp; White prints.<br>' +
-            'Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
+        '<div style="background:linear-gradient(135deg,#f0fdf4 0%,#eff6ff 100%);border:1.5px solid #bbf7d0;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 12px rgba(16,185,129,0.12);">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.08);">⭐</div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:0.8rem;font-weight:800;color:#111827;">⭐ Recommended for Best Print Quality</div>' +
+            '<div style="font-size:0.72rem;color:#15803d;margin-top:1px;font-weight:600;line-height:1.4;">' +
+              'Choose <strong style="color:#16a34a;">Magic Color</strong> to automatically remove background shadows &amp; get 100% sharp HD text on pure white paper!' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1855,7 +1857,7 @@ function openModal(image, idCopy, callback, originalFile) {
   isIdCopyMode = idCopy || false;
   currentCallback = callback;
   _originalFileRef = originalFile || null;
-  selectedFilter = 'original';
+  selectedFilter = 'magic';
   filteredCanvas = null;
   filteredFilter = null;
   zoomLevel = 1;
@@ -1952,7 +1954,11 @@ function createModalHTML() {
       '<div id="ocvCropContainer" style="border-radius:10px;overflow:hidden;background:transparent;position:relative;touch-action:none;display:flex;justify-content:center;align-items:center;margin:0 auto;">' +
         '<canvas id="ocvCropCanvas" style="display:block;touch-action:none;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3);"></canvas>' +
       '</div>' +
-      '<div style="display:flex;gap:10px;padding:12px 4px 4px;">' +
+      '<div style="background:rgba(22,163,74,0.16);border:1.5px solid #16a34a;border-radius:10px;padding:8px 12px;margin:8px 0;display:flex;align-items:center;justify-content:space-between;color:#22c55e;font-size:0.76rem;font-weight:700;box-shadow:0 0 12px rgba(22,163,74,0.2);">' +
+        '<span>⭐ Recommended: Use <strong>Magic Color</strong> in next step for crystal clear HD text &amp; pure white paper!</span>' +
+        '<span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.65rem;font-weight:800;white-space:nowrap;margin-left:6px;">BEST PRINT</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;padding:8px 4px 4px;">' +
         '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.4;background:#475569;padding:10px 14px;border-radius:10px;">Cancel</button>' +
         '<button onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;border-radius:10px;">Next: Color Change ➔</button>' +
       '</div>' +
