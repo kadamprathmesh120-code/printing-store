@@ -1612,20 +1612,20 @@ app.post('/api/upload-id-copy', (req, res) => {
       const isBack = backEnabled === 'true' || backEnabled === true;
       const backFile = isBack && req.files && req.files.back && req.files.back[0] ? req.files.back[0] : null;
 
+      const numCopies = Math.max(1, parseInt(req.body.copies) || 1);
       const pages = 1; // ID Copy is 1 sheet
-      const sheets = printType === 'bw' ? 1 : 1;
-      const price = printType === 'bw' ? 5 : 10;
+      const price = (printType === 'bw' ? 5 : 10) * numCopies;
 
       const id = uuidv4();
       const stmt = db.prepare(`
         INSERT INTO orders (id, customer_name, file_name, file_path, back_file_name, back_file_path, back_enabled, page_count, print_type, print_side, price, payment_method, status, is_id_copy, copies)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
       `);
       stmt.run(id, customerName, frontFile.originalname, frontFile.filename,
         backFile ? backFile.originalname : null,
         backFile ? backFile.filename : null,
         isBack ? 1 : 0,
-        pages, printType, printSide || 'single', price, paymentMethod, initialStatus);
+        pages, printType, printSide || 'single', price, paymentMethod, initialStatus, numCopies);
 
       res.json({ orderId: id, price, message: `ID Copy uploaded (${isBack ? 'Front+Back' : 'Front only'})` });
     } catch (err) {

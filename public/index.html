@@ -1231,8 +1231,18 @@
               </div>
             </div>
           </div>
-          <div style="margin-top:10px;padding:8px 14px;background:#fffbeb;border-radius:10px;font-size:0.75em;color:#92400e;text-align:center;border:1px solid #fde68a;">
-            ⚠️ This is a preview only. Your uploaded file will be printed exactly as shown.
+        <!-- Number of Copies Selector -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px 16px;margin:14px 0 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+          <div>
+            <div style="font-weight:700;font-size:0.95em;color:#0f172a;display:flex;align-items:center;gap:6px;">
+              <span>🖨️ Number of Copies</span>
+            </div>
+            <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Select total printed copies of this ID card</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;padding:4px 8px;border-radius:12px;border:1.5px solid #cbd5e1;">
+            <button type="button" onclick="idcChangeCopies(-1)" style="width:36px;height:36px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;font-weight:800;font-size:1.3em;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#334155;transition:all 0.15s;">−</button>
+            <span id="idcCopiesCount" style="font-weight:800;font-size:1.15em;min-width:28px;text-align:center;color:#0f172a;">1</span>
+            <button type="button" onclick="idcChangeCopies(1)" style="width:36px;height:36px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:800;font-size:1.3em;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.3);transition:all 0.15s;">+</button>
           </div>
         </div>
 
@@ -3980,6 +3990,13 @@
       observer.observe(document.getElementById('idcBackImg'), { attributes: true, attributeFilter: ['src'] });
     });
 
+    var idcCopiesCount = 1;
+    function idcChangeCopies(delta) {
+      idcCopiesCount = Math.max(1, idcCopiesCount + delta);
+      var el = document.getElementById('idcCopiesCount');
+      if (el) el.textContent = idcCopiesCount;
+    }
+
     function idcUpload() {
       if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
       var name = (document.getElementById('idcPayName') ? document.getElementById('idcPayName').value.trim() : '') || 'Customer';
@@ -4004,6 +4021,7 @@
           fd.append('printType', printType);
           fd.append('printSide', 'single');
           fd.append('paymentMethod', 'cashfree');
+          fd.append('copies', idcCopiesCount);
           
           var frontBlob = (typeof item.front === 'string') ? dataURLtoBlob(item.front, item.frontName || 'id_front.png') : item.front;
           fd.append('front', frontBlob, item.frontName || 'id_front.png');
@@ -4032,7 +4050,7 @@
           // Populate summary card (Normal Mode style)
           var hasBackSide = allItems.some(function(item) { return !!item.back; });
           var sidesText = hasBackSide ? 'Front & Back' : 'Front Side Only';
-          var copiesCount = allItems.length;
+          var copiesCount = idcCopiesCount * allItems.length;
           var printTypeCap = (selectedPrintType || 'color').toUpperCase();
           
           var docTypeEl = document.getElementById('idcReviewDocType');
