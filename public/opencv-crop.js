@@ -1692,7 +1692,7 @@ function openModal(image, idCopy, callback, originalFile) {
   isIdCopyMode = idCopy || false;
   currentCallback = callback;
   _originalFileRef = originalFile || null;
-  selectedFilter = isIdCopyMode ? 'magic' : 'original';
+  selectedFilter = 'original';
   filteredCanvas = null;
   filteredFilter = null;
   zoomLevel = 1;
