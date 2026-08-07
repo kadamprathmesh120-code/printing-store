@@ -22,14 +22,14 @@ $gr.SmoothingMode      = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
 $gr.PixelOffsetMode    = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
 $gr.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
 
-# Exact 86mm x 54mm ID Card at 600 DPI
+# Enlarged 110mm x 69mm ID Card at 600 DPI for maximum legibility and clear print
 # 1mm = 600/25.4 = 23.62 px
 $mmToPx = $dpi / 25.4
-$cardW = [int](86 * $mmToPx)    # ~2031 px
-$cardH = [int](54 * $mmToPx)    # ~1275 px
+$cardW = [int](110 * $mmToPx)    # ~2598 px
+$cardH = [int](69 * $mmToPx)     # ~1630 px
 
-$marginTopMm = 25
-$gapMm       = 30
+$marginTopMm = 20
+$gapMm       = 25
 $marginTop = [int]($marginTopMm * $mmToPx)
 $gap       = [int]($gapMm * $mmToPx)
 

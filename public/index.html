@@ -1476,7 +1476,7 @@
     <div class="crop-card" style="max-width:540px;width:94%;">
       <h3 style="display:flex;justify-content:space-between;align-items:center;">
         <span>ID Copy <span id="idcCropSide">Front</span></span>
-        <span style="font-size:0.75em;color:#FFD700;font-weight:400;">86x54mm</span>
+        <span style="font-size:0.75em;color:#FFD700;font-weight:400;">110x69mm</span>
       </h3>
       <div style="border-radius:10px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:50vh;position:relative;touch-action:none;">
         <canvas id="idcCanvas" style="max-width:100%;max-height:50vh;transition:transform 0.3s ease;"></canvas>
@@ -3490,7 +3490,7 @@
 
       var outC = document.createElement('canvas');
       var fw = cx2 - cx1, fh = cy2 - cy1;
-      var targetW = 2031, targetH = 1275;
+      var targetW = 2598, targetH = 1630;
       outC.width = targetW; outC.height = targetH;
       var oCtx = outC.getContext('2d');
       oCtx.imageSmoothingQuality = 'high';
@@ -3714,9 +3714,9 @@
     var idcPreviewDrag = null;
 
     function idcCardDimensions(a4wPx, a4hPx) {
-      var cardRatio = 86 / 54;
-      var cardWpct = 86 / 210;
-      var cardHpct = 54 / 297;
+      var cardRatio = 110 / 69;
+      var cardWpct = 110 / 210;
+      var cardHpct = 69 / 297;
       var w = a4wPx * cardWpct;
       var h = a4hPx * cardHpct;
       return { w: w, h: h, ratio: cardRatio };
@@ -3745,8 +3745,8 @@
       var card = idcCardDimensions(a4W, a4H);
       var cardW = card.w, cardH = card.h;
       var pxPerMm = a4W / 210;
-      var marginTop = 25 * pxPerMm;
-      var gap = 30 * pxPerMm;
+      var marginTop = 20 * pxPerMm;
+      var gap = 25 * pxPerMm;
 
       var dimTop = marginTop - 8 * pxPerMm;
       var dimH = 5 * pxPerMm;
@@ -3756,13 +3756,13 @@
 
       var hLineEl = document.createElement('div');
       hLineEl.style.cssText = 'position:absolute;height:0;border-top:1px solid ' + dimColor + ';left:' + hLeft + 'px;top:' + (dimTop + dimH/2) + 'px;width:' + cardW + 'px;pointer-events:none;';
-      hLineEl.innerHTML = '<div style="position:absolute;right:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-right:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><div style="position:absolute;left:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-left:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><span style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;">86 mm</span>';
+      hLineEl.innerHTML = '<div style="position:absolute;right:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-right:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><div style="position:absolute;left:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-left:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><span style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;">110 mm</span>';
       drop.appendChild(hLineEl);
 
       var vLineX = (a4W - cardW) / 2 - 10 * pxPerMm;
       var vLineEl = document.createElement('div');
       vLineEl.style.cssText = 'position:absolute;width:0;border-left:1px solid ' + dimColor + ';left:' + vLineX + 'px;top:' + marginTop + 'px;height:' + cardH + 'px;pointer-events:none;';
-      vLineEl.innerHTML = '<div style="position:absolute;bottom:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-bottom:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><div style="position:absolute;top:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-top:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><span style="position:absolute;top:50%;left:-24px;transform:translateY(-50%) rotate(-90deg);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;transform-origin:center;">54 mm</span>';
+      vLineEl.innerHTML = '<div style="position:absolute;bottom:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-bottom:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><div style="position:absolute;top:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-top:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><span style="position:absolute;top:50%;left:-24px;transform:translateY(-50%) rotate(-90deg);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;transform-origin:center;">69 mm</span>';
       drop.appendChild(vLineEl);
 
       var done = 0, total = (hasFront ? 1 : 0) + (hasBack ? 1 : 0);
@@ -4049,7 +4049,7 @@
           var printTypeCap = (selectedPrintType || 'color').toUpperCase();
           
           var docTypeEl = document.getElementById('idcReviewDocType');
-          if (docTypeEl) docTypeEl.textContent = 'ID Copy (86×54 mm)';
+          if (docTypeEl) docTypeEl.textContent = 'ID Copy (110×69 mm)';
           var sidesEl = document.getElementById('idcReviewSides');
           if (sidesEl) sidesEl.textContent = sidesText;
           var ptEl = document.getElementById('idcReviewPrintType');
