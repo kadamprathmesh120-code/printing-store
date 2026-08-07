@@ -1555,15 +1555,19 @@ function showPreviewModal() {
       '</div>' +
       // Preview
       '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
-        '<div style="font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
-          '<span style="font-size:1rem;">\uD83D\uDC41</span> Preview <span style="font-size:0.7rem;color:#9ca3af;font-weight:400;">(Tap to zoom)</span>' +
+        '<div id="ocvZoomTrigger" style="font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">' +
+          '<span>👁 Preview</span>' +
+          '<span style="font-size:0.75rem;color:#2563eb;font-weight:700;background:#eff6ff;border:1px solid #bfdbfe;padding:3px 10px;border-radius:14px;display:flex;align-items:center;gap:4px;">🔍 Tap to zoom</span>' +
         '</div>' +
-        '<div id="ocvPreviewContainer" style="width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);background:#fff;display:flex;align-items:center;justify-content:center;max-height:230px;cursor:zoom-in;" onclick="openZoomModal()">' +
+        '<div id="ocvPreviewContainer" style="width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);background:#fff;display:flex;align-items:center;justify-content:center;max-height:230px;cursor:pointer;">' +
         '</div>' +
       '</div>' +
       // Zoom Modal
-      '<div id="ocvPreviewZoomModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:300;align-items:center;justify-content:center;" onclick="this.style.display=\'none\'">' +
-        '<div id="ocvPreviewZoomContainer" style="max-width:95vw;max-height:90vh;overflow:auto;"></div>' +
+      '<div id="ocvPreviewZoomModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">' +
+        '<div style="width:100%;max-width:500px;display:flex;justify-content:flex-end;margin-bottom:8px;">' +
+          '<button id="ocvCloseZoomBtn" style="background:#ef4444;color:#fff;border:none;padding:6px 14px;border-radius:20px;font-weight:800;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.4);">✕ Close Zoom</button>' +
+        '</div>' +
+        '<div id="ocvPreviewZoomContainer" style="max-width:95vw;max-height:85vh;overflow:auto;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.8);"></div>' +
       '</div>' +
       // Choose a Filter
       '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:16px;">' +
@@ -1673,6 +1677,37 @@ function showPreviewModal() {
     document.getElementById('ocvPreviewHelpBtn').onclick = function() {
       alert('\uD83D\uDCA1 Magic Color: Best for B&W documents.\nRemoves shadows, makes text crisp and paper white.\n\nOriginal: Prints exactly as uploaded.\nBest for color photos and color documents.');
     };
+
+    var prevContainer = document.getElementById('ocvPreviewContainer');
+    if (prevContainer) {
+      prevContainer.onclick = function(e) {
+        e.stopPropagation();
+        openZoomModal();
+      };
+    }
+    var zoomTrigger = document.getElementById('ocvZoomTrigger');
+    if (zoomTrigger) {
+      zoomTrigger.onclick = function(e) {
+        e.stopPropagation();
+        openZoomModal();
+      };
+    }
+    var closeZoomBtn = document.getElementById('ocvCloseZoomBtn');
+    if (closeZoomBtn) {
+      closeZoomBtn.onclick = function(e) {
+        e.stopPropagation();
+        var zm = document.getElementById('ocvPreviewZoomModal');
+        if (zm) zm.style.display = 'none';
+      };
+    }
+    var zoomModal = document.getElementById('ocvPreviewZoomModal');
+    if (zoomModal) {
+      zoomModal.onclick = function(e) {
+        if (e.target === zoomModal) {
+          zoomModal.style.display = 'none';
+        }
+      };
+    }
 
     div.addEventListener('click', function(e) {
       var card = e.target.closest('.ocv-filter-card');
