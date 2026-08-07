@@ -2121,9 +2121,13 @@
         URL.revokeObjectURL(url);
         if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
           OCV_CROP.openModal(img, false, function(croppedFile, filter) {
-            var baseFile = croppedFile || f;
-            processAutoMagicColor(baseFile, function(magicFile) {
-              selectedFiles.push({ file: baseFile, magicFile: magicFile, pages: 1 });
+            if (!croppedFile) {
+              // User cancelled crop — do not add file and do not proceed to review
+              startImageCrop(files, idx + 1, cb);
+              return;
+            }
+            processAutoMagicColor(croppedFile, function(magicFile) {
+              selectedFiles.push({ file: croppedFile, magicFile: magicFile, pages: 1 });
               startImageCrop(files, idx + 1, cb);
             });
           }, f);
@@ -2148,9 +2152,11 @@
       hideProgress();
       if (scanQueue.length > 0) {
         renderScanQueue();
-      } else {
+      } else if (selectedFiles.length > 0) {
         renderFileCards();
         showStep('stepFiles');
+      } else {
+        showStep('stepUpload');
       }
     }
 
