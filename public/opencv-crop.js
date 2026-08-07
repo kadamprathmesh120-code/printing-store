@@ -1507,7 +1507,81 @@ function showPreview() {
   applyFilter(pCtx, previewW, previewH, selectedFilter);
 
   // Show preview in a modal/overlay
-  showPreviewModal();
+  showMagicPromptModal();
+}
+
+function showMagicPromptModal() {
+  var magicM = document.getElementById('ocvMagicModal');
+  if (!magicM) {
+    createMagicPromptHTML();
+    magicM = document.getElementById('ocvMagicModal');
+  }
+  if (magicM) {
+    magicM.style.display = 'flex';
+  } else {
+    showPreviewModal();
+  }
+}
+
+function createMagicPromptHTML() {
+  var div = document.createElement('div');
+  div.id = 'ocvMagicModal';
+  div.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:Inter,Roboto,sans-serif;';
+  div.innerHTML =
+    '<div style="background:#ffffff;border-radius:24px;max-width:440px;width:92%;padding:26px 20px;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,0.4);position:relative;border:1px solid rgba(255,255,255,0.2);">' +
+      '<button id="ocvCloseMagicPromptBtn" style="position:absolute;top:16px;right:16px;background:#f3f4f6;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1em;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;">✕</button>' +
+      '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#dcfce7,#f0fdf4);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:2.2em;box-shadow:0 4px 12px rgba(16,185,129,0.2);">✨🪄</div>' +
+      '<h2 style="font-size:1.3em;font-weight:800;color:#111827;margin:0 0 6px;letter-spacing:-0.02em;">Magic Color Recommended! / मॅजिक कलर वापरा!</h2>' +
+      '<p style="font-size:0.88em;color:#4b5563;margin:0 0 20px;line-height:1.45;">' +
+        'Automatically removes dark background shadows &amp; gray grain, makes paper <b>100% pure white</b>, and sharpens text for <b>crystal clear HD print quality</b>!' +
+      '</p>' +
+      '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<button id="ocvApplyMagicBtn" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;padding:14px 18px;border-radius:16px;font-size:0.98em;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:0 6px 16px rgba(5,150,105,0.35);text-align:left;">' +
+          '<span style="font-size:1.5em;">✨</span>' +
+          '<div style="flex:1;">' +
+            '<div>Apply Magic Color (Recommended)</div>' +
+            '<div style="font-size:0.75em;font-weight:400;opacity:0.9;">Shadow-free, crisp HD paper print</div>' +
+          '</div>' +
+          '<span>➔</span>' +
+        '</button>' +
+        '<button id="ocvKeepOriginalBtn" style="background:#f9fafb;color:#4b5563;border:1px solid #e5e7eb;padding:12px 18px;border-radius:16px;font-size:0.9em;font-weight:600;cursor:pointer;">' +
+          '📄 Keep Original (No Filter)' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(div);
+
+  document.getElementById('ocvApplyMagicBtn').onclick = function() {
+    document.getElementById('ocvMagicModal').style.display = 'none';
+    selectedFilter = 'magic';
+    if (previewCanvas && previewCanvas._unfilteredData) {
+      var pCtx = previewCanvas.getContext('2d');
+      var imageData = pCtx.createImageData(previewCanvas.width, previewCanvas.height);
+      imageData.data.set(previewCanvas._unfilteredData);
+      pCtx.putImageData(imageData, 0, 0);
+      applyFilter(pCtx, previewCanvas.width, previewCanvas.height, selectedFilter);
+    }
+    showPreviewModal();
+  };
+
+  document.getElementById('ocvKeepOriginalBtn').onclick = function() {
+    document.getElementById('ocvMagicModal').style.display = 'none';
+    selectedFilter = 'original';
+    if (previewCanvas && previewCanvas._unfilteredData) {
+      var pCtx = previewCanvas.getContext('2d');
+      var imageData = pCtx.createImageData(previewCanvas.width, previewCanvas.height);
+      imageData.data.set(previewCanvas._unfilteredData);
+      pCtx.putImageData(imageData, 0, 0);
+      applyFilter(pCtx, previewCanvas.width, previewCanvas.height, selectedFilter);
+    }
+    showPreviewModal();
+  };
+
+  document.getElementById('ocvCloseMagicPromptBtn').onclick = function() {
+    document.getElementById('ocvMagicModal').style.display = 'none';
+    showPreviewModal();
+  };
 }
 function openZoomModal() {
   var zoomContainer = document.getElementById('ocvPreviewZoomContainer');
