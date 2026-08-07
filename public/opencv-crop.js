@@ -1543,13 +1543,17 @@ function showPreviewModal() {
         '</div>' +
         '<button id="ocvPreviewHelpBtn" style="background:none;border:1.5px solid #d1d5db;cursor:pointer;padding:5px 10px;border-radius:20px;color:#374151;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:3px;">\u2753 Help</button>' +
       '</div>' +
-      // Tip Banner
+      // Tip Banner (Styled like ID Card Detected badge)
       '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
-        '<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">' +
-          '<span style="font-size:1.1rem;margin-top:1px;">\u2139\ufe0f</span>' +
-          '<div style="font-size:0.8rem;color:#1e40af;line-height:1.5;">' +
-            'Tip: <strong style="color:#2563eb;">Magic Color</strong> is best for Black &amp; White prints.<br>' +
-            'Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
+        '<div style="background:linear-gradient(135deg,#f0fdf4 0%,#eff6ff 100%);border:1.5px solid #bbf7d0;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 12px rgba(16,185,129,0.12);">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.08);">' + (isIdCopyMode ? '🪪' : '💡') + '</div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:0.8rem;font-weight:800;color:#111827;">' + (isIdCopyMode ? '🪪 ID Card Detected!' : '💡 Smart Tip') + '</div>' +
+            '<div style="font-size:0.72rem;color:#374151;margin-top:1px;line-height:1.4;">' +
+              (isIdCopyMode
+                ? 'Use <strong style="color:#2563eb;">Original</strong> for color ID photos, or <strong style="color:#16a34a;">Magic Color</strong> for clear B&amp;W copies.'
+                : 'Tip: <strong style="color:#16a34a;">Magic Color</strong> is best for Black &amp; White prints. Use <strong style="color:#2563eb;">Original</strong> for Color prints.') +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
