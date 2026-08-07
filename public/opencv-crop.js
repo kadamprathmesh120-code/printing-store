@@ -1532,6 +1532,9 @@ function showPreviewModal() {
     div.id = 'ocvPreviewModal';
     div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#f8fafc;z-index:200;display:flex;flex-direction:column;align-items:center;overflow-y:auto;box-sizing:border-box;font-family:Inter,Roboto,sans-serif;';
     div.innerHTML =
+      '<div id="ocvToastBanner" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;padding:10px 18px;border-radius:24px;font-size:0.84rem;font-weight:800;box-shadow:0 8px 24px rgba(22,163,74,0.4);z-index:999;white-space:nowrap;letter-spacing:0.3px;pointer-events:none;transition:all 0.4s ease;">' +
+        '✨ Magic Color Auto-Applied for Best Print!' +
+      '</div>' +
       // Header
       '<div style="width:100%;max-width:500px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;box-sizing:border-box;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10;">' +
         '<button id="ocvPreviewBackBtn" style="background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:8px;display:flex;align-items:center;gap:4px;color:#374151;font-size:0.95rem;font-weight:600;">' +
@@ -1720,6 +1723,19 @@ function showPreviewModal() {
     container.appendChild(previewCanvas);
   }
   updatePreviewFilterSelection();
+
+  // Show 1.5-second auto-fading Magic Color banner
+  var toast = document.getElementById('ocvToastBanner');
+  if (toast) {
+    toast.style.display = 'block';
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(-10px)';
+      setTimeout(function() { if (toast) toast.style.display = 'none'; }, 450);
+    }, 1400);
+  }
 }
 
 function renderPreviewFilterBar() {
