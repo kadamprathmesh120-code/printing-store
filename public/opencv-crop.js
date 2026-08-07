@@ -1781,8 +1781,7 @@ function createModalHTML() {
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px;">' +
         '<span id="ocvLoading" style="display:none;font-size:0.75em;color:#FFD700;">Detecting...</span>' +
         '<div style="display:flex;gap:6px;">' +
-          '<button onclick="OCV_CROP.rotate(-90)" class="ocv-btn" style="background:#334155;padding:8px 12px;border-radius:8px;">↺ Left</button>' +
-          '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#334155;padding:8px 12px;border-radius:8px;">↻ Right</button>' +
+          '<button onclick="OCV_CROP.rotate(90)" class="ocv-btn" style="background:#7c3aed;padding:8px 12px;font-weight:700;border-radius:8px;">🔄 Rotate</button>' +
           '<button onclick="OCV_CROP.autoDetect()" class="ocv-btn" style="background:#2563eb;padding:8px 12px;font-weight:600;border-radius:8px;">Auto</button>' +
           '<button onclick="OCV_CROP.noCrop()" class="ocv-btn" style="background:#475569;padding:8px 12px;font-weight:600;border-radius:8px;">No Crop</button>' +
         '</div>' +
@@ -2383,18 +2382,59 @@ return {
   },
 
   rotate: function(deg) {
-    if (!canvasEl || corners.length !== 4) return;
-    var cx = canvasEl.width / 2, cy = canvasEl.height / 2;
-    var rad = deg * Math.PI / 180;
-    var cos = Math.cos(rad), sin = Math.sin(rad);
-    for (var i = 0; i < 4; i++) {
-      var dx = corners[i].x - cx, dy = corners[i].y - cy;
-      corners[i] = {
-        x: clamp(cx + dx * cos - dy * sin, 0, canvasEl.width),
-        y: clamp(cy + dx * sin + dy * cos, 0, canvasEl.height)
-      };
+    if (!sourceImage || !canvasEl) return;
+    var tempC = document.createElement('canvas');
+    if (Math.abs(deg) % 180 !== 0) {
+      tempC.width = sourceImage.height;
+      tempC.height = sourceImage.width;
+    } else {
+      tempC.width = sourceImage.width;
+      tempC.height = sourceImage.height;
     }
-    renderCrop();
+    var tCtx = tempC.getContext('2d');
+    tCtx.translate(tempC.width / 2, tempC.height / 2);
+    tCtx.rotate(deg * Math.PI / 180);
+    tCtx.drawImage(sourceImage, -sourceImage.width / 2, -sourceImage.height / 2);
+
+    var rotImg = new Image();
+    rotImg.onload = function() {
+      sourceImage = rotImg;
+      filteredFilter = null;
+      filteredCanvas = null;
+
+      var cardWidth = Math.min(540, window.innerWidth * 0.94);
+      var availW = cardWidth - 28;
+      var availH = window.innerHeight * 0.7;
+      var maxW = Math.min(availW, 500);
+      var maxH = Math.min(availH, window.innerHeight * 0.65);
+      var iw = sourceImage.width, ih = sourceImage.height;
+      var dispW = iw, dispH = ih;
+      if (dispW > maxW) { dispH = dispH * maxW / dispW; dispW = maxW; }
+      if (dispH > maxH) { dispW = dispW * maxH / dispH; dispH = maxH; }
+      var dpr = window.devicePixelRatio || 1;
+      canvasEl.width = Math.round(dispW * dpr);
+      canvasEl.height = Math.round(dispH * dpr);
+      canvasEl.style.width = Math.round(dispW) + 'px';
+      canvasEl.style.height = Math.round(dispH) + 'px';
+
+      if (containerEl) {
+        containerEl.style.width = Math.round(dispW) + 'px';
+        containerEl.style.height = Math.round(dispH) + 'px';
+      }
+
+      computeDisplayParams();
+
+      corners = [
+        imageToCanvas(0, 0),
+        imageToCanvas(iw, 0),
+        imageToCanvas(iw, ih),
+        imageToCanvas(0, ih)
+      ];
+
+      renderCrop();
+      renderFilterThumbnails();
+    };
+    rotImg.src = tempC.toDataURL();
   },
 
   cropDirect: function() {
