@@ -1592,15 +1592,14 @@ function showPreviewModal() {
         '</div>' +
         '<button id="ocvPreviewHelpBtn" style="background:none;border:1.5px solid #d1d5db;cursor:pointer;padding:5px 10px;border-radius:20px;color:#374151;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:3px;">\u2753 Help</button>' +
       '</div>' +
-      // Tip Banner
-      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
-        '<div style="background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);border:2px solid #3b82f6;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(37,99,235,0.15);">' +
-          '<div style="width:36px;height:36px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;box-shadow:0 2px 6px rgba(37,99,235,0.3);">💡</div>' +
-          '<div style="flex:1;">' +
-            '<div style="font-size:0.84rem;font-weight:800;color:#1e3a8a;">💡 Recommendation Tip</div>' +
-            '<div style="font-size:0.76rem;color:#1e40af;line-height:1.45;margin-top:2px;">' +
-              '<strong style="color:#16a34a;">Magic Color</strong> is best for Black &amp; White prints.<br>' +
-              'Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
+      // Tip Banner (Horizontal Marquee Ticker)
+      '<style>@keyframes ocvMarquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }</style>' +
+      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:10px;">' +
+        '<div style="background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);border:1.5px solid #3b82f6;border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(37,99,235,0.12);overflow:hidden;">' +
+          '<div style="width:24px;height:24px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;box-shadow:0 2px 4px rgba(37,99,235,0.3);">💡</div>' +
+          '<div style="flex:1;overflow:hidden;white-space:nowrap;position:relative;">' +
+            '<div style="display:inline-block;white-space:nowrap;animation:ocvMarquee 14s linear infinite;font-size:0.78rem;font-weight:700;color:#1e40af;">' +
+              '💡 Tip: <strong style="color:#16a34a;">Magic Color</strong> is best for Black &amp; White prints. Use <strong style="color:#2563eb;">Original</strong> for Color prints. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 💡 Tip: <strong style="color:#16a34a;">Magic Color</strong> is best for Black &amp; White prints. Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
             '</div>' +
           '</div>' +
         '</div>' +
