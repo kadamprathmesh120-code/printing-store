@@ -1509,30 +1509,142 @@ function showPreview() {
   // Show preview in a modal/overlay
   showPreviewModal();
 }
-
 function showPreviewModal() {
   var existing = document.getElementById('ocvPreviewModal');
   if (!existing) {
     var div = document.createElement('div');
     div.id = 'ocvPreviewModal';
-    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:16px;box-sizing:border-box;backdrop-filter:blur(8px);';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#f8fafc;z-index:200;display:flex;flex-direction:column;align-items:center;overflow-y:auto;box-sizing:border-box;font-family:Inter,Roboto,sans-serif;';
     div.innerHTML =
-      '<div style="width:100%;max-width:540px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 4px;">' +
-        '<span style="color:white;font-weight:700;font-size:1.05em;">Step 2: Select Color & Filter</span>' +
-        '<span style="color:#FFD700;font-size:0.82em;font-weight:600;">✨ Color Filters</span>' +
+      // Header
+      '<div style="width:100%;max-width:500px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;box-sizing:border-box;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10;">' +
+        '<button id="ocvPreviewBackBtn" style="background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:8px;display:flex;align-items:center;gap:4px;color:#374151;font-size:0.95rem;font-weight:600;">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
+        '</button>' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:1.05rem;font-weight:800;color:#111827;"><span style="color:#2563eb;">Step 2:</span> Select Filter \u2728</div>' +
+          '<div style="font-size:0.72rem;color:#6b7280;margin-top:1px;">Choose the best option for your print</div>' +
+        '</div>' +
+        '<button id="ocvPreviewHelpBtn" style="background:none;border:1.5px solid #d1d5db;cursor:pointer;padding:5px 10px;border-radius:20px;color:#374151;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:3px;">\u2753 Help</button>' +
       '</div>' +
-      '<div id="ocvPreviewContainer" style="max-width:100%;max-height:54vh;overflow:hidden;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;background:#000;"></div>' +
-      '<div style="background:rgba(22,163,74,0.18);border:1.5px solid #16a34a;border-radius:10px;padding:8px 12px;margin:8px 0;width:100%;max-width:540px;display:flex;align-items:center;justify-content:space-between;color:#22c55e;font-size:0.8rem;font-weight:700;box-sizing:border-box;box-shadow:0 0 10px rgba(22,163,74,0.25);">' +
-        '<span>⭐ Recommended: <strong>Magic Color</strong> (Removes shadows & 100% HD Text)</span>' +
-        '<span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.68rem;font-weight:800;white-space:nowrap;">BEST PRINT</span>' +
+      // Tip Banner
+      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
+        '<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">' +
+          '<span style="font-size:1.1rem;margin-top:1px;">\u2139\ufe0f</span>' +
+          '<div style="font-size:0.8rem;color:#1e40af;line-height:1.5;">' +
+            'Tip: <strong style="color:#2563eb;">Magic Color</strong> is best for Black &amp; White prints.<br>' +
+            'Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
+          '</div>' +
+        '</div>' +
       '</div>' +
-      '<div id="ocvPreviewFilterBar" class="ocv-filter-bar" style="margin:12px 0 10px;width:100%;max-width:540px;justify-content:center;display:flex;gap:12px;overflow:visible;padding-top:8px;"></div>' +
-      '<div style="display:flex;gap:12px;width:100%;max-width:540px;">' +
-        '<button id="ocvPreviewBack" class="ocv-btn ocv-cancel" style="flex:0.4;background:#4b5563;padding:12px 16px;font-size:0.95em;">↺ Re-crop</button>' +
-        '<button id="ocvPreviewConfirm" class="ocv-btn ocv-crop-btn" style="flex:1;background:#16A34A;padding:12px 16px;font-weight:700;font-size:1.05em;">✓ Save & Print</button>' +
+      // Preview
+      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
+        '<div style="font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
+          '<span style="font-size:1rem;">\uD83D\uDC41</span> Preview <span style="font-size:0.7rem;color:#9ca3af;font-weight:400;">(Tap to zoom)</span>' +
+        '</div>' +
+        '<div id="ocvPreviewContainer" style="width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);background:#fff;display:flex;align-items:center;justify-content:center;max-height:230px;cursor:zoom-in;" onclick="(function(){var m=document.getElementById(\'ocvPreviewZoomModal\');if(m){m.style.display=\'flex\';}})();">' +
+        '</div>' +
+      '</div>' +
+      // Zoom Modal
+      '<div id="ocvPreviewZoomModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:300;align-items:center;justify-content:center;" onclick="this.style.display=\'none\'">' +
+        '<div id="ocvPreviewZoomContainer" style="max-width:95vw;max-height:90vh;overflow:auto;"></div>' +
+      '</div>' +
+      // Choose a Filter
+      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:16px;">' +
+        '<div style="font-size:0.85rem;font-weight:700;color:#374151;margin-bottom:10px;">Choose a Filter</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+          // Original card
+          '<div id="ocvCardOriginal" class="ocv-filter-card" data-filter="original" style="background:#fff;border:2px solid #e5e7eb;border-radius:16px;padding:16px 12px 14px;cursor:pointer;transition:all 0.2s;position:relative;">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+              '<div id="ocvRadioOriginal" style="width:18px;height:18px;border-radius:50%;border:2px solid #d1d5db;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;"></div>' +
+            '</div>' +
+            '<div style="text-align:center;margin-bottom:10px;">' +
+              '<div style="width:44px;height:44px;background:#eff6ff;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
+                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
+              '</div>' +
+              '<div style="font-size:0.95rem;font-weight:800;color:#111827;">Original</div>' +
+              '<div style="font-size:0.7rem;color:#2563eb;font-weight:600;margin-top:2px;">No enhancement</div>' +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' +
+              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#6b7280;">' +
+                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>' +
+                '<span>Prints exactly as uploaded</span>' +
+              '</div>' +
+              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#6b7280;">' +
+                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>' +
+                '<span>Best for color documents</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          // Magic Color card
+          '<div id="ocvCardMagic" class="ocv-filter-card" data-filter="magic" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:16px 12px 14px;cursor:pointer;transition:all 0.2s;position:relative;box-shadow:0 4px 16px rgba(22,163,74,0.15);">' +
+            '<div style="position:absolute;top:-10px;right:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:0.62rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">\u2605 RECOMMENDED</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+              '<div id="ocvRadioMagic" style="width:18px;height:18px;border-radius:50%;border:2px solid #16a34a;background:#16a34a;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">' +
+                '<div style="width:7px;height:7px;background:#fff;border-radius:50%;"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="text-align:center;margin-bottom:10px;">' +
+              '<div style="width:44px;height:44px;background:#dcfce7;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
+                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' +
+              '</div>' +
+              '<div style="font-size:0.95rem;font-weight:800;color:#111827;">Magic Color</div>' +
+              '<div style="font-size:0.7rem;color:#16a34a;font-weight:700;margin-top:2px;">Best for B&amp;W prints</div>' +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:6px;">' +
+              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#374151;">' +
+                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+                '<span>Removes shadows &amp; dark areas</span>' +
+              '</div>' +
+              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#374151;">' +
+                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+                '<span>Makes text sharper &amp; clearer</span>' +
+              '</div>' +
+              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#374151;">' +
+                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+                '<span>Cleaner paper for better print</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      // Safe & Secure
+      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:14px;">' +
+        '<div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;">' +
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
+          '<div>' +
+            '<div style="font-size:0.78rem;font-weight:800;color:#15803d;">Safe &amp; Secure</div>' +
+            '<div style="font-size:0.7rem;color:#166534;margin-top:1px;">Your document will not be changed. We only improve the print quality.</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-around;margin-top:10px;padding:8px 0;">' +
+          '<div style="text-align:center;"><div style="font-size:1.3rem;">\uD83D\uDCC4</div><div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-top:2px;">Better<br>Quality</div></div>' +
+          '<div style="text-align:center;"><div style="font-size:1.3rem;">\u2728</div><div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-top:2px;">Cleaner<br>Paper</div></div>' +
+          '<div style="text-align:center;"><div style="font-size:1.3rem;">\uD83D\uDD24</div><div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-top:2px;">Sharper<br>Text</div></div>' +
+        '</div>' +
+      '</div>' +
+      // Re-crop
+      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:10px;">' +
+        '<button id="ocvPreviewBack" style="width:100%;padding:12px;background:#fff;border:1.5px solid #d1d5db;border-radius:12px;font-size:0.88rem;font-weight:700;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>' +
+          'Re-crop <span style="font-size:0.75rem;color:#9ca3af;font-weight:400;margin-left:4px;">Adjust document area</span>' +
+        '</button>' +
+      '</div>' +
+      // Save & Print
+      '<div style="width:100%;max-width:500px;padding:12px 16px 28px;box-sizing:border-box;margin-top:8px;">' +
+        '<button id="ocvPreviewConfirm" style="width:100%;padding:16px;background:linear-gradient(135deg,#16a34a,#15803d);border:none;border-radius:16px;font-size:1.05rem;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 20px rgba(22,163,74,0.35);">' +
+          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+          '<div><div>Save &amp; Print</div><div style="font-size:0.72rem;font-weight:500;opacity:0.85;">Proceed to next step</div></div>' +
+        '</button>' +
       '</div>';
+
     document.body.appendChild(div);
 
+    document.getElementById('ocvPreviewBackBtn').onclick = function() {
+      document.getElementById('ocvPreviewModal').style.display = 'none';
+      var cropM = document.getElementById('ocvCropModal');
+      if (cropM) cropM.style.display = 'flex';
+    };
     document.getElementById('ocvPreviewBack').onclick = function() {
       document.getElementById('ocvPreviewModal').style.display = 'none';
       var cropM = document.getElementById('ocvCropModal');
@@ -1542,37 +1654,16 @@ function showPreviewModal() {
       document.getElementById('ocvPreviewModal').style.display = 'none';
       commitCropResult();
     };
-    existing = div;
-  }
+    document.getElementById('ocvPreviewHelpBtn').onclick = function() {
+      alert('\uD83D\uDCA1 Magic Color: Best for B&W documents.\nRemoves shadows, makes text crisp and paper white.\n\nOriginal: Prints exactly as uploaded.\nBest for color photos and color documents.');
+    };
 
-  // Hide crop modal when preview opens
-  var cropM = document.getElementById('ocvCropModal');
-  if (cropM) cropM.style.display = 'none';
-
-  existing.style.display = 'flex';
-  var container = document.getElementById('ocvPreviewContainer');
-  container.innerHTML = '';
-  container.appendChild(previewCanvas);
-  previewCanvas.style.cssText = 'max-width:100%;max-height:58vh;display:block;border-radius:4px;';
-
-  renderPreviewFilterBar();
-}
-
-function renderPreviewFilterBar() {
-  var bar = document.getElementById('ocvPreviewFilterBar');
-  if (!bar) return;
-  bar.innerHTML = '';
-
-  var thumbW = 56, thumbH = 72;
-  FILTER_DEFS.forEach(function(f) {
-    var wrap = document.createElement('div');
-    wrap.className = 'ocv-filter-thumb';
-    wrap.style.position = 'relative';
-    wrap.style.overflow = 'visible';
-    if (f.id === selectedFilter) wrap.classList.add('active');
-    wrap.setAttribute('data-filter', f.id);
-    wrap.onclick = function() {
-      selectedFilter = f.id;
+    div.addEventListener('click', function(e) {
+      var card = e.target.closest('.ocv-filter-card');
+      if (!card) return;
+      var filterId = card.getAttribute('data-filter');
+      if (!filterId) return;
+      selectedFilter = filterId;
       updatePreviewFilterSelection();
       if (previewCanvas && previewCanvas._unfilteredData) {
         var pCtx = previewCanvas.getContext('2d');
@@ -1581,64 +1672,65 @@ function renderPreviewFilterBar() {
         pCtx.putImageData(imageData, 0, 0);
         applyFilter(pCtx, previewCanvas.width, previewCanvas.height, selectedFilter);
       }
-    };
+    });
 
-    if (f.id === 'magic') {
-      var badge = document.createElement('span');
-      badge.className = 'ocv-best-badge';
-      badge.style.cssText = 'position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg, #16a34a 0%, #15803d 100%);color:#fff;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;box-shadow:0 3px 8px rgba(0,0,0,0.6);z-index:99;letter-spacing:0.4px;white-space:nowrap;border:1px solid rgba(255,255,255,0.4);';
-      badge.innerHTML = '⭐ BEST';
-      wrap.appendChild(badge);
-    }
+    existing = div;
+  }
 
-    var cvs = document.createElement('canvas');
-    cvs.width = thumbW;
-    cvs.height = thumbH;
-    cvs.style.cssText = 'width:' + thumbW + 'px;height:' + thumbH + 'px;border-radius:6px;display:block;';
+  var cropM = document.getElementById('ocvCropModal');
+  if (cropM) cropM.style.display = 'none';
 
-    if (previewCanvas) {
-      var ctx = cvs.getContext('2d');
-      var pw = previewCanvas.width, ph = previewCanvas.height;
-      var scale = Math.min(thumbW / pw, thumbH / ph);
-      var dw = pw * scale, dh = ph * scale;
-      var dx = (thumbW - dw) / 2, dy = (thumbH - dh) / 2;
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, thumbW, thumbH);
-      ctx.drawImage(previewCanvas, dx, dy, dw, dh);
-      if (f.id !== 'original') {
-        applyFilter(ctx, thumbW, thumbH, f.id);
-      }
-    }
+  existing.style.display = 'flex';
+  existing.scrollTop = 0;
 
-    var label = document.createElement('div');
-    label.className = 'ocv-filter-label';
-    label.textContent = f.label;
-    if (f.id === 'magic') {
-      label.style.color = '#22c55e';
-      label.style.fontWeight = '800';
-    }
+  var container = document.getElementById('ocvPreviewContainer');
+  container.innerHTML = '';
+  previewCanvas.style.cssText = 'max-width:100%;max-height:225px;display:block;border-radius:8px;';
+  container.appendChild(previewCanvas);
 
-    wrap.appendChild(cvs);
-    wrap.appendChild(label);
-    bar.appendChild(wrap);
-  });
+  var zoomContainer = document.getElementById('ocvPreviewZoomContainer');
+  if (zoomContainer) {
+    zoomContainer.innerHTML = '';
+    var zoomCanvas = document.createElement('canvas');
+    zoomCanvas.width = previewCanvas.width;
+    zoomCanvas.height = previewCanvas.height;
+    zoomCanvas.style.cssText = 'max-width:95vw;max-height:88vh;display:block;border-radius:8px;';
+    zoomCanvas.getContext('2d').drawImage(previewCanvas, 0, 0);
+    zoomContainer.appendChild(zoomCanvas);
+  }
+
+  updatePreviewFilterSelection();
+}
+
+function renderPreviewFilterBar() {
+  // No-op: replaced by card UI in showPreviewModal
 }
 
 function updatePreviewFilterSelection() {
-  var thumbs = document.querySelectorAll('#ocvPreviewFilterBar .ocv-filter-thumb');
-  thumbs.forEach(function(el) {
-    if (el.getAttribute('data-filter') === selectedFilter) {
-      el.classList.add('active');
-      if (selectedFilter === 'magic') {
-        el.style.border = '2px solid #16a34a';
-        el.style.boxShadow = '0 0 10px rgba(22,163,74,0.4)';
-      }
-    } else {
-      el.classList.remove('active');
-      el.style.border = 'none';
-      el.style.boxShadow = 'none';
-    }
-  });
+  var originalCard = document.getElementById('ocvCardOriginal');
+  var magicCard = document.getElementById('ocvCardMagic');
+  var originalRadio = document.getElementById('ocvRadioOriginal');
+  var magicRadio = document.getElementById('ocvRadioMagic');
+  if (!originalCard || !magicCard) return;
+
+  if (selectedFilter === 'magic') {
+    magicCard.style.border = '2px solid #16a34a';
+    magicCard.style.boxShadow = '0 4px 20px rgba(22,163,74,0.25)';
+    magicCard.style.background = '#f0fdf4';
+    if (magicRadio) { magicRadio.style.background = '#16a34a'; magicRadio.style.border = '2px solid #16a34a'; magicRadio.innerHTML = '<div style="width:7px;height:7px;background:#fff;border-radius:50%;"></div>'; }
+    originalCard.style.border = '2px solid #e5e7eb';
+    originalCard.style.boxShadow = 'none';
+    originalCard.style.background = '#fff';
+    if (originalRadio) { originalRadio.style.background = '#fff'; originalRadio.style.border = '2px solid #d1d5db'; originalRadio.innerHTML = ''; }
+  } else {
+    originalCard.style.border = '2px solid #2563eb';
+    originalCard.style.boxShadow = '0 4px 16px rgba(37,99,235,0.15)';
+    originalCard.style.background = '#eff6ff';
+    magicCard.style.border = '2px solid #e5e7eb';
+    magicCard.style.boxShadow = 'none';
+    magicCard.style.background = '#fff';
+    if (magicRadio) { magicRadio.style.background = '#fff'; magicRadio.style.border = '2px solid #d1d5db'; magicRadio.innerHTML = ''; }
+  }
 }
 
 // ---------- Commit crop result ----------
