@@ -3480,13 +3480,18 @@
 
       var outC = document.createElement('canvas');
       var fw = cx2 - cx1, fh = cy2 - cy1;
-      var targetW = 1016, targetH = 638;
+      var targetW = 2031, targetH = 1275;
       outC.width = targetW; outC.height = targetH;
       var oCtx = outC.getContext('2d');
       oCtx.imageSmoothingQuality = 'high';
 
       // Rotation is already baked into idcCropImg by idcRotate(), so draw straight
       oCtx.drawImage(idcCropImg, cx1, cy1, fw, fh, 0, 0, targetW, targetH);
+
+      // Apply HD Magic Color pipeline for 100% sharp text & shadow removal
+      if (typeof magicColorPipeline === 'function') {
+        magicColorPipeline(oCtx, targetW, targetH);
+      }
 
       outC.toBlob(function(blob) {
         var croppedFile = new File([blob], (idcCurrent==='front'?idcFrontFile.name:idcBackFile.name), {type:'image/png'});

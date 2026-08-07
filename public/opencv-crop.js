@@ -1402,8 +1402,8 @@ function showPreview() {
   var outH = Math.round(ch);
 
   if (isIdCopyMode) {
-    outW = 1016;
-    outH = 638;
+    outW = 2031;
+    outH = 1275;
   }
 
   // Limit preview resolution for performance
@@ -2252,8 +2252,8 @@ function cropDirect() {
   var outW = Math.round(cw);
   var outH = Math.round(ch);
   if (isIdCopyMode) {
-    outW = 1016;
-    outH = 638;
+    outW = 2031;
+    outH = 1275;
   }
 
   // Get original image pixel data

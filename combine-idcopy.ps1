@@ -5,13 +5,13 @@ param(
 )
 Add-Type -AssemblyName System.Drawing
 
-# Use standard 300 DPI for fast crisp print quality (prevents slow processing)
-$dpi   = 300
-$pageW = [int](210 * $dpi / 25.4)   # 2480
-$pageH = [int](297 * $dpi / 25.4)   # 3508
+# Ultra High Quality 600 DPI crisp print output
+$dpi   = 600
+$pageW = [int](210 * $dpi / 25.4)   # 4960
+$pageH = [int](297 * $dpi / 25.4)   # 7016
 
 $bmp = New-Object System.Drawing.Bitmap($pageW, $pageH)
-$bmp.SetResolution($dpi, $dpi)   # Embed 300 DPI metadata
+$bmp.SetResolution($dpi, $dpi)   # Embed 600 DPI metadata
 
 $gr = [System.Drawing.Graphics]::FromImage($bmp)
 $gr.Clear([System.Drawing.Color]::White)
