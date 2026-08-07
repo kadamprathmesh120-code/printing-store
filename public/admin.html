@@ -2345,6 +2345,122 @@
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+
+    // -------------------------------------------------------
+    //  Admin Document Preview Modal
+    // -------------------------------------------------------
+    (function() {
+      // Create modal DOM once
+      var modalEl = document.createElement('div');
+      modalEl.id = 'adminPreviewModal';
+      modalEl.style.cssText = [
+        'display:none;position:fixed;inset:0;z-index:9999',
+        'background:rgba(0,0,0,0.85)',
+        'backdrop-filter:blur(6px)',
+        '-webkit-backdrop-filter:blur(6px)',
+        'align-items:center;justify-content:center;flex-direction:column',
+        'padding:16px'
+      ].join(';');
+
+      modalEl.innerHTML = [
+        '<div id="adminPreviewBox" style="',
+          'position:relative;',
+          'background:#1e293b;',
+          'border-radius:16px;',
+          'box-shadow:0 24px 80px rgba(0,0,0,0.6);',
+          'max-width:92vw;max-height:92vh;',
+          'width:860px;',
+          'display:flex;flex-direction:column;',
+          'overflow:hidden',
+        '">',
+          '<div style="',
+            'display:flex;align-items:center;justify-content:space-between;',
+            'padding:14px 18px;',
+            'border-bottom:1px solid rgba(255,255,255,0.08);',
+            'background:rgba(255,255,255,0.04)',
+          '">',
+            '<div style="display:flex;align-items:center;gap:10px;">',
+              '<span style="font-size:1.3em;">📄</span>',
+              '<span id="adminPreviewTitle" style="font-size:0.88em;font-weight:600;color:#e2e8f0;max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>',
+            '</div>',
+            '<div style="display:flex;align-items:center;gap:8px;">',
+              '<a id="adminPreviewDownload" href="#" download style="',
+                'background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.35);',
+                'color:#60a5fa;border-radius:8px;padding:6px 12px;',
+                'font-size:0.78em;font-weight:600;text-decoration:none;cursor:pointer;',
+                'transition:background 0.15s',
+              '">⬇ Download</a>',
+              '<button onclick="closeAdminPreview()" style="',
+                'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);',
+                'color:#f87171;border-radius:8px;padding:6px 12px;',
+                'font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit',
+              '">✕ Close</button>',
+            '</div>',
+          '</div>',
+          '<div id="adminPreviewContent" style="',
+            'flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;',
+            'background:#0f172a;min-height:300px;max-height:80vh',
+          '"></div>',
+        '</div>'
+      ].join('');
+
+      document.body.appendChild(modalEl);
+
+      // Close on backdrop click
+      modalEl.addEventListener('click', function(e) {
+        if (e.target === modalEl) closeAdminPreview();
+      });
+
+      // Close on Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modalEl.style.display !== 'none') closeAdminPreview();
+      });
+    })();
+
+    function openAdminPreview(filePath, fileName) {
+      var modal = document.getElementById('adminPreviewModal');
+      var content = document.getElementById('adminPreviewContent');
+      var title = document.getElementById('adminPreviewTitle');
+      var dlLink = document.getElementById('adminPreviewDownload');
+      if (!modal || !content) return;
+
+      var url = '/uploads/' + encodeURIComponent(filePath) + '?v=' + Date.now();
+      var fExt = (filePath || '').split('.').pop().toLowerCase();
+      var displayName = fileName || filePath;
+
+      title.textContent = displayName;
+      dlLink.href = url;
+      dlLink.download = displayName;
+
+      if (['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'].indexOf(fExt) !== -1) {
+        content.innerHTML = '<img src="' + url + '" alt="' + escapeHtml(displayName) + '" style="max-width:100%;max-height:80vh;object-fit:contain;border-radius:8px;display:block;" />';
+      } else if (fExt === 'pdf') {
+        content.innerHTML = '<iframe src="' + url + '" style="width:840px;max-width:90vw;height:78vh;border:none;border-radius:8px;background:#fff;" title="' + escapeHtml(displayName) + '"></iframe>';
+      } else {
+        content.innerHTML = [
+          '<div style="text-align:center;padding:40px;color:#94a3b8;">',
+            '<div style="font-size:4em;margin-bottom:16px;">📄</div>',
+            '<div style="font-size:1em;font-weight:600;margin-bottom:12px;color:#e2e8f0;">' + escapeHtml(displayName) + '</div>',
+            '<div style="font-size:0.82em;margin-bottom:20px;">Preview not available for this file type.</div>',
+            '<a href="' + url + '" download="' + escapeHtml(displayName) + '" style="',
+              'background:#2563eb;color:#fff;padding:10px 20px;border-radius:10px;',
+              'text-decoration:none;font-weight:700;font-size:0.85em',
+            '">⬇ Download File</a>',
+          '</div>'
+        ].join('');
+      }
+
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeAdminPreview() {
+      var modal = document.getElementById('adminPreviewModal');
+      var content = document.getElementById('adminPreviewContent');
+      if (modal) modal.style.display = 'none';
+      if (content) content.innerHTML = ''; // release iframe/image resources
+      document.body.style.overflow = '';
+    }
   </script>
 </body>
 </html>
