@@ -1548,11 +1548,14 @@ function showPreviewModal() {
       '</div>' +
       // Tip Banner
       '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
-        '<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">' +
-          '<span style="font-size:1.1rem;margin-top:1px;">ℹ️</span>' +
-          '<div style="font-size:0.8rem;color:#1e40af;line-height:1.5;">' +
-            '<strong>Tip:</strong> <strong style="color:#2563eb;">Magic Color</strong> is best for Black &amp; White prints.<br>' +
-            'Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
+        '<div style="background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);border:2px solid #3b82f6;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(37,99,235,0.15);">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;box-shadow:0 2px 6px rgba(37,99,235,0.3);">💡</div>' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:0.84rem;font-weight:800;color:#1e3a8a;">💡 Recommendation Tip</div>' +
+            '<div style="font-size:0.76rem;color:#1e40af;line-height:1.45;margin-top:2px;">' +
+              '<strong style="color:#16a34a;">Magic Color</strong> is best for Black &amp; White prints.<br>' +
+              'Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1721,19 +1724,6 @@ function showPreviewModal() {
     container.appendChild(previewCanvas);
   }
   updatePreviewFilterSelection();
-
-  // Show 1.5-second auto-fading Magic Color banner
-  var toast = document.getElementById('ocvToastBanner');
-  if (toast) {
-    toast.style.display = 'block';
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateX(-50%) translateY(0)';
-    setTimeout(function() {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(-50%) translateY(-10px)';
-      setTimeout(function() { if (toast) toast.style.display = 'none'; }, 450);
-    }, 1400);
-  }
 }
 
 function renderPreviewFilterBar() {
