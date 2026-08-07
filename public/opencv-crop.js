@@ -1531,13 +1531,13 @@ function createMagicPromptHTML() {
     '<div style="background:#ffffff;border-radius:24px;max-width:440px;width:92%;padding:26px 20px;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,0.4);position:relative;border:1px solid rgba(255,255,255,0.2);">' +
       '<button id="ocvCloseMagicPromptBtn" style="position:absolute;top:16px;right:16px;background:#f3f4f6;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1em;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;">✕</button>' +
       '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#dcfce7,#f0fdf4);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:2.2em;box-shadow:0 4px 12px rgba(16,185,129,0.2);">✨🪄</div>' +
-      '<h2 style="font-size:1.3em;font-weight:800;color:#111827;margin:0 0 6px;letter-spacing:-0.02em;">Select Filter / फिल्टर निवडा!</h2>' +
+      '<h2 style="font-size:1.3em;font-weight:800;color:#111827;margin:0 0 6px;letter-spacing:-0.02em;">Use Magic Color for Best Print! / मॅजिक कलर वापरा!</h2>' +
       '<p style="font-size:0.88em;color:#4b5563;margin:0 0 20px;line-height:1.45;">' +
-        'In the next step, use <b>Magic Color</b> for Black &amp; White prints to remove dark background shadows.<br>Use <b>Original</b> for Color prints!' +
+        'Use <b>Magic Color</b> for Black &amp; White prints to remove dark background shadows &amp; get crisp HD text.<br>Use <b>Original</b> for Color prints!' +
       '</p>' +
       '<div style="display:flex;flex-direction:column;gap:10px;">' +
-        '<button id="ocvOkBtn" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;padding:14px 18px;border-radius:16px;font-size:1.02em;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 16px rgba(5,150,105,0.35);width:100%;">' +
-          '<span>OK, Select Filter</span>' +
+        '<button id="ocvOkBtn" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;padding:14px 18px;border-radius:16px;font-size:1.05em;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 16px rgba(5,150,105,0.35);width:100%;">' +
+          '<span>OK</span>' +
           '<span>➔</span>' +
         '</button>' +
       '</div>' +
