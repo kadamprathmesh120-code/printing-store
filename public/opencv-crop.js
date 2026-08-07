@@ -887,125 +887,178 @@ function applyFilter(ctx, w, h, mode) {
     }
 
     case 'magic': {
-      var grayBuf = new Float32Array(w * h);
-      for (var i = 0; i < len; i += 4) {
-        grayBuf[i >> 2] = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+      // 1. White Balance & Gray World Normalization
+      var sumR = 0, sumG = 0, sumB = 0;
+      var totalPx = w * h;
+      for (var i = 0; i < totalPx * 4; i += 4) {
+        sumR += d[i]; sumG += d[i+1]; sumB += d[i+2];
       }
-      // Separable box blur: horizontal pass then vertical pass (O(n*ks) not O(n*ks^2))
-      var ks = Math.max(5, Math.round(Math.min(w, h) * 0.08));
-      if (ks % 2 === 0) ks++;
-      var half = Math.floor(ks / 2);
-      var tmpR = new Float32Array(w * h);
-      var tmpG = new Float32Array(w * h);
-      var tmpB = new Float32Array(w * h);
-      var tmpL = new Float32Array(w * h);
-      // Horizontal pass
+      var avgR = sumR / totalPx, avgG = sumG / totalPx, avgB = sumB / totalPx;
+      var avgAll = (avgR + avgG + avgB) / 3;
+      var gainR = avgAll / (avgR || 1);
+      var gainG = avgAll / (avgG || 1);
+      var gainB = avgAll / (avgB || 1);
+
+      for (var i = 0; i < totalPx * 4; i += 4) {
+        d[i]   = Math.min(255, d[i]   * gainR);
+        d[i+1] = Math.min(255, d[i+1] * gainG);
+        d[i+2] = Math.min(255, d[i+2] * gainB);
+      }
+
+      // 2. Fast 2-Pass Separable Illumination Estimation (Local Background Map)
+      var radius = Math.max(11, Math.round(Math.min(w, h) * 0.08));
+      if (radius % 2 === 0) radius++;
+      var half = Math.floor(radius / 2);
+
+      var tmpR = new Float32Array(totalPx);
+      var tmpG = new Float32Array(totalPx);
+      var tmpB = new Float32Array(totalPx);
+
+      // Horizontal Pass
       for (var y = 0; y < h; y++) {
-        var sR = 0, sG = 0, sB = 0, sL = 0, cnt = 0;
+        var sR = 0, sG = 0, sB = 0, cnt = 0;
         for (var x = 0; x < Math.min(half, w); x++) {
           var bi = (y * w + x) * 4;
-          sR += d[bi]; sG += d[bi+1]; sB += d[bi+2]; sL += grayBuf[y*w+x]; cnt++;
+          sR += d[bi]; sG += d[bi+1]; sB += d[bi+2]; cnt++;
         }
         for (var x = 0; x < w; x++) {
           var addX = x + half;
-          if (addX < w) { var ai = (y * w + addX) * 4; sR += d[ai]; sG += d[ai+1]; sB += d[ai+2]; sL += grayBuf[y*w+addX]; cnt++; }
+          if (addX < w) {
+            var ai = (y * w + addX) * 4;
+            sR += d[ai]; sG += d[ai+1]; sB += d[ai+2]; cnt++;
+          }
           var ci = y * w + x;
-          tmpR[ci] = sR / cnt; tmpG[ci] = sG / cnt; tmpB[ci] = sB / cnt; tmpL[ci] = sL / cnt;
+          tmpR[ci] = sR / cnt; tmpG[ci] = sG / cnt; tmpB[ci] = sB / cnt;
           var remX = x - half;
-          if (remX >= 0) { var ri = (y * w + remX) * 4; sR -= d[ri]; sG -= d[ri+1]; sB -= d[ri+2]; sL -= grayBuf[y*w+remX]; cnt--; }
+          if (remX >= 0) {
+            var ri = (y * w + remX) * 4;
+            sR -= d[ri]; sG -= d[ri+1]; sB -= d[ri+2]; cnt--;
+          }
         }
       }
-      // Vertical pass
-      var bgR = new Float32Array(w * h);
-      var bgG = new Float32Array(w * h);
-      var bgB = new Float32Array(w * h);
-      var bg = new Float32Array(w * h);
+
+      // Vertical Pass
+      var bgR = new Float32Array(totalPx);
+      var bgG = new Float32Array(totalPx);
+      var bgB = new Float32Array(totalPx);
       for (var x = 0; x < w; x++) {
-        var sR = 0, sG = 0, sB = 0, sL = 0, cnt = 0;
+        var sR = 0, sG = 0, sB = 0, cnt = 0;
         for (var y = 0; y < Math.min(half, h); y++) {
           var ci = y * w + x;
-          sR += tmpR[ci]; sG += tmpG[ci]; sB += tmpB[ci]; sL += tmpL[ci]; cnt++;
+          sR += tmpR[ci]; sG += tmpG[ci]; sB += tmpB[ci]; cnt++;
         }
         for (var y = 0; y < h; y++) {
           var addY = y + half;
-          if (addY < h) { var ai2 = addY * w + x; sR += tmpR[ai2]; sG += tmpG[ai2]; sB += tmpB[ai2]; sL += tmpL[ai2]; cnt++; }
+          if (addY < h) {
+            var ai2 = addY * w + x;
+            sR += tmpR[ai2]; sG += tmpG[ai2]; sB += tmpB[ai2]; cnt++;
+          }
           var ci2 = y * w + x;
-          bgR[ci2] = sR / cnt; bgG[ci2] = sG / cnt; bgB[ci2] = sB / cnt; bg[ci2] = sL / cnt;
+          bgR[ci2] = sR / cnt; bgG[ci2] = sG / cnt; bgB[ci2] = sB / cnt;
           var remY = y - half;
-          if (remY >= 0) { var ri2 = remY * w + x; sR -= tmpR[ri2]; sG -= tmpG[ri2]; sB -= tmpB[ri2]; sL -= tmpL[ri2]; cnt--; }
+          if (remY >= 0) {
+            var ri2 = remY * w + x;
+            sR -= tmpR[ri2]; sG -= tmpG[ri2]; sB -= tmpB[ri2]; cnt--;
+          }
         }
       }
-      // White balance + shadow removal + ink black
-      var target = 210;
-      for (var y = 0; y < h; y++) {
-        for (var x = 0; x < w; x++) {
-          var idx = y * w + x;
-          var bL = bg[idx];
-          var bR2 = bgR[idx], bG2 = bgG[idx], bB2 = bgB[idx];
-          // White balance: scale so background becomes target
-          var rScale = bR2 > 15 ? target / bR2 : 1;
-          var gScale = bG2 > 15 ? target / bG2 : 1;
-          var bScale = bB2 > 15 ? target / bB2 : 1;
-          var valR = d[idx*4] * rScale;
-          var valG = d[idx*4+1] * gScale;
-          var valB = d[idx*4+2] * bScale;
-          // Contrast boost
-          valR = (valR - 128) * 1.4 + 128;
-          valG = (valG - 128) * 1.4 + 128;
-          valB = (valB - 128) * 1.4 + 128;
-          valR = Math.min(255, Math.max(0, valR));
-          valG = Math.min(255, Math.max(0, valG));
-          valB = Math.min(255, Math.max(0, valB));
-          // Compute luminance after white balance
-          var lum = valR * 0.299 + valG * 0.587 + valB * 0.114;
-          // Shadow removal: anything darker than bg*0.55 is text/ink
-          var shadowThresh = bL * 0.55;
-          if (lum < shadowThresh) {
-            // Push to ink black — darker pixels get more black
-            var darkness = 1 - (lum / shadowThresh); // 0..1
-            darkness = darkness * darkness; // sharpen the curve
-            var blackAmount = 0.85 + 0.15 * darkness;
-            valR = valR * (1 - blackAmount);
-            valG = valG * (1 - blackAmount);
-            valB = valB * (1 - blackAmount);
+
+      var targetPaper = 245;
+
+      // 3. Illumination Division & Color Preservation Loop
+      for (var i = 0; i < totalPx; i++) {
+        var idx = i * 4;
+        var rVal = d[idx], gVal = d[idx+1], bVal = d[idx+2];
+
+        var bR = Math.max(25, bgR[i]);
+        var bG = Math.max(25, bgG[i]);
+        var bB = Math.max(25, bgB[i]);
+
+        var normR = (rVal / bR) * targetPaper;
+        var normG = (gVal / bG) * targetPaper;
+        var normB = (bVal / bB) * targetPaper;
+
+        normR = Math.min(255, Math.max(0, normR));
+        normG = Math.min(255, Math.max(0, normG));
+        normB = Math.min(255, Math.max(0, normB));
+
+        var maxC = Math.max(normR, normG, normB);
+        var minC = Math.min(normR, normG, normB);
+        var chroma = maxC - minC;
+        var lum = normR * 0.299 + normG * 0.587 + normB * 0.114;
+
+        // Color detection: blue/purple stamps, red seals, green ink, passport photos
+        var isColor = chroma > 20 || (normB - normR > 16) || (normR - normG > 20 && normG - normB > 12);
+
+        if (isColor) {
+          var avgColor = (normR + normG + normB) / 3;
+          var outR = avgColor + (normR - avgColor) * 1.15;
+          var outG = avgColor + (normG - avgColor) * 1.15;
+          var outB = avgColor + (normB - avgColor) * 1.15;
+
+          if (lum > 205) {
+            var wFactor = Math.min(1, (lum - 205) / 50);
+            outR = outR + (255 - outR) * wFactor;
+            outG = outG + (255 - outG) * wFactor;
+            outB = outB + (255 - outB) * wFactor;
           }
-          // Background cleanup: anything brighter than bg*0.7 is paper — push to clean white
-          if (lum > bL * 0.7 && lum > 140) {
-            var whiteness = Math.min(1, (lum - 140) / 80);
-            valR = valR + (255 - valR) * whiteness * 0.5;
-            valG = valG + (255 - valG) * whiteness * 0.5;
-            valB = valB + (255 - valB) * whiteness * 0.5;
+          d[idx]   = Math.min(255, Math.max(0, Math.round(outR)));
+          d[idx+1] = Math.min(255, Math.max(0, Math.round(outG)));
+          d[idx+2] = Math.min(255, Math.max(0, Math.round(outB)));
+        } else {
+          var finalR = normR, finalG = normG, finalB = normB;
+          if (lum > 175) {
+            // Push paper background to 100% pure white #FFFFFF
+            var wFactor = Math.min(1, (lum - 175) / 65);
+            wFactor = wFactor * wFactor * (3 - 2 * wFactor);
+            finalR = normR + (255 - normR) * wFactor;
+            finalG = normG + (255 - normG) * wFactor;
+            finalB = normB + (255 - normB) * wFactor;
+          } else if (lum < 120) {
+            // Push text to crisp dark black
+            var bFactor = Math.min(1, (120 - lum) / 120);
+            finalR = normR * (1 - bFactor * 0.7);
+            finalG = normG * (1 - bFactor * 0.7);
+            finalB = normB * (1 - bFactor * 0.7);
           }
-          d[idx*4] = Math.round(Math.min(255, Math.max(0, valR)));
-          d[idx*4+1] = Math.round(Math.min(255, Math.max(0, valG)));
-          d[idx*4+2] = Math.round(Math.min(255, Math.max(0, valB)));
+          d[idx]   = Math.min(255, Math.max(0, Math.round(finalR)));
+          d[idx+1] = Math.min(255, Math.max(0, Math.round(finalG)));
+          d[idx+2] = Math.min(255, Math.max(0, Math.round(finalB)));
         }
       }
-      // Sharpen (3x3 unsharp mask)
-      var shR = new Float32Array(w * h);
-      var shG = new Float32Array(w * h);
-      var shB = new Float32Array(w * h);
+
+      // 4. Mild Unsharp Mask Sharpening on text edges only
+      var shBufR = new Float32Array(totalPx);
+      var shBufG = new Float32Array(totalPx);
+      var shBufB = new Float32Array(totalPx);
+
       for (var y = 1; y < h - 1; y++) {
         for (var x = 1; x < w - 1; x++) {
-          var sR2 = 0, sG2 = 0, sB2 = 0;
+          var sumR2 = 0, sumG2 = 0, sumB2 = 0;
           for (var ky = -1; ky <= 1; ky++) {
             for (var kx = -1; kx <= 1; kx++) {
-              var idx2 = ((y + ky) * w + (x + kx)) * 4;
-              sR2 += d[idx2]; sG2 += d[idx2 + 1]; sB2 += d[idx2 + 2];
+              var pIdx = ((y + ky) * w + (x + kx)) * 4;
+              sumR2 += d[pIdx]; sumG2 += d[pIdx+1]; sumB2 += d[pIdx+2];
             }
           }
-          shR[y * w + x] = sR2 / 9;
-          shG[y * w + x] = sG2 / 9;
-          shB[y * w + x] = sB2 / 9;
+          var cIdx2 = y * w + x;
+          shBufR[cIdx2] = sumR2 / 9;
+          shBufG[cIdx2] = sumG2 / 9;
+          shBufB[cIdx2] = sumB2 / 9;
         }
       }
-      var shAmount = 1.5;
+
+      var shAmount = 1.2;
       for (var y = 1; y < h - 1; y++) {
         for (var x = 1; x < w - 1; x++) {
-          var idx = (y * w + x) * 4;
-          d[idx] = Math.min(255, Math.max(0, d[idx] + (d[idx] - shR[y * w + x]) * shAmount));
-          d[idx+1] = Math.min(255, Math.max(0, d[idx+1] + (d[idx+1] - shG[y * w + x]) * shAmount));
-          d[idx+2] = Math.min(255, Math.max(0, d[idx+2] + (d[idx+2] - shB[y * w + x]) * shAmount));
+          var pIdx = (y * w + x) * 4;
+          var cIdx2 = y * w + x;
+          var pixLum = d[pIdx] * 0.299 + d[pIdx+1] * 0.587 + d[pIdx+2] * 0.114;
+          if (pixLum < 240) {
+            d[pIdx]   = Math.min(255, Math.max(0, d[pIdx]   + (d[pIdx]   - shBufR[cIdx2]) * shAmount));
+            d[pIdx+1] = Math.min(255, Math.max(0, d[pIdx+1] + (d[pIdx+1] - shBufG[cIdx2]) * shAmount));
+            d[pIdx+2] = Math.min(255, Math.max(0, d[pIdx+2] + (d[pIdx+2] - shBufB[cIdx2]) * shAmount));
+          }
         }
       }
       break;
