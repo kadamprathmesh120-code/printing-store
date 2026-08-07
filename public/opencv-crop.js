@@ -1861,10 +1861,7 @@ function createModalHTML() {
 // ---------- Build filter thumbnails (CamScanner style) ----------
 var FILTER_DEFS = [
   { id: 'original', label: 'Original' },
-  { id: 'magic', label: 'Magic Color' },
-  { id: 'grayscale', label: 'Grayscale' },
-  { id: 'bw', label: 'B&W' },
-  { id: 'enhance', label: 'Enhance' }
+  { id: 'magic', label: 'Magic Color' }
 ];
 
 function buildFilterThumbnails() {
