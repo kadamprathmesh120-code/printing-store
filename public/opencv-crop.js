@@ -1598,7 +1598,7 @@ function showPreviewModal() {
         '<div style="background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);border:1.5px solid #3b82f6;border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(37,99,235,0.12);overflow:hidden;">' +
           '<div style="width:24px;height:24px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;box-shadow:0 2px 4px rgba(37,99,235,0.3);">💡</div>' +
           '<div style="flex:1;overflow:hidden;white-space:nowrap;position:relative;">' +
-            '<div style="display:inline-block;white-space:nowrap;animation:ocvMarquee 14s linear infinite;font-size:0.78rem;font-weight:700;color:#1e40af;">' +
+            '<div style="display:inline-block;white-space:nowrap;animation:ocvMarquee 7s linear infinite;font-size:0.78rem;font-weight:700;color:#1e40af;">' +
               '💡 Tip: <strong style="color:#16a34a;">Magic Color</strong> is best for Black &amp; White prints. Use <strong style="color:#2563eb;">Original</strong> for Color prints. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 💡 Tip: <strong style="color:#16a34a;">Magic Color</strong> is best for Black &amp; White prints. Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
             '</div>' +
           '</div>' +
