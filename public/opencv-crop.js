@@ -1570,60 +1570,37 @@ function showPreviewModal() {
         '<div id="ocvPreviewZoomContainer" style="max-width:95vw;max-height:85vh;overflow:auto;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.8);"></div>' +
       '</div>' +
       // Choose a Filter
-      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:16px;">' +
-        '<div style="font-size:0.85rem;font-weight:700;color:#374151;margin-bottom:10px;">Choose a Filter</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-          // Original card
-          '<div id="ocvCardOriginal" class="ocv-filter-card" data-filter="original" style="background:#fff;border:2px solid #e5e7eb;border-radius:16px;padding:16px 12px 14px;cursor:pointer;transition:all 0.2s;position:relative;">' +
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
-              '<div id="ocvRadioOriginal" style="width:18px;height:18px;border-radius:50%;border:2px solid #d1d5db;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;"></div>' +
+      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
+        '<div style="font-size:0.82rem;font-weight:700;color:#374151;margin-bottom:8px;">Choose a Filter</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;">' +
+          // Original Card (Landscape)
+          '<div id="ocvCardOriginal" class="ocv-filter-card" data-filter="original" style="background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:10px 12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:10px;position:relative;">' +
+            '<div id="ocvRadioOriginal" style="width:18px;height:18px;border-radius:50%;border:2px solid #d1d5db;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;"></div>' +
+            '<div style="width:34px;height:34px;background:#eff6ff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
             '</div>' +
-            '<div style="text-align:center;margin-bottom:10px;">' +
-              '<div style="width:44px;height:44px;background:#eff6ff;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
-                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">' +
+                '<div style="font-size:0.88rem;font-weight:800;color:#111827;">Original</div>' +
+                '<span style="font-size:0.65rem;color:#2563eb;font-weight:700;background:#eff6ff;padding:1px 6px;border-radius:4px;">No enhancement</span>' +
               '</div>' +
-              '<div style="font-size:0.95rem;font-weight:800;color:#111827;">Original</div>' +
-              '<div style="font-size:0.7rem;color:#2563eb;font-weight:600;margin-top:2px;">No enhancement</div>' +
-            '</div>' +
-            '<div style="display:flex;flex-direction:column;gap:6px;">' +
-              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#6b7280;">' +
-                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>' +
-                '<span>Prints exactly as uploaded</span>' +
-              '</div>' +
-              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#6b7280;">' +
-                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>' +
-                '<span>Best for color documents</span>' +
-              '</div>' +
+              '<div style="font-size:0.7rem;color:#6b7280;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Prints exactly as uploaded • Best for color prints</div>' +
             '</div>' +
           '</div>' +
-          // Magic Color card
-          '<div id="ocvCardMagic" class="ocv-filter-card" data-filter="magic" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:16px 12px 14px;cursor:pointer;transition:all 0.2s;position:relative;box-shadow:0 4px 16px rgba(22,163,74,0.15);">' +
-            '<div style="position:absolute;top:-10px;right:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:0.62rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(0,0,0,0.2);">\u2605 RECOMMENDED</div>' +
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
-              '<div id="ocvRadioMagic" style="width:18px;height:18px;border-radius:50%;border:2px solid #16a34a;background:#16a34a;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">' +
-                '<div style="width:7px;height:7px;background:#fff;border-radius:50%;"></div>' +
-              '</div>' +
+          // Magic Color Card (Landscape)
+          '<div id="ocvCardMagic" class="ocv-filter-card" data-filter="magic" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:10px 12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:10px;position:relative;box-shadow:0 3px 12px rgba(22,163,74,0.15);">' +
+            '<div id="ocvRadioMagic" style="width:18px;height:18px;border-radius:50%;border:2px solid #16a34a;background:#16a34a;flex-shrink:0;display:flex;align-items:center;justify-content:center;">' +
+              '<div style="width:6px;height:6px;background:#fff;border-radius:50%;"></div>' +
             '</div>' +
-            '<div style="text-align:center;margin-bottom:10px;">' +
-              '<div style="width:44px;height:44px;background:#dcfce7;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
-                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' +
-              '</div>' +
-              '<div style="font-size:0.95rem;font-weight:800;color:#111827;">Magic Color</div>' +
-              '<div style="font-size:0.7rem;color:#16a34a;font-weight:700;margin-top:2px;">Best for B&amp;W prints</div>' +
+            '<div style="width:34px;height:34px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>' +
             '</div>' +
-            '<div style="display:flex;flex-direction:column;gap:6px;">' +
-              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#374151;">' +
-                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-                '<span>Removes shadows &amp; dark areas</span>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">' +
+                '<div style="font-size:0.88rem;font-weight:800;color:#111827;">Magic Color</div>' +
+                '<span style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;">⭐ RECOMMENDED</span>' +
               '</div>' +
-              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#374151;">' +
-                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-                '<span>Makes text sharper &amp; clearer</span>' +
-              '</div>' +
-              '<div style="display:flex;align-items:flex-start;gap:6px;font-size:0.72rem;color:#374151;">' +
-                '<svg style="flex-shrink:0;margin-top:1px;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-                '<span>Cleaner paper for better print</span>' +
-              '</div>' +
+              '<div style="font-size:0.7rem;color:#15803d;font-weight:600;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Removes shadows • Crisp HD text • Pure white paper</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
