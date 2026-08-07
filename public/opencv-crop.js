@@ -1532,8 +1532,8 @@ function showPreviewModal() {
     div.id = 'ocvPreviewModal';
     div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#f8fafc;z-index:200;display:flex;flex-direction:column;align-items:center;overflow-y:auto;box-sizing:border-box;font-family:Inter,Roboto,sans-serif;';
     div.innerHTML =
-      '<div id="ocvToastBanner" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;padding:10px 18px;border-radius:24px;font-size:0.84rem;font-weight:800;box-shadow:0 8px 24px rgba(22,163,74,0.4);z-index:999;white-space:nowrap;letter-spacing:0.3px;pointer-events:none;transition:all 0.4s ease;">' +
-        '✨ Magic Color Auto-Applied for Best Print!' +
+      '<div id="ocvToastBanner" style="display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:10px 18px;border-radius:24px;font-size:0.82rem;font-weight:700;box-shadow:0 8px 24px rgba(37,99,235,0.4);z-index:999;white-space:nowrap;letter-spacing:0.3px;pointer-events:none;transition:all 0.4s ease;">' +
+        '💡 Tip: Magic Color is best for B&amp;W prints. Use Original for Color prints.' +
       '</div>' +
       // Header
       '<div style="width:100%;max-width:500px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;box-sizing:border-box;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:10;">' +
@@ -1546,15 +1546,13 @@ function showPreviewModal() {
         '</div>' +
         '<button id="ocvPreviewHelpBtn" style="background:none;border:1.5px solid #d1d5db;cursor:pointer;padding:5px 10px;border-radius:20px;color:#374151;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:3px;">\u2753 Help</button>' +
       '</div>' +
-      // Tip Banner (Persuasive Magic Color recommendation)
+      // Tip Banner
       '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:12px;">' +
-        '<div style="background:linear-gradient(135deg,#f0fdf4 0%,#eff6ff 100%);border:1.5px solid #bbf7d0;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 12px rgba(16,185,129,0.12);">' +
-          '<div style="width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.08);">⭐</div>' +
-          '<div style="flex:1;">' +
-            '<div style="font-size:0.8rem;font-weight:800;color:#111827;">⭐ Recommended for Best Print Quality</div>' +
-            '<div style="font-size:0.72rem;color:#15803d;margin-top:1px;font-weight:600;line-height:1.4;">' +
-              'Choose <strong style="color:#16a34a;">Magic Color</strong> to automatically remove background shadows &amp; get 100% sharp HD text on pure white paper!' +
-            '</div>' +
+        '<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">' +
+          '<span style="font-size:1.1rem;margin-top:1px;">ℹ️</span>' +
+          '<div style="font-size:0.8rem;color:#1e40af;line-height:1.5;">' +
+            '<strong>Tip:</strong> <strong style="color:#2563eb;">Magic Color</strong> is best for Black &amp; White prints.<br>' +
+            'Use <strong style="color:#2563eb;">Original</strong> for Color prints.' +
           '</div>' +
         '</div>' +
       '</div>' +
