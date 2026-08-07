@@ -4621,6 +4621,22 @@
     }
 
     var _customerActiveVoiceAudio = null;
+    var _customerPendingVoice = false;
+
+    function unlockCustomerAudio() {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+      } catch(e) {}
+      if (_customerPendingVoice) {
+        _customerPendingVoice = false;
+        playUploadedVoiceMP3();
+      }
+    }
+    document.addEventListener('click', unlockCustomerAudio, { passive: true });
+    document.addEventListener('touchstart', unlockCustomerAudio, { passive: true });
+    document.addEventListener('pointerdown', unlockCustomerAudio, { passive: true });
+
     function playUploadedVoiceMP3() {
       if (_customerActiveVoiceAudio) {
         try { _customerActiveVoiceAudio.pause(); _customerActiveVoiceAudio.currentTime = 0; } catch(e) {}
@@ -4628,9 +4644,13 @@
       }
       var audio = new Audio('/announcements.mp3?v=' + Date.now());
       _customerActiveVoiceAudio = audio;
-      audio.play().catch(function(err) {
-        console.log('Voice announcement playback:', err);
-      });
+      var p = audio.play();
+      if (p && p.catch) {
+        p.catch(function(err) {
+          console.warn('Customer background announcement queued for user tap:', err);
+          _customerPendingVoice = true;
+        });
+      }
     }
 
     function updateStatusDisplay(status, orders) {

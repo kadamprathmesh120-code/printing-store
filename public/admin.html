@@ -1274,6 +1274,8 @@
       }
     }
 
+    var _pendingAudioToPlay = null;
+
     function playAudioFile(files) {
       if (_adminActiveAudio) {
         try { _adminActiveAudio.pause(); _adminActiveAudio.currentTime = 0; } catch(e) {}
@@ -1284,9 +1286,14 @@
         var a = new Audio(files[index]);
         _adminActiveAudio = a;
         a.volume = 1.0;
-        a.play().catch(function() {
-          tryNext(index + 1);
-        });
+        var promise = a.play();
+        if (promise && promise.catch) {
+          promise.catch(function(err) {
+            console.warn('Background announcement blocked by browser autoplay rules. Queued for user tap:', err);
+            _pendingAudioToPlay = files;
+            tryNext(index + 1);
+          });
+        }
       }
       tryNext(0);
     }
@@ -1332,20 +1339,26 @@
 
     var audioUnlocked = false;
     function unlockAudio() {
-      if (audioUnlocked) return;
-      audioUnlocked = true;
       try {
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        ctx.resume();
-        playNotificationSound();
+        if (ctx.state === 'suspended') ctx.resume();
       } catch(e) {}
+      if (_pendingAudioToPlay) {
+        var filesToPlay = _pendingAudioToPlay;
+        _pendingAudioToPlay = null;
+        playAudioFile(filesToPlay);
+      }
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      try { playNotificationSound(); } catch(e) {}
       var banner = document.getElementById('soundUnlockBanner');
       if (banner) banner.style.display = 'none';
-      console.log('🔊 Audio unlocked by user click.');
+      console.log('🔊 Audio unlocked & background announcements active.');
     }
 
     document.addEventListener('click', unlockAudio, { passive: true });
     document.addEventListener('touchstart', unlockAudio, { passive: true });
+    document.addEventListener('pointerdown', unlockAudio, { passive: true });
     document.addEventListener('keydown', unlockAudio, { passive: true });
 
 
@@ -1807,10 +1820,12 @@
         return new Date(o.created_at) >= today;
       });
 
-      var paidOrders = orders.filter(function(o) { return o.status === 'paid'; });
+      var paidOrders = orders.filter(function(o) {
+        return o.status === 'paid' || (o.payment_method === 'cash' && o.status !== 'accepted' && o.status !== 'rejected') || o.status === 'pending';
+      });
       var printingOrders = orders.filter(function(o) { return o.status === 'accepted'; });
       var todayRevenue = todayOrders.reduce(function(sum, o) {
-        if (o.status === 'paid' || o.status === 'accepted') return sum + (o.price || 0);
+        if (o.status === 'paid' || o.status === 'accepted' || o.payment_method === 'cash') return sum + (o.price || 0);
         return sum;
       }, 0);
       var queueLength = paidOrders.length + printingOrders.length;
@@ -1859,7 +1874,9 @@
 
       // Filter by tab
       if (currentTab === 'printing') {
-        orders = orders.filter(function(o) { return o.status === 'paid'; });
+        orders = orders.filter(function(o) {
+          return o.status === 'paid' || (o.payment_method === 'cash' && o.status !== 'accepted' && o.status !== 'rejected') || o.status === 'pending';
+        });
       } else if (currentTab === 'completed') {
         orders = orders.filter(function(o) { return o.status === 'accepted'; });
       } else if (currentTab === 'failed') {
@@ -2117,15 +2134,18 @@
           if (refreshBtn) refreshBtn.style.opacity = '1';
           if (!Array.isArray(orders)) { hideLoading(); return; }
 
+          var isActionable = function(o) {
+            return o.status === 'paid' || o.status === 'accepted' || o.payment_method === 'cash' || o.status === 'pending';
+          };
           var newPaidOrders = [];
           if (!isFirstLoad) {
             newPaidOrders = orders.filter(function(o) {
-              return (o.status === 'paid' || o.status === 'accepted') && !knownPaidOrderIds.has(o.id);
+              return isActionable(o) && !knownPaidOrderIds.has(o.id);
             });
           }
           orders.forEach(function(o) {
             knownOrderIds.add(o.id);
-            if (o.status === 'paid' || o.status === 'accepted') {
+            if (isActionable(o)) {
               knownPaidOrderIds.add(o.id);
             }
           });
@@ -2136,7 +2156,7 @@
             pendingNewIds = newPaidOrders.map(function(o) { return o.id; });
             newPaidOrders.reverse().forEach(function(o) {
               showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
-              // Trigger printer sound alert (HP.mp3, KONICA.mp3, or KYOCERA.mp3) ONLY when payment is confirmed!
+              // Trigger printer sound alert (HP.mp3, KONICA.mp3, or KYOCERA.mp3)
               var printType = o.print_type || 'bw';
               var printer = o.printer_name || ((printType === 'color') ? getColorPrinter() : getBwPrinter());
               playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType, o.id);
@@ -2149,7 +2169,7 @@
           allOrders = orders;
 
           // Cash alert with Customer Name Callout
-          var cashPaid = orders.filter(function(o) { return o.payment_method === 'cash' && (o.status === 'pending' || o.status === 'paid'); });
+          var cashPaid = orders.filter(function(o) { return (o.payment_method === 'cash' || o.status === 'pending') && o.status !== 'accepted' && o.status !== 'rejected'; });
           var cashAlert = document.getElementById('cashAlert');
           if (cashPaid.length > 0) {
             cashAlert.classList.remove('hidden');
