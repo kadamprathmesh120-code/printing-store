@@ -1509,6 +1509,22 @@ function showPreview() {
   // Show preview in a modal/overlay
   showPreviewModal();
 }
+function openZoomModal() {
+  var zoomContainer = document.getElementById('ocvPreviewZoomContainer');
+  if (zoomContainer && previewCanvas) {
+    zoomContainer.innerHTML = '';
+    var zoomCanvas = document.createElement('canvas');
+    zoomCanvas.width = previewCanvas.width;
+    zoomCanvas.height = previewCanvas.height;
+    zoomCanvas.style.cssText = 'max-width:95vw;max-height:88vh;display:block;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.8);';
+    var zCtx = zoomCanvas.getContext('2d');
+    zCtx.drawImage(previewCanvas, 0, 0);
+    zoomContainer.appendChild(zoomCanvas);
+  }
+  var m = document.getElementById('ocvPreviewZoomModal');
+  if (m) m.style.display = 'flex';
+}
+
 function showPreviewModal() {
   var existing = document.getElementById('ocvPreviewModal');
   if (!existing) {
@@ -1542,7 +1558,7 @@ function showPreviewModal() {
         '<div style="font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
           '<span style="font-size:1rem;">\uD83D\uDC41</span> Preview <span style="font-size:0.7rem;color:#9ca3af;font-weight:400;">(Tap to zoom)</span>' +
         '</div>' +
-        '<div id="ocvPreviewContainer" style="width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);background:#fff;display:flex;align-items:center;justify-content:center;max-height:230px;cursor:zoom-in;" onclick="(function(){var m=document.getElementById(\'ocvPreviewZoomModal\');if(m){m.style.display=\'flex\';}})();">' +
+        '<div id="ocvPreviewContainer" style="width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12);background:#fff;display:flex;align-items:center;justify-content:center;max-height:230px;cursor:zoom-in;" onclick="openZoomModal()">' +
         '</div>' +
       '</div>' +
       // Zoom Modal
@@ -1684,21 +1700,11 @@ function showPreviewModal() {
   existing.scrollTop = 0;
 
   var container = document.getElementById('ocvPreviewContainer');
-  container.innerHTML = '';
-  previewCanvas.style.cssText = 'max-width:100%;max-height:225px;display:block;border-radius:8px;';
-  container.appendChild(previewCanvas);
-
-  var zoomContainer = document.getElementById('ocvPreviewZoomContainer');
-  if (zoomContainer) {
-    zoomContainer.innerHTML = '';
-    var zoomCanvas = document.createElement('canvas');
-    zoomCanvas.width = previewCanvas.width;
-    zoomCanvas.height = previewCanvas.height;
-    zoomCanvas.style.cssText = 'max-width:95vw;max-height:88vh;display:block;border-radius:8px;';
-    zoomCanvas.getContext('2d').drawImage(previewCanvas, 0, 0);
-    zoomContainer.appendChild(zoomCanvas);
+  if (container) {
+    container.innerHTML = '';
+    previewCanvas.style.cssText = 'max-width:100%;max-height:225px;display:block;border-radius:8px;';
+    container.appendChild(previewCanvas);
   }
-
   updatePreviewFilterSelection();
 }
 
