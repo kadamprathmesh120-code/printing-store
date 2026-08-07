@@ -1741,13 +1741,6 @@ function showPreviewModal() {
     container.appendChild(previewCanvas);
   }
   updatePreviewFilterSelection();
-
-  // Smooth slow auto-scroll after 450ms to automatically reveal filter cards & action buttons
-  setTimeout(function() {
-    if (existing && existing.style.display !== 'none') {
-      existing.scrollTo({ top: 130, behavior: 'smooth' });
-    }
-  }, 450);
 }
 
 function renderPreviewFilterBar() {
