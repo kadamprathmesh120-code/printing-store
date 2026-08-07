@@ -1240,7 +1240,7 @@
           <button class="btn btn-secondary" onclick="idcCrop('front')" disabled id="idcCropFront" style="flex:1;">Crop Front</button>
           <button class="btn btn-secondary" onclick="idcCrop('back')" disabled id="idcCropBack" style="flex:1;">Crop Back</button>
           <button class="btn btn-secondary" onclick="idcAddMore()" id="idcAddMore" style="flex:1;">Add More</button>
-          <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn" style="flex:100%;">Calculate Price</button>
+          <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn" style="flex:100%;">Next: Calculate & Pay ➔</button>
         </div>
       </div>
     </div>
@@ -3585,13 +3585,11 @@
         '🎉',
         [
           {
-            text: 'Calculate Price & Pay',
+            text: 'Next: Calculate & Pay ➔',
             primary: true,
             action: function() {
               idcHideBanner();
-              var btn = document.getElementById('idcUploadBtn');
-              btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              btn.focus();
+              idcUpload();
             }
           },
           {
