@@ -4801,22 +4801,33 @@
       img.src = URL.createObjectURL(item.file);
     }
 
-    function showCropModal() {
+    function updateCropCanvasSize() {
       var canvas = document.getElementById('cropCanvas');
       var modal = document.getElementById('cropModal');
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
       var dpr = window.devicePixelRatio || 1;
       var maxW = modal.clientWidth * 0.9;
       var maxH = window.innerHeight * 0.6;
-      var w = cropImg.width, h = cropImg.height;
+      var iw = cropImg.width, ih = cropImg.height;
+      if (Math.abs(cropRotation) % 180 !== 0) {
+        var tmp = iw; iw = ih; ih = tmp;
+      }
+      var w = iw, h = ih;
       if (w > maxW) { h = h * maxW / w; w = maxW; }
       if (h > maxH) { w = w * maxH / h; h = maxH; }
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       canvas.style.width = Math.round(w) + 'px';
       canvas.style.height = Math.round(h) + 'px';
-      cropRect = { x1: 10 * dpr, y1: 10 * dpr, x2: Math.round(w * dpr) - 10 * dpr, y2: Math.round(h * dpr) - 10 * dpr };
+    }
+
+    function showCropModal() {
+      var modal = document.getElementById('cropModal');
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      cropRotation = 0;
+      updateCropCanvasSize();
+      var canvas = document.getElementById('cropCanvas');
+      cropRect = { x1: 10, y1: 10, x2: canvas.width - 10, y2: canvas.height - 10 };
       drawCropCanvas();
       document.getElementById('cropProgress').textContent = (cropIndex + 1) + '/' + cropQueue.length;
       document.getElementById('cropError').textContent = '';
@@ -4831,7 +4842,11 @@
       ctx.save();
       ctx.translate(w / 2, h / 2);
       ctx.rotate(cropRotation * Math.PI / 180);
-      ctx.drawImage(cropImg, -w / 2, -h / 2, w, h);
+      var drawW = w, drawH = h;
+      if (Math.abs(cropRotation) % 180 !== 0) {
+        drawW = h; drawH = w;
+      }
+      ctx.drawImage(cropImg, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
       var x1 = Math.min(cropRect.x1, cropRect.x2);
