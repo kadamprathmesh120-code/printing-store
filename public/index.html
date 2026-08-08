@@ -954,9 +954,8 @@
       </div>
 
       <div class="contact-form">
-        <label style="font-size:0.85rem;font-weight:700;color:#374151;margin-bottom:6px;display:block;">Customer Details (Required)</label>
+        <label style="font-size:0.85rem;font-weight:700;color:#374151;margin-bottom:6px;display:block;">Customer Name (Required)</label>
         <input type="text" id="reviewName" data-i18n-placeholder="namePlaceholder" placeholder="Your Name" required>
-        <input type="tel" id="reviewMobile" data-i18n-placeholder="mobilePlaceholder" placeholder="Mobile Number (Required)" required>
         <textarea id="reviewNotes" data-i18n-placeholder="notesPlaceholder" placeholder="Any notes or instructions (optional)"></textarea>
         <div id="reviewContactError" style="color:#ef4444;font-size:0.85rem;font-weight:600;margin-top:6px;"></div>
       </div>
@@ -1292,7 +1291,6 @@
       <!-- Contact Form -->
       <div class="contact-form">
         <input type="text" id="idcPayName" placeholder="Your Name" required>
-        <input type="tel" id="idcPayMobile" placeholder="Mobile Number (optional)">
       </div>
 
       <!-- Payment Card -->
@@ -2755,7 +2753,6 @@
 
     function goToPaymentStep() {
       var name = document.getElementById('reviewName').value.trim();
-      var mobile = document.getElementById('reviewMobile').value.trim();
       var errEl = document.getElementById('reviewContactError');
 
       if (!name) {
@@ -2765,20 +2762,12 @@
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
-
-      if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
-        document.getElementById('reviewMobile').style.borderColor = '#ef4444';
-        document.getElementById('reviewMobile').focus();
-        if (errEl) errEl.textContent = 'Please enter a valid 10-digit Mobile Number.';
-        return;
-      }
-      document.getElementById('reviewMobile').style.borderColor = '';
       if (errEl) errEl.textContent = '';
 
       // Update customer details in Step 5 Payment Info Bar
       var infoPill = document.getElementById('paymentCustomerInfo');
       if (infoPill) {
-        infoPill.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;width:100%;"><span>👤 <strong>' + escapeHtml(name) + '</strong></span> <span>📱 ' + escapeHtml(mobile) + '</span></div>';
+        infoPill.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;width:100%;"><span>👤 <strong>' + escapeHtml(name) + '</strong></span></div>';
       }
 
       showStep('stepPayment');
@@ -2800,7 +2789,6 @@
 
     function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
-      var mobile = document.getElementById('reviewMobile').value.trim();
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
         document.getElementById('reviewName').focus();
@@ -2808,13 +2796,6 @@
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
-      if (!mobile) {
-        document.getElementById('reviewMobile').style.borderColor = '#ef4444';
-        document.getElementById('reviewMobile').focus();
-        document.getElementById('paymentError').textContent = 'Mobile Number is required.';
-        return;
-      }
-      document.getElementById('reviewMobile').style.borderColor = '';
       if (selectedFiles.length === 0) {
         document.getElementById('paymentError').textContent = 'No files selected.';
         return;
@@ -2831,7 +2812,7 @@
       formData.append('printType', selectedPrintType);
       formData.append('printSide', selectedPrintSide);
       formData.append('paymentMethod', 'razorpay');
-      formData.append('mobileNumber', document.getElementById('reviewMobile').value.trim());
+      formData.append('mobileNumber', '');
       formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
@@ -2914,7 +2895,7 @@
               },
               prefill: {
                 name: name,
-                contact: document.getElementById('reviewMobile').value.trim() || ''
+                contact: ''
               },
               theme: { color: '#7c3aed' }
             };
@@ -2938,7 +2919,6 @@
 
     function payWithCashfree() {
       var name = document.getElementById('reviewName').value.trim();
-      var mobile = document.getElementById('reviewMobile').value.trim();
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
         document.getElementById('reviewName').focus();
@@ -2946,13 +2926,6 @@
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
-      if (!mobile) {
-        document.getElementById('reviewMobile').style.borderColor = '#ef4444';
-        document.getElementById('reviewMobile').focus();
-        document.getElementById('paymentError').textContent = 'Mobile Number is required.';
-        return;
-      }
-      document.getElementById('reviewMobile').style.borderColor = '';
       if (selectedFiles.length === 0) {
         document.getElementById('paymentError').textContent = 'No files selected.';
         return;
@@ -2964,13 +2937,12 @@
         btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
       }
 
-      var mobile = document.getElementById('reviewMobile').value.trim();
       var formData = new FormData();
       formData.append('customerName', name);
       formData.append('printType', selectedPrintType);
       formData.append('printSide', selectedPrintSide);
       formData.append('paymentMethod', 'cashfree');
-      formData.append('mobileNumber', mobile);
+      formData.append('mobileNumber', '');
       formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
@@ -3015,7 +2987,7 @@
               amount: data.totalPrice,
               orderIds: currentOrderIds,
               customerName: name,
-              customerMobile: mobile
+              customerMobile: ''
             })
           })
           .then(function(r) { return r.json(); })
@@ -3096,7 +3068,6 @@
 
     function payWithCash() {
       var name = document.getElementById('reviewName').value.trim();
-      var mobile = document.getElementById('reviewMobile').value.trim();
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
         document.getElementById('reviewName').focus();
@@ -3104,13 +3075,6 @@
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
-      if (!mobile) {
-        document.getElementById('reviewMobile').style.borderColor = '#ef4444';
-        document.getElementById('reviewMobile').focus();
-        document.getElementById('paymentError').textContent = 'Mobile Number is required.';
-        return;
-      }
-      document.getElementById('reviewMobile').style.borderColor = '';
       if (selectedFiles.length === 0) {
         document.getElementById('paymentError').textContent = 'No files selected.';
         return;
@@ -3137,7 +3101,7 @@
       formData.append('printType', selectedPrintType);
       formData.append('printSide', selectedPrintSide);
       formData.append('paymentMethod', 'cash');
-      formData.append('mobileNumber', document.getElementById('reviewMobile').value.trim());
+      formData.append('mobileNumber', '');
       formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
