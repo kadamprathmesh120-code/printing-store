@@ -691,6 +691,27 @@
   <!-- Main Content -->
   <main class="kiosk-main">
 
+    <!-- Rental SaaS Subscription & Shop Branding Banner -->
+    <div id="rentalSaasBanner" style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#fff;padding:14px 20px;border-radius:14px;margin-bottom:16px;font-size:0.88rem;display:flex;align-items:center;justify-content:space-between;border:1px solid #334155;box-shadow:0 4px 14px rgba(0,0,0,0.2);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="background:#1e293b;border:1px solid #38bdf8;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">🏷️</div>
+        <div>
+          <div style="font-weight:800;color:#38bdf8;font-size:1.02rem;display:flex;align-items:center;gap:10px;">
+            <span id="rentalShopTitle">Kadam Xerox</span>
+            <span style="background:#16a34a;color:#fff;font-size:0.68rem;padding:3px 10px;border-radius:20px;font-weight:800;letter-spacing:0.5px;">🟢 ACTIVE RENTAL PLAN</span>
+          </div>
+          <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px;">
+            SaaS Subscription: <strong style="color:#cbd5e1;">Pro Kiosk Rental (Monthly)</strong> &bull; Direct Payments: <strong style="color:#22c55e;">Razorpay Active</strong>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="openRentalSettingsModal()" style="background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);color:#fff;border:none;padding:8px 16px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(37,99,235,0.3);">
+          ⚙️ Rental &amp; Branding Settings
+        </button>
+      </div>
+    </div>
+
     <!-- Audio Unlock Banner -->
     <div id="soundUnlockBanner" onclick="unlockAudio()" style="background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);color:#fff;padding:12px 18px;border-radius:12px;margin-bottom:16px;font-size:0.92rem;font-weight:700;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.25);">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -2483,6 +2504,80 @@
       if (content) content.innerHTML = ''; // release iframe/image resources
       document.body.style.overflow = '';
     }
+
+    function openRentalSettingsModal() {
+      var savedName = localStorage.getItem('customShopName') || 'Kadam Xerox';
+      var savedCounter = localStorage.getItem('customCounterName') || 'Counter 1';
+      document.getElementById('settingShopName').value = savedName;
+      document.getElementById('settingCounterName').value = savedCounter;
+      document.getElementById('rentalSettingsModal').style.display = 'flex';
+    }
+
+    function closeRentalSettingsModal() {
+      document.getElementById('rentalSettingsModal').style.display = 'none';
+    }
+
+    function saveRentalSettings() {
+      var newName = document.getElementById('settingShopName').value.trim() || 'Kadam Xerox';
+      var newCounter = document.getElementById('settingCounterName').value.trim() || 'Counter 1';
+      localStorage.setItem('customShopName', newName);
+      localStorage.setItem('customCounterName', newCounter);
+
+      applyShopBranding();
+      closeRentalSettingsModal();
+      if (typeof showToast === 'function') {
+        showToast('success', 'Branding Saved', 'Shop name updated to ' + newName);
+      }
+    }
+
+    function applyShopBranding() {
+      var savedName = localStorage.getItem('customShopName') || 'Kadam Xerox';
+      var h1El = document.querySelector('.kiosk-logo-text h1');
+      if (h1El) h1El.textContent = savedName;
+      var titleEl = document.getElementById('rentalShopTitle');
+      if (titleEl) titleEl.textContent = savedName;
+      document.title = 'Print Kiosk Control Centre — ' + savedName;
+    }
+
+    document.addEventListener('DOMContentLoaded', applyShopBranding);
+    applyShopBranding();
   </script>
+
+  <!-- Rental & Branding Settings Modal -->
+  <div id="rentalSettingsModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(6px);z-index:999999;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#1e293b;color:#fff;border:1px solid #334155;border-radius:18px;width:100%;max-width:520px;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);box-sizing:border-box;">
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #334155;padding-bottom:14px;margin-bottom:18px;">
+        <div style="font-size:1.1rem;font-weight:800;color:#38bdf8;display:flex;align-items:center;gap:8px;">
+          ⚙️ Rental Shop Configuration
+        </div>
+        <button onclick="closeRentalSettingsModal()" style="background:none;border:none;color:#94a3b8;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:#94a3b8;margin-bottom:6px;">STORE / SHOP NAME</label>
+        <input type="text" id="settingShopName" placeholder="e.g. Royal Xerox" style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid #475569;border-radius:10px;color:#fff;font-size:0.9rem;box-sizing:border-box;" />
+        <div style="font-size:0.72rem;color:#64748b;margin-top:4px;">Appears on Admin Header and Receipts.</div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:#94a3b8;margin-bottom:6px;">COUNTER NUMBER / LOCATION</label>
+        <input type="text" id="settingCounterName" placeholder="e.g. Counter 1 - Main Branch" style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid #475569;border-radius:10px;color:#fff;font-size:0.9rem;box-sizing:border-box;" />
+      </div>
+
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;margin-bottom:18px;">
+        <div style="font-size:0.82rem;font-weight:700;color:#38bdf8;margin-bottom:6px;">💳 SaaS Subscription Details</div>
+        <div style="font-size:0.78rem;color:#cbd5e1;line-height:1.5;">
+          • Subscription Plan: <strong>Pro Kiosk Rental (Monthly)</strong><br>
+          • Direct Customer Payments: <strong>Active & Verified</strong><br>
+          • Auto-Printer Sync: <strong>Enabled</strong>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="closeRentalSettingsModal()" style="background:#475569;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:700;font-size:0.85rem;cursor:pointer;">Cancel</button>
+        <button onclick="saveRentalSettings()" style="background:#2563eb;color:#fff;border:none;padding:10px 22px;border-radius:10px;font-weight:800;font-size:0.85rem;cursor:pointer;">Save Branding</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
