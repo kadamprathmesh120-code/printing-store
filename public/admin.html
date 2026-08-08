@@ -2156,10 +2156,6 @@
             pendingNewIds = newPaidOrders.map(function(o) { return o.id; });
             newPaidOrders.reverse().forEach(function(o) {
               showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
-              // Trigger printer sound alert (HP.mp3, KONICA.mp3, or KYOCERA.mp3)
-              var printType = o.print_type || 'bw';
-              var printer = o.printer_name || ((printType === 'color') ? getColorPrinter() : getBwPrinter());
-              playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType, o.id);
             });
             unreadCount += newPaidOrders.length;
             updateNotifBadge(unreadCount);
