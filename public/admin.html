@@ -1459,7 +1459,11 @@
 
     function startPolling() {
       stopPolling();
-      pollInterval = setInterval(fetchOrders, 8000);
+      pollInterval = setInterval(function() {
+        if (!document.hidden) {
+          fetchOrders();
+        }
+      }, 8000);
     }
     function stopPolling() {
       if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
