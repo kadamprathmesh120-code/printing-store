@@ -2060,7 +2060,7 @@
         var previewBoxHtml = '';
         if (o.file_path) {
           var fExt = o.file_path.split('.').pop().toLowerCase();
-          var filePathEncoded = '/uploads/' + encodeURIComponent(o.file_path) + '?v=' + Date.now();
+          var filePathEncoded = '/uploads/' + encodeURIComponent(o.file_path);
           var isPrinted = (o.status === 'accepted' || o.is_printed === 1);
           var badgeText = isPrinted ? '✅ Printed' : '👁️ Preview';
           var badgeBg = isPrinted ? 'background:#dcfce7;color:#15803d;' : 'background:#e0f2fe;color:#0369a1;';
