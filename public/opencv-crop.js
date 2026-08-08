@@ -1751,6 +1751,12 @@ function showPreviewModal() {
         pCtx.putImageData(imageData, 0, 0);
         applyFilter(pCtx, previewCanvas.width, previewCanvas.height, selectedFilter);
       }
+      setTimeout(function() {
+        var confirmBtn = document.getElementById('ocvPreviewConfirm');
+        if (confirmBtn) {
+          confirmBtn.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+      }, 100);
     });
 
     existing = div;
