@@ -1656,21 +1656,7 @@ function showPreviewModal() {
           '</div>' +
         '</div>' +
       '</div>' +
-      // Safe & Secure
-      '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:14px;">' +
-        '<div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;">' +
-          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
-          '<div>' +
-            '<div style="font-size:0.78rem;font-weight:800;color:#15803d;">Safe &amp; Secure</div>' +
-            '<div style="font-size:0.7rem;color:#166534;margin-top:1px;">Your document will not be changed. We only improve the print quality.</div>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-around;margin-top:10px;padding:8px 0;">' +
-          '<div style="text-align:center;"><div style="font-size:1.3rem;">\uD83D\uDCC4</div><div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-top:2px;">Better<br>Quality</div></div>' +
-          '<div style="text-align:center;"><div style="font-size:1.3rem;">\u2728</div><div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-top:2px;">Cleaner<br>Paper</div></div>' +
-          '<div style="text-align:center;"><div style="font-size:1.3rem;">\uD83D\uDD24</div><div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-top:2px;">Sharper<br>Text</div></div>' +
-        '</div>' +
-      '</div>' +
+
       // Re-crop
       '<div style="width:100%;max-width:500px;padding:0 16px;box-sizing:border-box;margin-top:10px;">' +
         '<button id="ocvPreviewBack" style="width:100%;padding:12px;background:#fff;border:1.5px solid #d1d5db;border-radius:12px;font-size:0.88rem;font-weight:700;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
