@@ -4728,6 +4728,7 @@
           if (nBody) nBody.textContent = 'Please collect your printed pages from Store Counter 1.';
           if (nPill) nPill.style.display = 'none';
         }
+        playCustomerSuccessAudioSequence();
       } else if (status === 'rejected') {
         if (badge) badge.textContent = 'Order Rejected';
         if (msg) msg.textContent = 'Sorry, your order was rejected. Please speak with store staff.';
@@ -4773,9 +4774,7 @@
             if (nBody) nBody.textContent = 'Payment of ₹' + totalPrice.toFixed(2) + ' received. Your files are in the print queue.';
             if (nPill) nPill.style.display = 'none';
           }
-          if (status === 'accepted') {
-            playCustomerSuccessAudioSequence();
-          }
+          playCustomerSuccessAudioSequence();
         }
       }
     }
