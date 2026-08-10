@@ -1964,7 +1964,15 @@ function openModal(image, idCopy, callback, originalFile) {
   renderCrop();
 
   var filterBar = document.getElementById('ocvFilterBar');
-  if (filterBar) filterBar.style.display = 'flex';
+  if (filterBar) filterBar.style.display = isIdCopyMode ? 'none' : 'flex';
+
+  var recBanner = document.getElementById('ocvMagicRecBanner');
+  if (recBanner) recBanner.style.display = isIdCopyMode ? 'none' : 'flex';
+
+  var cropBtn = document.getElementById('ocvCropBtn');
+  if (cropBtn) {
+    cropBtn.innerHTML = isIdCopyMode ? '✓ Crop &amp; Done' : 'Next: Color Change ➔';
+  }
 
   var filterBtns = document.querySelectorAll('.ocv-filter-btn');
   filterBtns.forEach(function(b) {
@@ -1999,13 +2007,13 @@ function createModalHTML() {
       '<div id="ocvCropContainer" style="border-radius:10px;overflow:hidden;background:transparent;position:relative;touch-action:none;display:flex;justify-content:center;align-items:center;margin:0 auto;">' +
         '<canvas id="ocvCropCanvas" style="display:block;touch-action:none;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3);"></canvas>' +
       '</div>' +
-      '<div style="background:rgba(22,163,74,0.16);border:1.5px solid #16a34a;border-radius:10px;padding:8px 12px;margin:8px 0;display:flex;align-items:center;justify-content:space-between;color:#22c55e;font-size:0.76rem;font-weight:700;box-shadow:0 0 12px rgba(22,163,74,0.2);">' +
+      '<div id="ocvMagicRecBanner" style="' + (isId ? 'display:none;' : '') + 'background:rgba(22,163,74,0.16);border:1.5px solid #16a34a;border-radius:10px;padding:8px 12px;margin:8px 0;align-items:center;justify-content:space-between;color:#22c55e;font-size:0.76rem;font-weight:700;box-shadow:0 0 12px rgba(22,163,74,0.2);">' +
         '<span>⭐ Recommended: Use <strong>Magic Color</strong> in next step for crystal clear HD text &amp; pure white paper!</span>' +
         '<span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.65rem;font-weight:800;white-space:nowrap;margin-left:6px;">BEST PRINT</span>' +
       '</div>' +
       '<div style="display:flex;gap:10px;padding:8px 4px 4px;">' +
         '<button onclick="OCV_CROP.cancel()" class="ocv-btn ocv-cancel" style="flex:0.4;background:#475569;padding:10px 14px;border-radius:10px;">Cancel</button>' +
-        '<button onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;border-radius:10px;">Next: Color Change ➔</button>' +
+        '<button id="ocvCropBtn" onclick="OCV_CROP.showPreview()" class="ocv-btn ocv-crop-btn" style="flex:1;background:#2563eb;padding:10px 14px;font-weight:700;font-size:1.05em;border-radius:10px;">' + (isId ? '✓ Crop &amp; Done' : 'Next: Color Change ➔') + '</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(div);
