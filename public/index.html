@@ -1185,23 +1185,50 @@
           <div id="idcBannerActions" class="idc-banner-actions"></div>
         </div>
 
-        <div style="display:flex;gap:12px;margin-bottom:12px;">
-          <div id="idcFront" class="idc-card" onclick="document.getElementById('idcFrontInput').click()">
-            <div id="idcFrontEmpty" class="idc-card-empty">
-              <span class="icon">📷</span>
-              <span>Front</span>
+        <!-- 3D Interactive ID Card Flip Container -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:0.85em;font-weight:700;color:#374151;">Upload Card Sides</span>
+          <button type="button" class="idc-flip-toggle-btn" onclick="idcFlipCard()">
+            <span>🔄 3D Flip Card: <strong id="idcCurrentSideLabel">Front Side</strong></span>
+          </button>
+        </div>
+
+        <div class="idc-3d-scene">
+          <div id="idc3dCardWrapper" class="idc-3d-card-wrapper">
+            <!-- Front Side Card -->
+            <div id="idcFront" class="idc-3d-side" onclick="document.getElementById('idcFrontInput').click()">
+              <div id="idcFrontEmpty" class="idc-card-empty">
+                <span class="icon" style="font-size:2.4em;margin-bottom:6px;">📸</span>
+                <span style="font-size:0.95em;font-weight:700;color:#1e293b;display:block;">Upload Front Side</span>
+                <span style="font-size:0.75em;color:#94a3b8;margin-top:2px;display:block;">Tap to select Aadhaar / PAN front image</span>
+              </div>
+              <img id="idcFrontImg" class="idc-card-img hidden" style="max-height:150px;object-fit:contain;border-radius:10px;">
+              <input type="file" id="idcFrontInput" accept="image/*" style="display:none" onchange="idcLoad(this,'front')">
             </div>
-            <img id="idcFrontImg" class="idc-card-img hidden">
-            <input type="file" id="idcFrontInput" accept="image/*" style="display:none" onchange="idcLoad(this,'front')">
-          </div>
-          <div id="idcBack" class="idc-card" onclick="document.getElementById('idcBackInput').click()">
-            <div id="idcBackEmpty" class="idc-card-empty">
-              <span class="icon">📷</span>
-              <span>Back</span>
+            
+            <!-- Back Side Card (Flipped 180deg) -->
+            <div id="idcBack" class="idc-3d-side idc-3d-side-back" onclick="document.getElementById('idcBackInput').click()">
+              <div id="idcBackEmpty" class="idc-card-empty">
+                <span class="icon" style="font-size:2.4em;margin-bottom:6px;">📸</span>
+                <span style="font-size:0.95em;font-weight:700;color:#1e293b;display:block;">Upload Back Side</span>
+                <span style="font-size:0.75em;color:#94a3b8;margin-top:2px;display:block;">Tap to select Aadhaar / PAN back image</span>
+              </div>
+              <img id="idcBackImg" class="idc-card-img hidden" style="max-height:150px;object-fit:contain;border-radius:10px;">
+              <input type="file" id="idcBackInput" accept="image/*" style="display:none" onchange="idcLoad(this,'back')">
             </div>
-            <img id="idcBackImg" class="idc-card-img hidden">
-            <input type="file" id="idcBackInput" accept="image/*" style="display:none" onchange="idcLoad(this,'back')">
           </div>
+        </div>
+
+        <!-- Quick Side Indicator Pills -->
+        <div style="display:flex;gap:10px;margin-bottom:14px;">
+          <button type="button" onclick="idcFlipToFront(); document.getElementById('idcFrontInput').click();" style="flex:1;padding:8px 12px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;font-size:0.8em;font-weight:700;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
+            <span>📷 Front Side</span>
+            <span id="idcFrontPillStatus" style="font-size:0.75em;color:#94a3b8;">(Tap)</span>
+          </button>
+          <button type="button" onclick="idcFlipToBack(); document.getElementById('idcBackInput').click();" style="flex:1;padding:8px 12px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;font-size:0.8em;font-weight:700;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
+            <span>📷 Back Side</span>
+            <span id="idcBackPillStatus" style="font-size:0.75em;color:#94a3b8;">(Tap)</span>
+          </button>
         </div>
 
         <div id="idcQueue" class="hidden"></div>
@@ -3171,19 +3198,43 @@
 
     // --- Existing ID Copy functions (preserved) ---
 
+    function idcFlipCard(side) {
+      var wrapper = document.getElementById('idc3dCardWrapper');
+      var label = document.getElementById('idcCurrentSideLabel');
+      if (!wrapper) return;
+      if (side === 'back' || (side === undefined && !wrapper.classList.contains('flipped'))) {
+        wrapper.classList.add('flipped');
+        if (label) label.textContent = 'Back Side';
+      } else {
+        wrapper.classList.remove('flipped');
+        if (label) label.textContent = 'Front Side';
+      }
+    }
+    function idcFlipToBack() { idcFlipCard('back'); }
+    function idcFlipToFront() { idcFlipCard('front'); }
+
     function idcLoad(input, side) {
       if (!input.files || !input.files[0]) return;
       var f = input.files[0];
       if (side === 'front') idcFrontFile = f; else idcBackFile = f;
+      if (side === 'back') idcFlipToBack(); else idcFlipToFront();
+
+      var pillStat = document.getElementById('idc' + (side==='front'?'Front':'Back') + 'PillStatus');
+      if (pillStat) { pillStat.textContent = '✓ Loaded'; pillStat.style.color = '#16a34a'; }
+
       var reader = new FileReader();
       reader.onload = function(e) {
         if (side === 'front') idcFrontImgSrc = e.target.result;
         else idcBackImgSrc = e.target.result;
         var img = document.getElementById('idc' + (side==='front'?'Front':'Back') + 'Img');
-        img.src = e.target.result;
-        img.classList.remove('hidden');
-        document.getElementById('idc' + (side==='front'?'Front':'Back') + 'Empty').classList.add('hidden');
-        document.getElementById('idc' + (side==='front'?'Front':'Back')).classList.add('has-img');
+        if (img) {
+          img.src = e.target.result;
+          img.classList.remove('hidden');
+        }
+        var emptyEl = document.getElementById('idc' + (side==='front'?'Front':'Back') + 'Empty');
+        if (emptyEl) emptyEl.classList.add('hidden');
+        var cardEl = document.getElementById('idc' + (side==='front'?'Front':'Back'));
+        if (cardEl) cardEl.classList.add('has-img');
         idcUpdatePreview();
         
         // Auto launch crop after selecting image
@@ -3192,8 +3243,8 @@
         }, 200);
       };
       reader.readAsDataURL(f);
-      document.getElementById('idcCropFront').disabled = false;
-      document.getElementById('idcCropBack').disabled = false;
+      if (document.getElementById('idcCropFront')) document.getElementById('idcCropFront').disabled = false;
+      if (document.getElementById('idcCropBack')) document.getElementById('idcCropBack').disabled = false;
       input.value = '';
     }
 
@@ -3568,6 +3619,9 @@
     function idcCancelCrop() {
       document.getElementById('idcModal').classList.add('hidden');
       document.getElementById('idcModal').style.display = 'none';
+      if (idcCurrent === 'front' && idcFrontFile && !idcBackFile) {
+        idcOpenBigModal();
+      }
     }
 
     // --- Banner & Auto Crop Workflow Helpers ---
@@ -3606,6 +3660,12 @@
     function idcOpenBigModal() {
       var modal = document.getElementById('idcBigModal');
       if (!modal) return;
+      var card = modal.querySelector('.idc-big-card');
+      if (card) {
+        card.classList.remove('animate-bounce-in');
+        void card.offsetWidth; // trigger reflow
+        card.classList.add('animate-bounce-in');
+      }
       modal.classList.remove('hidden');
       modal.style.display = 'flex';
     }
@@ -3621,9 +3681,11 @@
     function idcBigModalAction(type) {
       idcCloseBigModal();
       if (type === 'back') {
+        idcFlipToBack();
         setTimeout(function() {
-          document.getElementById('idcBackInput').click();
-        }, 150);
+          var input = document.getElementById('idcBackInput');
+          if (input) input.click();
+        }, 250);
       } else if (type === 'single') {
         idcShowDoneBanner(true);
       }
@@ -3658,10 +3720,14 @@
 
     function idcOnCropComplete(side) {
       if (side === 'front') {
+        var pillStat = document.getElementById('idcFrontPillStatus');
+        if (pillStat) { pillStat.textContent = '✓ Cropped'; pillStat.style.color = '#16a34a'; }
+
         if (!idcBackFile) {
-          // OPEN THE BIG ON-SCREEN POPUP BANNER MODAL!
+          // OPEN THE BIG ON-SCREEN POPUP BANNER MODAL WITH BOUNCE ANIMATION!
           idcOpenBigModal();
         } else if (!idcBackCropped) {
+          idcFlipToBack();
           setTimeout(function() {
             idcCrop('back');
           }, 300);
@@ -3669,6 +3735,9 @@
           idcShowDoneBanner(false);
         }
       } else if (side === 'back') {
+        var pillStat = document.getElementById('idcBackPillStatus');
+        if (pillStat) { pillStat.textContent = '✓ Cropped'; pillStat.style.color = '#16a34a'; }
+
         if (!idcFrontFile) {
           idcShowBanner(
             'Back Side Cropped!',
@@ -3680,6 +3749,7 @@
                 primary: true,
                 action: function() {
                   idcHideBanner();
+                  idcFlipToFront();
                   document.getElementById('idcFrontInput').click();
                 }
               },
@@ -3701,19 +3771,20 @@
     function idcResetSlots() {
       idcHideBanner();
       idcCloseBigModal();
+      idcFlipToFront();
       idcFrontFile = null; idcBackFile = null;
       idcFrontCropped = null; idcBackCropped = null;
       idcFrontImgSrc = '#'; idcBackImgSrc = '#';
-      document.getElementById('idcFrontImg').classList.add('hidden');
-      document.getElementById('idcFrontImg').src = '#';
-      document.getElementById('idcFrontEmpty').classList.remove('hidden');
-      document.getElementById('idcFront').classList.remove('has-img');
-      document.getElementById('idcBackImg').classList.add('hidden');
-      document.getElementById('idcBackImg').src = '#';
-      document.getElementById('idcBackEmpty').classList.remove('hidden');
-      document.getElementById('idcBack').classList.remove('has-img');
-      document.getElementById('idcCropFront').disabled = true;
-      document.getElementById('idcCropBack').disabled = true;
+      if (document.getElementById('idcFrontImg')) { document.getElementById('idcFrontImg').classList.add('hidden'); document.getElementById('idcFrontImg').src = '#'; }
+      if (document.getElementById('idcFrontEmpty')) document.getElementById('idcFrontEmpty').classList.remove('hidden');
+      if (document.getElementById('idcFront')) document.getElementById('idcFront').classList.remove('has-img');
+      if (document.getElementById('idcBackImg')) { document.getElementById('idcBackImg').classList.add('hidden'); document.getElementById('idcBackImg').src = '#'; }
+      if (document.getElementById('idcBackEmpty')) document.getElementById('idcBackEmpty').classList.remove('hidden');
+      if (document.getElementById('idcBack')) document.getElementById('idcBack').classList.remove('has-img');
+      if (document.getElementById('idcFrontPillStatus')) { document.getElementById('idcFrontPillStatus').textContent = '(Tap)'; document.getElementById('idcFrontPillStatus').style.color = '#94a3b8'; }
+      if (document.getElementById('idcBackPillStatus')) { document.getElementById('idcBackPillStatus').textContent = '(Tap)'; document.getElementById('idcBackPillStatus').style.color = '#94a3b8'; }
+      if (document.getElementById('idcCropFront')) document.getElementById('idcCropFront').disabled = true;
+      if (document.getElementById('idcCropBack')) document.getElementById('idcCropBack').disabled = true;
       if (document.getElementById('idcName')) document.getElementById('idcName').value = '';
       idcUpdatePreview();
     }
