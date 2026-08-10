@@ -1506,8 +1506,12 @@ function showPreview() {
   // Apply selected filter to preview
   applyFilter(pCtx, previewW, previewH, selectedFilter);
 
-  // Show preview in a modal/overlay
-  showMagicPromptModal();
+  // Show magic color popup in normal mode only; in ID Copy mode bypass directly to commit
+  if (isIdCopyMode) {
+    commitCropResult();
+  } else {
+    showMagicPromptModal();
+  }
 }
 
 function showMagicPromptModal() {
