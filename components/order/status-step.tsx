@@ -63,10 +63,9 @@ export function StatusStep({ orderId, initialOrder, onStartNew }: StatusStepProp
         className="h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary"
         aria-hidden="true"
       />
-      <h2 className="text-2xl font-bold text-balance">{`Thank you, ${order.customerName}!`}</h2>
+      <h2 className="text-2xl font-bold text-balance">Payment confirmation pending</h2>
       <p className="text-base text-pretty leading-relaxed">
-        We have received your payment confirmation. Please wait a moment while the shop verifies it
-        and starts your print.
+        {`Thanks, ${order.customerName}. Your payment has been sent to the shop for verification. Printing starts once it is confirmed.`}
       </p>
       <p className="text-sm text-muted-foreground">
         This screen will update automatically. Please keep it open.

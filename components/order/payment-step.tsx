@@ -80,7 +80,8 @@ export function PaymentStep({ order, onPaid }: PaymentStepProps) {
           className="rounded-lg"
         />
         <p className="text-center text-sm text-muted-foreground text-pretty">
-          After paying, please tap the button below. Thank you!
+          After completing payment, submit it for shop verification. Printing starts once it is
+          confirmed.
         </p>
       </div>
 
@@ -96,7 +97,7 @@ export function PaymentStep({ order, onPaid }: PaymentStepProps) {
         size="lg"
         className="h-14 text-base font-bold"
       >
-        {submitting ? 'Confirming...' : 'I Have Paid'}
+        {submitting ? 'Sending for verification...' : 'I’ve paid — send for verification'}
       </Button>
     </div>
   )
