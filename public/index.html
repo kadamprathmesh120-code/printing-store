@@ -956,7 +956,6 @@
       <div class="contact-form">
         <label style="font-size:0.85rem;font-weight:700;color:#374151;margin-bottom:6px;display:block;">Customer Name (Required)</label>
         <input type="text" id="reviewName" data-i18n-placeholder="namePlaceholder" placeholder="Your Name" required>
-        <textarea id="reviewNotes" data-i18n-placeholder="notesPlaceholder" placeholder="Any notes or instructions (optional)"></textarea>
         <div id="reviewContactError" style="color:#ef4444;font-size:0.85rem;font-weight:600;margin-top:6px;"></div>
       </div>
 
@@ -2840,7 +2839,7 @@
       formData.append('printSide', selectedPrintSide);
       formData.append('paymentMethod', 'razorpay');
       formData.append('mobileNumber', '');
-      formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
+      formData.append('orderNotes', (document.getElementById('reviewNotes') ? document.getElementById('reviewNotes').value.trim() : ''));
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
@@ -2970,7 +2969,7 @@
       formData.append('printSide', selectedPrintSide);
       formData.append('paymentMethod', 'cashfree');
       formData.append('mobileNumber', '');
-      formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
+      formData.append('orderNotes', (document.getElementById('reviewNotes') ? document.getElementById('reviewNotes').value.trim() : ''));
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
@@ -3129,7 +3128,7 @@
       formData.append('printSide', selectedPrintSide);
       formData.append('paymentMethod', 'cash');
       formData.append('mobileNumber', '');
-      formData.append('orderNotes', document.getElementById('reviewNotes').value.trim());
+      formData.append('orderNotes', (document.getElementById('reviewNotes') ? document.getElementById('reviewNotes').value.trim() : ''));
       formData.append('orientation', selectedOrientation);
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
