@@ -1961,4 +1961,59 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 }
 .scan-zoom-close:hover { background:rgba(255,255,255,0.3); }
 
+/* --- Ultra-Compact Settings Layout for Mobile --- */
+@media (max-width: 640px) {
+  .qp-wrap {
+    padding: 0 10px 90px;
+  }
+  .qp-doc-card {
+    margin: 8px 0 10px;
+    border-radius: 16px;
+  }
+  .qp-doc-preview {
+    padding: 10px;
+    min-height: 110px;
+    border-radius: 16px;
+  }
+  .qp-doc-preview img {
+    max-height: 115px;
+  }
+  .qp-doc-label {
+    padding: 10px;
+    font-size: 0.76em;
+  }
+  .btn-preview-prominent {
+    padding: 8px 12px !important;
+    margin-bottom: 8px !important;
+    font-size: 0.82em !important;
+  }
+  .qp-card {
+    padding: 11px 12px;
+    margin-bottom: 8px;
+    border-radius: 14px;
+  }
+  .qp-card-title {
+    margin-bottom: 8px;
+    font-size: 0.82em;
+  }
+  .qp-opt {
+    padding: 10px 11px;
+    border-radius: 12px;
+  }
+  .qp-opt-label {
+    font-size: 0.82em;
+  }
+  .qp-opt-sub {
+    font-size: 0.68em;
+  }
+  .qp-copies-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .qp-copies-val {
+    min-width: 26px;
+    font-size: 0.95em;
+  }
+}
+
 
