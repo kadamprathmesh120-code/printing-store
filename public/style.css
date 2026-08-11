@@ -381,15 +381,15 @@ body {
 .qp-doc-card {
   position:relative; background:#fff; border-radius:20px;
   box-shadow:0 2px 16px rgba(0,0,0,0.06);
-  margin:12px 0 14px; overflow:hidden;
+  margin:16px 0 20px; overflow:hidden;
 }
 .qp-doc-preview {
   display:flex; align-items:center; justify-content:center;
-  padding:14px; background:#f0fdf4; border-radius:20px;
-  min-height:140px; position:relative;
+  padding:24px; background:#f0fdf4; border-radius:20px;
+  min-height:200px; position:relative;
 }
 .qp-doc-preview img {
-  max-width:85%; max-height:150px; border-radius:8px;
+  max-width:85%; max-height:260px; border-radius:8px;
   object-fit:contain; box-shadow:0 4px 20px rgba(0,0,0,0.12);
   border:1px solid #e5e7eb; background:#fff;
 }
@@ -413,28 +413,6 @@ body {
 }
 .qp-doc-add-more:hover { background:#1d4ed8; transform:translateY(-1px); }
 .qp-doc-add-more:active { transform:scale(0.95); background:#1e40af; }
-
-/* --- Scroll Hint Banner for Settings Step --- */
-.qp-scroll-hint-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1.5px dashed #3b82f6;
-  color: #1d4ed8;
-  padding: 10px 14px;
-  border-radius: 14px;
-  margin: 10px 0 14px;
-  font-size: 0.84rem;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
-  animation: bounceScrollHint 2s infinite ease-in-out;
-}
-@keyframes bounceScrollHint {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
-}
 
 /* --- Live Wave Offer Ticker Styles --- */
 .live-wave-ticker {
