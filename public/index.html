@@ -46,12 +46,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=20">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js" onload="if(typeof lucide!=='undefined')lucide.createIcons()"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
+    .hidden { display: none !important; }
+    .step { display: none !important; }
+    .step.active { display: block !important; }
     body { font-family:'Inter',-apple-system,sans-serif; }
     .qp-a4-sheet {
       background: #ffffff;
@@ -1466,6 +1469,7 @@
       if (stepNum > 1 && (!selectedFiles || selectedFiles.length === 0)) {
         stepNum = 1;
       }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       window.currentFlowStep = stepNum;
 
       // Toggle step containers

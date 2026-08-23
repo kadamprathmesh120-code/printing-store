@@ -38,6 +38,8 @@ body {
 
 /* --- Utilities --- */
 .hidden { display:none !important; }
+.step { display:none !important; }
+.step.active { display:block !important; }
 .fade-in { animation:fadeIn .35s ease-out both; }
 @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
@@ -2352,6 +2354,8 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .screen-header-sub {
   font-size: 0.8rem;
   color: #64748b;
+  margin-bottom: 12px;
+}
 .preview-sheet-frame {
   background: transparent;
   border: none;

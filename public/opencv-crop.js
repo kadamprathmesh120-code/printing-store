@@ -1530,21 +1530,54 @@ function showMagicPromptModal() {
 function createMagicPromptHTML() {
   var div = document.createElement('div');
   div.id = 'ocvMagicModal';
-  div.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:Inter,Roboto,sans-serif;';
+  div.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(15,23,42,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:Inter,Outfit,Roboto,sans-serif;padding:16px;box-sizing:border-box;';
   div.innerHTML =
-    '<div style="background:#ffffff;border-radius:24px;max-width:440px;width:92%;padding:26px 20px;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,0.4);position:relative;border:1px solid rgba(255,255,255,0.2);">' +
-      '<button id="ocvCloseMagicPromptBtn" style="position:absolute;top:16px;right:16px;background:#f3f4f6;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1em;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;">✕</button>' +
-      '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#dcfce7,#f0fdf4);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:2.2em;box-shadow:0 4px 12px rgba(16,185,129,0.2);">✨🪄</div>' +
-      '<h2 style="font-size:1.3em;font-weight:800;color:#111827;margin:0 0 6px;letter-spacing:-0.02em;">Use Magic Color for Best Print! / मॅजिक कलर वापरा!</h2>' +
-      '<p style="font-size:0.88em;color:#4b5563;margin:0 0 20px;line-height:1.45;">' +
-        'Use <b>Magic Color</b> for Black &amp; White prints to remove dark background shadows &amp; get crisp HD text.<br>Use <b>Original</b> for Color prints!' +
-      '</p>' +
-      '<div style="display:flex;flex-direction:column;gap:10px;">' +
-        '<button id="ocvOkBtn" style="background:linear-gradient(135deg,#059669,#047857);color:white;border:none;padding:14px 18px;border-radius:16px;font-size:1.05em;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 16px rgba(5,150,105,0.35);width:100%;">' +
-          '<span>OK</span>' +
-          '<span>➔</span>' +
-        '</button>' +
+    '<div class="animate-bounce-in" style="background:#ffffff;border-radius:28px;max-width:390px;width:100%;padding:28px 20px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.35);position:relative;box-sizing:border-box;border:1px solid rgba(255,255,255,0.8);">' +
+      // Top Close Button
+      '<button id="ocvCloseMagicPromptBtn" style="position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">✕</button>' +
+      
+      // Header with sparkles
+      '<div style="text-align:center;margin-bottom:14px;">' +
+        '<div style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+          '<span style="font-size:1.6rem;line-height:1;">✨</span>' +
+          '<h2 style="font-size:1.55rem;font-weight:900;color:#0f172a;margin:0;letter-spacing:-0.02em;">Choose <span style="background:linear-gradient(135deg,#9333ea,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Magic Color</span></h2>' +
+        '</div>' +
+        '<div style="font-size:1.1rem;font-weight:800;color:#1e293b;margin-top:2px;">for Best Print!</div>' +
+        '<div style="width:36px;height:4px;background:linear-gradient(90deg,#9333ea,#c084fc);border-radius:2px;margin:8px auto 0;"></div>' +
       '</div>' +
+
+      // Card 1: B&W -> Magic Color
+      '<div style="background:#faf5ff;border:1.5px solid #f3e8ff;border-radius:20px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(147,51,234,0.04);">' +
+        '<div style="width:46px;height:46px;border-radius:14px;background:#ffffff;border:1px solid #e9d5ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(147,51,234,0.08);">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0;text-align:left;">' +
+          '<div style="font-size:0.96rem;font-weight:900;color:#0f172a;">B&amp;W <span style="color:#94a3b8;font-weight:600;margin:0 2px;">→</span> <span style="color:#7e22ce;font-weight:900;">Magic Color</span></div>' +
+          '<div style="font-size:0.76rem;color:#475569;font-weight:500;margin-top:2px;line-height:1.35;">Removes dark background<br>&amp; makes text sharper.</div>' +
+        '</div>' +
+        '<div style="width:34px;height:34px;border-radius:50%;background:#ede9fe;color:#7e22ce;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.15rem;flex-shrink:0;">' +
+          '✓' +
+        '</div>' +
+      '</div>' +
+
+      // Card 2: Color -> Original
+      '<div style="background:#f0f9ff;border:1.5px solid #e0f2fe;border-radius:20px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(37,99,235,0.04);">' +
+        '<div style="width:46px;height:46px;border-radius:14px;background:#ffffff;border:1px solid #bae6fd;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(37,99,235,0.08);">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0;text-align:left;">' +
+          '<div style="font-size:0.96rem;font-weight:900;color:#0f172a;">Color <span style="color:#94a3b8;font-weight:600;margin:0 2px;">→</span> <span style="color:#0284c7;font-weight:900;">Original</span></div>' +
+          '<div style="font-size:0.76rem;color:#475569;font-weight:500;margin-top:2px;line-height:1.35;">Keeps original colors<br>natural &amp; vibrant.</div>' +
+        '</div>' +
+        '<div style="width:34px;height:34px;border-radius:50%;background:#e0f2fe;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0;">' +
+          '🎨' +
+        '</div>' +
+      '</div>' +
+
+      // OK -> Button
+      '<button id="ocvOkBtn" style="background:linear-gradient(90deg,#7c3aed 0%,#9333ea 50%,#a855f7 100%);color:#ffffff;border:none;padding:15px 20px;border-radius:18px;font-size:1.1rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;box-shadow:0 8px 24px rgba(124,58,237,0.35);letter-spacing:0.5px;transition:all 0.2s;">' +
+        '<span>OK ➔</span>' +
+      '</button>' +
     '</div>';
 
   document.body.appendChild(div);
