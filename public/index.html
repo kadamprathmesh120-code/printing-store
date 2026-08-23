@@ -610,10 +610,10 @@
           </button>
           <div class="btn-sub-caption">File prints exactly as it is — cleanest and fastest</div>
 
-          <button type="button" class="btn-action-white" onclick="openCropCurrentFile()">
+          <button type="button" class="btn-action-white" id="btnWantToEdit" onclick="openCropCurrentFile()">
             <span>✏️ Want to Edit</span>
           </button>
-          <div class="btn-sub-caption">To rotate, crop, adjust brightness or add more documents</div>
+          <div class="btn-sub-caption" id="captionWantToEdit">To rotate, crop, adjust brightness or add more documents</div>
         </div>
       </div>
     </div>
@@ -1594,6 +1594,18 @@
       if (editNav) editNav.style.display = totalPages > 1 ? 'flex' : 'none';
       var mainNav = document.getElementById('mainPageNav');
       if (mainNav) mainNav.style.display = totalPages > 1 ? 'flex' : 'none';
+
+      // Want to Edit button should only be available for photos/images, NOT for PDFs
+      var isPdf = false;
+      if (page) {
+        if (page.type === 'pdf') isPdf = true;
+        if (page.file && page.file.name && page.file.name.toLowerCase().endsWith('.pdf')) isPdf = true;
+        if (page.name && page.name.toLowerCase().endsWith('.pdf')) isPdf = true;
+      }
+      var btnEdit = document.getElementById('btnWantToEdit');
+      var capEdit = document.getElementById('captionWantToEdit');
+      if (btnEdit) btnEdit.style.display = isPdf ? 'none' : '';
+      if (capEdit) capEdit.style.display = isPdf ? 'none' : '';
 
       syncWhichPagesCount();
     }
