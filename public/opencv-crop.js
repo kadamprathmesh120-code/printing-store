@@ -1586,9 +1586,9 @@ function showPreviewModal() {
         '<h2 class="screen-header-title" style="font-size:1.35rem;font-weight:900;color:#0f172a;margin:0 0 4px;letter-spacing:-0.3px;">👀 File Received</h2>' +
         '<div class="screen-header-sub" style="font-size:0.85rem;color:#64748b;font-weight:600;margin-bottom:14px;">1 page — ek nazar dekh lo</div>' +
 
-        // Preview Sheet Frame (matching Step 2)
-        '<div class="preview-sheet-frame" style="background:#0f172a;border-radius:18px;padding:14px;display:flex;justify-content:center;align-items:center;margin-bottom:14px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.4);">' +
-          '<div id="ocvPreviewContainer" style="width:100%;max-width:240px;aspect-ratio:1/1.414;background:#ffffff;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">' +
+        // Clean Document Preview (no black box surrounding)
+        '<div style="display:flex;justify-content:center;align-items:center;margin:6px 0 16px;">' +
+          '<div id="ocvPreviewContainer" style="width:100%;max-width:280px;background:#ffffff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px;">' +
           '</div>' +
         '</div>' +
 
