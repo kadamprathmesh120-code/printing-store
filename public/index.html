@@ -502,12 +502,6 @@
 <body>
   <div id="topNotif" class="notif-bar"><span class="notif-text">🔥 SPECIAL BULK OFFER: 1 to 20 pages @ ₹5/page | 21+ pages @ ONLY ₹3/page! Save 40% on bulk printing!</span><button class="notif-close" onclick="dismissNotif()">×</button></div>
 
-  <!-- Top Header Rate Banner -->
-  <div class="top-rate-banner">
-    <div class="rate-pill bw">B&W: ₹5/page</div>
-    <div class="rate-pill color">Color: ₹10/page</div>
-  </div>
-
   <!-- Universal 4-Step Stepper Header -->
   <div class="flow-stepper-container" id="flowStepperContainer">
     <div class="flow-stepper">
@@ -1157,25 +1151,8 @@
 
   </main>
 
-  <!-- Bottom Navigation -->
-  <nav class="nx-bottom-nav" id="bottomNav">
-    <button class="nx-nav-item active" onclick="navTo('home')" data-nav="home">
-      <i data-lucide="home"></i>
-      <span>Home</span>
-    </button>
-    <button class="nx-nav-item" onclick="navTo('orders')" data-nav="orders">
-      <i data-lucide="file-text"></i>
-      <span>My Orders</span>
-    </button>
-    <button class="nx-nav-item" onclick="navTo('prices')" data-nav="prices">
-      <i data-lucide="tag"></i>
-      <span>Pricing</span>
-    </button>
-    <button class="nx-nav-item" onclick="navTo('contact')" data-nav="contact">
-      <i data-lucide="phone"></i>
-      <span>Contact</span>
-    </button>
-  </nav>
+  <!-- Bottom Navigation (Removed) -->
+  <nav class="nx-bottom-nav" id="bottomNav" style="display:none !important;"></nav>
 
   <!-- Prices Page -->
   <div id="pagePrices" class="nx-page hidden">
