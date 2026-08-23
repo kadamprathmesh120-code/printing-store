@@ -530,11 +530,25 @@ app.post('/api/upload', (req, res) => {
 
 app.get('/api/orders/:id', (req, res) => {
   try {
-    const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+    const q = req.params.id;
+    let order = db.prepare('SELECT * FROM orders WHERE id = ?').get(q);
+    if (!order) {
+      order = db.prepare('SELECT * FROM orders WHERE cashfree_order_id = ? OR razorpay_order_id = ?').get(q, q);
+    }
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
     res.json(order);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/orders/batch/:id', (req, res) => {
+  try {
+    const q = req.params.id;
+    const orders = db.prepare('SELECT * FROM orders WHERE batch_id = ? OR cashfree_order_id = ? OR razorpay_order_id = ? OR id = ?').all(q, q, q, q);
+    res.json(orders);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -722,9 +736,10 @@ app.post('/api/create-cashfree-order', async (req, res) => {
     const cashfreeOrderId = 'CF_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     const amountVal = Number(amount).toFixed(2);
 
-    const hostHeader = req.get('host') || '';
+    const hostHeader = req.get('host') || 'localhost:3000';
     const isLocal = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1');
-    const baseUrl = isLocal ? 'https://printing-store.onrender.com' : `https://${hostHeader}`;
+    const proto = req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https');
+    const baseUrl = `${proto}://${hostHeader}`;
     const returnUrl = `${baseUrl}/api/verify-cashfree-payment?order_id={order_id}`;
 
     const postData = JSON.stringify({
@@ -1154,7 +1169,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
       batchOrders = db.prepare('SELECT * FROM orders WHERE razorpay_order_id = ?').all(order.razorpay_order_id);
     }
 
-    const payMethod = req.body.paymentMethod || 'cash';
+    const payMethod = (req.body && req.body.paymentMethod) || 'cash';
     let count = 0;
 
     for (const bOrder of batchOrders) {
@@ -1163,7 +1178,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
         const finalPayMethod = (['payment_failed', 'pending', 'created'].includes(bOrder.status)) ? payMethod : (bOrder.payment_method || payMethod);
         db.prepare("UPDATE orders SET status = 'accepted', payment_method = ?, is_printed = 0 WHERE id = ?").run(finalPayMethod, bOrder.id);
 
-        const printer = await resolvePrinterName(req.body.printer, bOrder.print_type === 'color');
+        const printer = await resolvePrinterName(req.body && req.body.printer, bOrder.print_type === 'color');
         db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, bOrder.id);
 
         try {
