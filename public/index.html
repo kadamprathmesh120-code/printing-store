@@ -500,102 +500,336 @@
   </style>
 </head>
 <body>
-<div id="topNotif" class="notif-bar"><span class="notif-text">🔥 SPECIAL BULK OFFER: 1 to 20 pages @ ₹5/page | 21+ pages @ ONLY ₹3/page! Save 40% on bulk printing!</span><button class="notif-close" onclick="dismissNotif()">×</button></div>
+  <div id="topNotif" class="notif-bar"><span class="notif-text">🔥 SPECIAL BULK OFFER: 1 to 20 pages @ ₹5/page | 21+ pages @ ONLY ₹3/page! Save 40% on bulk printing!</span><button class="notif-close" onclick="dismissNotif()">×</button></div>
 
-  <!-- Main -->
+  <!-- Top Header Rate Banner -->
+  <div class="top-rate-banner">
+    <div class="rate-pill bw">B&W: ₹5/page</div>
+    <div class="rate-pill color">Color: ₹10/page</div>
+  </div>
+
+  <!-- Universal 4-Step Stepper Header -->
+  <div class="flow-stepper-container" id="flowStepperContainer">
+    <div class="flow-stepper">
+      <div class="flow-step-line"><div class="flow-step-line-fill" id="flowStepLineFill" style="width: 0%;"></div></div>
+      <div class="flow-step-item active" id="flowStep1" onclick="goToStep(1)">
+        <div class="flow-step-circle" id="flowCircle1">1</div>
+        <div class="flow-step-label">Upload</div>
+      </div>
+      <div class="flow-step-item" id="flowStep2" onclick="goToStep(2)">
+        <div class="flow-step-circle" id="flowCircle2">2</div>
+        <div class="flow-step-label">Edit</div>
+      </div>
+      <div class="flow-step-item" id="flowStep3" onclick="goToStep(3)">
+        <div class="flow-step-circle" id="flowCircle3">3</div>
+        <div class="flow-step-label">Preview</div>
+      </div>
+      <div class="flow-step-item" id="flowStep4" onclick="goToStep(4)">
+        <div class="flow-step-circle" id="flowCircle4">4</div>
+        <div class="flow-step-label">Pay</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Flow Container -->
   <main class="app-main">
 
-    <!-- Step 1: Home -->
-    <div id="stepHome" class="step active">
-      <img src="printer-hero.png" alt="Kadam Xerox" style="width:100%;display:block;border-radius:0 0 16px 16px;">
-
-      <!-- Live Wave Golden Offer Ticker Badge -->
-      <div class="live-wave-ticker">
-        <div class="wave-bars">
-          <span class="wave-bar"></span>
-          <span class="wave-bar"></span>
-          <span class="wave-bar"></span>
-          <span class="wave-bar"></span>
-        </div>
-        <div class="marquee-container">
-          <div class="marquee-content">
-            <span class="marquee-item">🔥 <strong style="color:#92400e;">SPECIAL BULK OFFER:</strong> 1-20 Pages @ ₹5 | <span style="color:#dc2626;font-weight:900;background:#fee2e2;padding:1px 6px;border-radius:4px;">21+ Pages @ ONLY ₹3/page</span> — Save 40% Instantly!</span>
-            <span class="marquee-item">🔥 <strong style="color:#92400e;">SPECIAL BULK OFFER:</strong> 1-20 Pages @ ₹5 | <span style="color:#dc2626;font-weight:900;background:#fee2e2;padding:1px 6px;border-radius:4px;">21+ Pages @ ONLY ₹3/page</span> — Save 40% Instantly!</span>
+    <!-- STEP 1: UPLOAD SCREEN -->
+    <div id="stepUpload" class="step active">
+      <div class="flow-container">
+        <div class="flow-card">
+          <div class="upload-hero-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+              <path d="M12 12v9"/>
+              <path d="m16 16-4-4-4 4"/>
+            </svg>
           </div>
-        </div>
-        <span class="live-indicator">
-          <span class="live-pulse-dot"></span> LIVE OFFER
-        </span>
-      </div>
+          <h1 class="gradient-title">Upload Document</h1>
+          <div class="upload-sub">PDF, JPG, PNG — all supported</div>
+          <div class="upload-multi-note">📚 You can select multiple files at once — all print in one order</div>
 
-      <!-- Action Cards Section (Original 3 Cards) -->
-      <div class="nx-actions-section">
-        <h3 class="nx-section-title"><span class="nx-dot"></span> Select Option to Upload File <span class="nx-dot"></span></h3>
-        <div class="nx-action-cards">
-          <label class="nx-action-card blue" for="fileInput">
-            <div class="nx-ac-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg></div>
-            <div class="nx-ac-title">UPLOAD</div>
-            <div class="nx-ac-detail">PDF, JPG, PNG, DOC</div>
-            <div class="nx-ac-btn blue">Upload <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
-          </label>
-          <div class="nx-action-card green" onclick="startIdCopy()" style="cursor:pointer;">
-            <div class="nx-ac-icon">
-              <!-- Realistic ID Card SVG Icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="4" width="20" height="16" rx="3"/>
-                <circle cx="7.5" cy="11" r="2.5"/>
-                <path d="M4.5 17c0-1.8 1.5-2 3-2s3 .2 3 2"/>
-                <line x1="13" y1="9" x2="19" y2="9"/>
-                <line x1="13" y1="13" x2="18" y2="13"/>
-                <line x1="13" y1="16" x2="16" y2="16"/>
+          <div class="format-pill-row">
+            <span class="format-pill pdf">PDF</span>
+            <span class="format-pill jpg">JPG</span>
+            <span class="format-pill png">PNG</span>
+          </div>
+
+          <!-- Drag & Drop Upload Zone -->
+          <label class="dropzone-box" for="fileInput">
+            <div class="dropzone-icon">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
             </div>
-            <div class="nx-ac-title">ID COPY</div>
-            <span class="nx-ac-chip">Aadhaar • PAN • DL</span>
-            <div class="nx-ac-detail">Front + Back Copy</div>
-            <div class="nx-ac-btn green">Copy ID <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="13" x2="17" y2="13"/></svg></div>
-          </div>
-          <label class="nx-action-card purple" for="cameraInput">
-            <div class="nx-ac-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
-            <div class="nx-ac-title">CAMERA</div>
-            <div class="nx-ac-detail">Take photo & print</div>
-            <div class="nx-ac-btn purple">Take Photo <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+            <div class="dropzone-prompt">👆 Tap here or drag & drop your file</div>
+            <div class="dropzone-or">or</div>
+            <div class="choose-files-btn">
+              <span>Choose Files</span>
+            </div>
           </label>
+
+          <!-- Single Prominent ID Card Option -->
+          <div class="id-card-option-box" onclick="startIdCopy()">
+            <div class="id-card-icon-circle">🪪</div>
+            <div class="id-card-info" style="flex:1;">
+              <div class="id-card-info-title">ID Card Copy</div>
+              <div class="id-card-info-sub">Aadhaar • PAN • DL (Front + Back Print)</div>
+            </div>
+            <div class="id-card-arrow">➔</div>
+          </div>
+
+          <div class="security-note-text">
+            <span>🔒</span> <span>Your files are secure & private</span>
+          </div>
         </div>
       </div>
-
-      <!-- Security Banner -->
-      <div class="nx-security-banner">
-        <div class="nx-sb-left"><i data-lucide="shield-check" style="width:20px;height:20px;color:#2563eb;"></i></div>
-        <div class="nx-sb-text"><strong>Your file is secure.</strong><br><small>We automatically delete your file within 24 hours.</small></div>
-        <div class="nx-sb-arrow"><i data-lucide="chevron-right" style="width:18px;height:18px;color:#9ca3af;"></i></div>
-      </div>
-
-      <!-- Feature Tags -->
-      <div class="nx-features-row">
-        <div class="nx-feature"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> 100% Secure<br><small>Complete security for your files</small></div>
-        <div class="nx-feature"><i data-lucide="clock" style="width:14px;height:14px;"></i> Fast Service<br><small>Print ready in seconds</small></div>
-        <div class="nx-feature"><i data-lucide="award" style="width:14px;height:14px;"></i> Best Quality<br><small>Clean and high quality print</small></div>
-        <div class="nx-feature"><i data-lucide="headphones" style="width:14px;height:14px;"></i> Support<br><small>We are available to help</small></div>
-      </div>
     </div>
 
-    <!-- Upload Sheet (Bottom Sheet) -->
-    <div id="uploadSheet" class="bottom-sheet">
-      <div class="sheet-backdrop" onclick="closeUploadSheet()"></div>
-      <div class="sheet-content">
-        <div class="sheet-handle"></div>
-        <label class="sheet-option" for="cameraInput" onclick="closeUploadSheet()">
-          <div class="sheet-icon camera"><i data-lucide="camera"></i></div>
-          <div>
-            <div class="sheet-label" data-i18n="takePhoto">Take Photo</div>
-            <div class="sheet-sublabel" data-i18n="photoHint">Use camera to capture document</div>
+    <!-- Hidden Alias stepHome to prevent breaking any legacy triggers -->
+    <div id="stepHome" style="display:none;"></div>
+
+    <!-- STEP 2: EDIT SCREEN -->
+    <div id="stepEdit" class="step hidden">
+      <div class="flow-container">
+        <div class="flow-card">
+          <h2 class="screen-header-title">👀 File Received</h2>
+          <div class="screen-header-sub" id="editPageSub">1 page — ek nazar dekh lo</div>
+
+          <div class="preview-sheet-frame">
+            <div class="preview-sheet-paper" id="editPreviewSheet">
+              <img id="editPreviewImg" src="" alt="File Preview">
+            </div>
           </div>
-        </label>
+
+          <!-- Page Navigator in Step 2 [ < ] Page 1 / 2 [ > ] -->
+          <div class="page-navigator-bar" id="editPageNav" style="display:none;">
+            <button type="button" class="page-nav-btn" id="btnPrevEditPage" onclick="prevPreviewPage()">‹</button>
+            <span class="page-nav-indicator" id="editPageIndicator">Page 1 / 1</span>
+            <button type="button" class="page-nav-btn" id="btnNextEditPage" onclick="nextPreviewPage()">›</button>
+          </div>
+
+          <button type="button" class="btn-action-green" onclick="goToStep(3)">
+            <span>✅ All Good — Continue</span>
+          </button>
+          <div class="btn-sub-caption">File prints exactly as it is — cleanest and fastest</div>
+
+          <button type="button" class="btn-action-white" onclick="openCropCurrentFile()">
+            <span>✏️ Want to Edit</span>
+          </button>
+          <div class="btn-sub-caption">To rotate, crop, adjust brightness or add more documents</div>
+        </div>
       </div>
     </div>
 
-    <!-- Hidden file inputs (positioned off-screen — NOT display:none — for reliable label[for] activation on all browsers) -->
+    <!-- STEP 3: PREVIEW SCREEN -->
+    <div id="stepPreview" class="step hidden">
+      <div class="flow-container">
+        <div class="flow-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <h2 class="screen-header-title" style="margin:0;">👀 Print Preview</h2>
+            <!-- Quick Orientation Toggle in Preview -->
+            <button type="button" onclick="togglePreviewOrientation()" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:5px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;color:#334155;">
+              <span>📐</span> <span id="quickOrientationLabel">Portrait</span>
+            </button>
+          </div>
+
+          <div class="preview-sheet-frame">
+            <div class="preview-sheet-paper" id="mainPreviewSheet">
+              <img id="mainPreviewImg" src="" alt="Print Preview">
+            </div>
+          </div>
+
+          <!-- Page Navigator [ < ] Page 1 / 2 [ > ] -->
+          <div class="page-navigator-bar" id="mainPageNav" style="display:none;">
+            <button type="button" class="page-nav-btn" id="btnPrevPage" onclick="prevPreviewPage()">‹</button>
+            <span class="page-nav-indicator" id="previewPageIndicator">Page 1 / 1</span>
+            <button type="button" class="page-nav-btn" id="btnNextPage" onclick="nextPreviewPage()">›</button>
+          </div>
+
+          <!-- Which Pages to Print? Section -->
+          <div class="which-pages-card" id="whichPagesSection">
+            <div class="which-pages-title">
+              <span>📄</span> <span>Which Pages to Print?</span>
+            </div>
+            <div class="which-pages-tabs">
+              <button type="button" class="which-page-tab active" id="tabAllPages" onclick="setWhichPagesMode('all')">All Pages</button>
+              <button type="button" class="which-page-tab" id="tabSpecificPages" onclick="setWhichPagesMode('specific')">Specific Pages</button>
+            </div>
+            <div class="which-pages-sub" id="whichPagesCountSub">Total 1 pages</div>
+            <div id="specificPagesInputWrap" style="display:none;margin-top:6px;">
+              <input type="text" class="which-pages-input" id="specificPagesInput" placeholder="e.g. 1-2, 4 or 1,3" oninput="onSpecificPagesInput(this.value)">
+              <div style="font-size:0.74rem;color:#94a3b8;margin-top:4px;">Use commas (,) and dashes (-) to specify page ranges</div>
+            </div>
+          </div>
+
+          <div class="dual-button-row">
+            <button type="button" class="btn-action-white" onclick="goToStep(2)">← Back</button>
+            <button type="button" class="btn-action-green" onclick="goToStep(4)">✅ Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: PAY SCREEN -->
+    <div id="stepPay" class="step hidden">
+      <div class="flow-container">
+        <div class="flow-card">
+          <h2 class="screen-header-title">⚙️ Print Options</h2>
+
+          <!-- Print Options (B&W vs Color) -->
+          <div class="print-options-grid">
+            <div class="print-opt-card selected" id="optBwCard" onclick="selectPrintTypeOption('bw')">
+              <div class="print-opt-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#334155"><rect x="3" y="3" width="18" height="18" rx="4"/></svg>
+              </div>
+              <div class="print-opt-title">Black & White</div>
+              <div class="print-opt-rate" id="optBwRate">₹5/page</div>
+            </div>
+            <div class="print-opt-card" id="optColorCard" onclick="selectPrintTypeOption('color')">
+              <div class="print-opt-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24"><circle cx="8" cy="9" r="4" fill="#ef4444"/><circle cx="16" cy="9" r="4" fill="#3b82f6"/><circle cx="12" cy="15" r="4" fill="#22c55e"/></svg>
+              </div>
+              <div class="print-opt-title">Color</div>
+              <div class="print-opt-rate" id="optColorRate">₹10/page</div>
+            </div>
+          </div>
+
+          <!-- Orientation Control (Portrait vs Landscape) -->
+          <div style="margin: 12px 0 14px;">
+            <div style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+              <span>📐 Orientation</span>
+            </div>
+            <div class="print-options-grid" style="margin: 0;">
+              <div class="print-opt-card selected" id="optPortraitCard" onclick="selectOrientationOption('portrait')">
+                <div class="print-opt-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/></svg>
+                </div>
+                <div class="print-opt-title">Portrait</div>
+                <div class="print-opt-rate">Vertical (Standard)</div>
+              </div>
+              <div class="print-opt-card" id="optLandscapeCard" onclick="selectOrientationOption('landscape')">
+                <div class="print-opt-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/></svg>
+                </div>
+                <div class="print-opt-title">Landscape</div>
+                <div class="print-opt-rate">Horizontal</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Copies Control -->
+          <div class="copies-control-bar">
+            <div class="copies-control-label">📑 Copies</div>
+            <div class="copies-counter-pill">
+              <button type="button" class="copies-btn-square" onclick="changeCopies(-1)">−</button>
+              <span class="copies-count-num" id="copiesValue">1</span>
+              <button type="button" class="copies-btn-square" onclick="changeCopies(1)">+</button>
+            </div>
+          </div>
+
+          <!-- Pricing Breakdown & Total -->
+          <div class="price-breakdown-list">
+            <div class="price-breakdown-row">
+              <span id="payBreakdownRateLabel">B&W Print</span>
+              <span class="val" id="payBreakdownRateVal">₹5/page</span>
+            </div>
+            <div class="price-breakdown-row">
+              <span id="payBreakdownCalcLabel">1 page × 1 copy</span>
+              <span class="val" id="payBreakdownCalcVal">₹5</span>
+            </div>
+            <div class="price-divider-line"></div>
+            <div class="total-highlight-row">
+              <span class="total-highlight-label">Total</span>
+              <span class="total-highlight-val">
+                <span style="color:#8b5cf6;margin-right:2px;">₹</span><span id="payTotalAmount">5</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Bulk discount / savings banner (preserved) -->
+          <div id="bulkDiscountBanner" class="bulk-discount-banner hidden"></div>
+          <div id="savingsDisplay" class="savings-display hidden"></div>
+
+          <!-- Customer Name Input -->
+          <div class="customer-name-field">
+            <input type="text" id="reviewName" placeholder="Your Name (Required)" required>
+            <div id="reviewContactError" style="color:#ef4444;font-size:0.8rem;font-weight:600;margin-top:4px;"></div>
+          </div>
+
+          <div class="dual-button-row">
+            <button type="button" class="btn-action-white" onclick="goToStep(3)">← Back</button>
+            <button type="button" class="btn-action-green" id="btnGoToPayment" onclick="openPaymentSelectionModal()">💳 Go to Payment</button>
+          </div>
+
+          <!-- Footer Branding -->
+          <div class="qr-footer-box">
+            <div class="qr-footer-brand">⚡ Powered by QR Se Print</div>
+            <div>© 2026 QR Se Print · All Rights Reserved</div>
+            <div style="font-size:0.72rem;margin-top:2px;">Developed by Rupesh Kumar Mahato</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT SELECTION MODAL -->
+    <div id="paymentSelectionModal" class="crop-overlay hidden" style="display:none;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);">
+      <div class="idc-big-card animate-bounce-in" style="background:#ffffff;border-radius:24px;max-width:440px;width:92%;padding:24px 20px;box-shadow:0 24px 48px rgba(0,0,0,0.3);position:relative;">
+        <button onclick="closePaymentSelectionModal()" style="position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1em;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;">✕</button>
+
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:0.85rem;font-weight:800;color:#64748b;letter-spacing:0.5px;">CHECKOUT TOTAL</div>
+          <div style="font-size:2rem;font-weight:900;color:#8b5cf6;">₹<span id="payModalTotalAmount">5</span></div>
+          <div style="font-size:0.82rem;color:#475569;margin-top:2px;">Select your preferred payment method</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <!-- Online Payment Button -->
+          <button type="button" onclick="payWithCashfree()" class="kiosk-cta-btn" id="btnCashfreeReview" style="width:100%;padding:14px;border-radius:14px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(37,99,235,0.3);">
+            <span>🔒 Pay Online ₹<span id="btnCashfreeAmount">5</span></span>
+          </button>
+          <div style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:-6px;">UPI (Google Pay, PhonePe, Paytm) • Cards • Net Banking</div>
+
+          <div style="display:flex;align-items:center;margin:4px 0;color:#cbd5e1;font-size:0.75rem;font-weight:700;">
+            <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+            <span style="padding:0 8px;color:#94a3b8;">OR</span>
+            <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+          </div>
+
+          <!-- Cash Payment Button -->
+          <button type="button" onclick="payWithCash()" class="rpc-cash-btn" style="width:100%;background:#16a34a;color:#ffffff;font-weight:800;font-size:0.98rem;padding:13px;border-radius:14px;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,0.25);display:flex;align-items:center;justify-content:center;gap:6px;">
+            <span>💵 Pay Cash at Counter (₹<span class="cash-amount-span">5</span>)</span>
+          </button>
+        </div>
+
+        <div id="paymentError" class="error" style="color:#ef4444;font-size:0.82rem;font-weight:600;text-align:center;margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Hidden elements for backward-compatibility with existing scripts -->
+    <div id="stepSettings" style="display:none;"></div>
+    <div id="stepReview" style="display:none;"></div>
+    <div id="stepFiles" style="display:none;"></div>
+    <div id="stepScanQueue" style="display:none;"></div>
+    <div id="fileCardsContainer" style="display:none;"></div>
+    <div id="reviewItems" style="display:none;"></div>
+    <div id="livePriceDisplay" style="display:none;">₹0</div>
+    <div id="priceBreakdown" style="display:none;"></div>
+    <div id="reviewPrintType" style="display:none;">B&W</div>
+    <div id="reviewPrintSide" style="display:none;">Single Side</div>
+    <div id="reviewOrientation" style="display:none;">Portrait</div>
+    <div id="reviewCopies" style="display:none;">1</div>
+    <div id="reviewPageRange" style="display:none;">All</div>
+    <div id="reviewPriceRate" style="display:none;">₹5 / page</div>
+    <div id="reviewTotalPrice" style="display:none;">₹5</div>
+    <div id="reviewTotalPriceRazorpay" style="display:none;">5</div>
+    <button id="btnRazorpayReview" onclick="payWithRazorpay()" style="display:none;">Razorpay ₹<span id="btnRazorpayAmount">0</span></button>
+    <div id="qpDocPreview" style="display:none;"></div>
+    <div id="fileCountDisplay" style="display:none;">0</div>
+
+    <!-- Hidden file inputs -->
     <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
     <input type="file" id="scanMoreInput" accept="image/*,.pdf,.doc,.docx" multiple style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onScanMoreSelected(this.files)">
@@ -610,442 +844,6 @@
       </div>
     </div>
 
-    <!-- Step 2: Files View -->
-    <div id="stepFiles" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepHome')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
-      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="uploadedFiles">Uploaded Files</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;"><span id="fileCountDisplay">0</span> <span data-i18n="filesCountLabel">file(s) selected</span></p>
-      <div id="fileCardsContainer" class="file-cards"></div>
-      <div class="bottom-bar">
-        <label class="btn btn-secondary" for="fileInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="plus" style="width:16px;height:16px;vertical-align:middle;"></i> <span data-i18n="addMore">Add More</span></label>
-        <button class="btn btn-primary" onclick="goToSettings()"><span data-i18n="nextSettings">Next: Settings</span> →</button>
-      </div>
-    </div>
-
-    <!-- Step 2b: Scan Queue -->
-    <div id="stepScanQueue" class="step hidden">
-      <button class="back-btn" onclick="scanQueueClear()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
-      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Scanned Pages</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 8px;"><span id="scanCountDisplay">0</span> page(s) scanned</p>
-      <div id="scanPreviewBig" class="scan-preview-big" onclick="openScanZoom()"></div>
-      <div id="scanQueueGrid" class="scan-queue-grid"></div>
-      <div class="bottom-bar">
-        <label class="btn btn-secondary" for="scanMoreInput" style="flex:1;text-align:center;cursor:pointer;"><i data-lucide="upload" style="width:16px;height:16px;vertical-align:middle;"></i> Add More Upload</label>
-        <button class="btn btn-primary" id="btnScanDone" onclick="scanQueueDone()" disabled>Done (<span id="scanQueueCount">0</span>) →</button>
-      </div>
-    </div>
-
-    <!-- Full-screen scan zoom -->
-    <div id="scanZoomModal" class="scan-zoom-modal hidden" onclick="closeScanZoom()">
-      <div class="scan-zoom-close">&times;</div>
-      <img id="scanZoomImg" src="" alt="">
-    </div>
-
-    <!-- Step 3: Print Settings -->
-    <div id="stepSettings" class="step hidden">
-      <div class="qp-wrap">
-
-        <!-- Multi-file navigation switcher -->
-        <div id="qpFileSwitcher" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:8px 12px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;font-size:0.82em;font-weight:600;color:#334155;">
-          <button type="button" id="qpPrevFileBtn" onclick="switchPreviewFile(-1)" style="padding:6px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700;">◀ Prev File</button>
-          <span id="qpFileNavTitle" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;font-weight:700;">File 1 of 1</span>
-          <button type="button" id="qpNextFileBtn" onclick="switchPreviewFile(1)" style="padding:6px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700;">Next File ▶</button>
-        </div>
-
-        <!-- Document Preview Card -->
-        <div class="qp-doc-card" id="qpDocCard">
-          <div class="qp-doc-preview" id="qpDocPreview" onclick="openDocPreview()" style="cursor:pointer;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="48" height="48"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
-          </div>
-          <label class="qp-doc-add-more" for="fileInput" title="Upload More Files">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-            <span>Upload More</span>
-          </label>
-          <button class="qp-doc-delete" onclick="if(selectedFiles.length){selectedFiles=[];showStep('stepFiles');}">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-          </button>
-          <div class="qp-doc-label" onclick="openDocPreview()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-            <span>PREVIEW</span>
-          </div>
-        </div>
-
-        <!-- Prominent Preview Button -->
-        <button class="btn-preview-prominent" onclick="openDocPreview()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:12px;font-size:0.92em;font-weight:700;cursor:pointer;margin-bottom:12px;box-shadow:0 2px 8px rgba(37,99,235,0.08);transition:all 0.2s ease;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-          <span>👁️ Preview How It Will Print</span>
-        </button>
-
-        <!-- Number of Copies -->
-        <div class="qp-card">
-          <div class="qp-card-row">
-            <span class="qp-card-title">Number of Copies</span>
-            <div class="qp-copies">
-              <button class="qp-copies-btn" onclick="changeCopies(-1)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg>
-              </button>
-              <span class="qp-copies-val" id="copiesValue">1</span>
-              <button class="qp-copies-btn" onclick="changeCopies(1)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Color Mode -->
-        <div class="qp-card">
-          <div class="qp-card-title">Color Mode</div>
-          <div class="qp-pair">
-            <button class="qp-opt pill-option selected" data-value="bw" onclick="selectPill(this,'printType')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">B/W</span>
-                <span class="qp-opt-sub">₹5/page (₹3 for 20+ pages)</span>
-              </div>
-              <span class="qp-opt-icon bw-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="8" cy="10" r="5" fill="#555"/><circle cx="14" cy="10" r="5" fill="#888" opacity="0.6"/></svg>
-              </span>
-            </button>
-            <button class="qp-opt pill-option" data-value="color" onclick="selectPill(this,'printType')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">Color</span>
-                <span class="qp-opt-sub">₹10/page</span>
-              </div>
-              <span class="qp-opt-icon color-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24"><circle cx="9" cy="9" r="4" fill="#ef4444"/><circle cx="15" cy="9" r="4" fill="#3b82f6"/><circle cx="12" cy="14" r="4" fill="#22c55e"/></svg>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Duplex (Layout) -->
-        <div class="qp-card">
-          <div class="qp-card-title">Duplex (Layout)</div>
-          <div class="qp-pair">
-            <button class="qp-opt pill-option selected" data-value="single" onclick="selectPill(this,'printSide')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">1-sided</span>
-              </div>
-              <span class="qp-opt-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 10h6"/><path d="M9 14h4"/></svg>
-              </span>
-            </button>
-            <button class="qp-opt pill-option" data-value="both" onclick="selectPill(this,'printSide')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">2-sided</span>
-              </div>
-              <span class="qp-opt-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="20" rx="2"/><rect x="7" y="1" width="14" height="20" rx="2" fill="#fff" stroke="#9ca3af"/><path d="M10 7h6"/><path d="M10 11h4"/></svg>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Pages per Sheet -->
-        <div class="qp-card" id="qpPagesPerSheetCard">
-          <div class="qp-card-title">Pages per Sheet</div>
-          <div class="qp-pair" style="grid-template-columns:repeat(3, 1fr);">
-            <button class="qp-opt pill-option selected" data-value="1" onclick="selectPill(this,'pagesPerSheet')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">1 Page</span>
-                <span class="qp-opt-sub">Standard</span>
-              </div>
-            </button>
-            <button class="qp-opt pill-option" data-value="2" onclick="selectPill(this,'pagesPerSheet')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">2 Pages</span>
-                <span class="qp-opt-sub">Side by side</span>
-              </div>
-            </button>
-            <button class="qp-opt pill-option" data-value="4" onclick="selectPill(this,'pagesPerSheet')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">4 Pages</span>
-                <span class="qp-opt-sub">Grid layout</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Orientation -->
-        <div class="qp-card">
-          <div class="qp-card-title">Orientation</div>
-          <div class="qp-pair">
-            <button class="qp-opt pill-option selected" data-value="portrait" onclick="selectPill(this,'orientation')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">Portrait</span>
-              </div>
-              <span class="qp-opt-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 10h6"/><path d="M9 14h4"/></svg>
-              </span>
-            </button>
-            <button class="qp-opt pill-option" data-value="landscape" onclick="selectPill(this,'orientation')">
-              <div class="qp-opt-text">
-                <span class="qp-opt-label">Landscape</span>
-              </div>
-              <span class="qp-opt-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 9h6"/><path d="M7 13h4"/></svg>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Hide / More Options -->
-        <div class="qp-card qp-hide-card" id="qpHideCard">
-          <button class="qp-hide-btn" onclick="document.getElementById('qpHideCard').classList.toggle('open');">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span>More Options</span>
-          </button>
-          <div class="qp-hide-body">
-            <div class="qp-hide-row"><span>Scale</span><span>100%</span></div>
-            <div class="qp-hide-row"><span>Pages per Sheet</span><span>1</span></div>
-            <div class="qp-hide-row"><span>Fit to Page</span><span>On</span></div>
-          </div>
-        </div>
-
-        <!-- Pages Selection -->
-        <div class="qp-card" id="qpPagesCard">
-          <div class="qp-card-title" style="display:flex;align-items:center;gap:6px;">
-            Pages Selection
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          </div>
-          <div class="qp-pair">
-            <button class="qp-opt pill-option selected" data-value="all" onclick="qpSelectRange('all')">
-              <div class="qp-opt-text"><span class="qp-opt-label">All</span></div>
-            </button>
-            <button class="qp-opt pill-option" data-value="range" onclick="qpSelectRange('custom')">
-              <div class="qp-opt-text"><span class="qp-opt-label">Range</span></div>
-            </button>
-          </div>
-          <div id="prangeInputRow" class="hidden">
-            <input type="text" id="pageRangeInput" placeholder="e.g. 1-5, 1,3,5-8" oninput="onPageRangeChange()">
-            <div class="prange-hint" data-i18n="pageRangeHint">Use dashes for ranges (-) and commas to separate</div>
-          </div>
-          <!-- Hidden radios for existing JS -->
-          <input type="radio" name="pageRange" value="all" checked style="display:none;" id="prangeAll">
-          <input type="radio" name="pageRange" value="custom" style="display:none;" id="prangeCustom">
-        </div>
-
-        <!-- Hidden livePriceDisplay + priceBreakdown for existing JS -->
-        <div style="display:none;" id="livePriceDisplay">₹0</div>
-        <div style="display:none;" id="priceBreakdown"></div>
-
-        <!-- Fullscreen Preview Modal -->
-        <div id="qpFullscreen" class="qp-fullscreen hidden" onclick="closeDocPreview()">
-          <button class="qp-fullscreen-close" onclick="closeDocPreview()">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
-          <img id="qpFullscreenImg" src="" alt="">
-          <div class="qp-fullscreen-name" id="qpFullscreenName"></div>
-        </div>
-
-        <!-- Sticky Bottom Bar -->
-        <div class="qp-bottom">
-          <div class="qp-bottom-info">
-            <span class="qp-bottom-pages" id="qpBottomPages">Total 1 pages</span>
-            <span class="qp-bottom-price" id="qpBottomPrice">₹0</span>
-          </div>
-          <button class="qp-bottom-pay" onclick="goToReview()">
-            <span data-i18n="nextReview">Proceed To Pay</span>
-          </button>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Step 4: Review Order -->
-    <div id="stepReview" class="step hidden">
-      <button class="back-btn" onclick="showStep('stepSettings')"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span data-i18n="back">Back</span></button>
-      <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;" data-i18n="reviewOrder">Review Order</h2>
-      <p style="font-size:0.78em;color:#9ca3af;margin:0 0 12px;" data-i18n="reviewDesc">Please check your order details before confirming</p>
-
-      <!-- Prominent Preview Button in Review Step -->
-      <button class="btn-preview-prominent" onclick="openDocPreview()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:12px;font-size:0.92em;font-weight:700;cursor:pointer;margin-bottom:16px;box-shadow:0 2px 8px rgba(37,99,235,0.08);transition:all 0.2s ease;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span>👁️ Preview How It Will Print</span>
-      </button>
-
-      <div class="review-items" id="reviewItems"></div>
-
-      <!-- Bulk Discount Banner (hidden by default) -->
-      <div id="bulkDiscountBanner" class="bulk-discount-banner hidden"></div>
-
-      <!-- Premium Order Summary Card -->
-      <div id="premiumSummaryCard" class="premium-summary-card hidden">
-        <div class="psc-header">
-          <span class="psc-title">Order Summary</span>
-          <span class="psc-subtitle">Smart pricing with automatic bulk discount</span>
-        </div>
-        <div class="psc-files">
-          <h5>Uploaded Files</h5>
-          <div id="pscFileList"></div>
-        </div>
-        <div class="psc-divider"></div>
-        <div class="psc-metrics">
-          <div class="psc-metric">
-            <span class="psc-metric-label">Total PDF Pages</span>
-            <span class="psc-metric-value" id="pscTotalPages">0</span>
-          </div>
-          <div class="psc-metric">
-            <span class="psc-metric-label">Print Type</span>
-            <span class="psc-metric-value" id="pscPrintType">—</span>
-          </div>
-          <div class="psc-metric">
-            <span class="psc-metric-label">Total Physical Sheets</span>
-            <span class="psc-metric-value" id="pscTotalSheets">0</span>
-          </div>
-        </div>
-        <div class="psc-divider"></div>
-        <div class="psc-pricing">
-          <h5>Pricing Breakdown</h5>
-          <div class="psc-price-row">
-            <span class="psc-price-label">First 20 Sheets × ₹5</span>
-            <span class="psc-price-value" id="pscFirst20Cost">₹0</span>
-          </div>
-          <div class="psc-price-row" id="pscRemainingRow" style="display:none;">
-            <span class="psc-price-label">Remaining <span id="pscRemainingSheets">0</span> Sheets × ₹3</span>
-            <span class="psc-price-value" id="pscRemainingCost">₹0</span>
-          </div>
-          <div class="psc-divider"></div>
-          <div class="psc-price-row psc-total">
-            <span class="psc-price-label">Final Total</span>
-            <span class="psc-price-value" id="pscFinalTotal">₹0</span>
-          </div>
-        </div>
-        <div class="psc-savings" id="pscSavings" style="display:none;">
-          <span class="savings-icon">🎉</span>
-          <span class="savings-text">You Saved <span id="pscSavingsAmount">₹0</span> 🎉</span>
-        </div>
-        <div class="psc-badges" id="pscBadges"></div>
-      </div>
-
-      <!-- Bulk Discount Banner -->
-      <div id="bulkDiscountBanner" class="bulk-discount-banner hidden"></div>
-
-
-
-      <div class="summary-card">
-        <div class="summary-row">
-          <span class="sr-label"><i data-lucide="droplets" style="width:14px;height:14px;"></i> <span data-i18n="printType">Print Type</span></span>
-          <span class="sr-value" id="reviewPrintType">B&W</span>
-        </div>
-        <div class="summary-row">
-          <span class="sr-label"><i data-lucide="layout" style="width:14px;height:14px;"></i> <span data-i18n="printSide">Print Side</span></span>
-          <span class="sr-value" id="reviewPrintSide">Single Side</span>
-        </div>
-        <div class="summary-row">
-          <span class="sr-label"><i data-lucide="smartphone" style="width:14px;height:14px;"></i> <span data-i18n="orientation">Orientation</span></span>
-          <span class="sr-value" id="reviewOrientation">Portrait</span>
-        </div>
-        <div class="summary-row">
-          <span class="sr-label"><i data-lucide="copy" style="width:14px;height:14px;"></i> <span data-i18n="copies">Copies</span></span>
-          <span class="sr-value" id="reviewCopies">1</span>
-        </div>
-        <div class="summary-row">
-          <span class="sr-label"><i data-lucide="hash" style="width:14px;height:14px;"></i> <span data-i18n="pageRange">Page Range</span></span>
-          <span class="sr-value" id="reviewPageRange">All</span>
-        </div>
-        <div class="summary-row" style="border-bottom:none;">
-          <span class="sr-label"><i data-lucide="tag" style="width:14px;height:14px;"></i> <span>Price Rate</span></span>
-          <span class="sr-value" id="reviewPriceRate">₹5 / page</span>
-        </div>
-        <div class="summary-total" style="background:#f0fdf4;padding:12px 14px;border-radius:12px;margin-top:10px;border:1px solid #bbf7d0;">
-          <span class="st-label" style="font-weight:700;color:#15803d;display:flex;align-items:center;gap:6px;"><i data-lucide="calculator" style="width:16px;height:16px;"></i> <span data-i18n="totalPrice">Total Price</span></span>
-          <span class="st-value" id="reviewTotalPrice" style="font-size:1.4em;font-weight:800;color:#16a34a;">₹0</span>
-        </div>
-      </div>
-
-      <div class="contact-form">
-        <label style="font-size:0.85rem;font-weight:700;color:#374151;margin-bottom:6px;display:block;">Customer Name (Required)</label>
-        <input type="text" id="reviewName" data-i18n-placeholder="namePlaceholder" placeholder="Your Name" required>
-        <div id="reviewContactError" style="color:#ef4444;font-size:0.85rem;font-weight:600;margin-top:6px;"></div>
-      </div>
-
-      <div class="bottom-bar">
-        <button class="btn btn-secondary" onclick="showStep('stepSettings')" data-i18n="back">Back</button>
-      </div>
-
-      <!-- Dual Payment Kiosk Card (Cash & Online) -->
-      <div class="razorpay-payment-card kiosk-payment-card">
-
-        <!-- 1. Hero Amount Display Card -->
-        <div class="kiosk-amount-card">
-          <div class="kiosk-amount-subtitle" style="font-weight:700;letter-spacing:0.5px;">💵 CASH & 💳 ONLINE BOTH ACCEPTED</div>
-          <div class="kiosk-amount-hero">
-            TOTAL <span class="kiosk-currency">₹</span><span id="reviewTotalPriceRazorpay">0</span>
-          </div>
-          <div style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;display:inline-block;font-size:0.8rem;font-weight:700;margin-top:4px;">
-            Select your preferred payment method below
-          </div>
-        </div>
-
-        <div class="rpc-body kiosk-body" style="padding:16px;">
-
-          <!-- 1. Online Payment Section (First) -->
-          <div style="background:#eff6ff;border:2px solid #3b82f6;border-radius:14px;padding:14px;margin-bottom:14px;text-align:center;box-shadow:0 4px 12px rgba(59,130,246,0.12);">
-            <div style="font-weight:800;font-size:1.05rem;color:#1e40af;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px;">
-              <span>💳 1. PAY ONLINE (UPI / QR / CARD)</span>
-            </div>
-            
-            <div style="background:#dbeafe;color:#1e40af;font-size:0.8rem;font-weight:800;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;margin-bottom:6px;">
-              ⚡ INSTANT AUTOMATIC PRINTING!
-            </div>
-            <p style="font-size:0.82rem;color:#1d4ed8;margin:0 0 10px;line-height:1.3;font-weight:500;">
-              Pay online and your document prints automatically right away!
-            </p>
-            
-            <!-- Supported Payment Method Chips -->
-            <div class="kiosk-chips-grid" style="margin:8px 0 12px;justify-content:center;">
-              <div class="kiosk-chip"><span class="chip-dot gpay"></span> GPay</div>
-              <div class="kiosk-chip"><span class="chip-dot phonepe"></span> PhonePe</div>
-              <div class="kiosk-chip"><span class="chip-dot paytm"></span> Paytm</div>
-              <div class="kiosk-chip"><span class="chip-dot card"></span> UPI / Cards</div>
-            </div>
-
-            <!-- Hidden Razorpay button (preserved intact in code for backup) -->
-            <button class="rpc-btn" id="btnRazorpayReview" onclick="payWithRazorpay()" style="display:none;">
-              Razorpay ₹<span id="btnRazorpayAmount">0</span>
-            </button>
-
-            <!-- Large Primary CTA Payment Button -->
-            <button class="kiosk-cta-btn" id="btnCashfreeReview" onclick="payWithCashfree()" style="width:100%;">
-              🔒 Pay Online ₹<span id="btnCashfreeAmount">0</span>
-            </button>
-          </div>
-
-          <!-- Divider -->
-          <div style="display:flex;align-items:center;margin:14px 0;color:#9ca3af;font-size:0.8rem;font-weight:700;letter-spacing:1px;">
-            <div style="flex:1;height:1px;background:#e5e7eb;"></div>
-            <span style="padding:0 10px;background:#fff;">OR PAY CASH</span>
-            <div style="flex:1;height:1px;background:#e5e7eb;"></div>
-          </div>
-
-          <!-- 2. Cash Payment Section (Second) -->
-          <div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:14px;padding:14px;text-align:center;">
-            <div style="font-weight:800;font-size:1.05rem;color:#15803d;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px;">
-              <span>💵 2. PAY CASH AT COUNTER</span>
-            </div>
-            <p style="font-size:0.82rem;color:#166534;margin:0 0 10px;line-height:1.3;">
-              Pay cash when collecting prints at the shop counter!
-            </p>
-            <button class="rpc-cash-btn" onclick="payWithCash()" style="width:100%;background:#16a34a;color:#ffffff;font-weight:800;font-size:1rem;padding:12px;border-radius:10px;border:none;cursor:pointer;box-shadow:0 4px 10px rgba(22,163,74,0.25);">
-              💵 Pay Cash at Counter (₹<span class="cash-amount-span">0</span>)
-            </button>
-          </div>
-
-        </div>
-
-        <!-- Security & Features Guarantee Footer -->
-        <div class="kiosk-features-footer">
-          <div class="kiosk-feat-item">
-            <span class="kiosk-feat-icon">💵</span> Cash & Online Accepted
-          </div>
-          <div class="kiosk-feat-item">
-            <span class="kiosk-feat-icon">⚡</span> Fast Track Printing
-          </div>
-        </div>
-
-      </div>
-      <div id="paymentError" class="error"></div>
-    </div>
 
     <!-- Cash Confirmation Step -->
     <div id="stepCashConfirm" class="step hidden">
@@ -1689,75 +1487,500 @@
     var idcCropX1_s, idcCropY1_s, idcCropX2_s, idcCropY2_s;
     var IDC_RATIO = 86 / 54;
 
-    // --- New Flow Functions ---
+    // --- 4-Step Modern Flow State & Preview Navigation ---
+    window.currentFlowStep = 1;
+    window.allPreviewPages = [];
+    window.currentPreviewPageIndex = 0;
+
+    function goToStep(stepNum) {
+      if (stepNum > 1 && (!selectedFiles || selectedFiles.length === 0)) {
+        stepNum = 1;
+      }
+      window.currentFlowStep = stepNum;
+
+      // Toggle step containers
+      var steps = ['stepUpload', 'stepEdit', 'stepPreview', 'stepPay'];
+      steps.forEach(function(sId, idx) {
+        var el = document.getElementById(sId);
+        if (el) {
+          if (idx + 1 === stepNum) {
+            el.classList.add('active');
+            el.classList.remove('hidden');
+            el.style.display = 'block';
+          } else {
+            el.classList.remove('active');
+            el.classList.add('hidden');
+            el.style.display = 'none';
+          }
+        }
+      });
+
+      // Update Universal Stepper Header
+      for (var i = 1; i <= 4; i++) {
+        var stepItem = document.getElementById('flowStep' + i);
+        var circle = document.getElementById('flowCircle' + i);
+        if (stepItem && circle) {
+          stepItem.classList.remove('active', 'completed');
+          if (i < stepNum) {
+            stepItem.classList.add('completed');
+            circle.textContent = '✓';
+          } else if (i === stepNum) {
+            stepItem.classList.add('active');
+            circle.textContent = i;
+          } else {
+            circle.textContent = i;
+          }
+        }
+      }
+      var fill = document.getElementById('flowStepLineFill');
+      if (fill) {
+        var pct = ((stepNum - 1) / 3) * 100;
+        fill.style.width = pct + '%';
+      }
+
+      // Step-specific updates
+      if (stepNum === 2 || stepNum === 3) {
+        renderStepPreviewPage();
+      } else if (stepNum === 4) {
+        if (typeof updatePrice === 'function') updatePrice();
+        syncPayScreenValues();
+      }
+    }
+
+    function renderStepPreviewPage() {
+      if (!window.allPreviewPages || window.allPreviewPages.length === 0) {
+        var editImg = document.getElementById('editPreviewImg');
+        var mainImg = document.getElementById('mainPreviewImg');
+        if (editImg) editImg.src = '';
+        if (mainImg) mainImg.src = '';
+        return;
+      }
+
+      if (window.currentPreviewPageIndex < 0) window.currentPreviewPageIndex = 0;
+      if (window.currentPreviewPageIndex >= window.allPreviewPages.length) {
+        window.currentPreviewPageIndex = window.allPreviewPages.length - 1;
+      }
+
+      var page = window.allPreviewPages[window.currentPreviewPageIndex];
+      var totalPages = window.allPreviewPages.length;
+
+      // Update Step 2 Edit Preview
+      var editImg = document.getElementById('editPreviewImg');
+      if (editImg && page && page.url) editImg.src = page.url;
+      var editSub = document.getElementById('editPageSub');
+      if (editSub) {
+        editSub.textContent = totalPages + ' page' + (totalPages > 1 ? 's' : '') + ' — ek nazar dekh lo';
+      }
+
+      // Update Step 3 Preview Sheet
+      // Update Step 3 Preview Sheet
+      var mainImg = document.getElementById('mainPreviewImg');
+      if (mainImg && page && page.url) {
+        mainImg.src = page.url;
+        if (selectedPrintType === 'bw') {
+          mainImg.style.filter = 'grayscale(100%) contrast(1.05)';
+        } else {
+          mainImg.style.filter = 'none';
+        }
+      }
+
+      // Synchronize Orientation Sheet Aspect Ratio
+      var isLandscape = (selectedOrientation === 'landscape');
+      var quickLabel = document.getElementById('quickOrientationLabel');
+      if (quickLabel) quickLabel.textContent = isLandscape ? 'Landscape' : 'Portrait';
+
+      var editSheet = document.getElementById('editPreviewSheet');
+      var mainSheet = document.getElementById('mainPreviewSheet');
+      if (editSheet) {
+        editSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
+        editSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+      }
+      if (mainSheet) {
+        mainSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
+        mainSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+      }
+
+      // Update Page Navigator in Step 3
+      var indicator = document.getElementById('previewPageIndicator');
+      if (indicator) {
+        indicator.textContent = 'Page ' + (window.currentPreviewPageIndex + 1) + ' / ' + totalPages;
+      }
+      var btnPrev = document.getElementById('btnPrevPage');
+      var btnNext = document.getElementById('btnNextPage');
+      if (btnPrev) btnPrev.disabled = (window.currentPreviewPageIndex <= 0);
+      if (btnNext) btnNext.disabled = (window.currentPreviewPageIndex >= totalPages - 1);
+
+      // Update Page Navigator in Step 2
+      var editIndicator = document.getElementById('editPageIndicator');
+      if (editIndicator) {
+        editIndicator.textContent = 'Page ' + (window.currentPreviewPageIndex + 1) + ' / ' + totalPages;
+      }
+      var btnEditPrev = document.getElementById('btnPrevEditPage');
+      var btnEditNext = document.getElementById('btnNextEditPage');
+      if (btnEditPrev) btnEditPrev.disabled = (window.currentPreviewPageIndex <= 0);
+      if (btnEditNext) btnEditNext.disabled = (window.currentPreviewPageIndex >= totalPages - 1);
+
+      var editNav = document.getElementById('editPageNav');
+      if (editNav) editNav.style.display = totalPages > 1 ? 'flex' : 'none';
+      var mainNav = document.getElementById('mainPageNav');
+      if (mainNav) mainNav.style.display = totalPages > 1 ? 'flex' : 'none';
+
+      syncWhichPagesCount();
+    }
+
+    function prevPreviewPage() {
+      if (window.currentPreviewPageIndex > 0) {
+        window.currentPreviewPageIndex--;
+        renderStepPreviewPage();
+      }
+    }
+
+    function nextPreviewPage() {
+      if (window.currentPreviewPageIndex < (window.allPreviewPages.length - 1)) {
+        window.currentPreviewPageIndex++;
+        renderStepPreviewPage();
+      }
+    }
+
+    function selectPrintTypeOption(type) {
+      selectedPrintType = type;
+      var bwCard = document.getElementById('optBwCard');
+      var colorCard = document.getElementById('optColorCard');
+      if (bwCard) bwCard.classList.toggle('selected', type === 'bw');
+      if (colorCard) colorCard.classList.toggle('selected', type === 'color');
+      
+      if (typeof updatePrice === 'function') updatePrice();
+      syncPayScreenValues();
+      if (window.currentFlowStep === 3) renderStepPreviewPage();
+    }
+
+    function selectOrientationOption(orientation) {
+      selectedOrientation = orientation;
+      var portCard = document.getElementById('optPortraitCard');
+      var landCard = document.getElementById('optLandscapeCard');
+      if (portCard) portCard.classList.toggle('selected', orientation === 'portrait');
+      if (landCard) landCard.classList.toggle('selected', orientation === 'landscape');
+
+      var isLandscape = (orientation === 'landscape');
+      var quickLabel = document.getElementById('quickOrientationLabel');
+      if (quickLabel) quickLabel.textContent = isLandscape ? 'Landscape' : 'Portrait';
+
+      var editSheet = document.getElementById('editPreviewSheet');
+      var mainSheet = document.getElementById('mainPreviewSheet');
+      if (editSheet) {
+        editSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
+        editSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+      }
+      if (mainSheet) {
+        mainSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
+        mainSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+      }
+
+      if (typeof updatePrice === 'function') updatePrice();
+      syncPayScreenValues();
+    }
+
+    function togglePreviewOrientation() {
+      var nextOrientation = (selectedOrientation === 'landscape') ? 'portrait' : 'landscape';
+      selectOrientationOption(nextOrientation);
+    }
+
+    function setWhichPagesMode(mode) {
+      var tabAll = document.getElementById('tabAllPages');
+      var tabSpec = document.getElementById('tabSpecificPages');
+      var inputWrap = document.getElementById('specificPagesInputWrap');
+      var specInput = document.getElementById('specificPagesInput');
+
+      if (mode === 'all') {
+        if (tabAll) tabAll.classList.add('active');
+        if (tabSpec) tabSpec.classList.remove('active');
+        if (inputWrap) inputWrap.style.display = 'none';
+        selectedPageRange = 'all';
+      } else {
+        if (tabAll) tabAll.classList.remove('active');
+        if (tabSpec) tabSpec.classList.add('active');
+        if (inputWrap) inputWrap.style.display = 'block';
+        if (specInput) {
+          selectedPageRange = specInput.value.trim() || 'all';
+          specInput.focus();
+        }
+      }
+
+      if (typeof updatePrice === 'function') updatePrice();
+      syncWhichPagesCount();
+    }
+
+    function onSpecificPagesInput(val) {
+      selectedPageRange = val.trim() || 'all';
+      if (typeof updatePrice === 'function') updatePrice();
+      syncWhichPagesCount();
+    }
+
+    function syncWhichPagesCount() {
+      var sub = document.getElementById('whichPagesCountSub');
+      if (!sub) return;
+
+      var totalPages = 1;
+      if (selectedFiles && selectedFiles.length) {
+        totalPages = selectedFiles.reduce(function(acc, sf) { return acc + (sf.pages || 1); }, 0);
+      }
+      if (window.allPreviewPages && window.allPreviewPages.length) {
+        totalPages = window.allPreviewPages.length;
+      }
+
+      if (selectedPageRange === 'all' || !selectedPageRange) {
+        sub.textContent = 'Total ' + totalPages + ' page' + (totalPages !== 1 ? 's' : '');
+      } else {
+        var count = countPagesInRange(selectedPageRange, totalPages);
+        sub.textContent = 'Selected ' + count + ' of ' + totalPages + ' page' + (totalPages !== 1 ? 's' : '');
+      }
+    }
+
+    function syncPayScreenValues() {
+      var pricing = window.currentPricing;
+      var isColor = (selectedPrintType === 'color');
+      var baseRate = isColor ? 10 : 5;
+      
+      var totalPages = 1;
+      if (window.allPreviewPages && window.allPreviewPages.length) {
+        totalPages = window.allPreviewPages.length;
+      } else if (selectedFiles && selectedFiles.length) {
+        totalPages = selectedFiles.reduce(function(acc, sf) { return acc + (sf.pages || 1); }, 0);
+      }
+      var printedPages = countPagesInRange(selectedPageRange, totalPages);
+      var totalSheets = printedPages;
+      var finalTotal = pricing ? pricing.totalPrice : (totalSheets * copiesCount * baseRate);
+
+      var rateLabel = document.getElementById('payBreakdownRateLabel');
+      var rateVal = document.getElementById('payBreakdownRateVal');
+      var calcLabel = document.getElementById('payBreakdownCalcLabel');
+      var calcVal = document.getElementById('payBreakdownCalcVal');
+      var totalVal = document.getElementById('payTotalAmount');
+      var modalTotal = document.getElementById('payModalTotalAmount');
+      var btnCfAmt = document.getElementById('btnCashfreeAmount');
+
+      if (rateLabel) rateLabel.textContent = isColor ? 'Color Print' : 'B&W Print';
+      if (rateVal) rateVal.textContent = '₹' + baseRate + '/page';
+      if (calcLabel) calcLabel.textContent = printedPages + ' page' + (printedPages > 1 ? 's' : '') + ' × ' + copiesCount + ' copy' + (copiesCount > 1 ? 'ies' : '');
+      if (calcVal) calcVal.textContent = '₹' + finalTotal;
+      if (totalVal) totalVal.textContent = finalTotal;
+      if (modalTotal) modalTotal.textContent = finalTotal;
+      if (btnCfAmt) btnCfAmt.textContent = finalTotal;
+
+      document.querySelectorAll('.cash-amount-span').forEach(function(el) { el.textContent = finalTotal; });
+      if (document.getElementById('reviewTotalPriceRazorpay')) {
+        document.getElementById('reviewTotalPriceRazorpay').textContent = finalTotal;
+      }
+      if (document.getElementById('reviewTotalPrice')) {
+        document.getElementById('reviewTotalPrice').textContent = '₹' + finalTotal;
+      }
+    }
+
+    function openCropCurrentFile() {
+      var pIdx = window.currentPreviewPageIndex || 0;
+      if (!window.allPreviewPages || window.allPreviewPages.length === 0) return;
+      var curPage = window.allPreviewPages[pIdx];
+      if (!curPage) return;
+
+      var fileToCrop = curPage.file || (selectedFiles[pIdx] ? selectedFiles[pIdx].file : null);
+      if (!fileToCrop && !curPage.url) return;
+
+      var img = new Image();
+      img.onload = function() {
+        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
+          OCV_CROP.openModal(img, false, function(croppedFile) {
+            if (croppedFile) {
+              processAutoMagicColor(croppedFile, function(magic) {
+                var displayFile = (selectedPrintType === 'color') ? croppedFile : (magic || croppedFile);
+                var newUrl = URL.createObjectURL(displayFile);
+                curPage.url = newUrl;
+                curPage.file = croppedFile;
+                curPage.magicFile = magic;
+
+                // Sync with selectedFiles
+                if (curPage.fileIdx !== undefined && selectedFiles[curPage.fileIdx]) {
+                  selectedFiles[curPage.fileIdx].file = croppedFile;
+                  selectedFiles[curPage.fileIdx].magicFile = magic;
+                  selectedFiles[curPage.fileIdx].url = newUrl;
+                } else if (selectedFiles[pIdx]) {
+                  selectedFiles[pIdx].file = croppedFile;
+                  selectedFiles[pIdx].magicFile = magic;
+                  selectedFiles[pIdx].url = newUrl;
+                }
+
+                renderStepPreviewPage();
+                goToStep(2);
+              });
+            } else {
+              goToStep(2);
+            }
+          }, fileToCrop || curPage.name || 'image.png');
+        }
+      };
+      img.src = curPage.url || URL.createObjectURL(fileToCrop);
+    }
+
+    function openPaymentSelectionModal() {
+      var nameInput = document.getElementById('reviewName');
+      var name = nameInput ? nameInput.value.trim() : '';
+      var errEl = document.getElementById('reviewContactError');
+      if (!name) {
+        if (nameInput) {
+          nameInput.style.borderColor = '#ef4444';
+          nameInput.focus();
+        }
+        if (errEl) errEl.textContent = 'Please enter your Name before proceeding.';
+        return;
+      }
+      if (nameInput) nameInput.style.borderColor = '';
+      if (errEl) errEl.textContent = '';
+
+      syncPayScreenValues();
+      var modal = document.getElementById('paymentSelectionModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closePaymentSelectionModal() {
+      var modal = document.getElementById('paymentSelectionModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
 
     function openUploadSheet() {
-      document.getElementById('uploadSheet').classList.add('open');
+      var sheet = document.getElementById('uploadSheet');
+      if (sheet) sheet.classList.add('open');
     }
     function closeUploadSheet() {
-      document.getElementById('uploadSheet').classList.remove('open');
+      var sheet = document.getElementById('uploadSheet');
+      if (sheet) sheet.classList.remove('open');
     }
 
     function onFilesSelected(files) {
       if (!files || files.length === 0) return;
+      selectedFiles = [];
+      window.allPreviewPages = [];
+      window.currentPreviewPageIndex = 0;
+
+      var fileArr = [];
+      for (var i = 0; i < files.length; i++) fileArr.push(files[i]);
+
       var imageFiles = [];
       var pdfFiles = [];
-      for (var i = 0; i < files.length; i++) {
-        var ext = files[i].name.split('.').pop().toLowerCase();
-        if (['jpg','jpeg','png'].includes(ext)) imageFiles.push(files[i]);
-        else pdfFiles.push(files[i]);
-      }
-      document.getElementById('fileInput').value = '';
-      document.getElementById('cameraInput').value = '';
 
-      // PDFs → selectedFiles directly → print settings
-      if (pdfFiles.length > 0) {
-        showProgress('Processing PDFs...', 10);
-        var total = pdfFiles.length, done = 0;
-        function pdfCheckDone() {
-          done++;
-          if (done === total) {
-            if (imageFiles.length === 0) { hideProgress(); goToSettings(); }
-          }
-        }
-        for (var i = 0; i < pdfFiles.length; i++) {
-          (function(file) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-              try {
-                var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
-                loadingTask.promise.then(function(pdf) {
-                  selectedFiles.push({ file: file, pages: pdf.numPages });
-                  pdfCheckDone();
-                }, function() {
-                  selectedFiles.push({ file: file, pages: 1 });
-                  pdfCheckDone();
-                });
-              } catch(ex) {
-                selectedFiles.push({ file: file, pages: 1 });
-                pdfCheckDone();
-              }
-            };
-            reader.onerror = function() {
-              selectedFiles.push({ file: file, pages: 1 });
-              pdfCheckDone();
-            };
-            reader.readAsArrayBuffer(file);
-          })(pdfFiles[i]);
+      for (var i = 0; i < fileArr.length; i++) {
+        var f = fileArr[i];
+        var ext = (f.name || '').split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'webp', 'bmp', 'heic'].includes(ext)) {
+          imageFiles.push(f);
+        } else {
+          pdfFiles.push(f);
         }
       }
 
-      // Images → crop tool → print settings
-      if (imageFiles.length > 0) {
-        showStep('stepSettings');
-        showProgress('Opening scanner...', 10);
-        setTimeout(function() {
+      if (document.getElementById('fileInput')) document.getElementById('fileInput').value = '';
+      if (document.getElementById('cameraInput')) document.getElementById('cameraInput').value = '';
+
+      showProgress('Loading documents...', 20);
+
+      var totalItems = imageFiles.length + pdfFiles.length;
+      var completedItems = 0;
+
+      function checkAllDone() {
+        completedItems++;
+        var pct = Math.round((completedItems / totalItems) * 100);
+        showProgress('Processing files (' + completedItems + '/' + totalItems + ')...', pct);
+
+        if (completedItems >= totalItems) {
           hideProgress();
-          startImageCrop(imageFiles, 0, function() {
-            goToSettings();
-          });
-        }, 150);
+          goToStep(2);
+        }
       }
+
+      // 1. Process Image Files
+      imageFiles.forEach(function(imgFile, imgIdx) {
+        var url = URL.createObjectURL(imgFile);
+        selectedFiles.push({ file: imgFile, pages: 1, url: url });
+        window.allPreviewPages.push({
+          type: 'image',
+          url: url,
+          file: imgFile,
+          fileIdx: imgIdx,
+          pageNum: 1,
+          name: imgFile.name
+        });
+        checkAllDone();
+      });
+
+      // 2. Process PDF Files (render each page to canvas -> image for preview)
+      pdfFiles.forEach(function(pdfFile) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
+            loadingTask.promise.then(function(pdf) {
+              var numPages = pdf.numPages;
+              selectedFiles.push({ file: pdfFile, pages: numPages });
+              
+              var pagesRendered = 0;
+              for (var p = 1; p <= numPages; p++) {
+                (function(pageNum) {
+                  pdf.getPage(pageNum).then(function(page) {
+                    var viewport = page.getViewport({ scale: 1.3 });
+                    var canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    var ctx = canvas.getContext('2d');
+                    page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+                      var pageUrl = canvas.toDataURL('image/jpeg', 0.9);
+                      window.allPreviewPages.push({
+                        type: 'pdf',
+                        url: pageUrl,
+                        file: pdfFile,
+                        pageNum: pageNum,
+                        name: pdfFile.name
+                      });
+                      pagesRendered++;
+                      if (pagesRendered === numPages) {
+                        checkAllDone();
+                      }
+                    }).catch(function() {
+                      pagesRendered++;
+                      if (pagesRendered === numPages) checkAllDone();
+                    });
+                  }).catch(function() {
+                    pagesRendered++;
+                    if (pagesRendered === numPages) checkAllDone();
+                  });
+                })(p);
+              }
+            }, function() {
+              // PDF fallback
+              selectedFiles.push({ file: pdfFile, pages: 1 });
+              window.allPreviewPages.push({
+                type: 'pdf',
+                url: '',
+                file: pdfFile,
+                pageNum: 1,
+                name: pdfFile.name
+              });
+              checkAllDone();
+            });
+          } catch (err) {
+            selectedFiles.push({ file: pdfFile, pages: 1 });
+            checkAllDone();
+          }
+        };
+        reader.onerror = function() {
+          selectedFiles.push({ file: pdfFile, pages: 1 });
+          checkAllDone();
+        };
+        reader.readAsArrayBuffer(pdfFile);
+      });
     }
 
     // --- Automatic Magic Color Image Enhancement Pipeline ---
@@ -2455,30 +2678,27 @@
     }
 
     function updatePrice() {
-      var allRadio = document.querySelector('input[name="pageRange"][value="all"]');
-      var customRadio = document.querySelector('input[name="pageRange"][value="custom"]');
-      var input = document.getElementById('pageRangeInput');
-      var pageRange = 'all';
-      if (customRadio && customRadio.checked) {
-        pageRange = input.value.trim() || 'all';
+      var pageRange = selectedPageRange || 'all';
+      var specInput = document.getElementById('specificPagesInput');
+      var tabSpec = document.getElementById('tabSpecificPages');
+      if (tabSpec && tabSpec.classList.contains('active') && specInput) {
+        pageRange = specInput.value.trim() || 'all';
       }
       selectedPageRange = pageRange;
 
-      var totalPages = 0;
-      var totalSheets = 0;
-
-      for (var i = 0; i < selectedFiles.length; i++) {
-        var sf = selectedFiles[i];
-        var maxP = sf.pages || 1;
-        if (!maxP || maxP < 1) maxP = 1;
-        // Apply page range and pages-per-sheet to each file individually
-        var p = countPagesInRange(pageRange, maxP);
-        var pps = selectedPagesPerSheet || 1;
-        var effectivePages = Math.ceil(p / pps);
-        var sheets = selectedPrintSide === 'both' ? Math.ceil(effectivePages / 2) : effectivePages;
-        totalPages += p;
-        totalSheets += sheets;
+      var totalOverallPages = 0;
+      if (window.allPreviewPages && window.allPreviewPages.length) {
+        totalOverallPages = window.allPreviewPages.length;
+      } else if (selectedFiles && selectedFiles.length) {
+        totalOverallPages = selectedFiles.reduce(function(acc, sf) { return acc + (sf.pages || 1); }, 0);
       }
+      if (totalOverallPages < 1) totalOverallPages = 1;
+
+      var totalPages = countPagesInRange(pageRange, totalOverallPages);
+      var pps = selectedPagesPerSheet || 1;
+      var effectivePages = Math.ceil(totalPages / pps);
+      var totalSheets = (selectedPrintSide === 'both') ? Math.ceil(effectivePages / 2) : effectivePages;
+      if (totalSheets < 1) totalSheets = 1;
 
       // Tiered pricing: B&W (₹5 base, ₹3 bulk) vs Color (₹10 base, ₹8 bulk)
       var isColor = (selectedPrintType === 'color');
@@ -2531,6 +2751,10 @@
         isBulk: isBulk,
         priceBeforeDiscount: totalSheetsAllCopies * baseRate
       };
+
+      if (typeof syncPayScreenValues === 'function') {
+        syncPayScreenValues();
+      }
 
       return totalPrice;
     }
@@ -4915,21 +5139,24 @@
             if (selectedFiles[si].file.name === key) {
               var newCropped = enhancedFiles[key];
               selectedFiles[si].file = newCropped;
-              (function(item, newFile) {
+              (function(item, newFile, fileIdx) {
                 processAutoMagicColor(newFile, function(newMagic) {
                   item.magicFile = newMagic;
-                  renderFileCards();
-                  if (typeof window.qpPreview === 'function') window.qpPreview();
-                  if (typeof window.qpBar === 'function') window.qpBar();
+                  var displayFile = (selectedPrintType === 'color') ? newFile : (newMagic || newFile);
+                  var newUrl = URL.createObjectURL(displayFile);
+                  if (window.allPreviewPages && window.allPreviewPages[fileIdx]) {
+                    window.allPreviewPages[fileIdx].url = newUrl;
+                  }
+                  renderStepPreviewPage();
+                  goToStep(2);
                 });
-              })(selectedFiles[si], newCropped);
+              })(selectedFiles[si], newCropped, si);
               break;
             }
           }
         }
         renderFileCards();
-        if (typeof window.qpPreview === 'function') window.qpPreview();
-        if (typeof window.qpBar === 'function') window.qpBar();
+        goToStep(2);
         return;
       }
       var item = cropQueue[cropIndex];

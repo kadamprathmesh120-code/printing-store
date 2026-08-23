@@ -1,23 +1,37 @@
 /* ============================================
-   KADAM XEROX — Mobile-First UI (Blue Theme)
+   QR Se Print / Print Store — Modern 4-Step UI
    ============================================ */
 
 /* --- Fonts --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap');
+
+:root {
+  --primary-purple: #8b5cf6;
+  --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
+  --purple-glow: 0 8px 25px -4px rgba(139, 92, 246, 0.45);
+  --green-btn: #16a34a;
+  --green-btn-hover: #15803d;
+  --green-glow: 0 8px 20px -4px rgba(22, 163, 74, 0.35);
+  --bg-soft: #f4f6fc;
+  --card-bg: #ffffff;
+  --border-light: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+}
 
 /* --- Base --- */
 *, *::before, *::after { box-sizing:border-box; }
 html { -webkit-text-size-adjust:100%; }
 body {
-  margin:0; padding:0; padding-bottom:72px;
+  margin:0; padding:0; padding-bottom:30px;
   font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background:#f0f4ff;
+  background:#f4f6fc;
   background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(37,99,235,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(37,99,235,0.04) 0%, transparent 50%);
+    radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(236,72,153,0.05) 0%, transparent 50%);
   background-attachment:fixed;
   min-height:100vh;
-  color:#1a1a2e;
+  color:#0f172a;
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
 }
@@ -2015,5 +2029,692 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
     font-size: 0.95em;
   }
 }
+
+/* ========================================================
+   MODERN 4-STEP UI REDESIGN STYLES (MATCHING SCREENSHOTS)
+   ======================================================== */
+
+/* --- Top Header Rate Banner --- */
+.top-rate-banner {
+  background: #0f172a;
+  padding: 8px 16px 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  border-radius: 0 0 22px 22px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  margin-bottom: 12px;
+}
+.rate-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.rate-pill.bw {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #334155;
+}
+.rate-pill.color {
+  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(217, 70, 239, 0.4);
+}
+
+/* --- Universal 4-Step Stepper Header --- */
+.flow-stepper-container {
+  max-width: 440px;
+  margin: 12px auto 16px;
+  padding: 0 16px;
+}
+.flow-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+.flow-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+.flow-step-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-weight: 800;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 2px solid transparent;
+}
+.flow-step-item.completed .flow-step-circle {
+  background: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+.flow-step-item.active .flow-step-circle {
+  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(217, 70, 239, 0.25), 0 6px 18px rgba(139, 92, 246, 0.45);
+  transform: scale(1.06);
+}
+.flow-step-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-top: 6px;
+  transition: color 0.2s;
+}
+.flow-step-item.active .flow-step-label {
+  color: #7c3aed;
+  font-weight: 800;
+}
+.flow-step-item.completed .flow-step-label {
+  color: #1e293b;
+}
+.flow-step-line {
+  position: absolute;
+  top: 22px;
+  left: 30px;
+  right: 30px;
+  height: 3px;
+  background: #e2e8f0;
+  z-index: 1;
+  border-radius: 2px;
+}
+.flow-step-line-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #d946ef);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* --- Main Flow Card & Container --- */
+.flow-container {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 0 14px 20px;
+}
+.flow-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 24px 20px 20px;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 10px 30px -4px rgba(0,0,0,0.06), 0 4px 10px -2px rgba(0,0,0,0.02);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* --- Step 1: Upload Screen Styles --- */
+.upload-hero-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f5f3ff;
+  color: #8b5cf6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.12);
+}
+.gradient-title {
+  font-size: 1.55rem;
+  font-weight: 900;
+  text-align: center;
+  margin: 0 0 4px;
+  background: linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+.upload-sub {
+  font-size: 0.84rem;
+  color: #64748b;
+  text-align: center;
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+.upload-multi-note {
+  font-size: 0.78rem;
+  color: #334155;
+  text-align: center;
+  margin: 0 0 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.format-pill-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.format-pill {
+  padding: 4px 16px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.format-pill.pdf {
+  border: 1.5px solid #fecdd3;
+  color: #e11d48;
+  background: #fff1f2;
+}
+.format-pill.jpg {
+  border: 1.5px solid #bbf7d0;
+  color: #16a34a;
+  background: #f0fdf4;
+}
+.format-pill.png {
+  border: 1.5px solid #bfdbfe;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+/* Upload Dropzone */
+.dropzone-box {
+  border: 2px dashed #c4b5fd;
+  border-radius: 20px;
+  padding: 24px 16px 20px;
+  background: #faf5ff;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 14px;
+  display: block;
+}
+.dropzone-box:active, .dropzone-box.dragover {
+  background: #f3e8ff;
+  border-color: #8b5cf6;
+  transform: scale(0.99);
+}
+.dropzone-icon {
+  width: 44px;
+  height: 44px;
+  color: #8b5cf6;
+  margin: 0 auto 8px;
+}
+.dropzone-prompt {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #6b21a8;
+  margin-bottom: 6px;
+}
+.dropzone-or {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 4px 0 10px;
+}
+.choose-files-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 24px;
+  padding: 10px 28px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(217, 70, 239, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.choose-files-btn:active {
+  transform: scale(0.96);
+}
+
+/* Modern ID Card Option Box */
+.id-card-option-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+  border: 1.5px solid #bae6fd;
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+}
+.id-card-option-box:active {
+  transform: scale(0.98);
+}
+.id-card-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.id-card-info-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.id-card-info-sub {
+  font-size: 0.74rem;
+  color: #0369a1;
+  margin-top: 2px;
+  font-weight: 500;
+}
+.id-card-arrow {
+  margin-left: auto;
+  color: #0284c7;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+/* Security Note */
+.security-note-text {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* --- Document Preview Sheets & Framing --- */
+.screen-header-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.screen-header-sub {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0 0 14px;
+}
+
+.preview-sheet-frame {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  margin-bottom: 16px;
+}
+.preview-sheet-paper {
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.04);
+  padding: 8px;
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 1 / 1.414;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.preview-sheet-paper img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+  display: block;
+}
+
+/* --- Page Navigator [ < ] Page 1 / 2 [ > ] --- */
+.page-navigator-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 10px 0 14px;
+}
+.page-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.page-nav-btn:active {
+  transform: scale(0.94);
+  background: #f8fafc;
+}
+.page-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.page-nav-indicator {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #0f172a;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* --- Action Buttons (Large Green & White) --- */
+.btn-action-green {
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 20px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.btn-action-green:active {
+  transform: scale(0.98);
+  background: #15803d;
+}
+
+.btn-action-white {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 13px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.btn-action-white:active {
+  transform: scale(0.98);
+  background: #f8fafc;
+}
+
+.btn-sub-caption {
+  font-size: 0.74rem;
+  color: #64748b;
+  text-align: center;
+  margin: 6px 0 12px;
+  line-height: 1.35;
+}
+
+.dual-button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.dual-button-row .btn-action-white {
+  flex: 1;
+}
+.dual-button-row .btn-action-green {
+  flex: 1.4;
+}
+
+/* --- Step 4: Pay Screen Options --- */
+.print-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+.print-opt-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.print-opt-card.selected {
+  border-color: #8b5cf6;
+  background: #faf5ff;
+  box-shadow: 0 0 0 1px #8b5cf6, 0 4px 14px rgba(139, 92, 246, 0.12);
+}
+.print-opt-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.print-opt-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+.print-opt-rate {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.print-opt-card.selected .print-opt-rate {
+  color: #7c3aed;
+}
+
+/* Copies Control */
+.copies-control-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  margin: 14px 0 16px;
+}
+.copies-control-label {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.copies-counter-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 4px 8px;
+}
+.copies-btn-square {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.copies-count-num {
+  font-weight: 900;
+  font-size: 1.1rem;
+  min-width: 24px;
+  text-align: center;
+  color: #0f172a;
+}
+
+/* Calculation & Summary Rows */
+.price-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.price-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  color: #475569;
+  font-weight: 600;
+}
+.price-breakdown-row .val {
+  color: #0f172a;
+  font-weight: 700;
+}
+.price-divider-line {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 10px 0;
+}
+.total-highlight-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+.total-highlight-label {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+.total-highlight-val {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #8b5cf6;
+  display: flex;
+  align-items: center;
+}
+
+/* Customer Name Input Box */
+.customer-name-field {
+  margin: 14px 0 6px;
+}
+.customer-name-field input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 0.9rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.customer-name-field input:focus {
+  border-color: #8b5cf6;
+}
+
+/* --- Which Pages to Print Section in Step 3 --- */
+.which-pages-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 16px;
+  margin: 14px 0 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.which-pages-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.which-pages-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.which-page-tab {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.which-page-tab.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(217, 70, 239, 0.35);
+}
+.which-pages-sub {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.which-pages-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.88rem;
+  font-family: inherit;
+  margin-top: 8px;
+  box-sizing: border-box;
+  outline: none;
+}
+.which-pages-input:focus {
+  border-color: #8b5cf6;
+}
+
+
 
 
