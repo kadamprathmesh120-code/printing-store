@@ -272,6 +272,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const publicDir = fs.existsSync(path.join(__dirname, 'public')) ? path.join(__dirname, 'public') : __dirname;
 
+// Disable browser caching for dev/localhost so changes appear immediately
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 // ---------------------------------------------------------------------------
 // Block direct access to admin.html — redirect to login page instead.
 // The login page (admin-login.html) is always accessible.

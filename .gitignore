@@ -22,3 +22,4 @@ printed-orders.json
 scratch/
 *.apk
 downloads/
+*.tsbuildinfo

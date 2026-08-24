@@ -47,12 +47,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="style.css?v=31_idcopy_fix">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"
     onload="if(typeof lucide!=='undefined')lucide.createIcons()"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="opencv-crop.js?v=31_idcopy_fix"></script>
   <style>
     .hidden {
       display: none !important;
@@ -1188,7 +1189,7 @@
     <!-- ID Copy section (4-Step Wizard Flow) -->
     <div id="idCopySection" class="hidden" style="display:none;">
       
-      <!-- STEP 1: UPLOAD ID CARD -->
+      <!-- STEP 1: UPLOAD ID CARD (front only) -->
       <div id="idcStepUpload" class="idc-wizard-step active">
         <div class="flow-container">
           <div class="flow-card">
@@ -1196,57 +1197,41 @@
               <button type="button" class="back-btn" onclick="exitIdCopy()" style="margin-bottom:0;"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back</span></button>
               <span style="font-size:0.82em;font-weight:700;color:#64748b;">Step 1 of 4 • Upload ID</span>
             </div>
-            <div class="upload-hero-icon" style="background:#eff6ff;color:#2563eb;">
-              🪪
-            </div>
+
+            <div class="upload-hero-icon" style="background:#eff6ff;color:#2563eb;font-size:2.2em;">🪪</div>
             <h1 class="gradient-title" style="font-size:1.35em;">Upload ID Card</h1>
-            <div class="upload-sub">Aadhaar • PAN • Voter ID • Driving License</div>
+            <div class="upload-sub" style="margin-bottom:20px;">Aadhaar • PAN • Voter ID • Driving License</div>
 
-            <!-- Upload Slots: Front & Back side-by-side -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 14px;">
-              <!-- Front Side Slot -->
-              <div id="idcSlotFront" class="idc-slot-card" onclick="document.getElementById('idcFrontInput').click()">
-                <div class="idc-slot-badge">Front (Photo Side)</div>
-                <div id="idcFrontEmpty" class="idc-slot-empty">
-                  <span class="icon">📸</span>
-                  <div style="font-weight:700;font-size:0.9em;color:#1e293b;">Front Side</div>
-                  <div style="font-size:0.7em;color:#94a3b8;margin-top:2px;">Tap to select</div>
-                </div>
-                <img id="idcFrontImg" class="idc-slot-img hidden" alt="Front Preview">
-                <div id="idcFrontPillStatus" class="idc-slot-pill">(Tap to upload)</div>
-                <input type="file" id="idcFrontInput" accept="image/*" style="display:none" onchange="idcLoad(this,'front')">
+            <!-- Front Side Slot — full width, single action -->
+            <div id="idcSlotFront" class="idc-slot-card" onclick="document.getElementById('idcFrontInput').click()"
+              style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;border:2.5px dashed #bfdbfe;border-radius:18px;background:#f0f7ff;cursor:pointer;transition:all 0.18s;padding:24px 14px;margin-bottom:10px;">
+              <div id="idcFrontEmpty" class="idc-slot-empty" style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <span style="font-size:3em;">📷</span>
+                <div style="font-weight:800;font-size:1em;color:#1e3a8a;margin-top:4px;">Tap to Upload Front Side</div>
+                <div style="font-size:0.78em;color:#64748b;">Photo / Face side of your ID card</div>
               </div>
-
-              <!-- Back Side Slot -->
-              <div id="idcSlotBack" class="idc-slot-card" onclick="document.getElementById('idcBackInput').click()">
-                <div class="idc-slot-badge">Back (Address Side)</div>
-                <div id="idcBackEmpty" class="idc-slot-empty">
-                  <span class="icon">📸</span>
-                  <div style="font-weight:700;font-size:0.9em;color:#1e293b;">Back Side</div>
-                  <div style="font-size:0.7em;color:#94a3b8;margin-top:2px;">Optional / Tap to add</div>
-                </div>
-                <img id="idcBackImg" class="idc-slot-img hidden" alt="Back Preview">
-                <div id="idcBackPillStatus" class="idc-slot-pill">(Optional)</div>
-                <input type="file" id="idcBackInput" accept="image/*" style="display:none" onchange="idcLoad(this,'back')">
-              </div>
+              <img id="idcFrontImg" class="idc-slot-img hidden" alt="Front Preview"
+                style="max-width:100%;max-height:180px;border-radius:10px;object-fit:contain;">
+              <div id="idcFrontPillStatus" class="idc-slot-pill" style="margin-top:8px;font-size:0.8em;">(Tap to upload)</div>
+              <input type="file" id="idcFrontInput" accept="image/*" style="display:none" onchange="idcLoad(this,'front')">
             </div>
 
-            <!-- Layout Mode Selector -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;">
-              <div>
-                <div style="font-size:0.84em;font-weight:700;color:#334155;">Print Layout</div>
-                <div style="font-size:0.72em;color:#64748b;">Front &amp; Back on same page</div>
-              </div>
-              <div style="display:flex;gap:6px;">
-                <button type="button" id="idcLayoutBothBtn" class="edit-filter-tab active" onclick="idcSetLayoutMode('both')" style="padding:6px 12px;font-size:0.78em;">Front + Back</button>
-                <button type="button" id="idcLayoutFrontBtn" class="edit-filter-tab" onclick="idcSetLayoutMode('front_only')" style="padding:6px 12px;font-size:0.78em;">Front Only</button>
-              </div>
+            <!-- Hidden back input (triggered programmatically after prompt) -->
+            <input type="file" id="idcBackInput" accept="image/*" style="display:none" onchange="idcLoad(this,'back')">
+            <!-- Hidden back slot (used in Step 2 edit preview only) -->
+            <div id="idcSlotBack" style="display:none;">
+              <img id="idcBackImg" class="idc-slot-img hidden" alt="Back Preview">
+              <div id="idcBackEmpty" style="display:none;"></div>
+              <div id="idcBackPillStatus" style="display:none;">(Optional)</div>
             </div>
 
-            <button type="button" class="btn-action-green" id="idcStep1NextBtn" onclick="idcGoToStep(2)" disabled style="opacity:0.6;cursor:not-allowed;">
-              <span>Next: Edit &amp; Enhance (Step 2) ➔</span>
-            </button>
-            <div class="btn-sub-caption" id="idcStep1Caption">Upload front side of your ID card to continue</div>
+            <!-- Hidden layout buttons (kept for JS compatibility) -->
+            <div style="display:none;">
+              <button type="button" id="idcLayoutBothBtn" class="edit-filter-tab active" onclick="idcSetLayoutMode('both')">Front + Back</button>
+              <button type="button" id="idcLayoutFrontBtn" class="edit-filter-tab" onclick="idcSetLayoutMode('front_only')">Front Only</button>
+            </div>
+
+            <div class="btn-sub-caption" id="idcStep1Caption" style="margin-top:8px;">After uploading, crop &amp; rotate screen opens automatically</div>
           </div>
         </div>
       </div>
@@ -1259,8 +1244,8 @@
               <button type="button" class="back-btn" onclick="idcGoToStep(1)" style="margin-bottom:0;"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back</span></button>
               <span style="font-size:0.82em;font-weight:700;color:#64748b;">Step 2 of 4 • Edit &amp; Enhance</span>
             </div>
-            <h2 class="screen-header-title">✂️ Edit &amp; Enhance ID</h2>
-            <div class="screen-header-sub">Rotate, crop borders, and apply crystal-clear Magic Color</div>
+            <h2 class="screen-header-title">✂️ Edit &amp; Adjust ID</h2>
+            <div class="screen-header-sub">Rotate and crop borders to fit your ID card</div>
 
             <!-- Side Switcher Tabs (if Back side exists) -->
             <div id="idcEditSideTabs" class="edit-filter-tabs" style="margin:14px 0 10px;display:none;">
@@ -1278,28 +1263,13 @@
             </div>
 
             <!-- Direct Actions: Rotate & Crop -->
-            <div style="display:flex;gap:10px;margin-bottom:14px;">
+            <div style="display:flex;gap:10px;margin-bottom:18px;">
               <button type="button" class="btn-action-white" onclick="idcStepRotate()" style="flex:1;margin:0;padding:12px;background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#334155;">
                 <span>🔄 Rotate 90°</span>
               </button>
               <button type="button" class="btn-action-white" onclick="idcStepOpenCrop()" style="flex:1;margin:0;padding:12px;background:#fff;border:1.5px solid #2563eb;color:#2563eb;font-weight:700;">
                 <span>✂️ Adjust Crop</span>
               </button>
-            </div>
-
-            <!-- Filter Enhancement Toggle (Original vs Magic Color) -->
-            <div class="edit-filter-section" id="idcFilterSection" style="margin:8px 0 18px;">
-              <div class="edit-filter-label">
-                <span>🎨</span> <span>Enhancement</span>
-              </div>
-              <div class="edit-filter-tabs">
-                <button type="button" class="edit-filter-tab" id="idcFilterOriginal" onclick="idcSelectFilter('original')">
-                  <span>📷</span> <span>Original</span>
-                </button>
-                <button type="button" class="edit-filter-tab active" id="idcFilterMagic" onclick="idcSelectFilter('magic')">
-                  <span>✨</span> <span>Magic Color</span>
-                </button>
-              </div>
             </div>
 
             <button type="button" class="btn-action-green" onclick="idcGoToStep(3)">
@@ -1331,12 +1301,12 @@
               <button class="preview-btn" onclick="idcPrintPreview()" style="font-weight:700;">🖨 Print</button>
             </div>
 
-            <div id="idcPreviewWrap" style="overflow:auto;background:#e0e0e0;border-radius:12px;padding:16px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
-              <div id="idcA4" style="width:100%;max-width:520px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;transform-origin:top center;transition:transform 0.15s;border:1px solid rgba(0,0,0,0.06);border-radius:2px;">
-                <div id="idcA4Aspect" style="width:100%;aspect-ratio:210/297;">
-                  <div id="idcA4Printable" style="position:absolute;inset:8%;border:1px dashed #ccc;border-radius:2px;pointer-events:none;"></div>
-                  <div id="idcA4Drop" style="position:absolute;inset:0;">
-                    <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;pointer-events:none;">
+            <div id="idcPreviewWrap" style="overflow:hidden;background:#e2e8f0;border-radius:16px;padding:12px;display:flex;justify-content:center;align-items:center;touch-action:none;">
+              <div id="idcA4" style="width:100%;max-width:360px;background:white;box-shadow:0 6px 24px rgba(0,0,0,0.15);position:relative;transform-origin:top center;transition:transform 0.15s;border:1px solid rgba(0,0,0,0.08);border-radius:3px;">
+                <div id="idcA4Aspect" style="width:100%;aspect-ratio:210/297;position:relative;">
+                  <div id="idcA4Printable" style="position:absolute;inset:4%;border:1px dashed #cbd5e1;border-radius:2px;pointer-events:none;"></div>
+                  <div id="idcA4Drop" style="position:absolute;inset:0;overflow:hidden;">
+                    <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#94a3b8;font-size:0.9em;text-align:center;pointer-events:none;font-weight:600;">
                       Upload front/back images<br>to see print preview
                     </div>
                   </div>
@@ -1614,82 +1584,7 @@
     </div>
   </div>
 
-  <!-- ID Copy Crop Modal -->
-  <div id="idcModal" class="crop-overlay" style="display:none;z-index:101;">
-    <div class="crop-card" style="max-width:540px;width:94%;">
-      <h3 style="display:flex;justify-content:space-between;align-items:center;">
-        <span>ID Copy <span id="idcCropSide">Front</span></span>
-        <span style="font-size:0.75em;color:#FFD700;font-weight:400;">110x69mm</span>
-      </h3>
-      <div
-        style="border-radius:10px;overflow:hidden;background:#000;display:flex;justify-content:center;max-height:50vh;position:relative;touch-action:none;">
-        <canvas id="idcCanvas" style="max-width:100%;max-height:50vh;transition:transform 0.3s ease;"></canvas>
-        <div id="idcRatioOverlay"
-          style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;border:2px dashed rgba(255,215,0,0.5);margin:12px;border-radius:4px;">
-        </div>
-      </div>
-      <div style="display:flex;justify-content:center;gap:8px;padding:10px 0;flex-wrap:wrap;">
-        <button class="idc-crop-btn" onclick="idcRotate(90)" style="background:#7c3aed;font-weight:700;">🔄
-          Rotate</button>
-        <button class="idc-crop-btn" style="background:#2563eb;font-weight:700;" onclick="idcAutoDetect()"
-          id="idcAutoBtn">Auto</button>
-        <button class="idc-crop-btn" style="background:#4b5563;" onclick="idcResetCrop()">No Crop</button>
-        <button class="idc-crop-btn" style="background:#059669;" onclick="idcConfirmCrop()">✓ Crop</button>
-      </div>
-      <div style="display:flex;justify-content:center;gap:12px;padding:4px 0;">
-        <button
-          style="background:#1f2937;border:none;color:#aaa;padding:8px 16px;border-radius:8px;font-size:0.82em;cursor:pointer;font-family:inherit;"
-          onclick="idcCancelCrop()">Close</button>
-      </div>
-      <div id="idcCropError" style="color:#ef4444;text-align:center;font-size:0.8em;"></div>
-    </div>
-  </div>
 
-  <!-- BIG POP-UP BANNER MODAL FOR FRONT SIDE COMPLETE -->
-  <div id="idcBigModal" class="crop-overlay hidden"
-    style="display:none;z-index:99999;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);backdrop-filter:blur(8px);">
-    <div class="idc-big-card animate-bounce-in"
-      style="background:#ffffff;border-radius:24px;max-width:440px;width:92%;padding:28px 22px;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,0.4);position:relative;border:1px solid rgba(255,255,255,0.2);">
-      <button onclick="idcCloseBigModal()"
-        style="position:absolute;top:16px;right:16px;background:#f3f4f6;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1em;cursor:pointer;color:#6b7280;display:flex;align-items:center;justify-content:center;">✕</button>
-
-      <div
-        style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#dbeafe,#eff6ff);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:2em;box-shadow:0 4px 12px rgba(59,130,246,0.15);">
-        📄✨</div>
-
-      <h2 id="idcBigModalTitle"
-        style="font-size:1.35em;font-weight:800;color:#111827;margin:0 0 6px;letter-spacing:-0.02em;">Front Side
-        Cropped!</h2>
-      <p id="idcBigModalSub" style="font-size:0.88em;color:#4b5563;margin:0 0 22px;line-height:1.45;">Do you have a
-        <b>BACK SIDE</b> for this ID card, or do you want to keep <b>FRONT side only</b>?</p>
-
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <!-- Option 1: Upload Back Side -->
-        <button onclick="idcBigModalAction('back')"
-          style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border:none;padding:16px 18px;border-radius:18px;font-size:1.02em;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:14px;box-shadow:0 8px 20px rgba(37,99,235,0.35);transition:all 0.2s;text-align:left;">
-          <span
-            style="font-size:1.8em;background:rgba(255,255,255,0.2);padding:6px;border-radius:12px;display:flex;align-items:center;justify-content:center;">📷</span>
-          <div style="flex:1;">
-            <div style="font-size:1.05em;font-weight:700;">Upload Back Side</div>
-            <div style="font-size:0.75em;font-weight:400;opacity:0.9;margin-top:2px;">Click if your Aadhar / PAN has
-              back page</div>
-          </div>
-          <span style="font-size:1.3em;">➔</span>
-        </button>
-
-        <!-- Option 2: Keep Front Side Only -->
-        <button onclick="idcBigModalAction('single')"
-          style="background:#f9fafb;color:#1f2937;border:2px solid #e5e7eb;padding:14px 18px;border-radius:18px;font-size:0.98em;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all 0.2s;text-align:left;">
-          <span
-            style="font-size:1.6em;background:#e5e7eb;padding:6px;border-radius:12px;display:flex;align-items:center;justify-content:center;">📄</span>
-          <div style="flex:1;">
-            <div style="font-size:0.98em;font-weight:700;">Keep Front Side Only</div>
-            <div style="font-size:0.75em;font-weight:400;color:#6b7280;margin-top:2px;">Single-sided printing</div>
-          </div>
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- SMART POP-UP BANNER FOR ID CARD DETECTED IN NORMAL MODE -->
   <div id="idCardDetectedModal" class="crop-overlay hidden"
@@ -1724,6 +1619,42 @@
         <button onclick="dismissIdNoticeAndContinue()"
           style="background:#f9fafb;color:#4b5563;border:1px solid #e5e7eb;padding:12px 18px;border-radius:16px;font-size:0.9em;font-weight:600;cursor:pointer;">
           📄 Continue Normal Print
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEAN MODAL: UPLOAD BACK SIDE PROMPT -->
+  <div id="idcBackSidePromptModal" class="crop-overlay hidden"
+    style="display:none;z-index:99999;align-items:center;justify-content:center;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:Inter,Outfit,Roboto,sans-serif;">
+    <div class="idc-big-card animate-bounce-in"
+      style="background:#ffffff;border-radius:24px;max-width:400px;width:92%;padding:26px 20px 22px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.35);position:relative;border:1px solid rgba(255,255,255,0.8);box-sizing:border-box;">
+      
+      <!-- Icon badge -->
+      <div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.9em;box-shadow:0 4px 12px rgba(37,99,235,0.15);">
+        🪪
+      </div>
+
+      <h2 style="font-size:1.35em;font-weight:800;color:#0f172a;margin:0 0 6px;letter-spacing:-0.02em;">
+        Upload Back Side?
+      </h2>
+      <p style="font-size:0.86em;color:#64748b;margin:0 0 20px;line-height:1.45;">
+        Front side saved! Would you like to upload the back (address) side of your ID card?
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <!-- Option 1: Upload Back Side -->
+        <button type="button" onclick="idcPromptUploadBack()"
+          style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border:none;padding:14px 18px;border-radius:14px;font-size:0.98em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 18px rgba(37,99,235,0.35);transition:all 0.15s ease;">
+          <span style="font-size:1.25em;">📷</span>
+          <span>Upload Back Side</span>
+        </button>
+
+        <!-- Option 2: Keep One Side Only -->
+        <button type="button" onclick="idcPromptKeepOneSide()"
+          style="background:#f8fafc;color:#334155;border:1.5px solid #cbd5e1;padding:12px 18px;border-radius:14px;font-size:0.92em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s ease;">
+          <span style="font-size:1.1em;color:#16a34a;font-weight:800;">✓</span>
+          <span>Keep One Side Only</span>
         </button>
       </div>
     </div>
@@ -1829,6 +1760,7 @@
     var idcMode = 'regular';
     var idcFrontFile = null, idcBackFile = null;
     var idcFrontCropped = null, idcBackCropped = null;
+    var idcFrontImgSrc = '#', idcBackImgSrc = '#';
     var idcRotation = 0;
     var idcCurrent = 'front';
     var idcCropImg = null;
@@ -4022,6 +3954,40 @@
       idcUpdatePaySummary();
     }
 
+    function idcResetSlots() {
+      idcFrontFile = null;
+      idcBackFile = null;
+      idcFrontCropped = null;
+      idcBackCropped = null;
+      idcFrontImgSrc = '#';
+      idcBackImgSrc = '#';
+      idcLayoutMode = 'both';
+      idcCopiesCount = 1;
+      var copiesEl = document.getElementById('idcCopiesCount');
+      if (copiesEl) copiesEl.textContent = '1';
+      var fImg = document.getElementById('idcFrontImg');
+      if (fImg) { fImg.src = ''; fImg.classList.add('hidden'); }
+      var bImg = document.getElementById('idcBackImg');
+      if (bImg) { bImg.src = ''; bImg.classList.add('hidden'); }
+      var fEmpty = document.getElementById('idcFrontEmpty');
+      if (fEmpty) fEmpty.classList.remove('hidden');
+      var bEmpty = document.getElementById('idcBackEmpty');
+      if (bEmpty) bEmpty.classList.remove('hidden');
+      var fCard = document.getElementById('idcSlotFront');
+      if (fCard) fCard.classList.remove('has-img');
+      var bCard = document.getElementById('idcSlotBack');
+      if (bCard) bCard.classList.remove('has-img');
+      var fPill = document.getElementById('idcFrontPillStatus');
+      if (fPill) { fPill.textContent = '(Tap to upload)'; fPill.style.color = ''; }
+      var fInp = document.getElementById('idcFrontInput');
+      if (fInp) fInp.value = '';
+      var bInp = document.getElementById('idcBackInput');
+      if (bInp) bInp.value = '';
+      var caption = document.getElementById('idcStep1Caption');
+      if (caption) caption.textContent = 'After uploading, crop & rotate screen opens automatically';
+      idcUpdatePreview();
+    }
+
     function idcLoad(input, side) {
       if (!input.files || !input.files[0]) return;
       var f = input.files[0];
@@ -4039,71 +4005,160 @@
         pillStat.style.color = '#16a34a';
       }
 
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        if (side === 'front') idcFrontImgSrc = e.target.result;
-        else idcBackImgSrc = e.target.result;
+      var caption = document.getElementById('idcStep1Caption');
+      if (caption) {
+        caption.textContent = 'Opening crop & rotate...';
+      }
 
-        var img = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back') + 'Img');
-        if (img) {
-          img.src = e.target.result;
-          img.classList.remove('hidden');
-        }
-        var emptyEl = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back') + 'Empty');
-        if (emptyEl) emptyEl.classList.add('hidden');
-        var cardEl = document.getElementById('idcSlot' + (side === 'front' ? 'Front' : 'Back'));
-        if (cardEl) cardEl.classList.add('has-img');
+      var blobUrl = URL.createObjectURL(f);
+      if (side === 'front') idcFrontImgSrc = blobUrl;
+      else idcBackImgSrc = blobUrl;
 
-        // Enable Step 1 Next button
-        var nextBtn = document.getElementById('idcStep1NextBtn');
-        var caption = document.getElementById('idcStep1Caption');
-        if (nextBtn && idcFrontFile) {
-          nextBtn.disabled = false;
-          nextBtn.style.opacity = '1';
-          nextBtn.style.cursor = 'pointer';
-        }
-        if (caption && idcFrontFile) {
-          caption.textContent = 'Front side ready — proceed to edit & preview';
-        }
+      var imgEl = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back') + 'Img');
+      if (imgEl) {
+        imgEl.src = blobUrl;
+        imgEl.classList.remove('hidden');
+      }
+      var emptyEl = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back') + 'Empty');
+      if (emptyEl) emptyEl.classList.add('hidden');
+      var cardEl = document.getElementById('idcSlot' + (side === 'front' ? 'Front' : 'Back'));
+      if (cardEl) cardEl.classList.add('has-img');
 
-        idcUpdatePreview();
-      };
-      reader.readAsDataURL(f);
+      idcUpdatePreview();
+
+      // Launch crop modal directly with the original file object
+      idcCropWithImg(side, f, f);
+
       input.value = '';
     }
 
-    function idcCrop(side) {
+    function idcCrop(side, isInitialAutoFlow) {
       var f = side === 'front' ? (idcFrontCropped || idcFrontFile) : (idcBackCropped || idcBackFile);
       if (!f) return;
+      var fileObj = (side === 'front' ? idcFrontFile : idcBackFile) || f;
+      idcCropWithImg(side, f, fileObj);
+    }
+
+    function idcCropWithImg(side, imgObj, originalFileRef) {
+      if (!imgObj) return;
       idcCurrent = side;
-      var img = new Image();
-      img.onload = function () {
-        idcCropImg = img;
-        idcRotation = 0;
-        if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
-          OCV_CROP.openModal(img, true, function (croppedFile, filter) {
-            if (!croppedFile) return;
-            if (idcCurrent === 'front') idcFrontCropped = croppedFile; else idcBackCropped = croppedFile;
-            var reader = new FileReader();
-            reader.onload = function (e) {
-              if (idcCurrent === 'front') idcFrontImgSrc = e.target.result;
-              else idcBackImgSrc = e.target.result;
-              var imgEl = document.getElementById('idc' + (idcCurrent === 'front' ? 'Front' : 'Back') + 'Img');
-              if (imgEl) {
-                imgEl.src = e.target.result;
-                imgEl.classList.remove('hidden');
-              }
-              idcRenderEditPreview();
-              idcUpdatePreview();
-            };
-            reader.readAsDataURL(croppedFile);
+
+      var caption = document.getElementById('idcStep1Caption');
+      if (caption) caption.textContent = 'Crop & rotate active';
+
+      if (typeof OCV_CROP !== 'undefined' && typeof OCV_CROP.openModal === 'function') {
+        try {
+          OCV_CROP.openModal(imgObj, true, function (croppedFile, filter) {
+            var cap = document.getElementById('idcStep1Caption');
+            var pillStat = document.getElementById('idc' + (idcCurrent === 'front' ? 'Front' : 'Back') + 'PillStatus');
+
+            if (!croppedFile) {
+              if (cap) cap.textContent = idcCurrent === 'front' ? 'Front side loaded (tap to crop)' : 'Back side loaded (tap to crop)';
+              if (idcCurrent === 'front') showIdcBackSidePrompt();
+              return;
+            }
+
+            // 1. Maintain ACTUAL File/Blob
+            if (idcCurrent === 'front') {
+              idcFrontCropped = croppedFile;
+            } else {
+              idcBackCropped = croppedFile;
+            }
+
+            // 2. Maintain DISPLAY URL ONLY
+            var blobUrl = URL.createObjectURL(croppedFile);
+            if (idcCurrent === 'front') {
+              idcFrontImgSrc = blobUrl;
+            } else {
+              idcBackImgSrc = blobUrl;
+            }
+
+            // 3. Update Slot UI
+            var imgEl = document.getElementById('idc' + (idcCurrent === 'front' ? 'Front' : 'Back') + 'Img');
+            if (imgEl) {
+              imgEl.src = blobUrl;
+              imgEl.classList.remove('hidden');
+            }
+
+            // 4. Update Status and Caption
+            if (pillStat) {
+              pillStat.textContent = (idcCurrent === 'front' ? '✓ Front Cropped' : '✓ Back Cropped');
+              pillStat.style.color = '#16a34a';
+            }
+            if (cap) {
+              cap.textContent = (idcCurrent === 'front' ? 'Front side cropped' : 'Back side cropped');
+            }
+
+            // 5. Update Edit and A4 Print Previews
+            idcRenderEditPreview();
+            idcUpdatePreview();
+
+            // 6. Navigation / Prompt Flow
+            if (idcCurrent === 'front') {
+              showIdcBackSidePrompt();
+            } else if (idcCurrent === 'back') {
+              idcSetLayoutMode('both');
+              idcGoToStep(3);
+            }
+
             var errEl = document.getElementById('idcCropError');
             if (errEl) errEl.textContent = '';
-          }, f);
-          return;
+          }, originalFileRef || (side === 'front' ? idcFrontFile : idcBackFile));
+        } catch (err) {
+          console.error('[IDC] Error opening OCV_CROP modal:', err);
+          var cap = document.getElementById('idcStep1Caption');
+          if (cap) cap.textContent = 'Front side ready';
+          if (side === 'front') showIdcBackSidePrompt();
+          else { idcSetLayoutMode('both'); idcGoToStep(3); }
         }
-      };
-      img.src = (typeof f === 'string' ? f : URL.createObjectURL(f));
+      } else {
+        console.warn('[IDC] OCV_CROP not loaded, skipping directly');
+        var cap = document.getElementById('idcStep1Caption');
+        if (cap) cap.textContent = 'Front side ready';
+        if (side === 'front') showIdcBackSidePrompt();
+        else { idcSetLayoutMode('both'); idcGoToStep(3); }
+      }
+    }
+
+    function showIdcBackSidePrompt() {
+      var modal = document.getElementById('idcBackSidePromptModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+    }
+
+    function hideIdcBackSidePrompt() {
+      var modal = document.getElementById('idcBackSidePromptModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    function idcPromptUploadBack() {
+      hideIdcBackSidePrompt();
+      idcSetLayoutMode('both');
+      var bi = document.getElementById('idcBackInput');
+      if (bi) bi.click();
+    }
+
+    function idcPromptKeepOneSide() {
+      hideIdcBackSidePrompt();
+      idcSetLayoutMode('front_only');
+      idcBackFile = null;
+      idcBackCropped = null;
+      idcBackImgSrc = '#';
+      var bImg = document.getElementById('idcBackImg');
+      if (bImg) { bImg.src = ''; bImg.classList.add('hidden'); }
+      var bEmpty = document.getElementById('idcBackEmpty');
+      if (bEmpty) bEmpty.classList.remove('hidden');
+      var bCard = document.getElementById('idcSlotBack');
+      if (bCard) bCard.classList.remove('has-img');
+      var bPill = document.getElementById('idcBackPillStatus');
+      if (bPill) { bPill.textContent = '(Optional)'; bPill.style.color = ''; }
+      idcUpdatePreview();
+      idcGoToStep(3);
     }
 
     function idcUpdatePaySummary() {
@@ -4139,7 +4194,6 @@
       if (onlineBtn) onlineBtn.innerHTML = '🔒 Pay ₹' + total + ' Online';
     }
 
-
     function idcClear() {
       idcQueue = [];
       idcResetSlots();
@@ -4160,6 +4214,7 @@
 
     function idcRenderQueue() {
       var el = document.getElementById('idcQueue');
+      if (!el) return;
       if (idcQueue.length === 0) { el.classList.add('hidden'); return; }
       el.classList.remove('hidden');
       var html = '<div style="font-weight:600;margin-bottom:8px;font-size:0.85em;color:#374151;">Queue (' + idcQueue.length + ')</div>';
@@ -4192,95 +4247,65 @@
     }
 
     function idcUpdatePreview() {
-      var wrap = document.getElementById('idcPreview');
-      wrap.classList.remove('hidden');
+      var wrap = document.getElementById('idcPreviewWrap');
+      if (wrap) wrap.classList.remove('hidden');
       var drop = document.getElementById('idcA4Drop');
-      var a4 = document.getElementById('idcA4');
-      var a4Aspect = document.getElementById('idcA4Aspect');
-      var hasFront = idcFrontFile && idcFrontImgSrc && idcFrontImgSrc !== '#';
-      var hasBack = idcBackFile && idcBackImgSrc && idcBackImgSrc !== '#';
-      while (drop.children.length > 0) {
-        var child = drop.children[0];
-        if (child.id === 'idcA4Msg') { child.style.display = (hasFront || hasBack) ? 'none' : ''; drop.appendChild(child); break; }
-        drop.removeChild(child);
+      if (!drop) return;
+
+      var hasFront = idcFrontImgSrc && idcFrontImgSrc !== '#' && (idcFrontCropped || idcFrontFile);
+      var hasBack = (idcLayoutMode === 'both') && idcBackImgSrc && idcBackImgSrc !== '#' && (idcBackCropped || idcBackFile);
+
+      var msgEl = document.getElementById('idcA4Msg');
+      if (msgEl) {
+        msgEl.style.display = (hasFront || hasBack) ? 'none' : 'block';
       }
+
+      // Remove any existing preview card images and dimension lines
+      var oldElements = drop.querySelectorAll('.idc-preview-img, .idc-preview-dim');
+      oldElements.forEach(function (el) { el.remove(); });
+
       if (!hasFront && !hasBack) return;
 
-      var rect = drop.getBoundingClientRect();
-      var a4W = rect.width;
-      var a4H = rect.height;
-      if (a4W === 0) { a4W = 520; a4H = 520 * 297 / 210; }
-
-      var card = idcCardDimensions(a4W, a4H);
-      var cardW = card.w, cardH = card.h;
-      var pxPerMm = a4W / 210;
-      var marginTop = 20 * pxPerMm;
-      var gap = 25 * pxPerMm;
-
-      var dimTop = marginTop - 8 * pxPerMm;
-      var dimH = 5 * pxPerMm;
-      var dimColor = '#888';
-
-      var hLeft = (a4W - cardW) / 2;
-
+      // Top dimension indicator (110 mm)
       var hLineEl = document.createElement('div');
-      hLineEl.style.cssText = 'position:absolute;height:0;border-top:1px solid ' + dimColor + ';left:' + hLeft + 'px;top:' + (dimTop + dimH / 2) + 'px;width:' + cardW + 'px;pointer-events:none;';
-      hLineEl.innerHTML = '<div style="position:absolute;right:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-right:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><div style="position:absolute;left:100%;top:-3px;width:6px;height:6px;border-top:1.5px solid ' + dimColor + ';border-left:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><span style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;">110 mm</span>';
+      hLineEl.className = 'idc-preview-dim';
+      hLineEl.style.cssText = 'position:absolute;height:0;border-top:1px solid #94a3b8;left:23.81%;top:4%;width:52.38%;pointer-events:none;z-index:2;';
+      hLineEl.innerHTML = '<div style="position:absolute;right:100%;top:-3px;width:5px;height:5px;border-top:1px solid #94a3b8;border-right:1px solid #94a3b8;transform:rotate(-45deg);"></div><div style="position:absolute;left:100%;top:-3px;width:5px;height:5px;border-top:1px solid #94a3b8;border-left:1px solid #94a3b8;transform:rotate(45deg);"></div><span style="position:absolute;left:50%;top:-13px;transform:translateX(-50%);font-size:9px;color:#64748b;white-space:nowrap;font-family:sans-serif;font-weight:700;">110 mm</span>';
       drop.appendChild(hLineEl);
 
-      var vLineX = (a4W - cardW) / 2 - 10 * pxPerMm;
+      // Side dimension indicator (69 mm)
       var vLineEl = document.createElement('div');
-      vLineEl.style.cssText = 'position:absolute;width:0;border-left:1px solid ' + dimColor + ';left:' + vLineX + 'px;top:' + marginTop + 'px;height:' + cardH + 'px;pointer-events:none;';
-      vLineEl.innerHTML = '<div style="position:absolute;bottom:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-bottom:1.5px solid ' + dimColor + ';transform:rotate(45deg);"></div><div style="position:absolute;top:100%;left:-3px;width:6px;height:6px;border-left:1.5px solid ' + dimColor + ';border-top:1.5px solid ' + dimColor + ';transform:rotate(-45deg);"></div><span style="position:absolute;top:50%;left:-24px;transform:translateY(-50%) rotate(-90deg);font-size:10px;color:' + dimColor + ';white-space:nowrap;font-family:sans-serif;transform-origin:center;">69 mm</span>';
+      vLineEl.className = 'idc-preview-dim';
+      vLineEl.style.cssText = 'position:absolute;width:0;border-left:1px solid #94a3b8;left:19%;top:6.73%;height:23.23%;pointer-events:none;z-index:2;';
+      vLineEl.innerHTML = '<div style="position:absolute;bottom:100%;left:-3px;width:5px;height:5px;border-left:1px solid #94a3b8;border-bottom:1px solid #94a3b8;transform:rotate(45deg);"></div><div style="position:absolute;top:100%;left:-3px;width:5px;height:5px;border-left:1px solid #94a3b8;border-top:1px solid #94a3b8;transform:rotate(-45deg);"></div><span style="position:absolute;top:50%;left:-20px;transform:translateY(-50%) rotate(-90deg);font-size:9px;color:#64748b;white-space:nowrap;font-family:sans-serif;transform-origin:center;font-weight:700;">69 mm</span>';
       drop.appendChild(vLineEl);
 
-      var done = 0, total = (hasFront ? 1 : 0) + (hasBack ? 1 : 0);
-      var cardImgs = [];
-
-      function placeCard(src, leftOff, topOff, side) {
-        var img = new Image();
-        img.onload = function () {
-          var w = cardW, h = cardH;
-          var iRatio = img.naturalWidth / img.naturalHeight;
-          var cRatio = cardW / cardH;
-          var fw = w, fh = h;
-          if (iRatio > cRatio) { fh = w / iRatio; } else { fw = h * iRatio; }
-          var x = leftOff + (w - fw) / 2;
-          var y = topOff + (h - fh) / 2;
-          var el = document.createElement('img');
-          el.src = src;
-          el.className = 'idc-preview-img';
-          el.style.cssText = 'position:absolute;cursor:grab;user-select:none;border-radius:3px;box-shadow:0 1px 8px rgba(0,0,0,0.1);left:' + x + 'px;top:' + y + 'px;width:' + fw + 'px;height:' + fh + 'px;';
-          el.dataset.side = side;
-          drop.appendChild(el);
-          cardImgs.push(el);
-          done++;
-          if (done === total) {
-            cardImgs.forEach(function (ci) {
-              ci.addEventListener('mousedown', idcPreviewDragStart);
-              ci.addEventListener('touchstart', idcPreviewDragStart, { passive: false });
-            });
-          }
-        };
-        img.src = src;
+      function placeCard(src, leftPct, topPct, side) {
+        var el = document.createElement('img');
+        el.src = src;
+        el.className = 'idc-preview-img';
+        el.style.cssText = 'position:absolute;cursor:grab;user-select:none;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.12);left:' + leftPct + '%;top:' + topPct + '%;width:52.38%;height:23.23%;object-fit:contain;background:#fff;z-index:3;';
+        el.dataset.side = side;
+        drop.appendChild(el);
+        el.addEventListener('mousedown', idcPreviewDragStart);
+        el.addEventListener('touchstart', idcPreviewDragStart, { passive: false });
       }
 
-      if (hasFront) placeCard(idcFrontImgSrc, (a4W - cardW) / 2, marginTop, 'front');
-      if (hasBack) placeCard(idcBackImgSrc, (a4W - cardW) / 2, marginTop + cardH + gap, 'back');
+      if (hasFront) placeCard(idcFrontImgSrc, 23.81, 6.73, 'front');
+      if (hasBack) placeCard(idcBackImgSrc, 23.81, 38.38, 'back');
     }
 
     function idcPreviewDragStart(e) {
       e.preventDefault();
       var img = e.currentTarget;
-      var rect = img.getBoundingClientRect();
       var a4Rect = document.getElementById('idcA4Drop').getBoundingClientRect();
       var t = e.touches ? e.touches[0] : e;
+      var imgRect = img.getBoundingClientRect();
       idcPreviewDrag = {
         el: img,
-        offsetX: (t.clientX - rect.left) / idcPreviewScale,
-        offsetY: (t.clientY - rect.top) / idcPreviewScale,
-        a4Left: a4Rect.left,
-        a4Top: a4Rect.top
+        offsetX: t.clientX - imgRect.left,
+        offsetY: t.clientY - imgRect.top,
+        a4Rect: a4Rect
       };
       img.style.cursor = 'grabbing';
       document.addEventListener('mousemove', idcPreviewDragMove);
@@ -4293,10 +4318,13 @@
       if (!idcPreviewDrag) return;
       e.preventDefault();
       var t = e.touches ? e.touches[0] : e;
-      var x = (t.clientX - idcPreviewDrag.a4Left) / idcPreviewScale - idcPreviewDrag.offsetX;
-      var y = (t.clientY - idcPreviewDrag.a4Top) / idcPreviewScale - idcPreviewDrag.offsetY;
-      idcPreviewDrag.el.style.left = Math.max(0, x) + 'px';
-      idcPreviewDrag.el.style.top = Math.max(0, y) + 'px';
+      var a4 = idcPreviewDrag.a4Rect;
+      var x = t.clientX - a4.left - idcPreviewDrag.offsetX;
+      var y = t.clientY - a4.top - idcPreviewDrag.offsetY;
+      var leftPct = Math.max(0, Math.min(100 - 52.38, (x / a4.width) * 100));
+      var topPct = Math.max(0, Math.min(100 - 23.23, (y / a4.height) * 100));
+      idcPreviewDrag.el.style.left = leftPct + '%';
+      idcPreviewDrag.el.style.top = topPct + '%';
     }
 
     function idcPreviewDragEnd() {
@@ -4317,21 +4345,19 @@
     }
 
     function idcPreviewFit() {
-      var wrap = document.getElementById('idcPreviewWrap');
+      idcPreviewScale = 1;
       var a4 = document.getElementById('idcA4');
-      var wrapW = wrap.clientWidth - 48;
-      var a4W = a4.getBoundingClientRect().width;
-      if (a4W === 0) a4W = 520;
-      var scale = Math.min(1, wrapW / a4W);
-      idcPreviewScale = Math.max(0.25, scale);
-      a4.style.transform = 'scale(' + idcPreviewScale + ')';
-      document.getElementById('idcPreviewZoomLabel').textContent = Math.round(idcPreviewScale * 100) + '%';
+      if (a4) a4.style.transform = 'scale(1)';
+      var lbl = document.getElementById('idcPreviewZoomLabel');
+      if (lbl) lbl.textContent = '100%';
     }
 
     function idcPreviewOriginal() {
       idcPreviewScale = 1;
-      document.getElementById('idcA4').style.transform = 'scale(1)';
-      document.getElementById('idcPreviewZoomLabel').textContent = '100%';
+      var a4 = document.getElementById('idcA4');
+      if (a4) a4.style.transform = 'scale(1)';
+      var lbl = document.getElementById('idcPreviewZoomLabel');
+      if (lbl) lbl.textContent = '100%';
     }
 
     var idcPreviewRotation = 0;
@@ -4360,19 +4386,21 @@
       imgs.forEach(function (img) {
         var left = parseFloat(img.style.left) || 0;
         var top = parseFloat(img.style.top) || 0;
-        var iw = parseFloat(img.style.width) || 0;
-        var ih = parseFloat(img.style.height) || 0;
+        var iw = (parseFloat(img.style.width) || 52.38) / 100 * w;
+        var ih = (parseFloat(img.style.height) || 23.23) / 100 * h;
+        var leftPx = (parseFloat(img.style.left) || 23.81) / 100 * w;
+        var topPx = (parseFloat(img.style.top) || 6.73) / 100 * h;
         var rot = idcPreviewRotation || 0;
         if (rot !== 0) {
           ctx.save();
-          var cx = (left + iw / 2) * scale;
-          var cy = (top + ih / 2) * scale;
+          var cx = leftPx + iw / 2;
+          var cy = topPx + ih / 2;
           ctx.translate(cx, cy);
           ctx.rotate(rot * Math.PI / 180);
-          ctx.drawImage(img, -iw * scale / 2, -ih * scale / 2, iw * scale, ih * scale);
+          ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
           ctx.restore();
         } else {
-          ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
+          ctx.drawImage(img, leftPx, topPx, iw, ih);
         }
       });
       var iframe = document.createElement('iframe');
@@ -4405,231 +4433,208 @@
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, w, h);
       imgs.forEach(function (img) {
-        var left = parseFloat(img.style.left) || 0;
-        var top = parseFloat(img.style.top) || 0;
-        var iw = parseFloat(img.style.width) || 0;
-        var ih = parseFloat(img.style.height) || 0;
+        var iw = (parseFloat(img.style.width) || 52.38) / 100 * w;
+        var ih = (parseFloat(img.style.height) || 23.23) / 100 * h;
+        var leftPx = (parseFloat(img.style.left) || 23.81) / 100 * w;
+        var topPx = (parseFloat(img.style.top) || 6.73) / 100 * h;
         var rot = idcPreviewRotation || 0;
         if (rot !== 0) {
           ctx.save();
-          var cx = (left + iw / 2) * scale;
-          var cy = (top + ih / 2) * scale;
+          var cx = leftPx + iw / 2;
+          var cy = topPx + ih / 2;
           ctx.translate(cx, cy);
           ctx.rotate(rot * Math.PI / 180);
-          ctx.drawImage(img, -iw * scale / 2, -ih * scale / 2, iw * scale, ih * scale);
+          ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
           ctx.restore();
         } else {
-          ctx.drawImage(img, left * scale, top * scale, iw * scale, ih * scale);
+          ctx.drawImage(img, leftPx, topPx, iw, ih);
         }
       });
       return c.toDataURL('image/png');
     }
-
-    var idcFrontImgSrc = '#', idcBackImgSrc = '#';
-    document.addEventListener('DOMContentLoaded', function () {
-      var fi = document.getElementById('idcFrontInput');
-      var bi = document.getElementById('idcBackInput');
-      fi.addEventListener('change', function () {
-        setTimeout(function () {
-          var img = document.getElementById('idcFrontImg');
-          if (img.src && img.src !== '#') idcFrontImgSrc = img.src;
-          idcUpdatePreview();
-        }, 100);
-      });
-      bi.addEventListener('change', function () {
-        setTimeout(function () {
-          var img = document.getElementById('idcBackImg');
-          if (img.src && img.src !== '#') idcBackImgSrc = img.src;
-          idcUpdatePreview();
-        }, 100);
-      });
-      var observer = new MutationObserver(function () {
-        var fi = document.getElementById('idcFrontImg');
-        var bi = document.getElementById('idcBackImg');
-        if (fi.src && fi.src !== '#') idcFrontImgSrc = fi.src;
-        if (bi.src && bi.src !== '#') idcBackImgSrc = bi.src;
-        idcUpdatePreview();
-      });
-      observer.observe(document.getElementById('idcFrontImg'), { attributes: true, attributeFilter: ['src'] });
-      observer.observe(document.getElementById('idcBackImg'), { attributes: true, attributeFilter: ['src'] });
-    });
 
     var idcCopiesCount = 1;
     function idcChangeCopies(delta) {
       idcCopiesCount = Math.max(1, idcCopiesCount + delta);
       var el = document.getElementById('idcCopiesCount');
       if (el) el.textContent = idcCopiesCount;
+      idcUpdatePaySummary();
     }
 
-    function idcUpload() {
-      if (idcQueue.length === 0 && !idcFrontFile) { alert('Please upload the front side of your ID card.'); return; }
-      var name = (document.getElementById('idcPayName') ? document.getElementById('idcPayName').value.trim() : '') || 'Customer';
-      var printType = selectedPrintType || 'bw';
-      var allItems = idcQueue.slice();
-      if (idcFrontFile) {
-        allItems.push({
-          front: idcFrontCropped || idcFrontFile,
-          back: (idcLayoutMode === 'both' && idcBackFile) ? (idcBackCropped || idcBackFile) : null,
-          frontName: idcFrontFile.name,
-          backName: (idcLayoutMode === 'both' && idcBackFile) ? idcBackFile.name : null
-        });
-      }
+    function idcSubmitOrder(paymentMethod) {
+      return new Promise(function (resolve, reject) {
+        if (!idcFrontFile && !idcFrontCropped) {
+          reject(new Error('Please upload the front side of your ID card.'));
+          return;
+        }
+        var name = (document.getElementById('idcPayName') ? document.getElementById('idcPayName').value.trim() : '') || 'Customer';
+        var printType = selectedPrintType || 'bw';
+        var isBoth = (idcLayoutMode === 'both' && (idcBackCropped || idcBackFile));
+        var copies = idcCopiesCount || 1;
 
-      var uploadOne = function (item, idx) {
-        return new Promise(function (resolve, reject) {
+        function resolveBlob(val, defaultName) {
+          if (!val) return Promise.resolve(null);
+          if (val instanceof Blob || (typeof File !== 'undefined' && val instanceof File)) {
+            return Promise.resolve(val);
+          }
+          if (typeof val === 'string') {
+            if (val.startsWith('data:')) {
+              return Promise.resolve(dataURLtoBlob(val, defaultName));
+            } else if (val.startsWith('blob:')) {
+              return fetch(val).then(function (res) { return res.blob(); }).catch(function () { return null; });
+            }
+          }
+          return Promise.resolve(val);
+        }
+
+        var rawFront = idcFrontCropped || idcFrontFile;
+        var rawBack = isBoth ? (idcBackCropped || idcBackFile) : null;
+        var frontName = (idcFrontFile && idcFrontFile.name) || 'id_front.png';
+        var backName = (idcBackFile && idcBackFile.name) || 'id_back.png';
+
+        Promise.all([
+          resolveBlob(rawFront, frontName),
+          resolveBlob(rawBack, backName)
+        ]).then(function (blobs) {
+          var frontBlob = blobs[0] || rawFront;
+          var backBlob = blobs[1] || rawBack;
+
           var fd = new FormData();
           fd.append('customerName', name);
           fd.append('printType', printType);
           fd.append('printSide', 'single');
-          fd.append('paymentMethod', 'cashfree');
-          fd.append('copies', idcCopiesCount || 1);
-          fd.append('usedMagic', selectedIdcFilter === 'magic' ? '1' : '0');
+          fd.append('paymentMethod', paymentMethod);
+          fd.append('copies', copies);
+          fd.append('usedMagic', '0');
           fd.append('wasCropped', '1');
 
-          var frontBlob = (typeof item.front === 'string') ? dataURLtoBlob(item.front, item.frontName || 'id_front.png') : item.front;
-          fd.append('front', frontBlob, item.frontName || 'id_front.png');
+          fd.append('front', frontBlob, frontName);
 
-          if (item.back) {
-            var backBlob = (typeof item.back === 'string') ? dataURLtoBlob(item.back, item.backName || 'id_back.png') : item.back;
-            fd.append('back', backBlob, item.backName || 'id_back.png');
+          if (isBoth && backBlob) {
+            fd.append('back', backBlob, backName);
             fd.append('backEnabled', 'true');
           } else {
             fd.append('backEnabled', 'false');
           }
-          fetch('/api/upload-id-copy', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) { if (d.error) reject(d.error); else resolve(d); })
-            .catch(reject);
-        });
-      };
 
-      var prom = allItems.map(function (item, i) { return uploadOne(item, i); });
-      Promise.all(prom)
-        .then(function (results) {
-          currentOrderIds = results.map(function (r) { return r.orderId; });
-          try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
-          var totalPrice = results.reduce(function (s, r) { return s + r.price; }, 0);
-          var orderIdsSpan = document.getElementById('orderIdsSpan');
-          if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
-
-          // Populate summary card
-          var hasBackSide = allItems.some(function (item) { return !!item.back; });
-          var sidesText = hasBackSide ? 'Front & Back' : 'Front Side Only';
-          var copiesCount = (idcCopiesCount || 1) * allItems.length;
-          var printTypeCap = (printType === 'bw' ? 'B&W' : 'COLOR');
-
-          var docTypeEl = document.getElementById('idcReviewDocType');
-          if (docTypeEl) docTypeEl.textContent = 'ID Copy (110×69 mm)';
-          var sidesEl = document.getElementById('idcReviewSides');
-          if (sidesEl) sidesEl.textContent = sidesText;
-          var ptEl = document.getElementById('idcReviewPrintType');
-          if (ptEl) ptEl.textContent = printTypeCap;
-          var copiesEl = document.getElementById('idcReviewCopies');
-          if (copiesEl) copiesEl.textContent = copiesCount + (copiesCount > 1 ? ' Copies' : ' Copy');
-          var idcRateEl = document.getElementById('idcReviewRate');
-          if (idcRateEl) idcRateEl.textContent = (printType === 'bw' ? '₹5' : '₹10') + ' per ID copy';
-
-          var payTotalEl = document.getElementById('idcPayTotal');
-          if (payTotalEl) payTotalEl.textContent = '₹' + totalPrice;
-          var btnAmountDisp = document.getElementById('idcPayBtnAmountDisplay');
-          if (btnAmountDisp) btnAmountDisp.textContent = totalPrice;
-          var btnAmt2 = document.getElementById('idcPayBtnAmount2');
-          if (btnAmt2) btnAmt2.textContent = totalPrice;
-          var onlineBtn = document.getElementById('btnIdcOnline');
-          if (onlineBtn) onlineBtn.innerHTML = '🔒 Pay ₹' + totalPrice + ' Online';
-
-          if (typeof lucide !== 'undefined') lucide.createIcons();
-        })
-        .catch(function (err) {
-          alert('Upload failed: ' + (err.message || err));
-        });
+          return fetch('/api/upload-id-copy', { method: 'POST', body: fd })
+            .then(function (r) {
+              if (!r.ok) throw new Error('Upload failed with status ' + r.status);
+              return r.json();
+            })
+            .then(function (data) {
+              if (data.error) throw new Error(data.error);
+              currentOrderIds = [data.orderId];
+              try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
+              var orderIdsSpan = document.getElementById('orderIdsSpan');
+              if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
+              resolve(data);
+            });
+        }).catch(reject);
+      });
     }
 
     function idcPayOnline() {
-      idcPayRazorpay();
-    }
+      var name = document.getElementById('idcPayName') ? document.getElementById('idcPayName').value.trim() : '';
+      if (!name) name = 'Customer';
+      var btn = document.getElementById('btnIdcOnline');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
+      }
 
-    function idcPayRazorpay() {
-      var name = document.getElementById('idcPayName').value.trim();
-      if (!name) { document.getElementById('idcPayName').style.borderColor = '#ef4444'; return; }
-      var btn = document.getElementById('btnIdcRazorpay');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
-      var totalPrice = parseInt(document.getElementById('idcPayBtnAmount2').textContent) || 0;
-      fetch('/api/create-razorpay-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: totalPrice, orderIds: currentOrderIds })
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (rpData) {
-          if (rpData.error) throw new Error(rpData.error);
-          if (!rpData.key_id) throw new Error('Server did not return a Razorpay Key ID');
-          var options = {
-            key: rpData.key_id,
-            amount: rpData.amount,
-            currency: rpData.currency,
-            name: 'Kadam Xerox',
-            description: 'ID Copy #' + currentOrderIds[0].slice(0, 8),
-            order_id: rpData.razorpayOrderId,
-            handler: function (payment) {
-              fetch('/api/verify-razorpay-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ razorpayPaymentId: payment.razorpay_payment_id, razorpayOrderId: payment.razorpay_order_id, razorpaySignature: payment.razorpay_signature, orderIds: currentOrderIds })
-              })
-                .then(function (r) { return r.json(); })
-                .then(function (vData) {
-                  if (vData.error) throw new Error(vData.error);
-                  if (vData.message && vData.message.indexOf('Printing started') !== -1) {
-                    updateStatusDisplay('accepted');
-                  } else {
-                    updateStatusDisplay('paid');
+      idcSubmitOrder('razorpay')
+        .then(function (data) {
+          return fetch('/api/create-razorpay-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: data.price, orderIds: currentOrderIds })
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (rpData) {
+              if (rpData.error) throw new Error(rpData.error);
+              if (!rpData.key_id) throw new Error('Server did not return a Razorpay Key ID');
+
+              var options = {
+                key: rpData.key_id,
+                amount: rpData.amount,
+                currency: rpData.currency,
+                name: 'Printing Store',
+                description: 'ID Copy #' + currentOrderIds[0].slice(0, 8),
+                order_id: rpData.razorpayOrderId,
+                handler: function (payment) {
+                  fetch('/api/verify-razorpay-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      razorpayOrderId: payment.razorpay_order_id,
+                      razorpayPaymentId: payment.razorpay_payment_id,
+                      razorpaySignature: payment.razorpay_signature,
+                      orderIds: currentOrderIds
+                    })
+                  })
+                    .then(function (vr) { return vr.json(); })
+                    .then(function (vrData) {
+                      if (vrData.error) throw new Error(vrData.error);
+                      showStep('stepStatus');
+                      updateStatusDisplay('paid', [{ id: currentOrderIds[0], status: 'paid' }]);
+                    })
+                    .catch(function (e) { alert('Payment verification failed: ' + e.message); });
+                },
+                modal: {
+                  ondismiss: function () {
+                    if (btn) {
+                      btn.disabled = false;
+                      btn.innerHTML = '🔒 Pay ₹' + data.price + ' Online';
+                    }
                   }
-                  showStep('stepStatus');
-                }).catch(function (e) { alert('Verification failed: ' + e.message); });
-            },
-            prefill: { name: name },
-            theme: { color: '#2563eb' }
-          };
-          var rzp = new Razorpay(options);
-          rzp.on('payment.failed', function (resp) { alert('Payment failed'); btn.disabled = false; btn.innerHTML = 'Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>'; });
-          rzp.open();
-          btn.disabled = false;
-          btn.innerHTML = 'Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>';
+                },
+                prefill: { name: name },
+                theme: { color: '#2563eb' }
+              };
+              var rzp = new Razorpay(options);
+              rzp.open();
+              if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '🔒 Pay ₹' + data.price + ' Online';
+              }
+            });
         })
         .catch(function (err) {
-          alert('Error: ' + err.message);
-          btn.disabled = false;
-          btn.innerHTML = 'Pay ₹<span id="idcPayBtnAmount2">' + totalPrice + '</span>';
+          alert('Payment failed: ' + (err.message || err));
+          if (btn) {
+            btn.disabled = false;
+            var total = (selectedPrintType === 'bw' ? 5 : 10) * (idcCopiesCount || 1);
+            btn.innerHTML = '🔒 Pay ₹' + total + ' Online';
+          }
         });
     }
 
     function idcPayCash() {
-      if (!currentOrderIds || currentOrderIds.length === 0) {
-        alert('No order found. Please try again.');
-        return;
-      }
       var btn = document.querySelector('.rpc-cash-btn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+      }
 
-      // Mark ALL order IDs as cash-paid (in case of multiple ID copies in one session)
-      var promises = currentOrderIds.map(function (orderId) {
-        return fetch('/api/orders/' + orderId + '/pay-cash', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        }).then(function (r) { return r.json(); });
-      });
-
-      Promise.all(promises)
-        .then(function (results) {
-          var anyError = results.find(function (r) { return r.error; });
-          if (anyError) throw new Error(anyError.error);
-          updateStatusDisplay('paid');
-          showStep('stepStatus');
+      idcSubmitOrder('cash')
+        .then(function (data) {
+          return fetch('/api/orders/' + encodeURIComponent(data.orderId) + '/pay-cash', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (cData) {
+              if (cData.error) throw new Error(cData.error);
+              showStep('stepStatus');
+              updateStatusDisplay('paid', [{ id: data.orderId, status: 'paid' }]);
+            });
         })
         .catch(function (err) {
-          if (btn) { btn.disabled = false; btn.textContent = 'Pay with Cash'; }
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '💵 Pay Cash at Counter';
+          }
           alert('Cash payment failed: ' + (err.message || 'Server error. Please try again.'));
         });
     }
@@ -6161,7 +6166,6 @@
       } catch (e) { }
     })();
   </script>
-  <script src="opencv-crop.js?v=21_undone_reverted"></script>
 </body>
 
 </html>

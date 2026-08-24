@@ -754,14 +754,32 @@ function detectCorners(callback) {
   var tempCtx = tempCanvas.getContext('2d');
   tempCtx.drawImage(sourceImage, 0, 0);
 
+  var hasCalledBack = false;
+  function safeCallback(c) {
+    if (hasCalledBack) return;
+    hasCalledBack = true;
+    callback(c);
+  }
+
+  // Safety fallback: If OpenCV fails/stalls, default to full image bounds within 1.5s
+  var timer = setTimeout(function() {
+    var fullCanvasCorners = [
+      imageToCanvas(0, 0),
+      imageToCanvas(iw, 0),
+      imageToCanvas(iw, ih),
+      imageToCanvas(0, ih)
+    ];
+    safeCallback(fullCanvasCorners);
+  }, 1500);
+
   loadOpenCV(function(err) {
+    clearTimeout(timer);
     var detected = null;
-    if (!err && ocvReady && cv.Mat) {
+    if (!err && ocvReady && typeof cv !== 'undefined' && cv.Mat) {
       try {
         detected = detectCornersOpenCV(tempCanvas);
       } catch(e) {}
     }
-    // Full-frame document fallback: if no sub-document on a table background is detected, default to FULL PAGE (100% bounds)
     if (!detected || detected.length !== 4) {
       detected = [
         { x: 0, y: 0 },
@@ -770,14 +788,13 @@ function detectCorners(callback) {
         { x: 0, y: ih }
       ];
     }
-    // Convert detected corners from original image space to canvas display space
     if (detected && detected.length === 4) {
       var canvasCorners = detected.map(function(c) {
         return imageToCanvas(c.x, c.y);
       });
-      callback(canvasCorners);
+      safeCallback(canvasCorners);
     } else {
-      callback(null);
+      safeCallback(null);
     }
   });
 }
@@ -1176,7 +1193,13 @@ function clamp(v, min, max) {
 // Compute display parameters for object-fit:contain
 function computeDisplayParams() {
   var cw = canvasEl.width, ch = canvasEl.height;
-  var iw = sourceImage.width, ih = sourceImage.height;
+  var iw = (sourceImage.naturalWidth || sourceImage.width || 800);
+  var ih = (sourceImage.naturalHeight || sourceImage.height || 600);
+  if (cw <= 0 || ch <= 0 || iw <= 0 || ih <= 0) {
+    displayScale = 1; displayW = cw || 400; displayH = ch || 300;
+    displayOffsetX = 0; displayOffsetY = 0;
+    return;
+  }
   var scaleX = cw / iw, scaleY = ch / ih;
   displayScale = Math.min(scaleX, scaleY);
   displayW = iw * displayScale;
@@ -1448,6 +1471,7 @@ function showPreview() {
   var ch = Math.max(distance(origCorners[0], origCorners[3]), distance(origCorners[1], origCorners[2]));
   if (cw < 10 || ch < 10) return;
 
+  var outW = Math.round(cw), outH = Math.round(ch);
   if (isIdCopyMode) {
     if (cw >= ch) {
       outW = 2031;
@@ -1812,102 +1836,210 @@ function closeModal() {
 
 // ---------- Open crop modal ----------
 function openModal(image, idCopy, callback, originalFile) {
-  sourceImage = image;
-  isIdCopyMode = idCopy || false;
-  hasRotated = false;
-  currentCallback = callback;
-  _originalFileRef = originalFile || null;
-  selectedFilter = 'original';
-  filteredCanvas = null;
-  filteredFilter = null;
-  zoomLevel = 1;
-  panX = 0;
-  panY = 0;
-  corners = [];
+  if (!image) {
+    console.error('[OCV] openModal called with empty image');
+    return;
+  }
 
-  modalEl = document.getElementById('ocvCropModal');
-  if (!modalEl) {
-    createModalHTML();
+  var fileRef = originalFile || (image instanceof File ? image : null);
+
+  function doInitModal(validImg) {
+    try {
+      var iw0 = (validImg && (validImg.naturalWidth || validImg.width)) || 800;
+      var ih0 = (validImg && (validImg.naturalHeight || validImg.height)) || 600;
+      var offC = document.createElement('canvas');
+      offC.width = iw0;
+      offC.height = ih0;
+      var offCtx = offC.getContext('2d');
+      offCtx.imageSmoothingEnabled = true;
+      offCtx.imageSmoothingQuality = 'high';
+      offCtx.drawImage(validImg, 0, 0, iw0, ih0);
+      sourceImage = offC;
+    } catch (e) {
+      console.warn('[OCV] offscreen canvas drawImage fallback:', e);
+      sourceImage = validImg;
+    }
+    isIdCopyMode = idCopy || false;
+    hasRotated = false;
+    currentCallback = callback;
+    _originalFileRef = fileRef || originalFile || null;
+    selectedFilter = 'original';
+    filteredCanvas = null;
+    filteredFilter = null;
+    zoomLevel = 1;
+    panX = 0;
+    panY = 0;
+    corners = [];
+
     modalEl = document.getElementById('ocvCropModal');
+    if (!modalEl) {
+      createModalHTML();
+      modalEl = document.getElementById('ocvCropModal');
+    }
+
+    canvasEl = document.getElementById('ocvCropCanvas');
+    containerEl = document.getElementById('ocvCropContainer');
+    previewCanvas = document.getElementById('ocvPreviewResult');
+    if (previewCanvas) {
+      previewCanvas._savedCorners = null;
+      previewCanvas._originalFile = null;
+    }
+
+    // Size the canvas to fit within the modal card
+    var cardWidth = Math.min(540, (window.innerWidth || 400) * 0.94);
+    var availW = cardWidth - 28;
+    var availH = (window.innerHeight || 600) * 0.7;
+    var maxW = Math.min(availW, 500);
+    var maxH = Math.min(availH, (window.innerHeight || 600) * 0.65);
+    var iw = (sourceImage && (sourceImage.naturalWidth || sourceImage.width)) || (validImg && (validImg.naturalWidth || validImg.width)) || 800;
+    var ih = (sourceImage && (sourceImage.naturalHeight || sourceImage.height)) || (validImg && (validImg.naturalHeight || validImg.height)) || 600;
+    var dispW = iw, dispH = ih;
+    if (dispW > maxW) { dispH = dispH * maxW / dispW; dispW = maxW; }
+    if (dispH > maxH) { dispW = dispW * maxH / dispH; dispH = maxH; }
+    dispW = Math.max(200, Math.round(dispW));
+    dispH = Math.max(150, Math.round(dispH));
+    var dpr = window.devicePixelRatio || 1;
+    if (canvasEl) {
+      canvasEl.width = Math.round(dispW * dpr);
+      canvasEl.height = Math.round(dispH * dpr);
+      canvasEl.style.width = Math.round(dispW) + 'px';
+      canvasEl.style.height = Math.round(dispH) + 'px';
+    }
+
+    if (containerEl) {
+      containerEl.style.display = 'flex';
+      containerEl.style.alignItems = 'center';
+      containerEl.style.justifyContent = 'center';
+      containerEl.style.width = Math.round(dispW) + 'px';
+      containerEl.style.height = Math.round(dispH) + 'px';
+      containerEl.style.background = 'transparent';
+    }
+
+    computeDisplayParams();
+
+    var origInset = 0;
+    corners = [
+      imageToCanvas(origInset, origInset),
+      imageToCanvas(iw - origInset, origInset),
+      imageToCanvas(iw - origInset, ih - origInset),
+      imageToCanvas(origInset, ih - origInset)
+    ];
+
+    if (modalEl) {
+      modalEl.classList.remove('hidden');
+      modalEl.style.display = 'flex';
+      modalEl.style.visibility = 'visible';
+      modalEl.style.opacity = '1';
+      modalEl.style.zIndex = '999999';
+    }
+
+    try {
+      renderCrop();
+    } catch(e) {
+      console.error('[OCV] renderCrop failed:', e);
+    }
+
+    var filterBar = document.getElementById('ocvFilterBar');
+    if (filterBar) filterBar.style.display = isIdCopyMode ? 'none' : 'flex';
+
+    var recBanner = document.getElementById('ocvMagicRecBanner');
+    if (recBanner) recBanner.style.display = isIdCopyMode ? 'none' : 'flex';
+
+    var cropBtn = document.getElementById('ocvCropBtn');
+    if (cropBtn) {
+      cropBtn.innerHTML = isIdCopyMode ? '✓ Crop &amp; Done' : 'Next: Color Change ➔';
+    }
+
+    var filterBtns = document.querySelectorAll('.ocv-filter-btn');
+    filterBtns.forEach(function(b) {
+      b.classList.remove('active');
+      if (b.getAttribute('data-filter') === selectedFilter) b.classList.add('active');
+    });
+
+    setTimeout(function() {
+      if (!isIdCopyMode) {
+        renderFilterThumbnails();
+      }
+      OCV_CROP.autoDetect();
+    }, 60);
   }
 
-  canvasEl = document.getElementById('ocvCropCanvas');
-  containerEl = document.getElementById('ocvCropContainer');
-  previewCanvas = document.getElementById('ocvPreviewResult');
-  previewCanvas._savedCorners = null;
-  previewCanvas._originalFile = null;
-
-  // Size the canvas to fit within the modal card
-  var cardWidth = Math.min(540, window.innerWidth * 0.94);
-  var availW = cardWidth - 28; // 12px padding * 2 + 4px margin
-  var availH = window.innerHeight * 0.7;
-  var maxW = Math.min(availW, 500);
-  var maxH = Math.min(availH, window.innerHeight * 0.65);
-  var iw = image.width, ih = image.height;
-  var dispW = iw, dispH = ih;
-  if (dispW > maxW) { dispH = dispH * maxW / dispW; dispW = maxW; }
-  if (dispH > maxH) { dispW = dispW * maxH / dispH; dispH = maxH; }
-  var dpr = window.devicePixelRatio || 1;
-  canvasEl.width = Math.round(dispW * dpr);
-  canvasEl.height = Math.round(dispH * dpr);
-  canvasEl.style.width = Math.round(dispW) + 'px';
-  canvasEl.style.height = Math.round(dispH) + 'px';
-
-  // Ensure container fits exact image dimensions with no black side bars
-  containerEl.style.display = 'flex';
-  containerEl.style.alignItems = 'center';
-  containerEl.style.justifyContent = 'center';
-  containerEl.style.width = Math.round(dispW) + 'px';
-  containerEl.style.height = Math.round(dispH) + 'px';
-  containerEl.style.background = 'transparent';
-
-  // Compute display parameters for object-fit:contain
-  computeDisplayParams();
-
-  // Set default corners to cover entire image
-  var origInset = 0;
-  corners = [
-    imageToCanvas(origInset, origInset),
-    imageToCanvas(iw - origInset, origInset),
-    imageToCanvas(iw - origInset, ih - origInset),
-    imageToCanvas(origInset, ih - origInset)
-  ];
-
-  modalEl.classList.remove('hidden');
-  modalEl.style.display = 'flex';
-
-  renderCrop();
-
-  var filterBar = document.getElementById('ocvFilterBar');
-  if (filterBar) filterBar.style.display = isIdCopyMode ? 'none' : 'flex';
-
-  var recBanner = document.getElementById('ocvMagicRecBanner');
-  if (recBanner) recBanner.style.display = isIdCopyMode ? 'none' : 'flex';
-
-  var cropBtn = document.getElementById('ocvCropBtn');
-  if (cropBtn) {
-    cropBtn.innerHTML = isIdCopyMode ? '✓ Crop &amp; Done' : 'Next: Color Change ➔';
+  // 1. If image is a File or Blob
+  if ((typeof File !== 'undefined' && image instanceof File) || (typeof Blob !== 'undefined' && image instanceof Blob)) {
+    var bUrl = URL.createObjectURL(image);
+    var im = new Image();
+    im.onload = function() {
+      doInitModal(im);
+    };
+    im.onerror = function(e) {
+      console.error('[OCV] Failed to load image from Blob/File', e);
+    };
+    im.src = bUrl;
+    if (im.complete && im.naturalWidth > 0) {
+      doInitModal(im);
+    }
+    return;
   }
 
-  var filterBtns = document.querySelectorAll('.ocv-filter-btn');
-  filterBtns.forEach(function(b) {
-    b.classList.remove('active');
-    if (b.getAttribute('data-filter') === selectedFilter) b.classList.add('active');
-  });
+  // 2. If image is a string (data URL or blob URL)
+  if (typeof image === 'string') {
+    var sImg = new Image();
+    sImg.onload = function() {
+      doInitModal(sImg);
+    };
+    sImg.onerror = function(e) {
+      console.error('[OCV] Failed to load image from URL string', e);
+    };
+    sImg.src = image;
+    if (sImg.complete && sImg.naturalWidth > 0) {
+      doInitModal(sImg);
+    }
+    return;
+  }
 
-  // Auto-detect edges on open
-  setTimeout(function() {
-    renderFilterThumbnails();
-    OCV_CROP.autoDetect();
-  }, 300);
+  // 3. If image is an HTMLImageElement
+  if (image instanceof HTMLImageElement) {
+    if (image.complete && image.naturalWidth > 0) {
+      doInitModal(image);
+      return;
+    }
+    var checkCount = 0;
+    var waitTimer = setInterval(function() {
+      checkCount++;
+      if ((image.naturalWidth && image.naturalWidth > 0) || (image.complete && image.naturalWidth > 0)) {
+        clearInterval(waitTimer);
+        doInitModal(image);
+      } else if (checkCount >= 25) {
+        clearInterval(waitTimer);
+        doInitModal(image);
+      }
+    }, 40);
+
+    var prevOnload = image.onload;
+    image.onload = function() {
+      clearInterval(waitTimer);
+      if (typeof prevOnload === 'function') {
+        try { prevOnload.apply(this, arguments); } catch (e) {}
+      }
+      doInitModal(image);
+    };
+    image.onerror = function(e) {
+      clearInterval(waitTimer);
+      console.error('[OCV] image.onerror fired in openModal', e);
+      doInitModal(image);
+    };
+    return;
+  }
+
+  // 4. If image is an HTMLCanvasElement or other valid drawable
+  doInitModal(image);
 }
 
 // ---------- Create modal HTML ----------
 function createModalHTML() {
   var div = document.createElement('div');
   div.id = 'ocvCropModal';
-  div.className = 'hidden';
-  div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:100;display:none;align-items:center;justify-content:center;overscroll-behavior:none;';
+  div.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:999999;align-items:center;justify-content:center;overscroll-behavior:none;';
   var isId = isIdCopyMode;
   div.innerHTML =
     '<div style="background:#1e293b;border-radius:16px;padding:12px;max-width:540px;width:96%;color:white;max-height:98vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);">' +
@@ -2380,6 +2512,7 @@ function cropDirect() {
   var ch = Math.max(distance(origCorners[0], origCorners[3]), distance(origCorners[1], origCorners[2]));
   if (cw < 10 || ch < 10) return;
 
+  var outW = Math.round(cw), outH = Math.round(ch);
   if (isIdCopyMode) {
     if (cw >= ch) {
       outW = 2031;
