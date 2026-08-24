@@ -489,10 +489,12 @@ app.post('/api/upload', (req, res) => {
         const filePriceBeforeDiscount = sheets * copyCount * 5;
         const fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / totalPriceBeforeDiscount));
 
-        const fileUsedMagic = (req.body['usedMagic_' + file.originalname] !== undefined) ? parseInt(req.body['usedMagic_' + file.originalname]) : (req.body.usedMagic === '1' || req.body.usedMagic === 'true' || req.body.usedMagic === 1 ? 1 : 0);
-        const fileWasCropped = (req.body['wasCropped_' + file.originalname] !== undefined) ? parseInt(req.body['wasCropped_' + file.originalname]) : (req.body.wasCropped === '1' || req.body.wasCropped === 'true' || req.body.wasCropped === 1 ? 1 : 0);
+        const isPdfFile = (file.originalname || '').toLowerCase().endsWith('.pdf');
+        const fileUsedMagic = isPdfFile ? 0 : ((req.body['usedMagic_' + file.originalname] !== undefined) ? parseInt(req.body['usedMagic_' + file.originalname]) : (req.body.usedMagic === '1' || req.body.usedMagic === 'true' || req.body.usedMagic === 1 ? 1 : 0));
+        const fileWasCropped = isPdfFile ? 0 : ((req.body['wasCropped_' + file.originalname] !== undefined) ? parseInt(req.body['wasCropped_' + file.originalname]) : (req.body.wasCropped === '1' || req.body.wasCropped === 'true' || req.body.wasCropped === 1 ? 1 : 0));
 
         stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard', pagesPerSheet, batchId, fileUsedMagic, fileWasCropped);
+
 
         orders.push({
           orderId: id,

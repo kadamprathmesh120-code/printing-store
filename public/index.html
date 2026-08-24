@@ -3467,6 +3467,7 @@
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
+        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
         var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
@@ -3476,9 +3477,9 @@
         if (sf.pages) {
           formData.append('pageCount_' + sf.file.name, sf.pages);
         }
-        var isCropped = (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; }))) ? '1' : '0';
+        var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
         formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, selectedEditFilter === 'magic' ? '1' : '0');
+        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (selectedEditFilter === 'magic' ? '1' : '0'));
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3603,6 +3604,7 @@
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
+        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
         var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
@@ -3612,9 +3614,9 @@
         if (sf.pages) {
           formData.append('pageCount_' + sf.file.name, sf.pages);
         }
-        var isCropped = (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; }))) ? '1' : '0';
+        var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
         formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, selectedEditFilter === 'magic' ? '1' : '0');
+        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (selectedEditFilter === 'magic' ? '1' : '0'));
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3733,6 +3735,7 @@
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
+        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
         var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
@@ -3742,10 +3745,11 @@
         if (sf.pages) {
           formData.append('pageCount_' + sf.file.name, sf.pages);
         }
-        var isCropped = (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; }))) ? '1' : '0';
+        var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
         formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, selectedEditFilter === 'magic' ? '1' : '0');
+        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (selectedEditFilter === 'magic' ? '1' : '0'));
       }
+
 
       fetch('/api/upload', { method: 'POST', body: formData })
         .then(function (r) {
