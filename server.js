@@ -410,8 +410,8 @@ app.post('/api/upload', (req, res) => {
       // All uploaded orders start as 'pending' until paid (online) or accepted (cash)
       const initialStatus = 'pending';
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type, pages_per_sheet, batch_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, page_count, print_type, print_side, price, payment_method, status, mobile_number, order_notes, orientation, copies, page_range, effective_pages, total_sheets, price_before_discount, discount_amount, pricing_type, pages_per_sheet, batch_id, used_magic, was_cropped)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const orders = [];
@@ -489,7 +489,10 @@ app.post('/api/upload', (req, res) => {
         const filePriceBeforeDiscount = sheets * copyCount * 5;
         const fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / totalPriceBeforeDiscount));
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard', pagesPerSheet, batchId);
+        const fileUsedMagic = (req.body['usedMagic_' + file.originalname] !== undefined) ? parseInt(req.body['usedMagic_' + file.originalname]) : (req.body.usedMagic === '1' || req.body.usedMagic === 'true' || req.body.usedMagic === 1 ? 1 : 0);
+        const fileWasCropped = (req.body['wasCropped_' + file.originalname] !== undefined) ? parseInt(req.body['wasCropped_' + file.originalname]) : (req.body.wasCropped === '1' || req.body.wasCropped === 'true' || req.body.wasCropped === 1 ? 1 : 0);
+
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard', pagesPerSheet, batchId, fileUsedMagic, fileWasCropped);
 
         orders.push({
           orderId: id,
@@ -1633,14 +1636,15 @@ app.post('/api/upload-id-copy', (req, res) => {
 
       const id = uuidv4();
       const stmt = db.prepare(`
-        INSERT INTO orders (id, customer_name, file_name, file_path, back_file_name, back_file_path, back_enabled, page_count, print_type, print_side, price, payment_method, status, is_id_copy, copies)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+        INSERT INTO orders (id, customer_name, file_name, file_path, back_file_name, back_file_path, back_enabled, page_count, print_type, print_side, price, payment_method, status, is_id_copy, copies, used_magic, was_cropped)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0, 1)
       `);
       stmt.run(id, customerName, frontFile.originalname, frontFile.filename,
         backFile ? backFile.originalname : null,
         backFile ? backFile.filename : null,
         isBack ? 1 : 0,
         pages, printType, printSide || 'single', price, paymentMethod, initialStatus, numCopies);
+
 
       res.json({ orderId: id, price, message: `ID Copy uploaded (${isBack ? 'Front+Back' : 'Front only'})` });
     } catch (err) {

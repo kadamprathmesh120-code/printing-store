@@ -111,5 +111,8 @@ try { db.exec(`ALTER TABLE orders ADD COLUMN cashfree_payment_id TEXT`); } catch
 try { db.exec(`ALTER TABLE orders ADD COLUMN is_printed INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN pages_per_sheet INTEGER NOT NULL DEFAULT 1`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN batch_id TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN used_magic INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN was_cropped INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
 
 module.exports = db;
+

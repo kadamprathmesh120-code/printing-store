@@ -2010,11 +2010,14 @@
             var sideLabel = item.print_side === 'both' ? 'Both' : 'Single';
             var effP = (item.effective_pages && item.effective_pages > 0) ? item.effective_pages : item.page_count;
             var copiesTag = item.copies > 1 ? (' <span style="color:#d97706;font-weight:700;">×' + item.copies + '</span>') : '';
+            var mBadge = (item.used_magic === 1) ? '<span title="Magic Color applied by customer" style="color:#d946ef;font-weight:700;font-size:10px;background:#fdf4ff;border:1px solid #f0abfc;padding:1px 4px;border-radius:4px;">✨ Magic</span>' : '';
+            var cBadge = (item.was_cropped === 1 || item.is_id_copy === 1) ? '<span title="Cropped by customer" style="color:#059669;font-weight:700;font-size:10px;background:#ecfdf5;border:1px solid #a7f3d0;padding:1px 4px;border-radius:4px;">✂️ Cropped</span>' : '';
 
             filesHtml += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#fff;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:4px;gap:8px;">' +
               '<div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">' +
                 '<span style="font-size:14px;">' + fInfo.icon + '</span>' +
                 '<span style="font-size:12px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtml(item.file_name) + '">' + escapeHtml(item.file_name) + '</span>' +
+                mBadge + cBadge +
               '</div>' +
               '<div style="display:flex;align-items:center;gap:6px;font-size:11px;white-space:nowrap;">' +
                 '<span style="background:#e0f2fe;color:#0369a1;padding:1px 5px;border-radius:4px;font-weight:600;">' + typeLabel + '</span>' +
@@ -2042,11 +2045,27 @@
           var ppsLabel = (o.pages_per_sheet && o.pages_per_sheet > 1) ? (' <span style="color:#7c3aed;font-weight:700;">(' + o.pages_per_sheet + '-up)</span>') : '';
           var copiesDisplay = o.copies && o.copies > 1 ? ('<span class="oc-detail-value copies-highlight">×' + o.copies + '</span>') : '<span class="oc-detail-value">1</span>';
 
+          var isImg = !o.file_name.toLowerCase().endsWith('.pdf');
+          var editPills = '';
+          if (isImg) {
+            var magicBadge = (o.used_magic === 1) 
+              ? '<span style="background:linear-gradient(135deg,rgba(217,70,239,0.12),rgba(139,92,246,0.12));color:#a855f7;border:1px solid rgba(217,70,239,0.3);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="Customer enabled Magic Color filter">✨ Magic Color</span>' 
+              : '<span style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:3px;" title="Original image without Magic Color">📷 Original Color</span>';
+            var cropBadge = (o.was_cropped === 1 || o.is_id_copy === 1) 
+              ? '<span style="background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="Customer cropped / adjusted document borders">✂️ Cropped by Customer</span>' 
+              : '<span style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:3px;" title="Full image printed (uncropped)">📐 Full / Uncropped</span>';
+            editPills = '<div style="display:flex;align-items:center;gap:6px;margin:6px 0 8px;flex-wrap:wrap;"><span style="font-size:11px;color:#94a3b8;font-weight:700;">Customer Edits:</span>' + magicBadge + cropBadge + '</div>';
+          }
+
+          var filterVal = isImg ? (o.used_magic === 1 ? '<span style="color:#d946ef;font-weight:700;">✨ Magic</span>' : '<span style="color:#64748b;">Original</span>') : '<span style="color:#94a3b8;">None (PDF)</span>';
+          var cropVal = isImg ? ((o.was_cropped === 1 || o.is_id_copy === 1) ? '<span style="color:#059669;font-weight:700;">✂️ Yes</span>' : '<span style="color:#64748b;">No</span>') : '<span style="color:#94a3b8;">N/A (PDF)</span>';
+
           filesHtml += '<div class="oc-file-row">' +
             '<div class="oc-file-icon ' + fileInfo.cls + '">' + fileInfo.icon + '</div>' +
             '<div class="oc-file-name" title="' + escapeHtml(o.file_name) + '">' + escapeHtml(o.file_name) + '</div>' +
             previewBtn +
           '</div>' +
+          editPills +
           '<div class="oc-details-grid">' +
             '<div class="oc-detail"><span class="oc-detail-label">Pages</span><span class="oc-detail-value">' + pagesVal + '</span></div>' +
             '<div class="oc-detail"><span class="oc-detail-label">Page Range</span><span class="oc-detail-value" style="' + rangeStyle + '">' + rangeLabel + '</span></div>' +
@@ -2054,6 +2073,8 @@
             '<div class="oc-detail"><span class="oc-detail-label">Copies</span>' + copiesDisplay + '</div>' +
             '<div class="oc-detail"><span class="oc-detail-label">Print Type</span><span class="oc-detail-value">' + typeLabel + '</span></div>' +
             '<div class="oc-detail"><span class="oc-detail-label">Sides</span><span class="oc-detail-value">' + sideLabel + ppsLabel + '</span></div>' +
+            '<div class="oc-detail"><span class="oc-detail-label">Filter</span><span class="oc-detail-value">' + filterVal + '</span></div>' +
+            '<div class="oc-detail"><span class="oc-detail-label">Cropped</span><span class="oc-detail-value">' + cropVal + '</span></div>' +
           '</div>';
         }
 

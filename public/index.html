@@ -2160,6 +2160,7 @@
         if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
           OCV_CROP.openModal(img, false, function (croppedFile) {
             if (croppedFile) {
+              curPage.wasCropped = true;
               processAutoMagicColor(croppedFile, function (magic) {
                 var displayFile = (selectedPrintType === 'color') ? croppedFile : (magic || croppedFile);
                 var newUrl = URL.createObjectURL(displayFile);
@@ -2172,10 +2173,12 @@
                   selectedFiles[curPage.fileIdx].file = croppedFile;
                   selectedFiles[curPage.fileIdx].magicFile = magic;
                   selectedFiles[curPage.fileIdx].url = newUrl;
+                  selectedFiles[curPage.fileIdx].wasCropped = true;
                 } else if (selectedFiles[pIdx]) {
                   selectedFiles[pIdx].file = croppedFile;
                   selectedFiles[pIdx].magicFile = magic;
                   selectedFiles[pIdx].url = newUrl;
+                  selectedFiles[pIdx].wasCropped = true;
                 }
 
                 renderStepPreviewPage();
@@ -2186,6 +2189,7 @@
             }
           }, fileToCrop || curPage.name || 'image.png');
         }
+
       };
       img.src = curPage.url || URL.createObjectURL(fileToCrop);
     }
@@ -3459,6 +3463,7 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
+      formData.append('usedMagic', selectedEditFilter === 'magic' ? '1' : '0');
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
@@ -3471,6 +3476,9 @@
         if (sf.pages) {
           formData.append('pageCount_' + sf.file.name, sf.pages);
         }
+        var isCropped = (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; }))) ? '1' : '0';
+        formData.append('wasCropped_' + sf.file.name, isCropped);
+        formData.append('usedMagic_' + sf.file.name, selectedEditFilter === 'magic' ? '1' : '0');
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3591,6 +3599,7 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
+      formData.append('usedMagic', selectedEditFilter === 'magic' ? '1' : '0');
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
@@ -3603,6 +3612,9 @@
         if (sf.pages) {
           formData.append('pageCount_' + sf.file.name, sf.pages);
         }
+        var isCropped = (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; }))) ? '1' : '0';
+        formData.append('wasCropped_' + sf.file.name, isCropped);
+        formData.append('usedMagic_' + sf.file.name, selectedEditFilter === 'magic' ? '1' : '0');
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3717,6 +3729,7 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
+      formData.append('usedMagic', selectedEditFilter === 'magic' ? '1' : '0');
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
@@ -3729,6 +3742,9 @@
         if (sf.pages) {
           formData.append('pageCount_' + sf.file.name, sf.pages);
         }
+        var isCropped = (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; }))) ? '1' : '0';
+        formData.append('wasCropped_' + sf.file.name, isCropped);
+        formData.append('usedMagic_' + sf.file.name, selectedEditFilter === 'magic' ? '1' : '0');
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
