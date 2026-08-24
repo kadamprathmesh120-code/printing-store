@@ -1137,6 +1137,7 @@ function applyFilter(ctx, w, h, mode) {
 var currentCrop = null;
 var currentCallback = null;
 var isIdCopyMode = false;
+var hasRotated = false;
 var selectedFilter = 'original';
 var filteredCanvas = null; // cached filtered image
 var filteredFilter = null; // which filter is cached
@@ -1448,15 +1449,13 @@ function showPreview() {
   if (cw < 10 || ch < 10) return;
 
   if (isIdCopyMode) {
-    ch = cw / (86/54);
-  }
-
-  var outW = Math.round(cw);
-  var outH = Math.round(ch);
-
-  if (isIdCopyMode) {
-    outW = 2031;
-    outH = 1275;
+    if (cw >= ch) {
+      outW = 2031;
+      outH = 1275;
+    } else {
+      outW = 1275;
+      outH = 2031;
+    }
   }
 
   // Limit preview resolution for performance
@@ -1728,7 +1727,7 @@ function commitCropResult() {
   // Check if corners cover the FULL image (near all 4 boundaries) — only then skip crop
   // Do NOT use savedCorners comparison: auto-detected crop corners would incorrectly appear "unmoved"
   var coversFullImage = false;
-  if (origCorners && origCorners.length === 4 && imgW > 0 && imgH > 0 && selectedFilter === 'original') {
+  if (!isIdCopyMode && !hasRotated && origCorners && origCorners.length === 4 && imgW > 0 && imgH > 0 && selectedFilter === 'original') {
     var edgeThresh = Math.max(imgW, imgH) * 0.03; // 3% of image
     // Corners should be close to (0,0), (W,0), (W,H), (0,H)
     var fullPts = [{x:0,y:0},{x:imgW,y:0},{x:imgW,y:imgH},{x:0,y:imgH}];
@@ -1737,7 +1736,7 @@ function commitCropResult() {
     });
   }
 
-  if (coversFullImage && previewCanvas._originalFile) {
+  if (coversFullImage && previewCanvas._originalFile && !hasRotated && !isIdCopyMode) {
     currentCallback(previewCanvas._originalFile, 'original');
     closeModal();
     return;
@@ -1815,6 +1814,7 @@ function closeModal() {
 function openModal(image, idCopy, callback, originalFile) {
   sourceImage = image;
   isIdCopyMode = idCopy || false;
+  hasRotated = false;
   currentCallback = callback;
   _originalFileRef = originalFile || null;
   selectedFilter = 'original';
@@ -2381,13 +2381,13 @@ function cropDirect() {
   if (cw < 10 || ch < 10) return;
 
   if (isIdCopyMode) {
-    ch = cw / (86/54);
-  }
-  var outW = Math.round(cw);
-  var outH = Math.round(ch);
-  if (isIdCopyMode) {
-    outW = 2031;
-    outH = 1275;
+    if (cw >= ch) {
+      outW = 2031;
+      outH = 1275;
+    } else {
+      outW = 1275;
+      outH = 2031;
+    }
   }
 
   // Get original image pixel data
@@ -2517,6 +2517,8 @@ return {
 
   rotate: function(deg) {
     if (!sourceImage || !canvasEl) return;
+    hasRotated = true;
+    if (previewCanvas) previewCanvas._originalFile = null;
     var tempC = document.createElement('canvas');
     if (Math.abs(deg) % 180 !== 0) {
       tempC.width = sourceImage.height;
