@@ -1,8 +1,10 @@
 services:
   - type: web
     name: printing-store
-    runtime: node
-    buildCommand: npm install
-    startCommand: npm start
+    env: node
     plan: free
-    healthCheckPath: /
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
