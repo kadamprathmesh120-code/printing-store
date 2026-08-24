@@ -2715,6 +2715,48 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   border-color: #8b5cf6;
 }
 
-
-
-
+/* ===== Step 2 Filter Toggle (Original / Magic Color) ===== */
+.edit-filter-section {
+  margin: 14px 0 16px;
+}
+.edit-filter-label {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.edit-filter-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.edit-filter-tab {
+  padding: 12px 10px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+}
+.edit-filter-tab:hover {
+  border-color: #a78bfa;
+  background: #faf5ff;
+}
+.edit-filter-tab.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(217, 70, 239, 0.35);
+}

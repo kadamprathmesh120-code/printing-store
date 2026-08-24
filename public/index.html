@@ -734,6 +734,21 @@
             <button type="button" class="page-nav-btn" id="btnNextEditPage" onclick="nextPreviewPage()">›</button>
           </div>
 
+          <!-- Filter Toggle (Original vs Magic Color) - only for images -->
+          <div class="edit-filter-section" id="editFilterSection">
+            <div class="edit-filter-label">
+              <span>🎨</span> <span>Enhancement</span>
+            </div>
+            <div class="edit-filter-tabs">
+              <button type="button" class="edit-filter-tab" id="editFilterOriginal" onclick="selectEditFilter('original')">
+                <span>📷</span> <span>Original</span>
+              </button>
+              <button type="button" class="edit-filter-tab active" id="editFilterMagic" onclick="selectEditFilter('magic')">
+                <span>✨</span> <span>Magic Color</span>
+              </button>
+            </div>
+          </div>
+
           <button type="button" class="btn-action-green" onclick="goToStep(3)">
             <span>✅ All Good — Continue</span>
           </button>
@@ -1750,6 +1765,7 @@
     var selectedOrientation = 'portrait';
     var selectedPageRange = 'all';
     var selectedPagesPerSheet = 1;
+    var selectedEditFilter = 'magic'; // 'original' or 'magic' — controls Step 2 filter toggle
 
     // --- ID Copy ---
     var idcMode = 'regular';
@@ -1842,9 +1858,15 @@
       var page = window.allPreviewPages[window.currentPreviewPageIndex];
       var totalPages = window.allPreviewPages.length;
 
-      // Update Step 2 Edit Preview
+      // Update Step 2 Edit Preview — respect filter selection
       var editImg = document.getElementById('editPreviewImg');
-      if (editImg && page && page.url) editImg.src = page.url;
+      if (editImg && page) {
+        if (selectedEditFilter === 'magic' && page.magicUrl) {
+          editImg.src = page.magicUrl;
+        } else if (page.url) {
+          editImg.src = page.originalUrl || page.url;
+        }
+      }
       var editSub = document.getElementById('editPageSub');
       if (editSub) {
         editSub.textContent = totalPages + ' page' + (totalPages > 1 ? 's' : '') + ' — ek nazar dekh lo';
@@ -1903,7 +1925,7 @@
       var mainNav = document.getElementById('mainPageNav');
       if (mainNav) mainNav.style.display = totalPages > 1 ? 'flex' : 'none';
 
-      // Want to Edit button should only be available for photos/images, NOT for PDFs
+      // Want to Edit button and Filter section should only be available for photos/images, NOT for PDFs
       var isPdf = false;
       if (page) {
         if (page.type === 'pdf') isPdf = true;
@@ -1914,6 +1936,16 @@
       var capEdit = document.getElementById('captionWantToEdit');
       if (btnEdit) btnEdit.style.display = isPdf ? 'none' : '';
       if (capEdit) capEdit.style.display = isPdf ? 'none' : '';
+
+      // Hide filter section for PDFs (magic color is image-only)
+      var filterSection = document.getElementById('editFilterSection');
+      if (filterSection) filterSection.style.display = isPdf ? 'none' : '';
+
+      // Update filter button active states
+      var btnOriginal = document.getElementById('editFilterOriginal');
+      var btnMagic = document.getElementById('editFilterMagic');
+      if (btnOriginal) btnOriginal.classList.toggle('active', selectedEditFilter === 'original');
+      if (btnMagic) btnMagic.classList.toggle('active', selectedEditFilter === 'magic');
 
       syncWhichPagesCount();
     }
@@ -1930,6 +1962,28 @@
         window.currentPreviewPageIndex++;
         renderStepPreviewPage();
       }
+    }
+
+    function selectEditFilter(filter) {
+      selectedEditFilter = filter;
+      // Update the preview image to show original or magic version
+      var page = window.allPreviewPages[window.currentPreviewPageIndex];
+      var editImg = document.getElementById('editPreviewImg');
+      if (editImg && page) {
+        if (filter === 'magic' && page.magicUrl) {
+          editImg.src = page.magicUrl;
+          // Also update the main url so the file sent for printing uses magic version
+          page.url = page.magicUrl;
+        } else {
+          editImg.src = page.originalUrl || page.url;
+          page.url = page.originalUrl || page.url;
+        }
+      }
+      // Update button active states
+      var btnOriginal = document.getElementById('editFilterOriginal');
+      var btnMagic = document.getElementById('editFilterMagic');
+      if (btnOriginal) btnOriginal.classList.toggle('active', filter === 'original');
+      if (btnMagic) btnMagic.classList.toggle('active', filter === 'magic');
     }
 
     function selectPrintTypeOption(type) {
@@ -2217,17 +2271,42 @@
         }
       }
 
-      // 1. Process Image Files
+      // 1. Process Image Files — also generate magic-enhanced versions
       imageFiles.forEach(function (imgFile, imgIdx) {
         var url = URL.createObjectURL(imgFile);
-        selectedFiles.push({ file: imgFile, pages: 1, url: url });
-        window.allPreviewPages.push({
+        var pageEntry = {
           type: 'image',
           url: url,
+          originalUrl: url,
+          magicUrl: null,
           file: imgFile,
           fileIdx: imgIdx,
           pageNum: 1,
           name: imgFile.name
+        };
+        selectedFiles.push({ file: imgFile, pages: 1, url: url });
+        window.allPreviewPages.push(pageEntry);
+
+        // Generate magic color version in background
+        processAutoMagicColor(imgFile, function (magicFile) {
+          if (magicFile && magicFile !== imgFile) {
+            var magicUrl = URL.createObjectURL(magicFile);
+            pageEntry.magicUrl = magicUrl;
+            pageEntry.magicFile = magicFile;
+            // If magic filter is selected and we're currently viewing this page, update preview
+            if (selectedEditFilter === 'magic' && window.currentFlowStep === 2) {
+              var currentPage = window.allPreviewPages[window.currentPreviewPageIndex];
+              if (currentPage === pageEntry) {
+                pageEntry.url = magicUrl;
+                var editImg = document.getElementById('editPreviewImg');
+                if (editImg) editImg.src = magicUrl;
+              }
+            }
+            // Also store in selectedFiles
+            if (selectedFiles[imgIdx]) {
+              selectedFiles[imgIdx].magicFile = magicFile;
+            }
+          }
         });
         checkAllDone();
       });
