@@ -1662,6 +1662,76 @@ body {
   border-radius:3px; box-shadow:0 1px 8px rgba(0,0,0,0.1);
 }
 
+/* --- ID Copy 4-Step Wizard Styles --- */
+.idc-slot-card {
+  position: relative;
+  background: #ffffff;
+  border: 2px dashed #cbd5e1;
+  border-radius: 18px;
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+}
+.idc-slot-card:hover {
+  border-color: #2563eb;
+  background: rgba(37,99,235,0.02);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37,99,235,0.1);
+}
+.idc-slot-card.has-img {
+  border-style: solid;
+  border-color: #16a34a;
+  background: rgba(22,163,74,0.03);
+}
+.idc-slot-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.68em;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.idc-slot-card.has-img .idc-slot-badge {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+.idc-slot-empty .icon {
+  font-size: 1.8em;
+  display: block;
+  margin-bottom: 2px;
+}
+.idc-slot-img {
+  max-width: 100%;
+  max-height: 100px;
+  border-radius: 8px;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.idc-slot-pill {
+  font-size: 0.72em;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+.idc-slot-card.has-img .idc-slot-pill {
+  color: #16a34a;
+}
+
+
 /* --- Crop Modal Shared --- */
 .crop-overlay {
   position:fixed; top:0; left:0; right:0; bottom:0;

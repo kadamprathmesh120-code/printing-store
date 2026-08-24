@@ -1185,233 +1185,291 @@
     </div>
 
     <!-- ID Copy section (hidden until ID card mode activated) -->
+    <!-- ID Copy section (4-Step Wizard Flow) -->
     <div id="idCopySection" class="hidden" style="display:none;">
-      <div class="card fade-in" style="max-width:560px;margin:0 auto;">
-        <button class="back-btn" onclick="exitIdCopy()"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
-          <span data-i18n="backToHome">Back</span></button>
-        <h2 data-i18n="idCopyTitle">Aadhar / PAN Card Copy</h2>
-        <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;" data-i18n="idCopyDesc">86×54 mm ID card printing
-          (Aadhar, PAN, etc.)</p>
-
-        <!-- ID Copy Guidance Banner / Auto Prompt -->
-        <div id="idcBannerPrompt" class="idc-banner hidden" style="display:none;">
-          <div class="idc-banner-content">
-            <div id="idcBannerIcon" class="idc-banner-icon">✨</div>
-            <div style="flex:1;">
-              <div id="idcBannerTitle" class="idc-banner-title">Front side cropped!</div>
-              <div id="idcBannerSub" class="idc-banner-sub">Now upload the BACK SIDE of your ID card</div>
+      
+      <!-- STEP 1: UPLOAD ID CARD -->
+      <div id="idcStepUpload" class="idc-wizard-step active">
+        <div class="flow-container">
+          <div class="flow-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <button type="button" class="back-btn" onclick="exitIdCopy()" style="margin-bottom:0;"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back</span></button>
+              <span style="font-size:0.82em;font-weight:700;color:#64748b;">Step 1 of 4 • Upload ID</span>
             </div>
-            <button onclick="idcHideBanner()" class="idc-banner-close" title="Close">✕</button>
-          </div>
-          <div id="idcBannerActions" class="idc-banner-actions"></div>
-        </div>
-
-        <!-- 3D Interactive ID Card Flip Container -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:0.85em;font-weight:700;color:#374151;">Upload Card Sides</span>
-          <button type="button" class="idc-flip-toggle-btn" onclick="idcFlipCard()">
-            <span>🔄 3D Flip Card: <strong id="idcCurrentSideLabel">Front Side</strong></span>
-          </button>
-        </div>
-
-        <div class="idc-3d-scene">
-          <div id="idc3dCardWrapper" class="idc-3d-card-wrapper">
-            <!-- Front Side Card -->
-            <div id="idcFront" class="idc-3d-side" onclick="document.getElementById('idcFrontInput').click()">
-              <div id="idcFrontEmpty" class="idc-card-empty">
-                <span class="icon" style="font-size:2.4em;margin-bottom:6px;">📸</span>
-                <span style="font-size:0.95em;font-weight:700;color:#1e293b;display:block;">Upload Front Side</span>
-                <span style="font-size:0.75em;color:#94a3b8;margin-top:2px;display:block;">Tap to select Aadhaar / PAN
-                  front image</span>
-              </div>
-              <img id="idcFrontImg" class="idc-card-img hidden"
-                style="max-height:150px;object-fit:contain;border-radius:10px;">
-              <input type="file" id="idcFrontInput" accept="image/*" style="display:none"
-                onchange="idcLoad(this,'front')">
+            <div class="upload-hero-icon" style="background:#eff6ff;color:#2563eb;">
+              🪪
             </div>
+            <h1 class="gradient-title" style="font-size:1.35em;">Upload ID Card</h1>
+            <div class="upload-sub">Aadhaar • PAN • Voter ID • Driving License</div>
 
-            <!-- Back Side Card (Flipped 180deg) -->
-            <div id="idcBack" class="idc-3d-side idc-3d-side-back"
-              onclick="document.getElementById('idcBackInput').click()">
-              <div id="idcBackEmpty" class="idc-card-empty">
-                <span class="icon" style="font-size:2.4em;margin-bottom:6px;">📸</span>
-                <span style="font-size:0.95em;font-weight:700;color:#1e293b;display:block;">Upload Back Side</span>
-                <span style="font-size:0.75em;color:#94a3b8;margin-top:2px;display:block;">Tap to select Aadhaar / PAN
-                  back image</span>
-              </div>
-              <img id="idcBackImg" class="idc-card-img hidden"
-                style="max-height:150px;object-fit:contain;border-radius:10px;">
-              <input type="file" id="idcBackInput" accept="image/*" style="display:none"
-                onchange="idcLoad(this,'back')">
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Side Indicator Pills -->
-        <div style="display:flex;gap:10px;margin-bottom:14px;">
-          <button type="button" onclick="idcFlipToFront(); document.getElementById('idcFrontInput').click();"
-            style="flex:1;padding:8px 12px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;font-size:0.8em;font-weight:700;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
-            <span>📷 Front Side</span>
-            <span id="idcFrontPillStatus" style="font-size:0.75em;color:#94a3b8;">(Tap)</span>
-          </button>
-          <button type="button" onclick="idcFlipToBack(); document.getElementById('idcBackInput').click();"
-            style="flex:1;padding:8px 12px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;font-size:0.8em;font-weight:700;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s;">
-            <span>📷 Back Side</span>
-            <span id="idcBackPillStatus" style="font-size:0.75em;color:#94a3b8;">(Tap)</span>
-          </button>
-        </div>
-
-        <div id="idcQueue" class="hidden"></div>
-
-        <div id="idcPreview" class="hidden">
-          <div style="margin-bottom:12px;">
-            <div style="font-weight:700;font-size:1em;color:#111827;">A4 Print Preview</div>
-            <div style="font-size:0.78em;color:#6b7280;">Your uploaded ID card will be printed on A4 paper exactly as
-              shown.</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:8px;justify-content:center;">
-            <button class="preview-btn" onclick="idcPreviewZoom(-0.15)">− Zoom</button>
-            <span id="idcPreviewZoomLabel"
-              style="font-size:0.82em;min-width:44px;text-align:center;font-weight:600;">100%</span>
-            <button class="preview-btn" onclick="idcPreviewZoom(0.15)">+ Zoom</button>
-            <button class="preview-btn" onclick="idcPreviewFit()">⤡ Fit</button>
-            <button class="preview-btn" onclick="idcPreviewOriginal()">1:1 Actual</button>
-            <button class="preview-btn" onclick="idcPreviewRotate(90)">🔄 Rotate</button>
-            <button class="preview-btn" onclick="idcPrintPreview()" style="font-weight:700;">🖨 Print</button>
-          </div>
-          <div id="idcPreviewWrap"
-            style="overflow:auto;background:#e0e0e0;border-radius:12px;padding:20px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
-            <div id="idcA4"
-              style="width:100%;max-width:520px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;transform-origin:top center;transition:transform 0.15s;border:1px solid rgba(0,0,0,0.06);border-radius:2px;">
-              <div id="idcA4Aspect" style="width:100%;aspect-ratio:210/297;">
-                <div id="idcA4Printable"
-                  style="position:absolute;inset:8%;border:1px dashed #ccc;border-radius:2px;pointer-events:none;">
+            <!-- Upload Slots: Front & Back side-by-side -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 14px;">
+              <!-- Front Side Slot -->
+              <div id="idcSlotFront" class="idc-slot-card" onclick="document.getElementById('idcFrontInput').click()">
+                <div class="idc-slot-badge">Front (Photo Side)</div>
+                <div id="idcFrontEmpty" class="idc-slot-empty">
+                  <span class="icon">📸</span>
+                  <div style="font-weight:700;font-size:0.9em;color:#1e293b;">Front Side</div>
+                  <div style="font-size:0.7em;color:#94a3b8;margin-top:2px;">Tap to select</div>
                 </div>
-                <div id="idcA4Drop" style="position:absolute;inset:0;">
-                  <div id="idcA4Msg"
-                    style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;pointer-events:none;">
-                    Upload front/back images<br>to see print preview</div>
-                </div>
+                <img id="idcFrontImg" class="idc-slot-img hidden" alt="Front Preview">
+                <div id="idcFrontPillStatus" class="idc-slot-pill">(Tap to upload)</div>
+                <input type="file" id="idcFrontInput" accept="image/*" style="display:none" onchange="idcLoad(this,'front')">
               </div>
-            </div>
-          </div>
-          <!-- Number of Copies Selector -->
-          <div
-            style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:12px 16px;margin:14px 0 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-            <div>
-              <div style="font-weight:700;font-size:0.95em;color:#0f172a;display:flex;align-items:center;gap:6px;">
-                <span>🖨️ Number of Copies</span>
-              </div>
-              <div style="font-size:0.75em;color:#64748b;margin-top:2px;">Select total printed copies of this ID card
-              </div>
-            </div>
-            <div
-              style="display:flex;align-items:center;gap:10px;background:#fff;padding:4px 8px;border-radius:12px;border:1.5px solid #cbd5e1;">
-              <button type="button" onclick="idcChangeCopies(-1)"
-                style="width:36px;height:36px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;font-weight:800;font-size:1.3em;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#334155;transition:all 0.15s;">−</button>
-              <span id="idcCopiesCount"
-                style="font-weight:800;font-size:1.15em;min-width:28px;text-align:center;color:#0f172a;">1</span>
-              <button type="button" onclick="idcChangeCopies(1)"
-                style="width:36px;height:36px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:800;font-size:1.3em;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.3);transition:all 0.15s;">+</button>
-            </div>
-          </div>
 
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-secondary" onclick="idcCrop('front')" disabled id="idcCropFront" style="flex:1;">Crop
-              Front</button>
-            <button class="btn btn-secondary" onclick="idcCrop('back')" disabled id="idcCropBack" style="flex:1;">Crop
-              Back</button>
-            <button class="btn btn-secondary" onclick="idcAddMore()" id="idcAddMore" style="flex:1;">Add More</button>
-            <button class="btn btn-primary" onclick="idcUpload()" id="idcUploadBtn" style="flex:100%;">Next: Calculate &
-              Pay ➔</button>
+              <!-- Back Side Slot -->
+              <div id="idcSlotBack" class="idc-slot-card" onclick="document.getElementById('idcBackInput').click()">
+                <div class="idc-slot-badge">Back (Address Side)</div>
+                <div id="idcBackEmpty" class="idc-slot-empty">
+                  <span class="icon">📸</span>
+                  <div style="font-weight:700;font-size:0.9em;color:#1e293b;">Back Side</div>
+                  <div style="font-size:0.7em;color:#94a3b8;margin-top:2px;">Optional / Tap to add</div>
+                </div>
+                <img id="idcBackImg" class="idc-slot-img hidden" alt="Back Preview">
+                <div id="idcBackPillStatus" class="idc-slot-pill">(Optional)</div>
+                <input type="file" id="idcBackInput" accept="image/*" style="display:none" onchange="idcLoad(this,'back')">
+              </div>
+            </div>
+
+            <!-- Layout Mode Selector -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-size:0.84em;font-weight:700;color:#334155;">Print Layout</div>
+                <div style="font-size:0.72em;color:#64748b;">Front &amp; Back on same page</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button type="button" id="idcLayoutBothBtn" class="edit-filter-tab active" onclick="idcSetLayoutMode('both')" style="padding:6px 12px;font-size:0.78em;">Front + Back</button>
+                <button type="button" id="idcLayoutFrontBtn" class="edit-filter-tab" onclick="idcSetLayoutMode('front_only')" style="padding:6px 12px;font-size:0.78em;">Front Only</button>
+              </div>
+            </div>
+
+            <button type="button" class="btn-action-green" id="idcStep1NextBtn" onclick="idcGoToStep(2)" disabled style="opacity:0.6;cursor:not-allowed;">
+              <span>Next: Edit &amp; Enhance (Step 2) ➔</span>
+            </button>
+            <div class="btn-sub-caption" id="idcStep1Caption">Upload front side of your ID card to continue</div>
           </div>
         </div>
       </div>
 
-      <!-- ID Copy Payment Step -->
-      <div id="idcPayStep" class="step hidden">
-        <button class="back-btn" onclick="showStep('idCopySection')"><i data-lucide="arrow-left"
-            style="width:16px;height:16px;"></i> Back</button>
-        <h2 style="font-size:1.05em;font-weight:700;color:#1f2937;margin:0 0 4px;">Pay for ID Copy</h2>
-        <p style="font-size:0.78em;color:#9ca3af;margin:0 0 16px;">Review order details & complete payment</p>
-
-        <!-- Order Summary Card (Normal Mode Style) -->
-        <div class="summary-card">
-          <div class="summary-row">
-            <span class="sr-label"><i data-lucide="credit-card" style="width:14px;height:14px;"></i> <span>Document
-                Type</span></span>
-            <span class="sr-value" id="idcReviewDocType">ID Copy (86×54 mm)</span>
-          </div>
-          <div class="summary-row">
-            <span class="sr-label"><i data-lucide="layers" style="width:14px;height:14px;"></i> <span>Sides
-                Uploaded</span></span>
-            <span class="sr-value" id="idcReviewSides">Front & Back</span>
-          </div>
-          <div class="summary-row">
-            <span class="sr-label"><i data-lucide="droplets" style="width:14px;height:14px;"></i> <span>Print
-                Type</span></span>
-            <span class="sr-value" id="idcReviewPrintType">Color</span>
-          </div>
-          <div class="summary-row">
-            <span class="sr-label"><i data-lucide="copy" style="width:14px;height:14px;"></i> <span>Total
-                Copies</span></span>
-            <span class="sr-value" id="idcReviewCopies">1 Copy</span>
-          </div>
-          <div class="summary-row" style="border-bottom:none;">
-            <span class="sr-label"><i data-lucide="tag" style="width:14px;height:14px;"></i> <span>Price
-                Rate</span></span>
-            <span class="sr-value" id="idcReviewRate">₹10 per ID copy</span>
-          </div>
-          <div class="summary-total"
-            style="background:#f0fdf4;padding:12px 14px;border-radius:12px;margin-top:10px;border:1px solid #bbf7d0;">
-            <span class="st-label" style="font-weight:700;color:#15803d;display:flex;align-items:center;gap:6px;"><i
-                data-lucide="calculator" style="width:16px;height:16px;"></i> <span>Total Price</span></span>
-            <span class="st-value" id="idcPayTotal" style="font-size:1.4em;font-weight:800;color:#16a34a;">₹0</span>
-          </div>
-        </div>
-
-        <!-- Contact Form -->
-        <div class="contact-form">
-          <input type="text" id="idcPayName" placeholder="Your Name" required>
-        </div>
-
-        <!-- Payment Card -->
-        <div class="razorpay-payment-card kiosk-payment-card" style="margin-top:16px;">
-          <div class="kiosk-amount-card">
-            <div class="kiosk-amount-subtitle">Secure Online Payment</div>
-            <div class="kiosk-amount-hero">
-              PAY <span class="kiosk-currency">₹</span><span id="idcPayBtnAmountDisplay">0</span>
+      <!-- STEP 2: EDIT & ENHANCE -->
+      <div id="idcStep2" class="idc-wizard-step hidden" style="display:none;">
+        <div class="flow-container">
+          <div class="flow-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <button type="button" class="back-btn" onclick="idcGoToStep(1)" style="margin-bottom:0;"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back</span></button>
+              <span style="font-size:0.82em;font-weight:700;color:#64748b;">Step 2 of 4 • Edit &amp; Enhance</span>
             </div>
-            <div class="price-badge kiosk-price-badge">
-              <span class="badge-standard">🛡️ No Extra Charges</span>
-            </div>
-          </div>
+            <h2 class="screen-header-title">✂️ Edit &amp; Enhance ID</h2>
+            <div class="screen-header-sub">Rotate, crop borders, and apply crystal-clear Magic Color</div>
 
-          <div class="rpc-body kiosk-body">
-            <div class="kiosk-chips-label">Supported Payment Methods</div>
-            <div class="kiosk-chips-grid">
-              <div class="kiosk-chip"><span class="chip-dot gpay"></span> Google Pay</div>
-              <div class="kiosk-chip"><span class="chip-dot phonepe"></span> PhonePe</div>
-              <div class="kiosk-chip"><span class="chip-dot paytm"></span> Paytm</div>
-              <div class="kiosk-chip"><span class="chip-dot card"></span> Cards</div>
-              <div class="kiosk-chip"><span class="chip-dot net"></span> Net Banking</div>
-            </div>
-
-            <div class="rpc-btn-wrapper kiosk-btn-wrapper">
-              <button class="kiosk-cta-btn" id="btnIdcOnline" onclick="idcPayOnline()">
-                🔒 Pay ₹<span id="idcPayBtnAmount2">0</span>
+            <!-- Side Switcher Tabs (if Back side exists) -->
+            <div id="idcEditSideTabs" class="edit-filter-tabs" style="margin:14px 0 10px;display:none;">
+              <button type="button" id="idcEditTabFront" class="edit-filter-tab active" onclick="idcSelectEditSide('front')">
+                <span>🪪 Front Side</span>
               </button>
-              <div class="kiosk-cta-subtext">UPI • Cards • Net Banking</div>
-            </div>
-
-            <div class="kiosk-cash-wrapper">
-              <button class="kiosk-cash-btn rpc-cash-btn" onclick="idcPayCash()">
-                💵 Pay at Counter
+              <button type="button" id="idcEditTabBack" class="edit-filter-tab" onclick="idcSelectEditSide('back')">
+                <span>🪪 Back Side</span>
               </button>
             </div>
+
+            <!-- Live Active Side Preview Box -->
+            <div class="preview-sheet-frame" style="min-height:190px;background:#0f172a;display:flex;align-items:center;justify-content:center;position:relative;border-radius:16px;padding:14px;box-shadow:inset 0 2px 8px rgba(0,0,0,0.5);margin-bottom:12px;">
+              <img id="idcEditPreviewImg" src="" alt="ID Side Preview" style="max-width:100%;max-height:220px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.4);object-fit:contain;">
+            </div>
+
+            <!-- Direct Actions: Rotate & Crop -->
+            <div style="display:flex;gap:10px;margin-bottom:14px;">
+              <button type="button" class="btn-action-white" onclick="idcStepRotate()" style="flex:1;margin:0;padding:12px;background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#334155;">
+                <span>🔄 Rotate 90°</span>
+              </button>
+              <button type="button" class="btn-action-white" onclick="idcStepOpenCrop()" style="flex:1;margin:0;padding:12px;background:#fff;border:1.5px solid #2563eb;color:#2563eb;font-weight:700;">
+                <span>✂️ Adjust Crop</span>
+              </button>
+            </div>
+
+            <!-- Filter Enhancement Toggle (Original vs Magic Color) -->
+            <div class="edit-filter-section" id="idcFilterSection" style="margin:8px 0 18px;">
+              <div class="edit-filter-label">
+                <span>🎨</span> <span>Enhancement</span>
+              </div>
+              <div class="edit-filter-tabs">
+                <button type="button" class="edit-filter-tab" id="idcFilterOriginal" onclick="idcSelectFilter('original')">
+                  <span>📷</span> <span>Original</span>
+                </button>
+                <button type="button" class="edit-filter-tab active" id="idcFilterMagic" onclick="idcSelectFilter('magic')">
+                  <span>✨</span> <span>Magic Color</span>
+                </button>
+              </div>
+            </div>
+
+            <button type="button" class="btn-action-green" onclick="idcGoToStep(3)">
+              <span>✅ All Good — Continue to Preview (Step 3) ➔</span>
+            </button>
+            <div class="btn-sub-caption">Check print layout on actual A4 paper</div>
           </div>
         </div>
       </div>
+
+      <!-- STEP 3: A4 SHEET PREVIEW & SETTINGS -->
+      <div id="idcStepPreview" class="idc-wizard-step hidden" style="display:none;">
+        <div class="flow-container">
+          <div class="flow-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <button type="button" class="back-btn" onclick="idcGoToStep(2)" style="margin-bottom:0;"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back</span></button>
+              <span style="font-size:0.82em;font-weight:700;color:#64748b;">Step 3 of 4 • A4 Sheet Preview</span>
+            </div>
+            <h2 class="screen-header-title">👀 A4 Print Preview</h2>
+            <div class="screen-header-sub">Your uploaded ID card printed at actual 110×69 mm size</div>
+
+            <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin:10px 0 8px;justify-content:center;">
+              <button class="preview-btn" onclick="idcPreviewZoom(-0.15)">− Zoom</button>
+              <span id="idcPreviewZoomLabel" style="font-size:0.82em;min-width:44px;text-align:center;font-weight:600;">100%</span>
+              <button class="preview-btn" onclick="idcPreviewZoom(0.15)">+ Zoom</button>
+              <button class="preview-btn" onclick="idcPreviewFit()">⤡ Fit</button>
+              <button class="preview-btn" onclick="idcPreviewOriginal()">1:1 Actual</button>
+              <button class="preview-btn" onclick="idcPreviewRotate(90)">🔄 Rotate</button>
+              <button class="preview-btn" onclick="idcPrintPreview()" style="font-weight:700;">🖨 Print</button>
+            </div>
+
+            <div id="idcPreviewWrap" style="overflow:auto;background:#e0e0e0;border-radius:12px;padding:16px;display:flex;justify-content:center;touch-action:pan-x pan-y;">
+              <div id="idcA4" style="width:100%;max-width:520px;background:white;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;transform-origin:top center;transition:transform 0.15s;border:1px solid rgba(0,0,0,0.06);border-radius:2px;">
+                <div id="idcA4Aspect" style="width:100%;aspect-ratio:210/297;">
+                  <div id="idcA4Printable" style="position:absolute;inset:8%;border:1px dashed #ccc;border-radius:2px;pointer-events:none;"></div>
+                  <div id="idcA4Drop" style="position:absolute;inset:0;">
+                    <div id="idcA4Msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:0.9em;text-align:center;pointer-events:none;">
+                      Upload front/back images<br>to see print preview
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Print Color & Copies Settings Card -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:14px 16px;margin:16px 0 18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+              <!-- Color Mode Selector -->
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-weight:700;font-size:0.9em;color:#0f172a;">Print Color Mode</div>
+                  <div style="font-size:0.72em;color:#64748b;">Black &amp; White or Full Color</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" id="idcColorBwBtn" class="edit-filter-tab active" onclick="idcSetPrintColor('bw')" style="padding:6px 12px;font-size:0.8em;">⚫ B&amp;W (₹5)</button>
+                  <button type="button" id="idcColorColorBtn" class="edit-filter-tab" onclick="idcSetPrintColor('color')" style="padding:6px 12px;font-size:0.8em;">🌈 Color (₹10)</button>
+                </div>
+              </div>
+
+              <div style="height:1px;background:#e2e8f0;"></div>
+
+              <!-- Copies Counter -->
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-weight:700;font-size:0.9em;color:#0f172a;">Number of Copies</div>
+                  <div style="font-size:0.72em;color:#64748b;">Total printed A4 sheets</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;background:#fff;padding:4px 8px;border-radius:12px;border:1.5px solid #cbd5e1;">
+                  <button type="button" onclick="idcChangeCopies(-1)" style="width:34px;height:34px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;font-weight:800;font-size:1.2em;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#334155;">−</button>
+                  <span id="idcCopiesCount" style="font-weight:800;font-size:1.15em;min-width:28px;text-align:center;color:#0f172a;">1</span>
+                  <button type="button" onclick="idcChangeCopies(1)" style="width:34px;height:34px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:800;font-size:1.2em;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.3);">+</button>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn-action-green" onclick="idcGoToStep(4)">
+              <span>Next: Payment (Step 4) ➔</span>
+            </button>
+            <div class="btn-sub-caption">Review summary &amp; choose payment method</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: PAYMENT -->
+      <div id="idcStepPay" class="idc-wizard-step hidden" style="display:none;">
+        <div class="flow-container">
+          <div class="flow-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <button type="button" class="back-btn" onclick="idcGoToStep(3)" style="margin-bottom:0;"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> <span>Back</span></button>
+              <span style="font-size:0.82em;font-weight:700;color:#64748b;">Step 4 of 4 • Payment</span>
+            </div>
+            <h2 class="screen-header-title">💳 Pay for ID Copy</h2>
+            <p class="screen-header-sub">Review order details &amp; complete payment</p>
+
+            <!-- Order Summary Card -->
+            <div class="summary-card" style="margin-top:12px;">
+              <div class="summary-row">
+                <span class="sr-label"><i data-lucide="credit-card" style="width:14px;height:14px;"></i> <span>Document Type</span></span>
+                <span class="sr-value" id="idcReviewDocType">ID Copy (110×69 mm)</span>
+              </div>
+              <div class="summary-row">
+                <span class="sr-label"><i data-lucide="layers" style="width:14px;height:14px;"></i> <span>Sides Included</span></span>
+                <span class="sr-value" id="idcReviewSides">Front &amp; Back</span>
+              </div>
+              <div class="summary-row">
+                <span class="sr-label"><i data-lucide="droplets" style="width:14px;height:14px;"></i> <span>Print Color</span></span>
+                <span class="sr-value" id="idcReviewPrintType">B&amp;W</span>
+              </div>
+              <div class="summary-row">
+                <span class="sr-label"><i data-lucide="copy" style="width:14px;height:14px;"></i> <span>Total Copies</span></span>
+                <span class="sr-value" id="idcReviewCopies">1 Copy</span>
+              </div>
+              <div class="summary-row" style="border-bottom:none;">
+                <span class="sr-label"><i data-lucide="tag" style="width:14px;height:14px;"></i> <span>Price Rate</span></span>
+                <span class="sr-value" id="idcReviewRate">₹5 per ID copy</span>
+              </div>
+              <div class="summary-total" style="background:#f0fdf4;padding:12px 14px;border-radius:12px;margin-top:10px;border:1px solid #bbf7d0;">
+                <span class="st-label" style="font-weight:700;color:#15803d;display:flex;align-items:center;gap:6px;"><i data-lucide="calculator" style="width:16px;height:16px;"></i> <span>Total Price</span></span>
+                <span class="st-value" id="idcPayTotal" style="font-size:1.4em;font-weight:800;color:#16a34a;">₹5</span>
+              </div>
+            </div>
+
+            <!-- Customer Name Form -->
+            <div class="contact-form" style="margin-top:14px;">
+              <label style="font-size:0.82em;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Your Name (for Print Token)</label>
+              <input type="text" id="idcPayName" placeholder="Enter customer name" required style="width:100%;padding:12px 14px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:0.95em;box-sizing:border-box;">
+            </div>
+
+            <!-- Payment Action Cards -->
+            <div class="razorpay-payment-card kiosk-payment-card" style="margin-top:16px;">
+              <div class="kiosk-amount-card">
+                <div class="kiosk-amount-subtitle">Instant Printing on Payment</div>
+                <div class="kiosk-amount-hero">
+                  PAY <span class="kiosk-currency">₹</span><span id="idcPayBtnAmountDisplay">5</span>
+                </div>
+                <div class="price-badge kiosk-price-badge">
+                  <span class="badge-standard">🛡️ High Speed Print</span>
+                </div>
+              </div>
+
+              <div class="rpc-body kiosk-body">
+                <div class="kiosk-chips-label">Supported Payment Methods</div>
+                <div class="kiosk-chips-grid">
+                  <div class="kiosk-chip"><span class="chip-dot gpay"></span> Google Pay</div>
+                  <div class="kiosk-chip"><span class="chip-dot phonepe"></span> PhonePe</div>
+                  <div class="kiosk-chip"><span class="chip-dot paytm"></span> Paytm</div>
+                  <div class="kiosk-chip"><span class="chip-dot card"></span> Cards</div>
+                  <div class="kiosk-chip"><span class="chip-dot net"></span> Net Banking</div>
+                </div>
+
+                <div class="rpc-btn-wrapper kiosk-btn-wrapper">
+                  <button class="kiosk-cta-btn" id="btnIdcOnline" onclick="idcPayOnline()">
+                    🔒 Pay ₹<span id="idcPayBtnAmount2">5</span> Online
+                  </button>
+                  <div class="kiosk-cta-subtext">Instant Auto-Print via UPI / Cards</div>
+                </div>
+
+                <div class="kiosk-cash-wrapper">
+                  <button class="kiosk-cash-btn rpc-cash-btn" onclick="idcPayCash()">
+                    💵 Pay Cash at Counter
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
 
   </main>
 
@@ -3775,18 +3833,27 @@
         });
     }
 
-    // --- ID Copy Flow ---
+    // --- ID Copy 4-Step Wizard State & Handlers ---
+    var idcCurrentStep = 1;
+    var idcActiveEditSide = 'front';
+    var idcLayoutMode = 'both';
+    var selectedIdcFilter = 'magic';
+
     function startIdCopy() {
       idcMode = 'idcopy';
       setIdModeDisplay();
+      idcGoToStep(1);
     }
 
     function exitIdCopy() {
       idcMode = 'regular';
       idcClear();
-      document.getElementById('idCopySection').classList.add('hidden');
-      document.getElementById('idCopySection').style.display = 'none';
-      showStep('stepHome');
+      var idc = document.getElementById('idCopySection');
+      if (idc) {
+        idc.classList.add('hidden');
+        idc.style.display = 'none';
+      }
+      showStep('stepUpload');
     }
 
     function setIdModeDisplay() {
@@ -3801,36 +3868,182 @@
       }
     }
 
-    // --- Existing ID Copy functions (preserved) ---
+    function idcGoToStep(step) {
+      idcCurrentStep = step;
+      var s1 = document.getElementById('idcStepUpload');
+      var s2 = document.getElementById('idcStep2');
+      var s3 = document.getElementById('idcStepPreview');
+      var s4 = document.getElementById('idcStepPay');
 
-    function idcFlipCard(side) {
-      var wrapper = document.getElementById('idc3dCardWrapper');
-      var label = document.getElementById('idcCurrentSideLabel');
-      if (!wrapper) return;
-      if (side === 'back' || (side === undefined && !wrapper.classList.contains('flipped'))) {
-        wrapper.classList.add('flipped');
-        if (label) label.textContent = 'Back Side';
-      } else {
-        wrapper.classList.remove('flipped');
-        if (label) label.textContent = 'Front Side';
+      if (s1) { s1.classList.add('hidden'); s1.style.display = 'none'; }
+      if (s2) { s2.classList.add('hidden'); s2.style.display = 'none'; }
+      if (s3) { s3.classList.add('hidden'); s3.style.display = 'none'; }
+      if (s4) { s4.classList.add('hidden'); s4.style.display = 'none'; }
+
+      if (step === 1 && s1) {
+        s1.classList.remove('hidden');
+        s1.style.display = 'block';
+      } else if (step === 2 && s2) {
+        if (!idcFrontFile) {
+          alert('Please upload the front side of your ID card first.');
+          idcGoToStep(1);
+          return;
+        }
+        s2.classList.remove('hidden');
+        s2.style.display = 'block';
+        
+        // Show/hide side tabs based on whether back side exists
+        var tabs = document.getElementById('idcEditSideTabs');
+        if (tabs) {
+          tabs.style.display = (idcBackFile && idcLayoutMode === 'both') ? 'flex' : 'none';
+        }
+        idcActiveEditSide = 'front';
+        idcSelectEditSide('front');
+      } else if (step === 3 && s3) {
+        s3.classList.remove('hidden');
+        s3.style.display = 'block';
+        idcUpdatePreview();
+      } else if (step === 4 && s4) {
+        s4.classList.remove('hidden');
+        s4.style.display = 'block';
+        idcUpdatePaySummary();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function idcSetLayoutMode(mode) {
+      idcLayoutMode = mode;
+      var bothBtn = document.getElementById('idcLayoutBothBtn');
+      var frontBtn = document.getElementById('idcLayoutFrontBtn');
+      if (bothBtn && frontBtn) {
+        if (mode === 'both') {
+          bothBtn.classList.add('active');
+          frontBtn.classList.remove('active');
+        } else {
+          frontBtn.classList.add('active');
+          bothBtn.classList.remove('active');
+        }
+      }
+      idcUpdatePreview();
+    }
+
+    function idcSelectEditSide(side) {
+      idcActiveEditSide = side;
+      var tabFront = document.getElementById('idcEditTabFront');
+      var tabBack = document.getElementById('idcEditTabBack');
+      if (tabFront && tabBack) {
+        if (side === 'front') {
+          tabFront.classList.add('active');
+          tabBack.classList.remove('active');
+        } else {
+          tabBack.classList.add('active');
+          tabFront.classList.remove('active');
+        }
+      }
+      idcRenderEditPreview();
+    }
+
+    function idcRenderEditPreview() {
+      var imgEl = document.getElementById('idcEditPreviewImg');
+      if (!imgEl) return;
+      var src = (idcActiveEditSide === 'front' ? idcFrontImgSrc : idcBackImgSrc);
+      if (!src || src === '#') {
+        src = (idcActiveEditSide === 'front' ? idcFrontImgSrc : idcBackImgSrc);
+      }
+      imgEl.src = src || '';
+    }
+
+    function idcStepRotate() {
+      var side = idcActiveEditSide || 'front';
+      var src = (side === 'front' ? idcFrontImgSrc : idcBackImgSrc);
+      if (!src || src === '#') return;
+
+      var img = new Image();
+      img.onload = function() {
+        var tempC = document.createElement('canvas');
+        tempC.width = img.height;
+        tempC.height = img.width;
+        var ctx = tempC.getContext('2d');
+        ctx.translate(tempC.width / 2, tempC.height / 2);
+        ctx.rotate(90 * Math.PI / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        tempC.toBlob(function(blob) {
+          var name = (side === 'front' ? idcFrontFile.name : idcBackFile.name);
+          var rotFile = new File([blob], name, { type: 'image/png' });
+          if (side === 'front') {
+            idcFrontCropped = rotFile;
+            idcFrontImgSrc = tempC.toDataURL('image/png');
+          } else {
+            idcBackCropped = rotFile;
+            idcBackImgSrc = tempC.toDataURL('image/png');
+          }
+          idcRenderEditPreview();
+          idcUpdatePreview();
+        }, 'image/png');
+      };
+      img.src = src;
+    }
+
+    function idcStepOpenCrop() {
+      var side = idcActiveEditSide || 'front';
+      idcCrop(side);
+    }
+
+    function idcSelectFilter(filterId) {
+      selectedIdcFilter = filterId;
+      var origBtn = document.getElementById('idcFilterOriginal');
+      var magicBtn = document.getElementById('idcFilterMagic');
+      if (origBtn && magicBtn) {
+        if (filterId === 'magic') {
+          magicBtn.classList.add('active');
+          origBtn.classList.remove('active');
+        } else {
+          origBtn.classList.add('active');
+          magicBtn.classList.remove('active');
+        }
       }
     }
-    function idcFlipToBack() { idcFlipCard('back'); }
-    function idcFlipToFront() { idcFlipCard('front'); }
+
+    function idcSetPrintColor(color) {
+      selectedPrintType = color;
+      var bwBtn = document.getElementById('idcColorBwBtn');
+      var colorBtn = document.getElementById('idcColorColorBtn');
+      if (bwBtn && colorBtn) {
+        if (color === 'bw') {
+          bwBtn.classList.add('active');
+          colorBtn.classList.remove('active');
+        } else {
+          colorBtn.classList.add('active');
+          bwBtn.classList.remove('active');
+        }
+      }
+      idcUpdatePaySummary();
+    }
 
     function idcLoad(input, side) {
       if (!input.files || !input.files[0]) return;
       var f = input.files[0];
-      if (side === 'front') idcFrontFile = f; else idcBackFile = f;
-      if (side === 'back') idcFlipToBack(); else idcFlipToFront();
+      if (side === 'front') {
+        idcFrontFile = f;
+        idcFrontCropped = null;
+      } else {
+        idcBackFile = f;
+        idcBackCropped = null;
+      }
 
       var pillStat = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back') + 'PillStatus');
-      if (pillStat) { pillStat.textContent = '✓ Loaded'; pillStat.style.color = '#16a34a'; }
+      if (pillStat) {
+        pillStat.textContent = (side === 'front' ? '✓ Front Loaded' : '✓ Back Loaded');
+        pillStat.style.color = '#16a34a';
+      }
 
       var reader = new FileReader();
       reader.onload = function (e) {
         if (side === 'front') idcFrontImgSrc = e.target.result;
         else idcBackImgSrc = e.target.result;
+
         var img = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back') + 'Img');
         if (img) {
           img.src = e.target.result;
@@ -3838,23 +4051,29 @@
         }
         var emptyEl = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back') + 'Empty');
         if (emptyEl) emptyEl.classList.add('hidden');
-        var cardEl = document.getElementById('idc' + (side === 'front' ? 'Front' : 'Back'));
+        var cardEl = document.getElementById('idcSlot' + (side === 'front' ? 'Front' : 'Back'));
         if (cardEl) cardEl.classList.add('has-img');
-        idcUpdatePreview();
 
-        // Auto launch crop after selecting image
-        setTimeout(function () {
-          idcCrop(side);
-        }, 200);
+        // Enable Step 1 Next button
+        var nextBtn = document.getElementById('idcStep1NextBtn');
+        var caption = document.getElementById('idcStep1Caption');
+        if (nextBtn && idcFrontFile) {
+          nextBtn.disabled = false;
+          nextBtn.style.opacity = '1';
+          nextBtn.style.cursor = 'pointer';
+        }
+        if (caption && idcFrontFile) {
+          caption.textContent = 'Front side ready — proceed to edit & preview';
+        }
+
+        idcUpdatePreview();
       };
       reader.readAsDataURL(f);
-      if (document.getElementById('idcCropFront')) document.getElementById('idcCropFront').disabled = false;
-      if (document.getElementById('idcCropBack')) document.getElementById('idcCropBack').disabled = false;
       input.value = '';
     }
 
     function idcCrop(side) {
-      var f = side === 'front' ? idcFrontFile : idcBackFile;
+      var f = side === 'front' ? (idcFrontCropped || idcFrontFile) : (idcBackCropped || idcBackFile);
       if (!f) return;
       idcCurrent = side;
       var img = new Image();
@@ -3869,532 +4088,57 @@
             reader.onload = function (e) {
               if (idcCurrent === 'front') idcFrontImgSrc = e.target.result;
               else idcBackImgSrc = e.target.result;
-              document.getElementById('idc' + (idcCurrent === 'front' ? 'Front' : 'Back') + 'Img').src = e.target.result;
+              var imgEl = document.getElementById('idc' + (idcCurrent === 'front' ? 'Front' : 'Back') + 'Img');
+              if (imgEl) {
+                imgEl.src = e.target.result;
+                imgEl.classList.remove('hidden');
+              }
+              idcRenderEditPreview();
               idcUpdatePreview();
             };
             reader.readAsDataURL(croppedFile);
-            document.getElementById('idcCropError').textContent = '';
-            idcOnCropComplete(idcCurrent);
+            var errEl = document.getElementById('idcCropError');
+            if (errEl) errEl.textContent = '';
           }, f);
           return;
         }
-        var canvas = document.getElementById('idcCanvas');
-        var modal = document.getElementById('idcModal');
-        modal.classList.remove('hidden'); modal.style.display = 'flex';
-        document.getElementById('idcCropSide').textContent = side.charAt(0).toUpperCase() + side.slice(1);
-        document.getElementById('idcCropError').textContent = '';
-
-        var dpr = window.devicePixelRatio || 1;
-        var mw = modal.clientWidth * 0.92, mh = window.innerHeight * 0.5;
-        var w = img.width, h = img.height;
-        if (w > mw) { h = h * mw / w; w = mw; }
-        if (h > mh) { w = w * mh / h; h = mh; }
-        canvas.width = Math.round(w * dpr);
-        canvas.height = Math.round(h * dpr);
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
-        canvas.style.transform = 'rotate(0deg)';
-
-        var pad = 20 * dpr;
-        idcCropX1 = pad; idcCropY1 = pad;
-        idcCropX2 = canvas.width - pad; idcCropY2 = canvas.height - pad;
-        idcConstrainRatio();
-        idcDrawCanvas();
       };
-      img.src = URL.createObjectURL(f);
+      img.src = (typeof f === 'string' ? f : URL.createObjectURL(f));
     }
 
-    function idcDrawCanvas() {
-      var canvas = document.getElementById('idcCanvas');
-      var ctx = canvas.getContext('2d');
-      var w = canvas.width, h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-      ctx.save();
-      ctx.translate(w / 2, h / 2);
-      if (idcCropImg) ctx.drawImage(idcCropImg, -w / 2, -h / 2, w, h);
-      ctx.restore();
-
-      var x1 = Math.min(idcCropX1, idcCropX2), y1 = Math.min(idcCropY1, idcCropY2);
-      var x2 = Math.max(idcCropX1, idcCropX2), y2 = Math.max(idcCropY1, idcCropY2);
-
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      ctx.fillRect(0, 0, w, y1);
-      ctx.fillRect(0, y2, w, h - y2);
-      ctx.fillRect(0, y1, x1, y2 - y1);
-      ctx.fillRect(x2, y1, w - x2, y2 - y1);
-
-      ctx.strokeStyle = '#FFD700';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 4]);
-      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-      ctx.setLineDash([]);
-
-      var hs = 12;
-      [[x1, y1], [x2, y1], [x1, y2], [x2, y2]].forEach(function (p) {
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 2;
-        ctx.fillRect(p[0] - hs / 2, p[1] - hs / 2, hs, hs);
-        ctx.strokeRect(p[0] - hs / 2, p[1] - hs / 2, hs, hs);
-      });
-
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.font = '11px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText('86×54mm', x1 + 4, y1 + 4);
+    function idcUpdatePaySummary() {
+      var copies = idcCopiesCount || 1;
+      var rate = (selectedPrintType === 'bw' ? 5 : 10);
+      var total = rate * copies;
+      
+      var docTypeEl = document.getElementById('idcReviewDocType');
+      if (docTypeEl) docTypeEl.textContent = 'ID Copy (110×69 mm)';
+      
+      var sidesEl = document.getElementById('idcReviewSides');
+      if (sidesEl) sidesEl.textContent = (idcBackFile && idcLayoutMode === 'both') ? 'Front & Back' : 'Front Side Only';
+      
+      var ptEl = document.getElementById('idcReviewPrintType');
+      if (ptEl) ptEl.textContent = (selectedPrintType === 'bw' ? 'B&W' : 'Color');
+      
+      var copiesEl = document.getElementById('idcReviewCopies');
+      if (copiesEl) copiesEl.textContent = copies + (copies > 1 ? ' Copies' : ' Copy');
+      
+      var rateEl = document.getElementById('idcReviewRate');
+      if (rateEl) rateEl.textContent = '₹' + rate + ' per ID copy';
+      
+      var totalEl = document.getElementById('idcPayTotal');
+      if (totalEl) totalEl.textContent = '₹' + total;
+      
+      var btnDisp = document.getElementById('idcPayBtnAmountDisplay');
+      if (btnDisp) btnDisp.textContent = total;
+      
+      var btnAmt2 = document.getElementById('idcPayBtnAmount2');
+      if (btnAmt2) btnAmt2.textContent = total;
+      
+      var onlineBtn = document.getElementById('btnIdcOnline');
+      if (onlineBtn) onlineBtn.innerHTML = '🔒 Pay ₹' + total + ' Online';
     }
 
-    function idcConstrainRatio() {
-      var cw = Math.abs(idcCropX2 - idcCropX1), ch = Math.abs(idcCropY2 - idcCropY1);
-      if (cw / ch > IDC_RATIO) {
-        var newW = cw, newH = cw / IDC_RATIO;
-        var cy = (idcCropY1 + idcCropY2) / 2;
-        idcCropY1 = cy - newH / 2; idcCropY2 = cy + newH / 2;
-      } else {
-        var newH = ch, newW = ch * IDC_RATIO;
-        var cx = (idcCropX1 + idcCropX2) / 2;
-        idcCropX1 = cx - newW / 2; idcCropX2 = cx + newW / 2;
-      }
-    }
-
-    function idcGetHandle(x, y) {
-      var hs = 24;
-      var corners = [
-        [idcCropX1, idcCropY1, 'tl'], [idcCropX2, idcCropY1, 'tr'],
-        [idcCropX1, idcCropY2, 'bl'], [idcCropX2, idcCropY2, 'br']
-      ];
-      for (var i = 0; i < corners.length; i++) {
-        if (Math.abs(x - corners[i][0]) < hs && Math.abs(y - corners[i][1]) < hs) return corners[i][2];
-      }
-      var x1 = Math.min(idcCropX1, idcCropX2), y1 = Math.min(idcCropY1, idcCropY2);
-      var x2 = Math.max(idcCropX1, idcCropX2), y2 = Math.max(idcCropY1, idcCropY2);
-      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return 'move';
-      return null;
-    }
-
-    function idcCanvasPos(e) {
-      var rect = e.target.getBoundingClientRect();
-      var dpr = window.devicePixelRatio || 1;
-      return { x: (e.clientX - rect.left) * dpr, y: (e.clientY - rect.top) * dpr };
-    }
-    document.getElementById('idcCanvas').addEventListener('mousedown', function (e) {
-      var pos = idcCanvasPos(e);
-      var h = idcGetHandle(pos.x, pos.y);
-      if (h) {
-        idcDrag = h; idcDragStartX = pos.x; idcDragStartY = pos.y;
-        idcCropX1_s = idcCropX1; idcCropY1_s = idcCropY1;
-        idcCropX2_s = idcCropX2; idcCropY2_s = idcCropY2;
-      }
-    });
-    document.getElementById('idcCanvas').addEventListener('mousemove', function (e) {
-      if (!idcDrag) { var c = document.getElementById('idcCanvas'); c.style.cursor = idcGetHandle(idcCanvasPos(e).x, idcCanvasPos(e).y) ? 'move' : 'default'; return; }
-      var pos = idcCanvasPos(e);
-      var dx = pos.x - idcDragStartX, dy = pos.y - idcDragStartY;
-      var s = { x1: idcCropX1_s, y1: idcCropY1_s, x2: idcCropX2_s, y2: idcCropY2_s };
-      var c = document.getElementById('idcCanvas');
-      if (idcDrag === 'move') {
-        var rw = s.x2 - s.x1, rh = s.y2 - s.y1;
-        idcCropX1 = Math.max(0, Math.min(c.width - rw, s.x1 + dx));
-        idcCropY1 = Math.max(0, Math.min(c.height - rh, s.y1 + dy));
-        idcCropX2 = idcCropX1 + rw; idcCropY2 = idcCropY1 + rh;
-      } else {
-        var cx = (s.x1 + s.x2) / 2, cy = (s.y1 + s.y2) / 2;
-        if (idcDrag === 'tl') { idcCropX1 = s.x1 + dx; idcCropY1 = s.y1 + dy; }
-        else if (idcDrag === 'tr') { idcCropX2 = s.x2 + dx; idcCropY1 = s.y1 + dy; }
-        else if (idcDrag === 'bl') { idcCropX1 = s.x1 + dx; idcCropY2 = s.y2 + dy; }
-        else if (idcDrag === 'br') { idcCropX2 = s.x2 + dx; idcCropY2 = s.y2 + dy; }
-        var nw = Math.abs(idcCropX2 - idcCropX1), nh = Math.abs(idcCropY2 - idcCropY1);
-        if (nw / nh > IDC_RATIO) { nh = nw / IDC_RATIO; } else { nw = nh * IDC_RATIO; }
-        var ncx = (idcCropX1 + idcCropX2) / 2, ncy = (idcCropY1 + idcCropY2) / 2;
-        idcCropX1 = ncx - nw / 2; idcCropX2 = ncx + nw / 2;
-        idcCropY1 = ncy - nh / 2; idcCropY2 = ncy + nh / 2;
-        idcCropX1 = Math.max(0, Math.min(c.width, idcCropX1));
-        idcCropX2 = Math.max(0, Math.min(c.width, idcCropX2));
-        idcCropY1 = Math.max(0, Math.min(c.height, idcCropY1));
-        idcCropY2 = Math.max(0, Math.min(c.height, idcCropY2));
-      }
-      idcDrawCanvas();
-    });
-    document.addEventListener('mouseup', function () { idcDrag = false; });
-
-    document.getElementById('idcCanvas').addEventListener('touchstart', function (e) {
-      e.preventDefault(); var t = e.touches[0]; var pos = idcCanvasPos(t);
-      var h = idcGetHandle(pos.x, pos.y);
-      if (h) {
-        idcDrag = h; idcDragStartX = pos.x; idcDragStartY = pos.y;
-        idcCropX1_s = idcCropX1; idcCropY1_s = idcCropY1; idcCropX2_s = idcCropX2; idcCropY2_s = idcCropY2;
-      }
-    });
-    document.getElementById('idcCanvas').addEventListener('touchmove', function (e) {
-      e.preventDefault(); if (!idcDrag) return;
-      var t = e.touches[0]; var pos = idcCanvasPos(t);
-      var dx = pos.x - idcDragStartX, dy = pos.y - idcDragStartY;
-      var s = { x1: idcCropX1_s, y1: idcCropY1_s, x2: idcCropX2_s, y2: idcCropY2_s };
-      var c = document.getElementById('idcCanvas');
-      if (idcDrag === 'move') {
-        var rw = s.x2 - s.x1, rh = s.y2 - s.y1;
-        idcCropX1 = Math.max(0, Math.min(c.width - rw, s.x1 + dx));
-        idcCropY1 = Math.max(0, Math.min(c.height - rh, s.y1 + dy));
-        idcCropX2 = idcCropX1 + rw; idcCropY2 = idcCropY1 + rh;
-      } else {
-        if (idcDrag === 'tl') { idcCropX1 = s.x1 + dx; idcCropY1 = s.y1 + dy; }
-        else if (idcDrag === 'tr') { idcCropX2 = s.x2 + dx; idcCropY1 = s.y1 + dy; }
-        else if (idcDrag === 'bl') { idcCropX1 = s.x1 + dx; idcCropY2 = s.y2 + dy; }
-        else if (idcDrag === 'br') { idcCropX2 = s.x2 + dx; idcCropY2 = s.y2 + dy; }
-        var nw = Math.abs(idcCropX2 - idcCropX1), nh = Math.abs(idcCropY2 - idcCropY1);
-        if (nw / nh > IDC_RATIO) { nh = nw / IDC_RATIO; } else { nw = nh * IDC_RATIO; }
-        var ncx = (idcCropX1 + idcCropX2) / 2, ncy = (idcCropY1 + idcCropY2) / 2;
-        idcCropX1 = ncx - nw / 2; idcCropX2 = ncx + nw / 2;
-        idcCropY1 = ncy - nh / 2; idcCropY2 = ncy + nh / 2;
-        idcCropX1 = Math.max(0, Math.min(c.width, idcCropX1));
-        idcCropX2 = Math.max(0, Math.min(c.width, idcCropX2));
-        idcCropY1 = Math.max(0, Math.min(c.height, idcCropY1));
-        idcCropY2 = Math.max(0, Math.min(c.height, idcCropY2));
-      }
-      idcDrawCanvas();
-    });
-    document.getElementById('idcCanvas').addEventListener('touchend', function (e) { e.preventDefault(); idcDrag = false; });
-
-    function idcRotate(deg) {
-      idcRotation = (idcRotation + deg) % 360;
-      var canvas = document.getElementById('idcCanvas');
-      var ctx = canvas.getContext('2d');
-      // Bake rotation into pixel data (swap width/height for 90/270)
-      var tempC = document.createElement('canvas');
-      var tCtx = tempC.getContext('2d');
-      if (Math.abs(deg) % 180 !== 0) {
-        tempC.width = canvas.height; tempC.height = canvas.width;
-      } else {
-        tempC.width = canvas.width; tempC.height = canvas.height;
-      }
-      tCtx.translate(tempC.width / 2, tempC.height / 2);
-      tCtx.rotate(deg * Math.PI / 180);
-      tCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
-      canvas.width = tempC.width;
-      canvas.height = tempC.height;
-      canvas.style.width = tempC.width + 'px';
-      canvas.style.height = tempC.height + 'px';
-      canvas.style.transform = 'none'; // clear any CSS transform
-      ctx.drawImage(tempC, 0, 0);
-      // Reset crop selection to full canvas after rotation
-      var pad = 20;
-      idcCropX1 = pad; idcCropY1 = pad;
-      idcCropX2 = canvas.width - pad; idcCropY2 = canvas.height - pad;
-      // Also update idcCropImg to reflect rotated state so confirmCrop exports correctly
-      var rotatedImg = new Image();
-      rotatedImg.src = tempC.toDataURL();
-      rotatedImg.onload = function () {
-        idcCropImg = rotatedImg;
-        idcConstrainRatio();
-        idcDrawCanvas();
-      };
-    }
-
-    function idcResetCrop() {
-      var canvas = document.getElementById('idcCanvas');
-      var pad = 20 * (window.devicePixelRatio || 1);
-      idcCropX1 = pad; idcCropY1 = pad;
-      idcCropX2 = canvas.width - pad; idcCropY2 = canvas.height - pad;
-      idcConstrainRatio();
-      idcDrawCanvas();
-    }
-
-    function idcAutoDetect() {
-      var btn = document.getElementById('idcAutoBtn');
-      if (btn) { btn.textContent = '...'; btn.disabled = true; }
-      var canvas = document.getElementById('idcCanvas');
-      var ctx = canvas.getContext('2d');
-      var w = canvas.width, h = canvas.height;
-      try {
-        var imageData = ctx.getImageData(0, 0, w, h);
-        var data = imageData.data;
-        // Build grayscale + blur
-        var gray = new Float32Array(w * h);
-        for (var i = 0; i < w * h; i++) {
-          gray[i] = data[i * 4] * 0.299 + data[i * 4 + 1] * 0.587 + data[i * 4 + 2] * 0.114;
-        }
-        var blurred = new Float32Array(w * h);
-        for (var y = 1; y < h - 1; y++) {
-          for (var x = 1; x < w - 1; x++) {
-            blurred[y * w + x] = (gray[(y - 1) * w + x - 1] + gray[(y - 1) * w + x] + gray[(y - 1) * w + x + 1] +
-              gray[y * w + x - 1] + gray[y * w + x] + gray[y * w + x + 1] +
-              gray[(y + 1) * w + x - 1] + gray[(y + 1) * w + x] + gray[(y + 1) * w + x + 1]) / 9;
-          }
-        }
-        // Sobel edges
-        var edges = new Float32Array(w * h), maxEdge = 0;
-        for (var y = 1; y < h - 1; y++) {
-          for (var x = 1; x < w - 1; x++) {
-            var gx = -blurred[(y - 1) * w + x - 1] + blurred[(y - 1) * w + x + 1] - 2 * blurred[y * w + x - 1] + 2 * blurred[y * w + x + 1] - blurred[(y + 1) * w + x - 1] + blurred[(y + 1) * w + x + 1];
-            var gy = -blurred[(y - 1) * w + x - 1] - 2 * blurred[(y - 1) * w + x] - blurred[(y - 1) * w + x + 1] + blurred[(y + 1) * w + x - 1] + 2 * blurred[(y + 1) * w + x] + blurred[(y + 1) * w + x + 1];
-            edges[y * w + x] = Math.sqrt(gx * gx + gy * gy);
-            if (edges[y * w + x] > maxEdge) maxEdge = edges[y * w + x];
-          }
-        }
-        var threshold = maxEdge * 0.15;
-        var margin = Math.round(Math.min(w, h) * 0.04);
-        // Scan edges for document boundary
-        var leftSum = 0, rightSum = 0, topSum = 0, bottomSum = 0, rowCount = 0, colCount = 0;
-        for (var y = margin; y < h - margin; y++) {
-          var firstX = -1, lastX = -1;
-          for (var x = margin; x < w - margin; x++) {
-            if (edges[y * w + x] > threshold) { if (firstX < 0) firstX = x; lastX = x; }
-          }
-          if (firstX >= 0 && lastX > firstX && (lastX - firstX) > w * 0.05) {
-            leftSum += firstX; rightSum += lastX; rowCount++;
-          }
-        }
-        for (var x = margin; x < w - margin; x++) {
-          var firstY = -1, lastY = -1;
-          for (var y = margin; y < h - margin; y++) {
-            if (edges[y * w + x] > threshold) { if (firstY < 0) firstY = y; lastY = y; }
-          }
-          if (firstY >= 0 && lastY > firstY && (lastY - firstY) > h * 0.05) {
-            topSum += firstY; bottomSum += lastY; colCount++;
-          }
-        }
-        if (rowCount > 3 && colCount > 3) {
-          var newX1 = Math.max(2, Math.round(leftSum / rowCount) - 4);
-          var newY1 = Math.max(2, Math.round(topSum / colCount) - 4);
-          var newX2 = Math.min(w - 2, Math.round(rightSum / rowCount) + 4);
-          var newY2 = Math.min(h - 2, Math.round(bottomSum / colCount) + 4);
-          if ((newX2 - newX1) > w * 0.1 && (newY2 - newY1) > h * 0.1) {
-            idcCropX1 = newX1; idcCropY1 = newY1;
-            idcCropX2 = newX2; idcCropY2 = newY2;
-            idcDrawCanvas();
-            document.getElementById('idcCropError').textContent = '';
-            if (btn) { btn.textContent = 'Auto'; btn.disabled = false; }
-            return;
-          }
-        }
-        // fallback — just tighten margins
-        var pad = Math.round(Math.min(w, h) * 0.06);
-        idcCropX1 = pad; idcCropY1 = pad; idcCropX2 = w - pad; idcCropY2 = h - pad;
-        idcDrawCanvas();
-        document.getElementById('idcCropError').textContent = 'Could not detect edges. Adjust manually.';
-      } catch (e) {
-        document.getElementById('idcCropError').textContent = 'Auto-detect failed.';
-      }
-      if (btn) { btn.textContent = 'Auto'; btn.disabled = false; }
-    }
-
-    function idcConfirmCrop() {
-      var canvas = document.getElementById('idcCanvas');
-      var dpr = window.devicePixelRatio || 1;
-      var x1 = Math.round(Math.min(idcCropX1, idcCropX2));
-      var y1 = Math.round(Math.min(idcCropY1, idcCropY2));
-      var x2 = Math.round(Math.max(idcCropX1, idcCropX2));
-      var y2 = Math.round(Math.max(idcCropY1, idcCropY2));
-      if (x2 - x1 < 10 || y2 - y1 < 10) { document.getElementById('idcCropError').textContent = 'Crop too small'; return; }
-
-      var iw = idcCropImg.width, ih = idcCropImg.height;
-      var cw = canvas.width, ch = canvas.height;
-      var cx1 = Math.round(x1 * (iw / cw)), cy1 = Math.round(y1 * (ih / ch));
-      var cx2 = Math.round(x2 * (iw / cw)), cy2 = Math.round(y2 * (ih / ch));
-
-      var outC = document.createElement('canvas');
-      var fw = cx2 - cx1, fh = cy2 - cy1;
-      var targetW = 2598, targetH = 1630;
-      outC.width = targetW; outC.height = targetH;
-      var oCtx = outC.getContext('2d');
-      oCtx.imageSmoothingQuality = 'high';
-
-      // Rotation is already baked into idcCropImg by idcRotate(), so draw straight
-      oCtx.drawImage(idcCropImg, cx1, cy1, fw, fh, 0, 0, targetW, targetH);
-
-      outC.toBlob(function (blob) {
-        var croppedFile = new File([blob], (idcCurrent === 'front' ? idcFrontFile.name : idcBackFile.name), { type: 'image/png' });
-        if (idcCurrent === 'front') idcFrontCropped = croppedFile; else idcBackCropped = croppedFile;
-
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          if (idcCurrent === 'front') idcFrontImgSrc = e.target.result;
-          else idcBackImgSrc = e.target.result;
-          document.getElementById('idc' + (idcCurrent === 'front' ? 'Front' : 'Back') + 'Img').src = e.target.result;
-          idcUpdatePreview();
-        };
-        reader.readAsDataURL(croppedFile);
-
-        document.getElementById('idcModal').classList.add('hidden');
-        document.getElementById('idcModal').style.display = 'none';
-        document.getElementById('idcCropError').textContent = '';
-        idcOnCropComplete(idcCurrent);
-      }, 'image/png');
-    }
-
-    function idcCancelCrop() {
-      document.getElementById('idcModal').classList.add('hidden');
-      document.getElementById('idcModal').style.display = 'none';
-      if (idcCurrent === 'front' && idcFrontFile && !idcBackFile) {
-        idcOpenBigModal();
-      }
-    }
-
-    // --- Banner & Auto Crop Workflow Helpers ---
-    function idcShowBanner(title, sub, icon, actions) {
-      var b = document.getElementById('idcBannerPrompt');
-      if (!b) return;
-      document.getElementById('idcBannerTitle').textContent = title;
-      document.getElementById('idcBannerSub').textContent = sub || '';
-      document.getElementById('idcBannerIcon').textContent = icon || '✨';
-
-      var actContainer = document.getElementById('idcBannerActions');
-      actContainer.innerHTML = '';
-
-      (actions || []).forEach(function (act) {
-        var btn = document.createElement('button');
-        btn.className = act.primary ? 'idc-banner-btn-primary' : 'idc-banner-btn-secondary';
-        btn.innerHTML = act.text;
-        btn.onclick = act.action;
-        actContainer.appendChild(btn);
-      });
-
-      b.classList.remove('hidden');
-      b.style.display = 'block';
-      b.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    function idcHideBanner() {
-      var b = document.getElementById('idcBannerPrompt');
-      if (b) {
-        b.classList.add('hidden');
-        b.style.display = 'none';
-      }
-    }
-
-    // --- BIG POP-UP BANNER MODAL FOR FRONT / BACK SELECTION ---
-    function idcOpenBigModal() {
-      var modal = document.getElementById('idcBigModal');
-      if (!modal) return;
-      var card = modal.querySelector('.idc-big-card');
-      if (card) {
-        card.classList.remove('animate-bounce-in');
-        void card.offsetWidth; // trigger reflow
-        card.classList.add('animate-bounce-in');
-      }
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
-    }
-
-    function idcCloseBigModal() {
-      var modal = document.getElementById('idcBigModal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-      }
-    }
-
-    function idcBigModalAction(type) {
-      idcCloseBigModal();
-      if (type === 'back') {
-        idcFlipToBack();
-        setTimeout(function () {
-          var input = document.getElementById('idcBackInput');
-          if (input) input.click();
-        }, 250);
-      } else if (type === 'single') {
-        idcShowDoneBanner(true);
-      }
-    }
-
-    function idcShowDoneBanner(isSingleSide) {
-      var msg = isSingleSide ? 'Single side cropped and ready!' : 'Front & Back sides cropped and ready! (DONE)';
-      idcShowBanner(
-        'Crop Completed! (DONE)',
-        msg,
-        '🎉',
-        [
-          {
-            text: 'Next: Calculate & Pay ➔',
-            primary: true,
-            action: function () {
-              idcHideBanner();
-              idcUpload();
-            }
-          },
-          {
-            text: 'Add Another ID',
-            primary: false,
-            action: function () {
-              idcHideBanner();
-              idcAddMore();
-            }
-          }
-        ]
-      );
-    }
-
-    function idcOnCropComplete(side) {
-      if (side === 'front') {
-        var pillStat = document.getElementById('idcFrontPillStatus');
-        if (pillStat) { pillStat.textContent = '✓ Cropped'; pillStat.style.color = '#16a34a'; }
-
-        if (!idcBackFile) {
-          // OPEN THE BIG ON-SCREEN POPUP BANNER MODAL WITH BOUNCE ANIMATION!
-          idcOpenBigModal();
-        } else if (!idcBackCropped) {
-          idcFlipToBack();
-          setTimeout(function () {
-            idcCrop('back');
-          }, 300);
-        } else {
-          idcShowDoneBanner(false);
-        }
-      } else if (side === 'back') {
-        var pillStat = document.getElementById('idcBackPillStatus');
-        if (pillStat) { pillStat.textContent = '✓ Cropped'; pillStat.style.color = '#16a34a'; }
-
-        if (!idcFrontFile) {
-          idcShowBanner(
-            'Back Side Cropped!',
-            'Now upload the FRONT SIDE of your ID card.',
-            '📸',
-            [
-              {
-                text: '📷 Upload Front Side',
-                primary: true,
-                action: function () {
-                  idcHideBanner();
-                  idcFlipToFront();
-                  document.getElementById('idcFrontInput').click();
-                }
-              },
-              {
-                text: 'Skip Front Side',
-                primary: false,
-                action: function () {
-                  idcShowDoneBanner(true);
-                }
-              }
-            ]
-          );
-        } else {
-          idcShowDoneBanner(false);
-        }
-      }
-    }
-
-    function idcResetSlots() {
-      idcHideBanner();
-      idcCloseBigModal();
-      idcFlipToFront();
-      idcFrontFile = null; idcBackFile = null;
-      idcFrontCropped = null; idcBackCropped = null;
-      idcFrontImgSrc = '#'; idcBackImgSrc = '#';
-      if (document.getElementById('idcFrontImg')) { document.getElementById('idcFrontImg').classList.add('hidden'); document.getElementById('idcFrontImg').src = '#'; }
-      if (document.getElementById('idcFrontEmpty')) document.getElementById('idcFrontEmpty').classList.remove('hidden');
-      if (document.getElementById('idcFront')) document.getElementById('idcFront').classList.remove('has-img');
-      if (document.getElementById('idcBackImg')) { document.getElementById('idcBackImg').classList.add('hidden'); document.getElementById('idcBackImg').src = '#'; }
-      if (document.getElementById('idcBackEmpty')) document.getElementById('idcBackEmpty').classList.remove('hidden');
-      if (document.getElementById('idcBack')) document.getElementById('idcBack').classList.remove('has-img');
-      if (document.getElementById('idcFrontPillStatus')) { document.getElementById('idcFrontPillStatus').textContent = '(Tap)'; document.getElementById('idcFrontPillStatus').style.color = '#94a3b8'; }
-      if (document.getElementById('idcBackPillStatus')) { document.getElementById('idcBackPillStatus').textContent = '(Tap)'; document.getElementById('idcBackPillStatus').style.color = '#94a3b8'; }
-      if (document.getElementById('idcCropFront')) document.getElementById('idcCropFront').disabled = true;
-      if (document.getElementById('idcCropBack')) document.getElementById('idcCropBack').disabled = true;
-      if (document.getElementById('idcName')) document.getElementById('idcName').value = '';
-      idcUpdatePreview();
-    }
 
     function idcClear() {
       idcQueue = [];
@@ -4718,21 +4462,18 @@
     }
 
     function idcUpload() {
-      if (idcQueue.length === 0 && !idcFrontFile) { alert('Add at least one ID copy'); return; }
+      if (idcQueue.length === 0 && !idcFrontFile) { alert('Please upload the front side of your ID card.'); return; }
       var name = (document.getElementById('idcPayName') ? document.getElementById('idcPayName').value.trim() : '') || 'Customer';
-      var printType = selectedPrintType;
-      var paymentMethod = 'cash';
+      var printType = selectedPrintType || 'bw';
       var allItems = idcQueue.slice();
       if (idcFrontFile) {
         allItems.push({
           front: idcFrontCropped || idcFrontFile,
-          back: idcBackCropped || idcBackFile,
+          back: (idcLayoutMode === 'both' && idcBackFile) ? (idcBackCropped || idcBackFile) : null,
           frontName: idcFrontFile.name,
-          backName: idcBackFile ? idcBackFile.name : null
+          backName: (idcLayoutMode === 'both' && idcBackFile) ? idcBackFile.name : null
         });
       }
-      var btn = document.getElementById('idcUploadBtn');
-      btn.disabled = true; btn.textContent = 'Calculating...';
 
       var uploadOne = function (item, idx) {
         return new Promise(function (resolve, reject) {
@@ -4741,7 +4482,9 @@
           fd.append('printType', printType);
           fd.append('printSide', 'single');
           fd.append('paymentMethod', 'cashfree');
-          fd.append('copies', idcCopiesCount);
+          fd.append('copies', idcCopiesCount || 1);
+          fd.append('usedMagic', selectedIdcFilter === 'magic' ? '1' : '0');
+          fd.append('wasCropped', '1');
 
           var frontBlob = (typeof item.front === 'string') ? dataURLtoBlob(item.front, item.frontName || 'id_front.png') : item.front;
           fd.append('front', frontBlob, item.frontName || 'id_front.png');
@@ -4764,14 +4507,16 @@
       Promise.all(prom)
         .then(function (results) {
           currentOrderIds = results.map(function (r) { return r.orderId; });
+          try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
           var totalPrice = results.reduce(function (s, r) { return s + r.price; }, 0);
-          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+          var orderIdsSpan = document.getElementById('orderIdsSpan');
+          if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
 
-          // Populate summary card (Normal Mode style)
+          // Populate summary card
           var hasBackSide = allItems.some(function (item) { return !!item.back; });
           var sidesText = hasBackSide ? 'Front & Back' : 'Front Side Only';
-          var copiesCount = idcCopiesCount * allItems.length;
-          var printTypeCap = (selectedPrintType || 'color').toUpperCase();
+          var copiesCount = (idcCopiesCount || 1) * allItems.length;
+          var printTypeCap = (printType === 'bw' ? 'B&W' : 'COLOR');
 
           var docTypeEl = document.getElementById('idcReviewDocType');
           if (docTypeEl) docTypeEl.textContent = 'ID Copy (110×69 mm)';
@@ -4782,21 +4527,21 @@
           var copiesEl = document.getElementById('idcReviewCopies');
           if (copiesEl) copiesEl.textContent = copiesCount + (copiesCount > 1 ? ' Copies' : ' Copy');
           var idcRateEl = document.getElementById('idcReviewRate');
-          if (idcRateEl) idcRateEl.textContent = (selectedPrintType === 'bw' ? '₹5' : '₹10') + ' per ID copy';
+          if (idcRateEl) idcRateEl.textContent = (printType === 'bw' ? '₹5' : '₹10') + ' per ID copy';
 
-          document.getElementById('idcPayTotal').textContent = '₹' + totalPrice;
+          var payTotalEl = document.getElementById('idcPayTotal');
+          if (payTotalEl) payTotalEl.textContent = '₹' + totalPrice;
           var btnAmountDisp = document.getElementById('idcPayBtnAmountDisplay');
-          if (btnAmountDisp) btnAmountDisp.textContent = '₹' + totalPrice;
-          document.getElementById('idcPayBtnAmount2').textContent = totalPrice;
+          if (btnAmountDisp) btnAmountDisp.textContent = totalPrice;
+          var btnAmt2 = document.getElementById('idcPayBtnAmount2');
+          if (btnAmt2) btnAmt2.textContent = totalPrice;
+          var onlineBtn = document.getElementById('btnIdcOnline');
+          if (onlineBtn) onlineBtn.innerHTML = '🔒 Pay ₹' + totalPrice + ' Online';
 
           if (typeof lucide !== 'undefined') lucide.createIcons();
-
-          showStep('idcPayStep');
-          btn.disabled = false; btn.textContent = 'Calculate Price';
         })
         .catch(function (err) {
           alert('Upload failed: ' + (err.message || err));
-          btn.disabled = false; btn.textContent = 'Calculate Price';
         });
     }
 
