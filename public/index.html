@@ -2815,7 +2815,7 @@
         renderScanQueue();
       } else if (selectedFiles.length > 0) {
         renderFileCards();
-        showStep('stepFiles');
+        goToStep(3);
       } else {
         showStep('stepUpload');
       }
@@ -2914,7 +2914,7 @@
         selectedFiles.push({ file: item.file, pages: item.pages || 1 });
       }
       renderFileCards();
-      showStep('stepFiles');
+      goToStep(3);
     }
 
     function renderFileCards() {
