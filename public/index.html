@@ -1072,7 +1072,7 @@
       </div>
     </div>
 
-    <!-- Step 6: Status (used for both old and new flow) -->
+    <!-- Step 6: Status (used for both old and new flow - TOKEN ONLY DISPLAY) -->
     <div id="stepStatus" class="step hidden">
       <div class="status-card-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -1086,7 +1086,7 @@
           <span id="shortTokenDisplay" class="token-badge">Token #P-----</span>
           <button type="button" onclick="copyOrderToken()" class="btn-copy-token">📋 Copy Token</button>
         </div>
-        <div class="order-id" style="text-align:center;"><span data-i18n="orderIdsLabel">Order Ref:</span> <span
+        <div class="order-id" style="display:none !important;"><span data-i18n="orderIdsLabel">Order Ref:</span> <span
             id="orderIdsSpan"></span></div>
 
         <!-- High Priority Notice Banner & 1-Tap WhatsApp Button with Vector Logo -->
@@ -1096,7 +1096,7 @@
             style="font-size:1.15rem;font-weight:900;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px;">
             <span>📢 PLEASE INFORM THE SHOP COUNTER</span>
           </div>
-          <p style="font-size:0.9rem;margin:0 0 14px;opacity:0.96;line-height:1.45;">
+          <p id="tokenNoticeText" style="font-size:0.9rem;margin:0 0 14px;opacity:0.96;line-height:1.45;">
             Show your <strong>Token Number</strong> at the shop counter or send 1-Tap WhatsApp to start printing
             immediately!
           </p>
@@ -1110,8 +1110,8 @@
           </button>
         </div>
 
-        <!-- Progress Stepper Timeline -->
-        <div class="stepper-progress">
+        <!-- Hidden Clutter Elements (Preserved DOM IDs for compatibility) -->
+        <div class="stepper-progress" style="display:none !important;">
           <div id="stepperLineActive" class="stepper-line-active"></div>
 
           <div id="stepProgress1" class="step-item completed">
@@ -1135,8 +1135,7 @@
           </div>
         </div>
 
-        <!-- Dynamic Notice Box (Cash vs Online) -->
-        <div id="noticeBox" class="notice-box cash">
+        <div id="noticeBox" class="notice-box cash" style="display:none !important;">
           <div class="notice-box-header">
             <span id="noticeBoxIcon">💵</span>
             <span id="noticeBoxTitle">Cash Payment Required at Counter</span>
@@ -1147,14 +1146,12 @@
           <div id="noticeAmountPill" class="notice-amount-pill">Amount Due: ₹--</div>
         </div>
 
-        <div style="text-align:center;margin:16px 0;">
+        <div style="display:none !important;">
           <span id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</span>
         </div>
-        <p id="statusMessage" style="text-align:center;font-size:0.88em;color:#6b7280;"></p>
+        <p id="statusMessage" style="display:none !important;"></p>
 
-        <!-- Collapsible Order Breakdown Details -->
-        <div id="orderBreakdownBox"
-          style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin:16px 0;text-align:left;font-size:0.88rem;">
+        <div id="orderBreakdownBox" style="display:none !important;">
           <div style="font-weight:700;color:#334155;margin-bottom:6px;display:flex;justify-content:space-between;">
             <span>📋 Order Summary</span>
             <span id="summaryCustomerName" style="color:#2563eb;"></span>
@@ -1162,20 +1159,18 @@
           <div id="summaryDetailsContent" style="color:#64748b;line-height:1.5;"></div>
         </div>
 
-        <div style="display:flex;gap:10px;margin-top:12px;">
+        <div style="display:none !important;">
           <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus" style="flex:1;">Refresh
             Status</button>
-          <button class="btn" onclick="openCustomerWhatsApp()"
-            style="flex:1;background:#25D366;border-color:#25D366;color:#ffffff;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff" style="flex-shrink:0;">
-              <path
-                d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
-            </svg>
-            <span>WhatsApp Shop</span>
-          </button>
+          <button class="btn" onclick="openCustomerWhatsApp()" style="flex:1;">WhatsApp Shop</button>
         </div>
+
         <div id="statusDone" class="hidden" style="margin-top:12px;">
           <div class="success-message" data-i18n="allReady">🎉 All prints ready! Please collect from Counter 1.</div>
+        </div>
+
+        <div style="text-align:center;margin-top:18px;">
+          <button type="button" class="btn btn-primary" onclick="startOver()" style="width:100%;border-radius:12px;padding:12px 18px;font-weight:700;">📄 Upload More Files</button>
         </div>
       </div>
     </div>
@@ -3683,10 +3678,10 @@
         return;
       }
 
-      // Store form data temporarily and show cash confirmation step
+      // Direct Token issuance for cash order
       pendingCashName = name;
       closePaymentSelectionModal();
-      showStep('stepCashConfirm');
+      confirmCashPaid();
     }
 
     var pendingCashName = '';
@@ -5075,7 +5070,9 @@
       if (badge) badge.className = 'status-badge ' + (anyPrinterError ? 'rejected' : status);
       if (done) done.classList.add('hidden');
 
+      var tokenNoticeEl = document.getElementById('tokenNoticeText');
       if (anyPrinterError) {
+        if (tokenNoticeEl) tokenNoticeEl.innerHTML = '⚠️ <strong>Printer Technical Delay.</strong> Store staff is resolving it. Your order will print as soon as ready!';
         if (line) line.style.width = '66%';
         if (s1) s1.className = 'step-item completed';
         if (s2) s2.className = 'step-item completed';
@@ -5096,6 +5093,7 @@
           if (nPill) nPill.style.display = 'none';
         }
       } else if (status === 'accepted') {
+        if (tokenNoticeEl) tokenNoticeEl.innerHTML = '🎉 <strong>Prints Ready!</strong> Please collect your printed document from Counter 1.';
         var s3IconAcc = s3 ? s3.querySelector('.step-icon-circle') : null;
         if (s3IconAcc) s3IconAcc.textContent = '🖨️';
         if (line) line.style.width = '100%';
@@ -5117,6 +5115,7 @@
         }
         playCustomerSuccessAudioSequence();
       } else if (status === 'rejected') {
+        if (tokenNoticeEl) tokenNoticeEl.innerHTML = '❌ <strong>Order Rejected.</strong> Please speak with store staff.';
         if (badge) badge.textContent = 'Order Rejected';
         if (msg) msg.textContent = 'Sorry, your order was rejected. Please speak with store staff.';
         if (line) line.style.width = '33%';
@@ -5125,6 +5124,7 @@
         if (s3IconDef) s3IconDef.textContent = '🖨️';
         // Paid / Pending
         if (isCash) {
+          if (tokenNoticeEl) tokenNoticeEl.innerHTML = 'Show your <strong>Token Number</strong> at the shop counter or send 1-Tap WhatsApp to pay cash & start printing!';
           if (line) line.style.width = '33%';
           if (s1) s1.className = 'step-item completed';
           if (s2) s2.className = 'step-item active';
@@ -5145,6 +5145,7 @@
             }
           }
         } else {
+          if (tokenNoticeEl) tokenNoticeEl.innerHTML = 'Payment Received! Show your <strong>Token Number</strong> at the shop counter or send 1-Tap WhatsApp to print!';
           if (line) line.style.width = '66%';
           if (s1) s1.className = 'step-item completed';
           if (s2) s2.className = 'step-item completed';
