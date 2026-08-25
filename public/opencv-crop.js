@@ -2641,9 +2641,6 @@ return {
       if (detected && detected.length === 4) {
         corners = detected;
         renderCrop();
-        if (!isIdCopyMode && typeof window.checkAndNotifyIdCard === 'function') {
-          window.checkAndNotifyIdCard(corners, canvasEl.width, canvasEl.height, _originalFileRef);
-        }
       }
       if (loadingEl) loadingEl.style.display = 'none';
     });
