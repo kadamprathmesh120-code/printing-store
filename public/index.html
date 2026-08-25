@@ -1883,7 +1883,7 @@
         if (selectedEditFilter === 'magic' && page.magicUrl) {
           editImg.src = page.magicUrl;
         } else if (page.url) {
-          editImg.src = page.originalUrl || page.url;
+          editImg.src = page.croppedUrl || page.url;
         }
       }
       var editSub = document.getElementById('editPageSub');
@@ -1994,8 +1994,9 @@
           // Also update the main url so the file sent for printing uses magic version
           page.url = page.magicUrl;
         } else {
-          editImg.src = page.originalUrl || page.url;
-          page.url = page.originalUrl || page.url;
+          var targetUrl = page.croppedUrl || page.url;
+          editImg.src = targetUrl;
+          page.url = targetUrl;
         }
       }
       // Update button active states
@@ -2184,6 +2185,7 @@
                 var displayFile = (selectedPrintType === 'color') ? croppedFile : (magic || croppedFile);
                 var newUrl = URL.createObjectURL(displayFile);
                 curPage.url = newUrl;
+                curPage.croppedUrl = newUrl;
                 curPage.file = croppedFile;
                 curPage.magicFile = magic;
 
