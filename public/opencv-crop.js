@@ -1644,39 +1644,39 @@ function showPreviewModal() {
   if (!existing) {
     var div = document.createElement('div');
     div.id = 'ocvPreviewModal';
-    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:Inter,Roboto,sans-serif;overflow-y:auto;';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:12px 10px 24px;box-sizing:border-box;font-family:Inter,Roboto,sans-serif;overflow-y:auto;';
     div.innerHTML =
-      '<div class="flow-card" style="max-width:440px;width:100%;margin:auto;box-sizing:border-box;text-align:center;background:#ffffff;border-radius:24px;padding:24px 20px;box-shadow:0 24px 48px rgba(0,0,0,0.3);">' +
-        '<h2 class="screen-header-title" style="font-size:1.35rem;font-weight:900;color:#0f172a;margin:0 0 4px;letter-spacing:-0.3px;">👀 File Received</h2>' +
-        '<div class="screen-header-sub" style="font-size:0.85rem;color:#64748b;font-weight:600;margin-bottom:14px;">1 page — ek nazar dekh lo</div>' +
+      '<div class="flow-card" style="max-width:390px;width:100%;margin:auto 0;box-sizing:border-box;text-align:center;background:#ffffff;border-radius:24px;padding:18px 16px;box-shadow:0 24px 48px rgba(0,0,0,0.3);">' +
+        '<h2 class="screen-header-title" style="font-size:1.25rem;font-weight:900;color:#0f172a;margin:0 0 2px;letter-spacing:-0.3px;">👀 File Received</h2>' +
+        '<div class="screen-header-sub" style="font-size:0.8rem;color:#64748b;font-weight:600;margin-bottom:10px;">1 page — ek nazar dekh lo</div>' +
 
         // Clean Document Preview (no black box surrounding)
-        '<div style="display:flex;justify-content:center;align-items:center;margin:6px 0 16px;">' +
-          '<div id="ocvPreviewContainer" style="width:100%;max-width:280px;background:#ffffff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px;">' +
+        '<div style="display:flex;justify-content:center;align-items:center;margin:4px 0 10px;">' +
+          '<div id="ocvPreviewContainer" style="width:100%;max-width:240px;max-height:38vh;background:#ffffff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.08);border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px;">' +
           '</div>' +
         '</div>' +
 
         // Two Filter Buttons (Original vs Magic Color)
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">' +
-          '<button type="button" id="ocvBtnOriginal" class="which-page-tab" style="padding:12px 10px;font-size:0.9rem;font-weight:800;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">' +
+          '<button type="button" id="ocvBtnOriginal" class="which-page-tab" style="padding:10px 8px;font-size:0.85rem;font-weight:800;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;">' +
             '<span>Original</span>' +
           '</button>' +
-          '<button type="button" id="ocvBtnMagic" class="which-page-tab active" style="padding:12px 10px;font-size:0.9rem;font-weight:800;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;">' +
+          '<button type="button" id="ocvBtnMagic" class="which-page-tab active" style="padding:10px 8px;font-size:0.85rem;font-weight:800;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;">' +
             '<span>Magic Color</span>' +
           '</button>' +
         '</div>' +
 
         // All Good Continue (Green button)
-        '<button type="button" class="btn-action-green" id="ocvPreviewConfirm" style="width:100%;padding:14px;border:none;border-radius:16px;font-size:0.98rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:2px;">' +
+        '<button type="button" class="btn-action-green" id="ocvPreviewConfirm" style="width:100%;padding:12px 14px;border:none;border-radius:14px;font-size:0.95rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:2px;">' +
           '<span>✅ All Good — Continue</span>' +
         '</button>' +
-        '<div class="btn-sub-caption" style="font-size:0.75rem;color:#64748b;font-weight:600;margin-bottom:12px;">File prints exactly as it is — cleanest and fastest</div>' +
+        '<div class="btn-sub-caption" style="font-size:0.72rem;color:#64748b;font-weight:600;margin-bottom:8px;">File prints exactly as it is — cleanest and fastest</div>' +
 
         // Re-crop (White button)
-        '<button type="button" class="btn-action-white" id="ocvPreviewBack" style="width:100%;padding:12px;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;font-size:0.92rem;font-weight:800;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:2px;">' +
+        '<button type="button" class="btn-action-white" id="ocvPreviewBack" style="width:100%;padding:10px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;font-size:0.88rem;font-weight:800;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:2px;">' +
           '<span>✏️ Re-crop</span>' +
         '</button>' +
-        '<div class="btn-sub-caption" style="font-size:0.75rem;color:#64748b;font-weight:600;">To rotate, crop, adjust brightness or document corners</div>' +
+        '<div class="btn-sub-caption" style="font-size:0.72rem;color:#64748b;font-weight:600;">To rotate, crop, adjust brightness or document corners</div>' +
       '</div>';
 
     document.body.appendChild(div);
