@@ -2090,7 +2090,24 @@
           var badgeText = isPrinted ? '✅ Printed' : '👁️ Preview';
           var badgeBg = isPrinted ? 'background:#dcfce7;color:#15803d;' : 'background:#e0f2fe;color:#0369a1;';
           
-          if (['jpg', 'jpeg', 'png', 'webp'].includes(fExt)) {
+          if (o.is_id_copy === 1) {
+            var frontUrl = '/uploads/' + encodeURIComponent(o.file_path);
+            var backUrl = o.back_file_path ? ('/uploads/' + encodeURIComponent(o.back_file_path)) : '';
+            var frontImgHtml = '<img src="' + frontUrl + '" style="position:absolute;left:23.81%;top:6.73%;width:52.38%;height:23.23%;object-fit:contain;background:#fff;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,0.15);z-index:2;">';
+            var backImgHtml = backUrl ? ('<img src="' + backUrl + '" style="position:absolute;left:23.81%;top:38.38%;width:52.38%;height:23.23%;object-fit:contain;background:#fff;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,0.15);z-index:2;">') : '';
+            var safeOrderJson = escapeHtml(JSON.stringify(o));
+
+            previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
+              '<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-bottom:4px;' + badgeBg + '">' + badgeText + '</div>' +
+              '<div onclick="openAdminIdCopyModal(this)" data-order=\'' + safeOrderJson + '\' style="width:100%;height:105px;background:#ffffff;border:1px solid #cbd5e1;border-radius:6px;position:relative;cursor:pointer;overflow:hidden;box-shadow:inset 0 0 0 1px #e2e8f0;" title="Click to open A4 Print Preview">' +
+                '<div style="position:absolute;inset:4%;border:1px dashed #cbd5e1;border-radius:2px;pointer-events:none;z-index:1;"></div>' +
+                '<div style="position:absolute;top:2px;left:4px;font-size:8px;font-weight:800;color:#64748b;z-index:3;background:rgba(255,255,255,0.85);padding:1px 3px;border-radius:2px;">110×69 mm</div>' +
+                frontImgHtml +
+                backImgHtml +
+              '</div>' +
+              '<button onclick="openAdminIdCopyModal(this)" data-order=\'' + safeOrderJson + '\' style="background:none;border:none;margin-top:4px;font-size:10px;font-weight:700;color:#0284c7;cursor:pointer;">A4 Preview ↗</button>' +
+            '</div>';
+          } else if (['jpg', 'jpeg', 'png', 'webp'].includes(fExt)) {
             previewBoxHtml = '<div class="oc-right-preview" style="width:130px;flex-shrink:0;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,0.03);">' +
               '<div style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-bottom:4px;' + badgeBg + '">' + badgeText + '</div>' +
               '<img src="' + filePathEncoded + '" style="width:100%;height:105px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;" onclick="openAdminPreview(\'' + escapeHtml(o.file_path) + '\', \'' + escapeHtml(o.file_name) + '\')" title="Click to open preview">' +
@@ -2506,6 +2523,152 @@
       var content = document.getElementById('adminPreviewContent');
       if (modal) modal.style.display = 'none';
       if (content) content.innerHTML = ''; // release iframe/image resources
+      document.body.style.overflow = '';
+    }
+
+    // ID Copy A4 Print Preview Modal setup for Admin
+    (function initAdminIdCopyModal() {
+      var modalDiv = document.createElement('div');
+      modalDiv.id = 'adminIdCopyModal';
+      modalDiv.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;overflow-y:auto;font-family:Inter,Outfit,Roboto,sans-serif;';
+      modalDiv.innerHTML =
+        '<div style="background:#ffffff;border-radius:24px;max-width:440px;width:100%;padding:24px 20px;box-shadow:0 24px 48px rgba(0,0,0,0.3);position:relative;margin:auto;text-align:center;">' +
+          '<button onclick="closeAdminIdCopyModal()" style="position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center;">✕</button>' +
+          '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:2px;">' +
+            '<span style="font-size:1.3rem;">👀</span>' +
+            '<h2 style="font-size:1.35rem;font-weight:900;color:#0f172a;margin:0;letter-spacing:-0.3px;">A4 Print Preview</h2>' +
+          '</div>' +
+          '<div style="font-size:0.85rem;color:#64748b;font-weight:600;margin-bottom:14px;">Your uploaded ID card printed at actual 110×69 mm size</div>' +
+          
+          // A4 Preview Box
+          '<div style="background:#e2e8f0;border-radius:16px;padding:12px;display:flex;justify-content:center;align-items:center;margin-bottom:16px;">' +
+            '<div style="width:100%;max-width:320px;aspect-ratio:210/297;background:#ffffff;box-shadow:0 6px 24px rgba(0,0,0,0.15);position:relative;border:1px solid rgba(0,0,0,0.08);border-radius:3px;">' +
+              '<div style="position:absolute;inset:4%;border:1px dashed #cbd5e1;border-radius:2px;pointer-events:none;z-index:1;"></div>' +
+              
+              // 110 mm top indicator
+              '<div style="position:absolute;height:0;border-top:1px solid #94a3b8;left:23.81%;top:4%;width:52.38%;pointer-events:none;z-index:2;">' +
+                '<div style="position:absolute;right:100%;top:-3px;width:5px;height:5px;border-top:1px solid #94a3b8;border-right:1px solid #94a3b8;transform:rotate(-45deg);"></div>' +
+                '<div style="position:absolute;left:100%;top:-3px;width:5px;height:5px;border-top:1px solid #94a3b8;border-left:1px solid #94a3b8;transform:rotate(45deg);"></div>' +
+                '<span style="position:absolute;left:50%;top:-13px;transform:translateX(-50%);font-size:9px;color:#64748b;white-space:nowrap;font-family:sans-serif;font-weight:700;">110 mm</span>' +
+              '</div>' +
+              
+              // 69 mm side indicator
+              '<div style="position:absolute;width:0;border-left:1px solid #94a3b8;left:19%;top:6.73%;height:23.23%;pointer-events:none;z-index:2;">' +
+                '<div style="position:absolute;bottom:100%;left:-3px;width:5px;height:5px;border-left:1px solid #94a3b8;border-bottom:1px solid #94a3b8;transform:rotate(45deg);"></div>' +
+                '<div style="position:absolute;top:100%;left:-3px;width:5px;height:5px;border-left:1px solid #94a3b8;border-top:1px solid #94a3b8;transform:rotate(-45deg);"></div>' +
+                '<span style="position:absolute;top:50%;left:-20px;transform:translateY(-50%) rotate(-90deg);font-size:9px;color:#64748b;white-space:nowrap;font-family:sans-serif;transform-origin:center;font-weight:700;">69 mm</span>' +
+              '</div>' +
+              
+              '<img id="adminIdcFrontImg" src="" style="position:absolute;left:23.81%;top:6.73%;width:52.38%;height:23.23%;object-fit:contain;background:#fff;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.12);z-index:3;">' +
+              '<img id="adminIdcBackImg" src="" style="position:absolute;left:23.81%;top:38.38%;width:52.38%;height:23.23%;object-fit:contain;background:#fff;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,0.12);z-index:3;display:none;">' +
+            '</div>' +
+          '</div>' +
+          
+          // Order Details Summary
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px 14px;text-align:left;font-size:0.85rem;margin-bottom:16px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+              '<span style="color:#64748b;font-weight:600;">Print Color Mode:</span>' +
+              '<span id="adminIdcPrintTypeBadge" style="font-weight:800;padding:3px 10px;border-radius:12px;font-size:0.8rem;">B&amp;W (₹5)</span>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+              '<span style="color:#64748b;font-weight:600;">Number of Copies:</span>' +
+              '<span id="adminIdcCopiesCount" style="font-weight:800;color:#0f172a;">1 Copy</span>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+              '<span style="color:#64748b;font-weight:600;">Sides:</span>' +
+              '<span id="adminIdcSidesCount" style="font-weight:800;color:#0f172a;">Front &amp; Back</span>' +
+            '</div>' +
+          '</div>' +
+          
+          // Download Buttons
+          '<div style="display:flex;gap:8px;">' +
+            '<a id="adminIdcDlFrontBtn" href="" download style="flex:1;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:10px;border-radius:12px;font-weight:700;font-size:0.85rem;text-decoration:none;display:inline-block;">⬇ Front File</a>' +
+            '<a id="adminIdcDlBackBtn" href="" download style="flex:1;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:10px;border-radius:12px;font-weight:700;font-size:0.85rem;text-decoration:none;display:inline-block;">⬇ Back File</a>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modalDiv);
+
+      modalDiv.addEventListener('click', function(e) {
+        if (e.target === modalDiv) closeAdminIdCopyModal();
+      });
+    })();
+
+    function openAdminIdCopyModal(targetEl) {
+      var o = null;
+      if (typeof targetEl === 'string') {
+        try { o = JSON.parse(targetEl); } catch(e){}
+      } else if (targetEl && targetEl.getAttribute) {
+        var jsonStr = targetEl.getAttribute('data-order');
+        try { o = JSON.parse(jsonStr); } catch(e){}
+      } else if (targetEl && typeof targetEl === 'object') {
+        o = targetEl;
+      }
+      if (!o) return;
+
+      var modal = document.getElementById('adminIdCopyModal');
+      if (!modal) return;
+
+      var frontUrl = o.file_path ? ('/uploads/' + encodeURIComponent(o.file_path)) : '';
+      var backUrl = o.back_file_path ? ('/uploads/' + encodeURIComponent(o.back_file_path)) : '';
+
+      var frontImg = document.getElementById('adminIdcFrontImg');
+      var backImg = document.getElementById('adminIdcBackImg');
+
+      if (frontImg) {
+        frontImg.src = frontUrl;
+        frontImg.style.display = frontUrl ? 'block' : 'none';
+      }
+      if (backImg) {
+        backImg.src = backUrl;
+        backImg.style.display = backUrl ? 'block' : 'none';
+      }
+
+      var ptBadge = document.getElementById('adminIdcPrintTypeBadge');
+      if (ptBadge) {
+        if (o.print_type === 'bw') {
+          ptBadge.textContent = 'B&W (₹5)';
+          ptBadge.style.cssText = 'font-weight:800;padding:4px 12px;border-radius:12px;font-size:0.8rem;background:linear-gradient(135deg,#c084fc,#a855f7);color:#fff;';
+        } else {
+          ptBadge.textContent = 'Color (₹10)';
+          ptBadge.style.cssText = 'font-weight:800;padding:4px 12px;border-radius:12px;font-size:0.8rem;background:linear-gradient(135deg,#60a5fa,#2563eb);color:#fff;';
+        }
+      }
+
+      var copiesEl = document.getElementById('adminIdcCopiesCount');
+      if (copiesEl) {
+        var c = o.copies || 1;
+        copiesEl.textContent = c + (c > 1 ? ' Copies' : ' Copy');
+      }
+
+      var sidesEl = document.getElementById('adminIdcSidesCount');
+      if (sidesEl) {
+        sidesEl.textContent = (backUrl ? 'Front & Back' : 'Front Side Only');
+      }
+
+      var dlFront = document.getElementById('adminIdcDlFrontBtn');
+      if (dlFront) {
+        dlFront.href = frontUrl;
+        dlFront.download = o.file_name || 'id_front.png';
+      }
+
+      var dlBack = document.getElementById('adminIdcDlBackBtn');
+      if (dlBack) {
+        if (backUrl) {
+          dlBack.style.display = 'inline-block';
+          dlBack.href = backUrl;
+          dlBack.download = o.back_file_name || 'id_back.png';
+        } else {
+          dlBack.style.display = 'none';
+        }
+      }
+
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeAdminIdCopyModal() {
+      var modal = document.getElementById('adminIdCopyModal');
+      if (modal) modal.style.display = 'none';
       document.body.style.overflow = '';
     }
   </script>
