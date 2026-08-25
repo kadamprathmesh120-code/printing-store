@@ -1835,6 +1835,16 @@ function closeModal() {
     modalEl.classList.add('hidden');
     modalEl.style.display = 'none';
   }
+  var mm = document.getElementById('ocvMagicModal');
+  if (mm) {
+    mm.classList.add('hidden');
+    mm.style.display = 'none';
+  }
+  var pm = document.getElementById('ocvPreviewModal');
+  if (pm) {
+    pm.classList.add('hidden');
+    pm.style.display = 'none';
+  }
   if (previewCanvas) {
     previewCanvas.width = 0;
     previewCanvas.height = 0;
