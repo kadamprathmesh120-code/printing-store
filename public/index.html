@@ -4876,14 +4876,51 @@
     }
 
     function openCustomerWhatsApp() {
-      var token = document.getElementById('shortTokenDisplay') ? document.getElementById('shortTokenDisplay').textContent : 'Token';
-      var nameEl = document.getElementById('summaryCustomerName');
-      var rawName = nameEl ? nameEl.textContent : '';
-      var name = rawName.replace('Customer: ', '').trim();
-      var msg = 'Hello! I placed a print order at your store.\n\n' +
-        '🔖 ' + token + '\n' +
-        (name ? ('👤 Name: ' + name + '\n') : '') +
-        '\nPlease print my order.';
+      var tokenEl = document.getElementById('shortTokenDisplay');
+      var rawToken = tokenEl ? tokenEl.textContent.trim() : 'Token';
+      var token = rawToken.replace(/^Token\s*/i, '');
+
+      var name = '';
+      if (document.getElementById('summaryCustomerName')) {
+        name = document.getElementById('summaryCustomerName').textContent.replace('Customer: ', '').trim();
+      }
+      if (!name && typeof pendingCashName !== 'undefined' && pendingCashName) {
+        name = pendingCashName;
+      }
+      if (!name && document.getElementById('reviewName')) {
+        name = document.getElementById('reviewName').value.trim();
+      }
+      if (!name && document.getElementById('idcPayName')) {
+        name = document.getElementById('idcPayName').value.trim();
+      }
+      if (!name) name = 'Customer';
+
+      var amountEl = document.getElementById('tokenCardAmount');
+      var amount = amountEl ? amountEl.textContent.trim() : '₹5';
+
+      var filesEl = document.getElementById('tokenCardFiles');
+      var files = filesEl ? filesEl.textContent.replace(/[^\d]/g, '') : '1';
+      if (!files) files = '1';
+
+      var isCashOrder = false;
+      if (window.lastOrderStatusOrders && window.lastOrderStatusOrders.length > 0) {
+        isCashOrder = window.lastOrderStatusOrders.some(function(o){ return o.payment_method === 'cash'; });
+      } else {
+        var s2Icon = document.getElementById('step2IconCircle');
+        if (s2Icon && s2Icon.textContent.includes('💵')) isCashOrder = true;
+      }
+
+      var paymentStatus = isCashOrder ? 'Pay Cash at Counter 💵' : 'Paid Online ✅';
+
+      var msg = '🖨️ *NEW PRINT ORDER*\n\n' +
+        '🎟️ *Token:* ' + token + '\n' +
+        '👤 *Name:* ' + name + '\n' +
+        '📄 *Files:* ' + files + '\n' +
+        '💰 *Amount:* ' + amount + '\n' +
+        '💳 *Payment:* ' + paymentStatus + '\n\n' +
+        'Please print my order.\n\n' +
+        'Thank you!';
+
       var storeNumber = '919881093852';
       var url = 'https://wa.me/' + storeNumber + '?text=' + encodeURIComponent(msg);
       window.open(url, '_blank');
@@ -5059,6 +5096,7 @@
 
     function updateStatusDisplay(status, orders) {
       orders = orders || [];
+      window.lastOrderStatusOrders = orders;
       var badge = document.getElementById('statusBadge');
       var msg = document.getElementById('statusMessage');
       var done = document.getElementById('statusDone');
