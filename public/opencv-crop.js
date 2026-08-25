@@ -1538,6 +1538,9 @@ function showPreview() {
 }
 
 function showMagicPromptModal() {
+  var cropM = document.getElementById('ocvCropModal');
+  if (cropM) cropM.style.display = 'none';
+
   var magicM = document.getElementById('ocvMagicModal');
   if (!magicM) {
     createMagicPromptHTML();
@@ -1553,7 +1556,7 @@ function showMagicPromptModal() {
 function createMagicPromptHTML() {
   var div = document.createElement('div');
   div.id = 'ocvMagicModal';
-  div.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;align-items:center;justify-content:center;background:rgba(15,23,42,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:Inter,Outfit,Roboto,sans-serif;padding:16px;box-sizing:border-box;';
+  div.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999999;align-items:center;justify-content:center;background:rgba(15,23,42,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:Inter,Outfit,Roboto,sans-serif;padding:16px;box-sizing:border-box;';
   div.innerHTML =
     '<div class="animate-bounce-in" style="background:#ffffff;border-radius:28px;max-width:390px;width:100%;padding:28px 20px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.35);position:relative;box-sizing:border-box;border:1px solid rgba(255,255,255,0.8);">' +
       // Top Close Button
@@ -1632,11 +1635,16 @@ function openZoomModal() {
 }
 
 function showPreviewModal() {
+  var cropM = document.getElementById('ocvCropModal');
+  if (cropM) cropM.style.display = 'none';
+  var magicM = document.getElementById('ocvMagicModal');
+  if (magicM) magicM.style.display = 'none';
+
   var existing = document.getElementById('ocvPreviewModal');
   if (!existing) {
     var div = document.createElement('div');
     div.id = 'ocvPreviewModal';
-    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:Inter,Roboto,sans-serif;overflow-y:auto;';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:Inter,Roboto,sans-serif;overflow-y:auto;';
     div.innerHTML =
       '<div class="flow-card" style="max-width:440px;width:100%;margin:auto;box-sizing:border-box;text-align:center;background:#ffffff;border-radius:24px;padding:24px 20px;box-shadow:0 24px 48px rgba(0,0,0,0.3);">' +
         '<h2 class="screen-header-title" style="font-size:1.35rem;font-weight:900;color:#0f172a;margin:0 0 4px;letter-spacing:-0.3px;">👀 File Received</h2>' +
