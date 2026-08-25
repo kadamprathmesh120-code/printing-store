@@ -1880,9 +1880,9 @@
       // Update Step 2 Edit Preview — respect filter selection
       var editImg = document.getElementById('editPreviewImg');
       if (editImg && page) {
-        if (selectedEditFilter === 'magic' && page.magicUrl) {
-          editImg.src = page.magicUrl;
-        } else if (page.url) {
+        if (selectedEditFilter === 'magic') {
+          editImg.src = page.magicUrl || page.croppedUrl || page.url;
+        } else {
           editImg.src = page.croppedUrl || page.url;
         }
       }
@@ -1989,14 +1989,14 @@
       var page = window.allPreviewPages[window.currentPreviewPageIndex];
       var editImg = document.getElementById('editPreviewImg');
       if (editImg && page) {
-        if (filter === 'magic' && page.magicUrl) {
-          editImg.src = page.magicUrl;
-          // Also update the main url so the file sent for printing uses magic version
-          page.url = page.magicUrl;
+        if (filter === 'magic') {
+          var magicTarget = page.magicUrl || page.croppedUrl || page.url;
+          editImg.src = magicTarget;
+          page.url = magicTarget;
         } else {
-          var targetUrl = page.croppedUrl || page.url;
-          editImg.src = targetUrl;
-          page.url = targetUrl;
+          var origTarget = page.croppedUrl || page.url;
+          editImg.src = origTarget;
+          page.url = origTarget;
         }
       }
       // Update button active states
@@ -2180,26 +2180,24 @@
         if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
           OCV_CROP.openModal(img, false, function (croppedFile) {
             if (croppedFile) {
+              var croppedUrl = URL.createObjectURL(croppedFile);
               curPage.wasCropped = true;
+              curPage.file = croppedFile;
+              curPage.croppedUrl = croppedUrl;
+
               processAutoMagicColor(croppedFile, function (magic) {
-                var displayFile = (selectedPrintType === 'color') ? croppedFile : (magic || croppedFile);
-                var newUrl = URL.createObjectURL(displayFile);
-                curPage.url = newUrl;
-                curPage.croppedUrl = newUrl;
-                curPage.file = croppedFile;
+                var magicUrl = (magic && magic !== croppedFile) ? URL.createObjectURL(magic) : croppedUrl;
+                curPage.magicUrl = magicUrl;
                 curPage.magicFile = magic;
+                curPage.url = (selectedEditFilter === 'magic') ? magicUrl : croppedUrl;
 
                 // Sync with selectedFiles
-                if (curPage.fileIdx !== undefined && selectedFiles[curPage.fileIdx]) {
-                  selectedFiles[curPage.fileIdx].file = croppedFile;
-                  selectedFiles[curPage.fileIdx].magicFile = magic;
-                  selectedFiles[curPage.fileIdx].url = newUrl;
-                  selectedFiles[curPage.fileIdx].wasCropped = true;
-                } else if (selectedFiles[pIdx]) {
-                  selectedFiles[pIdx].file = croppedFile;
-                  selectedFiles[pIdx].magicFile = magic;
-                  selectedFiles[pIdx].url = newUrl;
-                  selectedFiles[pIdx].wasCropped = true;
+                var targetIdx = (curPage.fileIdx !== undefined) ? curPage.fileIdx : pIdx;
+                if (selectedFiles[targetIdx]) {
+                  selectedFiles[targetIdx].file = croppedFile;
+                  selectedFiles[targetIdx].magicFile = magic;
+                  selectedFiles[targetIdx].url = curPage.url;
+                  selectedFiles[targetIdx].wasCropped = true;
                 }
 
                 renderStepPreviewPage();
@@ -5369,10 +5367,19 @@
               (function (item, newFile, fileIdx) {
                 processAutoMagicColor(newFile, function (newMagic) {
                   item.magicFile = newMagic;
-                  var displayFile = (selectedPrintType === 'color') ? newFile : (newMagic || newFile);
-                  var newUrl = URL.createObjectURL(displayFile);
+                  item.wasCropped = true;
+                  var croppedUrl = URL.createObjectURL(newFile);
+                  var magicUrl = (newMagic && newMagic !== newFile) ? URL.createObjectURL(newMagic) : croppedUrl;
+                  item.url = (selectedEditFilter === 'magic') ? magicUrl : croppedUrl;
+
                   if (window.allPreviewPages && window.allPreviewPages[fileIdx]) {
-                    window.allPreviewPages[fileIdx].url = newUrl;
+                    var p = window.allPreviewPages[fileIdx];
+                    p.wasCropped = true;
+                    p.file = newFile;
+                    p.croppedUrl = croppedUrl;
+                    p.magicUrl = magicUrl;
+                    p.magicFile = newMagic;
+                    p.url = item.url;
                   }
                   renderStepPreviewPage();
                   goToStep(2);
