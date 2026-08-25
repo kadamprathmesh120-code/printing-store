@@ -1863,7 +1863,7 @@ function openModal(image, idCopy, callback, originalFile) {
     hasRotated = false;
     currentCallback = callback;
     _originalFileRef = fileRef || originalFile || null;
-    selectedFilter = 'original';
+    selectedFilter = isIdCopyMode ? 'magic' : 'original';
     filteredCanvas = null;
     filteredFilter = null;
     zoomLevel = 1;
@@ -1940,10 +1940,10 @@ function openModal(image, idCopy, callback, originalFile) {
     }
 
     var filterBar = document.getElementById('ocvFilterBar');
-    if (filterBar) filterBar.style.display = isIdCopyMode ? 'none' : 'flex';
+    if (filterBar) filterBar.style.display = 'flex';
 
     var recBanner = document.getElementById('ocvMagicRecBanner');
-    if (recBanner) recBanner.style.display = isIdCopyMode ? 'none' : 'flex';
+    if (recBanner) recBanner.style.display = 'flex';
 
     var cropBtn = document.getElementById('ocvCropBtn');
     if (cropBtn) {
