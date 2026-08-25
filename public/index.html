@@ -4849,6 +4849,14 @@
       // Stop any active voice announcement when navigating between screens
       if (typeof VoiceManager !== 'undefined' && id !== 'stepReview') VoiceManager.stop();
       document.querySelectorAll('.step').forEach(function (c) { c.classList.remove('active'); c.style.display = 'none'; });
+
+      // Hide ID Copy Section unless explicitly navigating inside idc steps
+      var idcSection = document.getElementById('idCopySection');
+      if (idcSection && !id.startsWith('idc')) {
+        idcSection.classList.add('hidden');
+        idcSection.style.display = 'none';
+      }
+
       var el = document.getElementById(id);
       if (el) {
         el.classList.add('active');
@@ -5220,6 +5228,12 @@
       if (fInput) fInput.value = '';
       document.querySelector('#stepStatus .btn-secondary') && (document.querySelector('#stepStatus .btn-secondary').classList.remove('hidden'));
       document.getElementById('stepStartOver').classList.add('hidden');
+      if (typeof idcClear === 'function') idcClear();
+      var idcSec = document.getElementById('idCopySection');
+      if (idcSec) {
+        idcSec.classList.add('hidden');
+        idcSec.style.display = 'none';
+      }
       goToStep(1);
     }
 
