@@ -3554,6 +3554,7 @@
                       try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
                       document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
                       closePaymentSelectionModal();
+                      playCustomerSuccessAudioSequence();
                       showStep('stepStatus');
                       updateStatusDisplay('paid', data.orders);
                     });
@@ -3785,6 +3786,7 @@
           try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
           document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
           closePaymentSelectionModal();
+          playCustomerSuccessAudioSequence();
           showStep('stepStatus');
           updateStatusDisplay('paid', data.orders);
         })
@@ -4607,6 +4609,7 @@
                     .then(function (vr) { return vr.json(); })
                     .then(function (vrData) {
                       if (vrData.error) throw new Error(vrData.error);
+                      playCustomerSuccessAudioSequence();
                       showStep('stepStatus');
                       updateStatusDisplay('paid', [{ id: currentOrderIds[0], status: 'paid' }]);
                     })
@@ -4657,6 +4660,7 @@
             .then(function (r) { return r.json(); })
             .then(function (cData) {
               if (cData.error) throw new Error(cData.error);
+              playCustomerSuccessAudioSequence();
               showStep('stepStatus');
               updateStatusDisplay('paid', [{ id: data.orderId, status: 'paid' }]);
             });
