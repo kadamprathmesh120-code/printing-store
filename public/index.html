@@ -1072,106 +1072,150 @@
       </div>
     </div>
 
-    <!-- Step 6: Status (used for both old and new flow - TOKEN ONLY DISPLAY) -->
+    <!-- Step 6: Status (used for both old and new flow - BEAUTIFUL TICKET TOKEN DISPLAY) -->
     <div id="stepStatus" class="step hidden">
-      <div class="status-card-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <h2 style="margin:0;font-size:1.35rem;font-weight:700;color:#1e293b;" data-i18n="orderStatus">Order Status
-          </h2>
-          <span class="live-sync-tag"><span class="pulse-dot-green"></span> Live Updating</span>
+      <div class="status-card-box" style="background:#ffffff;border-radius:24px;padding:20px 16px;box-shadow:0 10px 30px rgba(0,0,0,0.06);max-width:440px;margin:0 auto;">
+        
+        <!-- Header Bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:0 4px;">
+          <h2 style="margin:0;font-size:1.25rem;font-weight:800;color:#0F172A;" data-i18n="orderStatus">Order Status</h2>
+          <span class="live-sync-tag" style="background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+            <span class="pulse-dot-green"></span> Live Updating
+          </span>
         </div>
 
-        <!-- Token Badge Display -->
-        <div class="token-badge-container">
-          <span id="shortTokenDisplay" class="token-badge">Token #P-----</span>
-          <button type="button" onclick="copyOrderToken()" class="btn-copy-token">📋 Copy Token</button>
-        </div>
-        <div class="order-id" style="display:none !important;"><span data-i18n="orderIdsLabel">Order Ref:</span> <span
-            id="orderIdsSpan"></span></div>
-
-        <!-- High Priority Notice Banner & 1-Tap WhatsApp Button with Vector Logo -->
-        <div
-          style="background:linear-gradient(135deg, #10B981, #059669);color:#ffffff;padding:18px 16px;border-radius:18px;margin:14px 0;text-align:center;box-shadow:0 6px 20px rgba(16,185,129,0.35);border:2px solid #34D399;">
-          <div
-            style="font-size:1.15rem;font-weight:900;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px;">
-            <span>📢 PLEASE INFORM THE SHOP COUNTER</span>
+        <!-- 1. Hero Ticket Card -->
+        <div style="background:linear-gradient(135deg, #0F172A, #1E293B);color:#ffffff;border-radius:20px;padding:20px 16px;box-shadow:0 12px 28px rgba(15,23,42,0.3);border:1px solid #334155;position:relative;text-align:center;margin-bottom:14px;">
+          <div style="background:#2563EB;color:#FFFFFF;font-size:0.72rem;font-weight:900;padding:4px 14px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:8px;">YOUR TOKEN</div>
+          
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0;">
+            <span style="font-size:1.2rem;opacity:0.9;">✨</span>
+            <span id="shortTokenDisplay" style="font-size:2.1rem;font-weight:900;color:#FACC15;letter-spacing:1px;font-family:monospace,sans-serif;">#P-018964</span>
+            <span style="font-size:1.2rem;opacity:0.9;">✨</span>
           </div>
-          <p id="tokenNoticeText" style="font-size:0.9rem;margin:0 0 14px;opacity:0.96;line-height:1.45;">
-            Show your <strong>Token Number</strong> at the shop counter or send 1-Tap WhatsApp to start printing
-            immediately!
+
+          <div style="border-top:1px dashed rgba(255,255,255,0.2);margin:14px 0 12px;"></div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:0 4px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="background:#10B981;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.88rem;">₹</div>
+              <div style="text-align:left;">
+                <div style="font-size:0.68rem;color:#94A3B8;font-weight:700;text-transform:uppercase;">Amount</div>
+                <div id="tokenCardAmount" style="font-size:0.92rem;font-weight:800;color:#fff;">₹5</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="background:#3B82F6;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.85rem;">📄</div>
+              <div style="text-align:left;">
+                <div style="font-size:0.68rem;color:#94A3B8;font-weight:700;text-transform:uppercase;">Files</div>
+                <div id="tokenCardFiles" style="font-size:0.92rem;font-weight:800;color:#fff;">1 File</div>
+              </div>
+            </div>
+
+            <button type="button" onclick="copyOrderToken()" style="background:#FFFFFF;color:#0F172A;font-weight:800;font-size:0.82rem;padding:7px 13px;border-radius:10px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,0.18);transition:transform 0.15s ease;">
+              📋 Copy Token
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Status Stepper Card (Light Mint / Emerald) -->
+        <div style="background:#ECFDF5;border:1.5px solid #A7F3D0;border-radius:18px;padding:16px;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="background:#10B981;color:#fff;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">📄</div>
+              <div>
+                <div id="statusCardTitle" style="font-size:0.92rem;font-weight:900;color:#065F46;letter-spacing:0.3px;">ORDER RECEIVED</div>
+                <div id="statusCardSub" style="font-size:0.78rem;color:#047857;font-weight:600;">Waiting for printing</div>
+              </div>
+            </div>
+            <div style="font-size:1.8rem;opacity:0.85;">🖨️</div>
+          </div>
+
+          <!-- Stepper Timeline Pills -->
+          <div class="stepper-progress" style="margin:10px 0 0;">
+            <div id="stepperLineActive" class="stepper-line-active"></div>
+
+            <div id="stepProgress1" class="step-item completed">
+              <div class="step-icon-circle">✓</div>
+              <div class="step-title">Received</div>
+            </div>
+
+            <div id="stepProgress2" class="step-item active">
+              <div id="step2IconCircle" class="step-icon-circle">⏳</div>
+              <div id="step2Title" class="step-title">In Queue</div>
+            </div>
+
+            <div id="stepProgress3" class="step-item">
+              <div class="step-icon-circle">🖨️</div>
+              <div class="step-title">Printing</div>
+            </div>
+
+            <div id="stepProgress4" class="step-item">
+              <div class="step-icon-circle">🎉</div>
+              <div class="step-title">Ready</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Green WhatsApp Action Card -->
+        <div style="background:linear-gradient(135deg, #059669, #10B981);color:#ffffff;padding:18px 16px;border-radius:18px;margin-bottom:14px;text-align:center;box-shadow:0 6px 20px rgba(16,185,129,0.3);position:relative;overflow:hidden;border:1px solid #34D399;">
+          <div style="font-size:1.1rem;font-weight:900;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <span>📢 TELL THE SHOP COUNTER</span>
+          </div>
+          <p id="tokenNoticeText" style="font-size:0.86rem;margin:0 0 12px;opacity:0.96;line-height:1.45;">
+            Show this token at the counter or send it to the shop via WhatsApp
           </p>
           <button type="button" onclick="openCustomerWhatsApp()"
-            style="background:#25D366;color:#ffffff;font-weight:800;font-size:0.98rem;padding:12px 24px;border-radius:30px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,0.2);transition:transform 0.15s ease;">
+            style="background:rgba(255,255,255,0.18);color:#ffffff;font-weight:800;font-size:0.95rem;padding:12px 20px;border-radius:30px;border:2px solid #ffffff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px;backdrop-filter:blur(4px);width:100%;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:transform 0.15s ease;">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff" style="flex-shrink:0;">
-              <path
-                d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
             </svg>
             <span>Send Token via WhatsApp</span>
           </button>
         </div>
 
-        <!-- Hidden Clutter Elements (Preserved DOM IDs for compatibility) -->
-        <div class="stepper-progress" style="display:none !important;">
-          <div id="stepperLineActive" class="stepper-line-active"></div>
-
-          <div id="stepProgress1" class="step-item completed">
-            <div class="step-icon-circle">✓</div>
-            <div class="step-title">Order Placed</div>
-          </div>
-
-          <div id="stepProgress2" class="step-item active">
-            <div id="step2IconCircle" class="step-icon-circle">💵</div>
-            <div id="step2Title" class="step-title">Payment</div>
-          </div>
-
-          <div id="stepProgress3" class="step-item">
-            <div class="step-icon-circle">🖨️</div>
-            <div class="step-title">Printing</div>
-          </div>
-
-          <div id="stepProgress4" class="step-item">
-            <div class="step-icon-circle">🎉</div>
-            <div class="step-title">Ready</div>
+        <!-- 4. What's Next? 3-Step Process Card -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:18px;padding:16px 12px;margin-bottom:14px;">
+          <div style="font-size:0.92rem;font-weight:900;color:#1E293B;margin-bottom:12px;text-align:left;padding-left:4px;">What's next?</div>
+          <div style="display:flex;align-items:center;justify-content:space-around;gap:2px;">
+            <div style="text-align:center;flex:1;">
+              <div style="background:#D1FAE5;color:#065F46;width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;margin-bottom:6px;">1 👤</div>
+              <div style="font-size:0.72rem;font-weight:700;color:#334155;line-height:1.25;">Show token<br>at counter</div>
+            </div>
+            <div style="color:#CBD5E1;font-weight:900;font-size:1rem;margin-top:-14px;">➔</div>
+            <div style="text-align:center;flex:1;">
+              <div style="background:#E0F2FE;color:#075985;width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;margin-bottom:6px;">2 ⏱️</div>
+              <div style="font-size:0.72rem;font-weight:700;color:#334155;line-height:1.25;">Wait for<br>printing</div>
+            </div>
+            <div style="color:#CBD5E1;font-weight:900;font-size:1rem;margin-top:-14px;">➔</div>
+            <div style="text-align:center;flex:1;">
+              <div style="background:#FEF3C7;color:#92400E;width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;margin-bottom:6px;">3 🛍️</div>
+              <div style="font-size:0.72rem;font-weight:700;color:#334155;line-height:1.25;">Collect your<br>prints</div>
+            </div>
           </div>
         </div>
 
-        <div id="noticeBox" class="notice-box cash" style="display:none !important;">
-          <div class="notice-box-header">
-            <span id="noticeBoxIcon">💵</span>
-            <span id="noticeBoxTitle">Cash Payment Required at Counter</span>
-          </div>
-          <div id="noticeBoxBody" class="notice-box-body">
-            Show your Token ID at the store counter and pay cash to start printing.
-          </div>
-          <div id="noticeAmountPill" class="notice-amount-pill">Amount Due: ₹--</div>
+        <!-- 5. Primary Action Button -->
+        <div>
+          <button type="button" class="btn btn-primary" onclick="startOver()" style="width:100%;border-radius:14px;padding:14px 18px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#FFFFFF;box-shadow:0 4px 14px rgba(37,99,235,0.3);border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+            <span>📄 Add More Files</span>
+          </button>
         </div>
 
-        <div style="display:none !important;">
-          <span id="statusBadge" class="status-badge pending" data-i18n="pending">Pending</span>
-        </div>
-        <p id="statusMessage" style="display:none !important;"></p>
-
-        <div id="orderBreakdownBox" style="display:none !important;">
-          <div style="font-weight:700;color:#334155;margin-bottom:6px;display:flex;justify-content:space-between;">
-            <span>📋 Order Summary</span>
-            <span id="summaryCustomerName" style="color:#2563eb;"></span>
-          </div>
-          <div id="summaryDetailsContent" style="color:#64748b;line-height:1.5;"></div>
+        <!-- 6. Footer Help Note -->
+        <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:12px;padding:10px 14px;margin-top:12px;text-align:center;font-size:0.8rem;color:#0369A1;font-weight:600;">
+          ℹ️ Need help? Contact shop on <strong>WhatsApp</strong> or ask at counter.
         </div>
 
-        <div style="display:none !important;">
-          <button class="btn btn-secondary" onclick="checkAllStatus()" data-i18n="refreshStatus" style="flex:1;">Refresh
-            Status</button>
-          <button class="btn" onclick="openCustomerWhatsApp()" style="flex:1;">WhatsApp Shop</button>
-        </div>
+        <!-- Preserved DOM IDs for backend/script compatibility -->
+        <div class="order-id" style="display:none !important;"><span id="orderIdsSpan"></span></div>
+        <div id="noticeBox" class="notice-box cash" style="display:none !important;"><span id="noticeBoxIcon"></span><span id="noticeBoxTitle"></span><span id="noticeBoxBody"></span><span id="noticeAmountPill"></span></div>
+        <div style="display:none !important;"><span id="statusBadge"></span><p id="statusMessage"></p></div>
+        <div id="orderBreakdownBox" style="display:none !important;"><span id="summaryCustomerName"></span><div id="summaryDetailsContent"></div></div>
+        <div id="statusDone" class="hidden" style="display:none !important;"></div>
+        <div id="stepStartOver" class="step hidden" style="display:none !important;"></div>
 
-        <div id="statusDone" class="hidden" style="margin-top:12px;">
-          <div class="success-message" data-i18n="allReady">🎉 All prints ready! Please collect from Counter 1.</div>
-        </div>
-
-        <div style="text-align:center;margin-top:18px;">
-          <button type="button" class="btn btn-primary" onclick="startOver()" style="width:100%;border-radius:12px;padding:12px 18px;font-weight:700;">📄 Upload More Files</button>
-        </div>
       </div>
     </div>
 
@@ -5031,11 +5075,24 @@
       var tokenDisplay = document.getElementById('shortTokenDisplay');
       if (currentOrderIds.length > 0) {
         var firstId = currentOrderIds[0];
-        var shortCode = 'Token #P-' + firstId.substring(0, 6).toUpperCase() + (totalPrice ? (' (₹' + totalPrice + ')') : '');
-        if (tokenDisplay) tokenDisplay.textContent = shortCode;
+        var tokenNum = '#P-' + firstId.substring(0, 6).toUpperCase();
+        if (tokenDisplay) tokenDisplay.textContent = tokenNum;
         var orderIdsSpan = document.getElementById('orderIdsSpan');
         if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
       }
+
+      var amtEl = document.getElementById('tokenCardAmount');
+      if (amtEl) amtEl.textContent = '₹' + totalPrice;
+
+      var filesEl = document.getElementById('tokenCardFiles');
+      if (filesEl) {
+        var fCount = orders.length || (typeof selectedFiles !== 'undefined' ? selectedFiles.length : 1) || 1;
+        filesEl.textContent = fCount + (fCount === 1 ? ' File' : ' Files');
+      }
+
+      var cardTitle = document.getElementById('statusCardTitle');
+      var cardSub = document.getElementById('statusCardSub');
+
       var customerName = orders.length > 0 ? (orders[0].customer_name || '') : '';
       if (document.getElementById('summaryCustomerName')) {
         document.getElementById('summaryCustomerName').textContent = customerName ? ('Customer: ' + customerName) : '';
@@ -5080,6 +5137,8 @@
 
       var tokenNoticeEl = document.getElementById('tokenNoticeText');
       if (anyPrinterError) {
+        if (cardTitle) cardTitle.textContent = 'PRINTER DELAY';
+        if (cardSub) cardSub.textContent = 'Staff resolving machine issue...';
         if (tokenNoticeEl) tokenNoticeEl.innerHTML = '⚠️ <strong>Printer Technical Delay.</strong> Store staff is resolving it. Your order will print as soon as ready!';
         if (line) line.style.width = '66%';
         if (s1) s1.className = 'step-item completed';
@@ -5101,6 +5160,8 @@
           if (nPill) nPill.style.display = 'none';
         }
       } else if (status === 'accepted') {
+        if (cardTitle) cardTitle.textContent = 'PRINTS READY';
+        if (cardSub) cardSub.textContent = 'Collect your prints at Counter 1';
         if (tokenNoticeEl) tokenNoticeEl.innerHTML = '🎉 <strong>Prints Ready!</strong> Please collect your printed document from Counter 1.';
         var s3IconAcc = s3 ? s3.querySelector('.step-icon-circle') : null;
         if (s3IconAcc) s3IconAcc.textContent = '🖨️';
@@ -5123,6 +5184,8 @@
         }
         playCustomerSuccessAudioSequence();
       } else if (status === 'rejected') {
+        if (cardTitle) cardTitle.textContent = 'ORDER REJECTED';
+        if (cardSub) cardSub.textContent = 'Please speak with shop counter staff';
         if (tokenNoticeEl) tokenNoticeEl.innerHTML = '❌ <strong>Order Rejected.</strong> Please speak with store staff.';
         if (badge) badge.textContent = 'Order Rejected';
         if (msg) msg.textContent = 'Sorry, your order was rejected. Please speak with store staff.';
