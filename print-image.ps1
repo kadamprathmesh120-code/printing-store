@@ -36,19 +36,14 @@ if ($orientation -eq 'landscape') {
 # Force Simplex (Single Side) to prevent duplex printer drivers from ejecting a 2nd blank page
 $pd.DefaultPageSettings.Duplex = [System.Drawing.Printing.Duplex]::Simplex
 
-# Enable Color Printing & set 300 DPI Quality for HP printer (matching Microsoft Edge)
-if ($printerName -like '*HP*' -or $printerName -like '*Smart Tank*') {
-  $pd.DefaultPageSettings.Color = $true
-  try { $pd.PrinterSettings.DefaultPageSettings.Color = $true } catch {}
-
-  try {
-    $res300 = $pd.PrinterSettings.PrinterResolutions | Where-Object { $_.X -eq 300 -and $_.Y -eq 300 } | Select-Object -First 1
-    if ($res300) {
-      $pd.DefaultPageSettings.PrinterResolution = $res300
-      try { $pd.PrinterSettings.DefaultPageSettings.PrinterResolution = $res300 } catch {}
-    }
-  } catch {}
-}
+# Force Highest Available Resolution (DPI) for crisp text printing on all printers (Konica, Kyocera, HP, etc.)
+try {
+  $maxRes = $pd.PrinterSettings.PrinterResolutions | Sort-Object -Property X -Descending | Select-Object -First 1
+  if ($maxRes) {
+    $pd.DefaultPageSettings.PrinterResolution = $maxRes
+    try { $pd.PrinterSettings.DefaultPageSettings.PrinterResolution = $maxRes } catch {}
+  }
+} catch {}
 
 # Zero margins — maximize printable area (hardware margin still applies physically)
 $pd.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
