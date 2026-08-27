@@ -1754,6 +1754,17 @@
       }
     }
 
+    function getPageActiveUrl(page, filter) {
+      if (!page) return '';
+      if (page.type === 'pdf') return page.url;
+      var f = filter || selectedEditFilter || 'magic';
+      if (f === 'magic') {
+        return page.magicUrl || page.croppedUrl || page.originalUrl || page.url;
+      } else {
+        return page.croppedUrl || page.originalUrl || page.url;
+      }
+    }
+
     function renderStepPreviewPage() {
       if (!window.allPreviewPages || window.allPreviewPages.length === 0) {
         var editImg = document.getElementById('editPreviewImg');
@@ -1770,15 +1781,15 @@
 
       var page = window.allPreviewPages[window.currentPreviewPageIndex];
       var totalPages = window.allPreviewPages.length;
+      var activeUrl = getPageActiveUrl(page, selectedEditFilter);
+      if (page && activeUrl) {
+        page.url = activeUrl;
+      }
 
       // Update Step 2 Edit Preview — respect filter selection
       var editImg = document.getElementById('editPreviewImg');
-      if (editImg && page) {
-        if (selectedEditFilter === 'magic') {
-          editImg.src = page.magicUrl || page.croppedUrl || page.url;
-        } else {
-          editImg.src = page.croppedUrl || page.url;
-        }
+      if (editImg && page && activeUrl) {
+        editImg.src = activeUrl;
       }
       var editSub = document.getElementById('editPageSub');
       if (editSub) {
@@ -1786,10 +1797,9 @@
       }
 
       // Update Step 3 Preview Sheet
-      // Update Step 3 Preview Sheet
       var mainImg = document.getElementById('mainPreviewImg');
-      if (mainImg && page && page.url) {
-        mainImg.src = page.url;
+      if (mainImg && page && activeUrl) {
+        mainImg.src = activeUrl;
         if (selectedPrintType === 'bw') {
           mainImg.style.filter = 'grayscale(100%) contrast(1.05)';
         } else {
@@ -1879,20 +1889,25 @@
 
     function selectEditFilter(filter) {
       selectedEditFilter = filter;
-      // Update the preview image to show original or magic version
-      var page = window.allPreviewPages[window.currentPreviewPageIndex];
-      var editImg = document.getElementById('editPreviewImg');
-      if (editImg && page) {
-        if (filter === 'magic') {
-          var magicTarget = page.magicUrl || page.croppedUrl || page.url;
-          editImg.src = magicTarget;
-          page.url = magicTarget;
-        } else {
-          var origTarget = page.croppedUrl || page.url;
-          editImg.src = origTarget;
-          page.url = origTarget;
-        }
+      var page = (window.allPreviewPages && window.allPreviewPages.length > 0) ? window.allPreviewPages[window.currentPreviewPageIndex] : null;
+      var activeUrl = getPageActiveUrl(page, filter);
+
+      if (page && activeUrl) {
+        page.url = activeUrl;
       }
+
+      // Update Step 2 Edit Preview image immediately
+      var editImg = document.getElementById('editPreviewImg');
+      if (editImg && activeUrl) {
+        editImg.src = activeUrl;
+      }
+
+      // Update Step 3 Main Preview image if rendered
+      var mainImg = document.getElementById('mainPreviewImg');
+      if (mainImg && activeUrl) {
+        mainImg.src = activeUrl;
+      }
+
       // Update button active states
       var btnOriginal = document.getElementById('editFilterOriginal');
       var btnMagic = document.getElementById('editFilterMagic');
@@ -2078,12 +2093,13 @@
               curPage.wasCropped = true;
               curPage.file = croppedFile;
               curPage.croppedUrl = croppedUrl;
+              curPage.magicUrl = null;
 
               processAutoMagicColor(croppedFile, function (magic) {
                 var magicUrl = (magic && magic !== croppedFile) ? URL.createObjectURL(magic) : croppedUrl;
                 curPage.magicUrl = magicUrl;
                 curPage.magicFile = magic;
-                curPage.url = (selectedEditFilter === 'magic') ? magicUrl : croppedUrl;
+                curPage.url = getPageActiveUrl(curPage, selectedEditFilter);
 
                 // Sync with selectedFiles
                 var targetIdx = (curPage.fileIdx !== undefined) ? curPage.fileIdx : pIdx;
@@ -2104,7 +2120,7 @@
         }
 
       };
-      img.src = curPage.url || URL.createObjectURL(fileToCrop);
+      img.src = curPage.croppedUrl || curPage.originalUrl || curPage.url || URL.createObjectURL(fileToCrop);
     }
 
     function openPaymentSelectionModal() {
@@ -2152,6 +2168,7 @@
       selectedFiles = [];
       window.allPreviewPages = [];
       window.currentPreviewPageIndex = 0;
+      selectedEditFilter = 'magic';
 
       var fileArr = [];
       for (var i = 0; i < files.length; i++) fileArr.push(files[i]);
@@ -2210,13 +2227,16 @@
             var magicUrl = URL.createObjectURL(magicFile);
             pageEntry.magicUrl = magicUrl;
             pageEntry.magicFile = magicFile;
+            pageEntry.url = getPageActiveUrl(pageEntry, selectedEditFilter);
+
             // If magic filter is selected and we're currently viewing this page, update preview
-            if (selectedEditFilter === 'magic' && window.currentFlowStep === 2) {
-              var currentPage = window.allPreviewPages[window.currentPreviewPageIndex];
+            if (selectedEditFilter === 'magic') {
+              var currentPage = (window.allPreviewPages && window.allPreviewPages.length > 0) ? window.allPreviewPages[window.currentPreviewPageIndex] : null;
               if (currentPage === pageEntry) {
-                pageEntry.url = magicUrl;
                 var editImg = document.getElementById('editPreviewImg');
-                if (editImg) editImg.src = magicUrl;
+                if (editImg && window.currentFlowStep === 2) editImg.src = magicUrl;
+                var mainImg = document.getElementById('mainPreviewImg');
+                if (mainImg && window.currentFlowStep === 3) mainImg.src = magicUrl;
               }
             }
             // Also store in selectedFiles
@@ -2821,7 +2841,7 @@
       container.innerHTML = '';
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
-        var displayFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
+        var displayFile = (selectedEditFilter === 'magic') ? (sf.magicFile || sf.file) : sf.file;
         var f = sf.file;
         var ext = f.name.split('.').pop().toLowerCase();
         var isPdf = ext === 'pdf';
@@ -2843,7 +2863,7 @@
           '<div class="file-thumb' + (isPdf ? ' pdf' : isImage ? ' image' : ' doc') + '" style="overflow:hidden;position:relative;' + (isPdf ? 'background:#fff;' : '') + '">' + thumbHtml + '</div>' +
           '<div class="file-info">' +
           '<div class="fi-name">' + escapeHtml(f.name) + '</div>' +
-          '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + (isImage ? (selectedPrintType === 'color' ? ' <span style="color:#3b82f6;font-weight:700;">📷 Original Color</span>' : ' <span style="color:#22c55e;font-weight:700;">✨ Magic Color</span>') : '') + '</div>' +
+          '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + (isImage ? (selectedEditFilter === 'original' ? ' <span style="color:#3b82f6;font-weight:700;">📷 Original</span>' : ' <span style="color:#22c55e;font-weight:700;">✨ Magic Color</span>') : '') + '</div>' +
           '</div>' +
           '<div class="file-actions" style="gap:8px;">' +
           (isImage ? '<button class="file-btn crop-btn" onclick="openCrop(' + i + ')" title="Crop Image" style="background:#16A34A;color:#fff;width:auto;padding:0 12px;font-size:0.82em;font-weight:700;gap:4px;border-radius:8px;"><i data-lucide="crop" style="width:18px;height:18px;"></i> Crop</button>' : '') +
@@ -3381,7 +3401,7 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
+        var rawFile = (selectedEditFilter === 'magic') ? (sf.magicFile || sf.file) : sf.file;
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
@@ -3519,7 +3539,7 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
+        var rawFile = (selectedEditFilter === 'magic') ? (sf.magicFile || sf.file) : sf.file;
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
@@ -3650,7 +3670,7 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = (selectedPrintType === 'color') ? sf.file : (sf.magicFile || sf.file);
+        var rawFile = (selectedEditFilter === 'magic') ? (sf.magicFile || sf.file) : sf.file;
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
@@ -5264,7 +5284,6 @@
                   item.wasCropped = true;
                   var croppedUrl = URL.createObjectURL(newFile);
                   var magicUrl = (newMagic && newMagic !== newFile) ? URL.createObjectURL(newMagic) : croppedUrl;
-                  item.url = (selectedEditFilter === 'magic') ? magicUrl : croppedUrl;
 
                   if (window.allPreviewPages && window.allPreviewPages[fileIdx]) {
                     var p = window.allPreviewPages[fileIdx];
@@ -5273,7 +5292,10 @@
                     p.croppedUrl = croppedUrl;
                     p.magicUrl = magicUrl;
                     p.magicFile = newMagic;
-                    p.url = item.url;
+                    p.url = getPageActiveUrl(p, selectedEditFilter);
+                    item.url = p.url;
+                  } else {
+                    item.url = (selectedEditFilter === 'magic') ? magicUrl : croppedUrl;
                   }
                   renderStepPreviewPage();
                   goToStep(2);
