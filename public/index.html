@@ -4490,61 +4490,43 @@
         btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
       }
 
-      idcSubmitOrder('razorpay')
+      idcSubmitOrder('cashfree')
         .then(function (data) {
-          return fetch('/api/create-razorpay-order', {
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Creating Session...';
+
+          return fetch('/api/create-cashfree-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: data.price, orderIds: currentOrderIds })
+            body: JSON.stringify({
+              amount: data.price,
+              orderIds: currentOrderIds,
+              customerName: name,
+              customerMobile: ''
+            })
           })
             .then(function (r) { return r.json(); })
-            .then(function (rpData) {
-              if (rpData.error) throw new Error(rpData.error);
-              if (!rpData.key_id) throw new Error('Server did not return a Razorpay Key ID');
+            .then(function (cfData) {
+              if (cfData.error) throw new Error(cfData.error);
+              if (!cfData.paymentSessionId) throw new Error('Failed to obtain Cashfree Payment Session');
 
-              var options = {
-                key: rpData.key_id,
-                amount: rpData.amount,
-                currency: rpData.currency,
-                name: 'Printing Store',
-                description: 'ID Copy #' + currentOrderIds[0].slice(0, 8),
-                order_id: rpData.razorpayOrderId,
-                handler: function (payment) {
-                  fetch('/api/verify-razorpay-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      razorpayOrderId: payment.razorpay_order_id,
-                      razorpayPaymentId: payment.razorpay_payment_id,
-                      razorpaySignature: payment.razorpay_signature,
-                      orderIds: currentOrderIds
-                    })
-                  })
-                    .then(function (vr) { return vr.json(); })
-                    .then(function (vrData) {
-                      if (vrData.error) throw new Error(vrData.error);
-                      playCustomerSuccessAudioSequence();
-                      showStep('stepStatus');
-                      updateStatusDisplay('paid', [{ id: currentOrderIds[0], status: 'paid' }]);
-                    })
-                    .catch(function (e) { alert('Payment verification failed: ' + e.message); });
-                },
-                modal: {
-                  ondismiss: function () {
-                    if (btn) {
-                      btn.disabled = false;
-                      btn.innerHTML = '🔒 Pay ₹' + data.price + ' Online';
-                    }
-                  }
-                },
-                prefill: { name: name },
-                theme: { color: '#2563eb' }
+              if (typeof Cashfree === 'undefined') {
+                throw new Error('Cashfree SDK is not loaded. Please refresh the page and try again.');
+              }
+
+              var envMode = (cfData.environment === 'PROD' || cfData.environment === 'PRODUCTION') ? 'production' : 'sandbox';
+              var cashfree = Cashfree({ mode: envMode });
+
+              var checkoutOptions = {
+                paymentSessionId: cfData.paymentSessionId,
+                redirectTarget: "_self"
               };
-              var rzp = new Razorpay(options);
-              rzp.open();
+
+              cashfree.checkout(checkoutOptions);
+
               if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '🔒 Pay ₹' + data.price + ' Online';
+                var total = (selectedPrintType === 'bw' ? 5 : 10) * (idcCopiesCount || 1);
+                btn.innerHTML = '🔒 Pay ₹' + total + ' Online';
               }
             });
         })
