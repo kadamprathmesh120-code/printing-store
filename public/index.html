@@ -693,7 +693,9 @@
 
           <!-- Single Prominent ID Card Option -->
           <div class="id-card-option-box" onclick="startIdCopy()">
-            <div class="id-card-icon-circle">🪪</div>
+            <div class="id-card-icon-circle" style="padding: 2px; background: #fff;">
+              <img src="/aadhaar-logo.svg" alt="Aadhaar Logo" style="width: 30px; height: auto; object-fit: contain;">
+            </div>
             <div class="id-card-info" style="flex:1;">
               <div class="id-card-info-title">ID Card Copy</div>
               <div class="id-card-info-sub">Aadhaar • PAN • DL (Front + Back Print)</div>
@@ -1233,9 +1235,11 @@
               <span style="font-size:0.82em;font-weight:700;color:#64748b;">Step 1 of 4 • Upload ID</span>
             </div>
 
-            <div class="upload-hero-icon" style="background:#eff6ff;color:#2563eb;font-size:2.2em;">🪪</div>
+            <div class="upload-hero-icon" style="background:#fff; border: 1.5px solid #fed7aa; padding: 4px; box-shadow:0 3px 10px rgba(245,158,11,0.18);">
+              <img src="/aadhaar-logo.svg" alt="Aadhaar Logo" style="width: 36px; height: auto; object-fit: contain;">
+            </div>
             <h1 class="gradient-title" style="font-size:1.35em;">Upload ID Card</h1>
-            <div class="upload-sub" style="margin-bottom:20px;">Aadhaar • PAN • Voter ID • Driving License</div>
+            <div class="upload-sub" style="margin-bottom:14px;">Aadhaar • PAN • Voter ID • Driving License</div>
 
             <!-- Front Side Slot — full width, single action -->
             <div id="idcSlotFront" class="idc-slot-card" onclick="document.getElementById('idcFrontInput').click()"
