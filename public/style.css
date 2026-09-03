@@ -2141,8 +2141,8 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 /* --- Universal 4-Step Stepper Header --- */
 .flow-stepper-container {
   max-width: 440px;
-  margin: 12px auto 16px;
-  padding: 0 16px;
+  margin: 6px auto 10px;
+  padding: 0 14px;
 }
 .flow-stepper {
   display: flex;
@@ -2159,13 +2159,13 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   flex: 1;
 }
 .flow-step-circle {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #f1f5f9;
   color: #94a3b8;
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2180,14 +2180,14 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .flow-step-item.active .flow-step-circle {
   background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
   color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(217, 70, 239, 0.25), 0 6px 18px rgba(139, 92, 246, 0.45);
-  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.25), 0 4px 14px rgba(139, 92, 246, 0.35);
+  transform: scale(1.05);
 }
 .flow-step-label {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: #94a3b8;
-  margin-top: 6px;
+  margin-top: 4px;
   transition: color 0.2s;
 }
 .flow-step-item.active .flow-step-label {
@@ -2199,9 +2199,9 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 }
 .flow-step-line {
   position: absolute;
-  top: 22px;
-  left: 30px;
-  right: 30px;
+  top: 19px;
+  left: 28px;
+  right: 28px;
   height: 3px;
   background: #e2e8f0;
   z-index: 1;
@@ -2218,12 +2218,12 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .flow-container {
   max-width: 440px;
   margin: 0 auto;
-  padding: 0 14px 20px;
+  padding: 0 12px 14px;
 }
 .flow-card {
   background: #ffffff;
-  border-radius: 24px;
-  padding: 24px 20px 20px;
+  border-radius: 20px;
+  padding: 16px 16px 14px;
   border: 1px solid rgba(226, 232, 240, 0.85);
   box-shadow: 0 10px 30px -4px rgba(0,0,0,0.06), 0 4px 10px -2px rgba(0,0,0,0.02);
   transition: all 0.3s ease;
@@ -2232,52 +2232,44 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 
 /* --- Step 1: Upload Screen Styles --- */
 .upload-hero-icon {
-  width: 72px;
-  height: 72px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: #f5f3ff;
   color: #8b5cf6;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.12);
+  margin: 0 auto 6px;
+  box-shadow: 0 3px 10px rgba(139, 92, 246, 0.12);
 }
 .gradient-title {
-  font-size: 1.55rem;
+  font-size: 1.35rem;
   font-weight: 900;
   text-align: center;
-  margin: 0 0 4px;
+  margin: 0 0 3px;
   background: linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #ec4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.02em;
 }
 .upload-sub {
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   color: #64748b;
   text-align: center;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   font-weight: 500;
-}
-.upload-multi-note {
-  font-size: 0.78rem;
-  color: #334155;
-  text-align: center;
-  margin: 0 0 14px;
-  font-weight: 600;
-  line-height: 1.4;
 }
 .format-pill-row {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 .format-pill {
-  padding: 4px 16px;
-  border-radius: 20px;
-  font-size: 0.76rem;
+  padding: 3px 12px;
+  border-radius: 16px;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 .format-pill.pdf {
@@ -2299,47 +2291,39 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 /* Upload Dropzone */
 .dropzone-box {
   border: 2px dashed #c4b5fd;
-  border-radius: 20px;
-  padding: 24px 16px 20px;
+  border-radius: 16px;
+  padding: 14px 12px;
   background: #faf5ff;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 14px;
-  display: block;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 .dropzone-box:active, .dropzone-box.dragover {
   background: #f3e8ff;
   border-color: #8b5cf6;
   transform: scale(0.99);
 }
-.dropzone-icon {
-  width: 44px;
-  height: 44px;
-  color: #8b5cf6;
-  margin: 0 auto 8px;
-}
 .dropzone-prompt {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #6b21a8;
-  margin-bottom: 6px;
-}
-.dropzone-or {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin: 4px 0 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #7c3aed;
+  margin: 0;
 }
 .choose-files-btn {
   background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #ec4899 100%);
   color: #ffffff;
   border: none;
-  border-radius: 24px;
-  padding: 10px 28px;
-  font-size: 0.92rem;
+  border-radius: 20px;
+  padding: 9px 24px;
+  font-size: 0.9rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(217, 70, 239, 0.35);
+  box-shadow: 0 4px 14px rgba(217, 70, 239, 0.3);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   display: inline-flex;
   align-items: center;
@@ -2353,62 +2337,62 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .id-card-option-box {
   background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
   border: 1.5px solid #bae6fd;
-  border-radius: 18px;
-  padding: 14px 16px;
+  border-radius: 16px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   box-shadow: 0 2px 8px rgba(37,99,235,0.06);
 }
 .id-card-option-box:active {
   transform: scale(0.98);
 }
 .id-card-icon-circle {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   flex-shrink: 0;
 }
 .id-card-info-title {
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   color: #0f172a;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .id-card-info-sub {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: #0369a1;
-  margin-top: 2px;
+  margin-top: 1px;
   font-weight: 500;
 }
 .id-card-arrow {
   margin-left: auto;
   color: #0284c7;
   font-weight: 800;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
 }
 
 /* Security Note */
 .security-note-text {
   text-align: center;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 /* --- Document Preview Sheets & Framing --- */
