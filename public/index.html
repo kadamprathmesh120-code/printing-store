@@ -1922,9 +1922,16 @@
       if (bwCard) bwCard.classList.toggle('selected', type === 'bw');
       if (colorCard) colorCard.classList.toggle('selected', type === 'color');
 
+      // For color select customer it should come as original without filter
+      if (type === 'color') {
+        selectEditFilter('original');
+      } else if (type === 'bw') {
+        selectEditFilter('magic');
+      }
+
       if (typeof updatePrice === 'function') updatePrice();
       syncPayScreenValues();
-      if (window.currentFlowStep === 3) renderStepPreviewPage();
+      if (window.currentFlowStep === 3 || window.currentFlowStep === 2) renderStepPreviewPage();
     }
 
     function selectOrientationOption(orientation) {
@@ -2168,7 +2175,7 @@
       selectedFiles = [];
       window.allPreviewPages = [];
       window.currentPreviewPageIndex = 0;
-      selectedEditFilter = 'magic';
+      selectedEditFilter = (selectedPrintType === 'color') ? 'original' : 'magic';
 
       var fileArr = [];
       for (var i = 0; i < files.length; i++) fileArr.push(files[i]);
@@ -2902,6 +2909,7 @@
       scanQueue = [];
       copiesCount = 1;
       selectedPrintType = 'bw';
+      selectedEditFilter = 'magic';
       selectedPrintSide = 'single';
       selectedOrientation = 'portrait';
       selectedPageRange = 'all';
@@ -2939,6 +2947,11 @@
       el.classList.add('selected');
       if (group === 'printType') {
         selectedPrintType = el.getAttribute('data-value');
+        if (selectedPrintType === 'color') {
+          selectEditFilter('original');
+        } else if (selectedPrintType === 'bw') {
+          selectEditFilter('magic');
+        }
         var bothPills = document.querySelector('.qp-card .qp-pair .pill-option[data-value="both"]');
         if (bothPills) {
           if (selectedPrintType === 'color') {
@@ -3396,12 +3409,14 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-      formData.append('usedMagic', selectedEditFilter === 'magic' ? '1' : '0');
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      formData.append('usedMagic', useMagic ? '1' : '0');
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = (selectedEditFilter === 'magic') ? (sf.magicFile || sf.file) : sf.file;
+        var rawFile = useMagic ? (sf.magicFile || sf.file) : sf.file;
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
@@ -3412,7 +3427,7 @@
         }
         var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
         formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (selectedEditFilter === 'magic' ? '1' : '0'));
+        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (useMagic ? '1' : '0'));
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3534,12 +3549,14 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-      formData.append('usedMagic', selectedEditFilter === 'magic' ? '1' : '0');
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      formData.append('usedMagic', useMagic ? '1' : '0');
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = (selectedEditFilter === 'magic') ? (sf.magicFile || sf.file) : sf.file;
+        var rawFile = useMagic ? (sf.magicFile || sf.file) : sf.file;
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
@@ -3550,7 +3567,7 @@
         }
         var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
         formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (selectedEditFilter === 'magic' ? '1' : '0'));
+        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (useMagic ? '1' : '0'));
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3665,12 +3682,14 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-      formData.append('usedMagic', selectedEditFilter === 'magic' ? '1' : '0');
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      formData.append('usedMagic', useMagic ? '1' : '0');
 
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = (selectedEditFilter === 'magic') ? (sf.magicFile || sf.file) : sf.file;
+        var rawFile = useMagic ? (sf.magicFile || sf.file) : sf.file;
         var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
@@ -3681,7 +3700,7 @@
         }
         var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
         formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (selectedEditFilter === 'magic' ? '1' : '0'));
+        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (useMagic ? '1' : '0'));
       }
 
 
@@ -3895,6 +3914,11 @@
           colorBtn.classList.add('active');
           bwBtn.classList.remove('active');
         }
+      }
+      if (color === 'color') {
+        if (typeof idcSelectFilter === 'function') idcSelectFilter('original');
+      } else {
+        if (typeof idcSelectFilter === 'function') idcSelectFilter('magic');
       }
       idcUpdatePaySummary();
     }
@@ -5222,6 +5246,7 @@
       enhancedFiles = {};
       copiesCount = 1;
       selectedPrintType = 'bw';
+      selectedEditFilter = 'magic';
       selectedPrintSide = 'single';
       selectedOrientation = 'portrait';
       selectedPageRange = 'all';
