@@ -47,7 +47,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=31_idcopy_fix">
+  <link rel="stylesheet" href="style.css?v=33_large_preview">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"
     onload="if(typeof lucide!=='undefined')lucide.createIcons()"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -721,8 +721,8 @@
           <div class="screen-header-sub" id="editPageSub">1 page — ek nazar dekh lo</div>
 
           <div class="preview-sheet-frame">
-            <div class="preview-sheet-paper" id="editPreviewSheet">
-              <img id="editPreviewImg" src="" alt="File Preview">
+            <div class="preview-sheet-paper" id="editPreviewSheet" style="max-width: 290px; max-height: 44vh;">
+              <img id="editPreviewImg" src="" alt="File Preview" style="max-height: 43vh; width: auto; object-fit: contain;">
             </div>
           </div>
 
@@ -1825,11 +1825,11 @@
       var mainSheet = document.getElementById('mainPreviewSheet');
       if (editSheet) {
         editSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
-        editSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+        editSheet.style.maxWidth = isLandscape ? '360px' : '290px';
       }
       if (mainSheet) {
         mainSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
-        mainSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+        mainSheet.style.maxWidth = isLandscape ? '360px' : '290px';
       }
 
       // Update Page Navigator in Step 3
@@ -1961,11 +1961,11 @@
       var mainSheet = document.getElementById('mainPreviewSheet');
       if (editSheet) {
         editSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
-        editSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+        editSheet.style.maxWidth = isLandscape ? '360px' : '290px';
       }
       if (mainSheet) {
         mainSheet.style.aspectRatio = isLandscape ? '1.414 / 1' : '1 / 1.414';
-        mainSheet.style.maxWidth = isLandscape ? '340px' : '260px';
+        mainSheet.style.maxWidth = isLandscape ? '360px' : '290px';
       }
 
       if (typeof updatePrice === 'function') updatePrice();
