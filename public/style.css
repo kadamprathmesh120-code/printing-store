@@ -2408,17 +2408,17 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .screen-header-sub {
   font-size: 0.8rem;
   color: #64748b;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .preview-sheet-frame {
   background: transparent;
   border: none;
   border-radius: 0;
-  padding: 4px 0;
+  padding: 2px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 .preview-sheet-paper {
   background: #ffffff;
@@ -2426,19 +2426,58 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   border: 1px solid #e2e8f0;
   box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.04);
   padding: 4px;
-  width: 100%;
-  max-width: 280px;
+  width: auto;
+  max-width: 230px;
+  max-height: 28vh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  margin: 0 auto;
 }
 .preview-sheet-paper img {
   max-width: 100%;
-  max-height: 100%;
+  max-height: 27vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 8px;
   display: block;
+}
+
+/* --- Quick Edit Toolbar (Rotate & Crop directly under preview) --- */
+.quick-edit-toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 8px;
+}
+.quick-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 15px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  color: #1e293b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.quick-tool-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+.quick-tool-btn:active {
+  transform: scale(0.95);
+  background: #e2e8f0;
 }
 
 /* --- Page Navigator [ < ] Page 1 / 2 [ > ] --- */
@@ -2771,13 +2810,13 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 
 /* ===== Step 2 Filter Toggle (Original / Magic Color) ===== */
 .edit-filter-section {
-  margin: 14px 0 16px;
+  margin: 8px 0 12px;
 }
 .edit-filter-label {
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 800;
   color: #0f172a;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2785,13 +2824,13 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 .edit-filter-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 .edit-filter-tab {
-  padding: 12px 10px;
-  font-size: 0.88rem;
+  padding: 10px 8px;
+  font-size: 0.86rem;
   font-weight: 800;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1.5px solid #e2e8f0;
   background: #ffffff;
   color: #334155;

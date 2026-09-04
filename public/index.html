@@ -726,6 +726,18 @@
             </div>
           </div>
 
+          <!-- Quick 1-Tap Tool Icons (Rotate 90° & Crop/Adjust) -->
+          <div class="quick-edit-toolbar" id="quickEditToolbar">
+            <button type="button" class="quick-tool-btn" id="btnQuickRotate" onclick="rotateCurrentPreviewImage(90)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>Rotate 90°</span>
+            </button>
+            <button type="button" class="quick-tool-btn" id="btnQuickCrop" onclick="openCropCurrentFile()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+              <span>Crop &amp; Adjust</span>
+            </button>
+          </div>
+
           <!-- Page Navigator in Step 2 [ < ] Page 1 / 2 [ > ] -->
           <div class="page-navigator-bar" id="editPageNav" style="display:none;">
             <button type="button" class="page-nav-btn" id="btnPrevEditPage" onclick="prevPreviewPage()">‹</button>
@@ -751,13 +763,10 @@
           <button type="button" class="btn-action-green" onclick="goToStep(3)">
             <span>✅ All Good — Continue</span>
           </button>
-          <div class="btn-sub-caption">File prints exactly as it is — cleanest and fastest</div>
 
-          <button type="button" class="btn-action-white" id="btnWantToEdit" onclick="openCropCurrentFile()">
-            <span>✏️ Want to Edit</span>
-          </button>
-          <div class="btn-sub-caption" id="captionWantToEdit">To rotate, crop, adjust brightness or add more documents
-          </div>
+          <!-- Hidden compatibility elements -->
+          <button type="button" id="btnWantToEdit" onclick="openCropCurrentFile()" style="display:none;"></button>
+          <div id="captionWantToEdit" style="display:none;"></div>
         </div>
       </div>
     </div>
@@ -1860,6 +1869,9 @@
       if (btnEdit) btnEdit.style.display = isPdf ? 'none' : '';
       if (capEdit) capEdit.style.display = isPdf ? 'none' : '';
 
+      var quickBar = document.getElementById('quickEditToolbar');
+      if (quickBar) quickBar.style.display = isPdf ? 'none' : 'flex';
+
       // Hide filter section for PDFs (magic color is image-only)
       var filterSection = document.getElementById('editFilterSection');
       if (filterSection) filterSection.style.display = isPdf ? 'none' : '';
@@ -2080,6 +2092,89 @@
       if (document.getElementById('reviewTotalPrice')) {
         document.getElementById('reviewTotalPrice').textContent = '₹' + finalTotal;
       }
+    }
+
+    function rotateCurrentPreviewImage(deg) {
+      if (!deg) deg = 90;
+      var pIdx = window.currentPreviewPageIndex || 0;
+      if (!window.allPreviewPages || window.allPreviewPages.length === 0) return;
+      var curPage = window.allPreviewPages[pIdx];
+      if (!curPage) return;
+
+      var rotateBtn = document.getElementById('btnQuickRotate');
+      if (rotateBtn) {
+        rotateBtn.disabled = true;
+        rotateBtn.style.opacity = '0.6';
+      }
+
+      var fileToRotate = curPage.file || (selectedFiles[pIdx] ? selectedFiles[pIdx].file : null);
+      var srcUrl = curPage.croppedUrl || curPage.originalUrl || curPage.url || (fileToRotate ? URL.createObjectURL(fileToRotate) : null);
+      if (!srcUrl) {
+        if (rotateBtn) { rotateBtn.disabled = false; rotateBtn.style.opacity = '1'; }
+        return;
+      }
+
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function () {
+        var canvas = document.createElement('canvas');
+        var rad = (deg * Math.PI) / 180;
+        var sin = Math.abs(Math.sin(rad));
+        var cos = Math.abs(Math.cos(rad));
+        canvas.width = Math.round(img.height * sin + img.width * cos);
+        canvas.height = Math.round(img.width * sin + img.height * cos);
+
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            if (rotateBtn) { rotateBtn.disabled = false; rotateBtn.style.opacity = '1'; }
+            return;
+          }
+          var filename = (curPage.name || 'image').replace(/\.[^/.]+$/, "") + '-rotated.jpg';
+          var rotatedFile = new File([blob], filename, { type: 'image/jpeg' });
+          var rotatedUrl = URL.createObjectURL(blob);
+
+          curPage.file = rotatedFile;
+          curPage.originalUrl = rotatedUrl;
+          curPage.croppedUrl = rotatedUrl;
+          curPage.wasCropped = true;
+          curPage.magicUrl = null;
+
+          processAutoMagicColor(rotatedFile, function (magicFile) {
+            if (magicFile && magicFile !== rotatedFile) {
+              curPage.magicFile = magicFile;
+              curPage.magicUrl = URL.createObjectURL(magicFile);
+            } else {
+              curPage.magicFile = null;
+              curPage.magicUrl = null;
+            }
+            curPage.url = getPageActiveUrl(curPage, selectedEditFilter);
+
+            var targetIdx = (curPage.fileIdx !== undefined) ? curPage.fileIdx : pIdx;
+            if (selectedFiles && selectedFiles[targetIdx]) {
+              selectedFiles[targetIdx].file = rotatedFile;
+              selectedFiles[targetIdx].magicFile = curPage.magicFile;
+              selectedFiles[targetIdx].url = curPage.url;
+              selectedFiles[targetIdx].wasCropped = true;
+            }
+
+            renderStepPreviewPage();
+            if (rotateBtn) {
+              rotateBtn.disabled = false;
+              rotateBtn.style.opacity = '1';
+            }
+          });
+        }, 'image/jpeg', 0.95);
+      };
+      img.onerror = function () {
+        if (rotateBtn) { rotateBtn.disabled = false; rotateBtn.style.opacity = '1'; }
+      };
+      img.src = srcUrl;
     }
 
     function openCropCurrentFile() {
