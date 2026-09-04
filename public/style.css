@@ -2427,8 +2427,8 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
   box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.04);
   padding: 4px;
   width: auto;
-  max-width: 230px;
-  max-height: 28vh;
+  max-width: 270px;
+  max-height: 38vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2437,7 +2437,7 @@ tbody td { padding:8px 6px; border-bottom:1px solid #f3f4f6; color:#374151; }
 }
 .preview-sheet-paper img {
   max-width: 100%;
-  max-height: 27vh;
+  max-height: 37vh;
   width: auto;
   height: auto;
   object-fit: contain;
