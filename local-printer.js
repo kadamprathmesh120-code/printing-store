@@ -217,26 +217,35 @@ async function resolvePrinterName(targetName) {
 }
 
 var activePrints = new Set();
+var printerConfigSyncCounter = 0;
 
 async function checkAndPrint() {
   try {
-    // Sync active B&W printer selection from Render server
-    try {
-      var serverCfg = await fetchJson(RENDER_URL + '/api/admin/printer-config');
-      if (serverCfg && serverCfg.bwPrinter) {
-        fs.writeFileSync(PRINTER_CONFIG, JSON.stringify({ bwPrinter: serverCfg.bwPrinter }, null, 2));
-      }
-    } catch(e) {}
+    // Sync active B&W printer selection from Render server periodically (every 30s instead of every 3s)
+    if (printerConfigSyncCounter++ % 10 === 0) {
+      try {
+        var serverCfg = await fetchJson(RENDER_URL + '/api/admin/printer-config');
+        if (serverCfg && serverCfg.bwPrinter) {
+          fs.writeFileSync(PRINTER_CONFIG, JSON.stringify({ bwPrinter: serverCfg.bwPrinter }, null, 2));
+        }
+      } catch(e) {}
+    }
 
-    var orders = await fetchJson(RENDER_URL + '/api/admin/orders');
+    // Fetch only unprinted accepted orders (empty [] when idle, saves >99% bandwidth)
+    var orders = await fetchJson(RENDER_URL + '/api/admin/orders?status=accepted&unprinted=1');
     if (!Array.isArray(orders)) return; // server not ready or returned an error object
-    var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted' && !tracker.isOrderPrinted(o.id); });
-    if (orders.length > 0) {
-      console.log('Found', orders.length, 'total orders,', acceptedOrders.length, 'to print');
+    var acceptedOrders = orders.filter(function(o) { return !tracker.isOrderPrinted(o.id) && !activePrints.has(o.id); });
+    if (acceptedOrders.length > 0) {
+      console.log('Found', acceptedOrders.length, 'new order(s) to print');
     }
     for (var i = 0; i < orders.length; i++) {
       var order = orders[i];
-      if (order.status === 'accepted' && !tracker.isOrderPrinted(order.id) && !activePrints.has(order.id)) {
+      if (tracker.isOrderPrinted(order.id)) {
+        // Already printed locally; sync with server so server marks is_printed = 1
+        fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){});
+        continue;
+      }
+      if (order.status === 'accepted' && !activePrints.has(order.id)) {
         activePrints.add(order.id);
         tracker.markOrderPrinted(order.id);
         var backLocal = '';
@@ -311,6 +320,7 @@ async function checkAndPrint() {
           }
         } catch(e) {
           console.error('Failed to print order ' + order.id + ':', e.message);
+          try { tracker.unmarkOrderPrinted(order.id); } catch(err){}
         } finally {
           activePrints.delete(order.id);
         }

@@ -10,6 +10,7 @@ const pdfParse = require('pdf-parse');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const https = require('https');
+const zlib = require('zlib');
 const db = require('./db');
 const tracker = require('./printer-tracker');
 
@@ -272,11 +273,46 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const publicDir = fs.existsSync(path.join(__dirname, 'public')) ? path.join(__dirname, 'public') : __dirname;
 
-// Disable browser caching for dev/localhost so changes appear immediately
+// Gzip compression middleware using Node's built-in zlib (cuts text/JSON/HTML/CSS payload by 70-80%)
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+  const enc = req.headers['accept-encoding'] || '';
+  if (!enc.includes('gzip')) return next();
+
+  // Never compress uploads or binary files (jpeg, png, pdf, mp3, zip) — preserve 100% binary purity
+  const p = (req.path || '').toLowerCase();
+  if (p.startsWith('/uploads') || p.endsWith('.jpg') || p.endsWith('.jpeg') || p.endsWith('.png') || p.endsWith('.pdf') || p.endsWith('.mp3') || p.endsWith('.zip')) {
+    return next();
+  }
+
+  const origSend = res.send;
+  res.send = function(body) {
+    if (typeof body === 'string' || Buffer.isBuffer(body)) {
+      if (Buffer.byteLength(body) > 256) {
+        res.setHeader('Content-Encoding', 'gzip');
+        res.removeHeader('Content-Length');
+        zlib.gzip(body, (err, gzipped) => {
+          if (err) return origSend.call(res, body);
+          res.setHeader('Content-Length', gzipped.length);
+          origSend.call(res, gzipped);
+        });
+        return;
+      }
+    }
+    return origSend.call(res, body);
+  };
+  next();
+});
+
+// Cache control: fresh for APIs and HTML, cached for static CSS/JS/images
+app.use((req, res, next) => {
+  const p = (req.path || '').toLowerCase();
+  if (p.startsWith('/api') || p.endsWith('.html') || p === '/' || p === '') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  } else if (p.endsWith('.css') || p.endsWith('.js') || p.endsWith('.png') || p.endsWith('.jpg') || p.endsWith('.ico') || p.endsWith('.svg')) {
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  }
   next();
 });
 
@@ -1031,7 +1067,24 @@ setInterval(autoCheckPendingCashfreeOrders, 8000);
 // ---------------------------------------------------------------------------
 app.get('/api/admin/orders', (req, res) => {
   try {
-    const orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
+    const { status, unprinted, limit } = req.query;
+    let query = 'SELECT * FROM orders WHERE 1=1';
+    const params = [];
+
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    if (unprinted === '1' || unprinted === 'true') {
+      query += ' AND (is_printed = 0 OR is_printed IS NULL)';
+    }
+    query += ' ORDER BY created_at DESC';
+    if (limit) {
+      query += ' LIMIT ?';
+      params.push(parseInt(limit, 10));
+    }
+
+    const orders = db.prepare(query).all(...params);
     res.json(orders);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
