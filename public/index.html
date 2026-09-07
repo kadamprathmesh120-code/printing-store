@@ -47,7 +47,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=34_remove_cash">
+  <link rel="stylesheet" href="style.css?v=35_crop_fix">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"
     onload="if(typeof lucide!=='undefined')lucide.createIcons()"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -2148,6 +2148,10 @@
               selectedFiles[targetIdx].url = curPage.url;
               selectedFiles[targetIdx].wasCropped = true;
             }
+            if (typeof enhancedFiles !== 'undefined') {
+              if (curPage.name) enhancedFiles[curPage.name] = rotatedFile;
+              if (fileToRotate && fileToRotate.name) enhancedFiles[fileToRotate.name] = rotatedFile;
+            }
 
             renderStepPreviewPage();
             if (rotateBtn) {
@@ -2183,6 +2187,19 @@
               curPage.croppedUrl = croppedUrl;
               curPage.magicUrl = null;
 
+              var targetIdx = (curPage.fileIdx !== undefined) ? curPage.fileIdx : pIdx;
+              if (selectedFiles && selectedFiles[targetIdx]) {
+                selectedFiles[targetIdx].file = croppedFile;
+                selectedFiles[targetIdx].magicFile = null;
+                selectedFiles[targetIdx].url = croppedUrl;
+                selectedFiles[targetIdx].wasCropped = true;
+              }
+              if (typeof enhancedFiles !== 'undefined') {
+                if (curPage.name) enhancedFiles[curPage.name] = croppedFile;
+                if (fileToCrop && fileToCrop.name) enhancedFiles[fileToCrop.name] = croppedFile;
+                if (croppedFile.name) enhancedFiles[croppedFile.name] = croppedFile;
+              }
+
               processAutoMagicColor(croppedFile, function (magic) {
                 var magicUrl = (magic && magic !== croppedFile) ? URL.createObjectURL(magic) : croppedUrl;
                 curPage.magicUrl = magicUrl;
@@ -2190,12 +2207,9 @@
                 curPage.url = getPageActiveUrl(curPage, selectedEditFilter);
 
                 // Sync with selectedFiles
-                var targetIdx = (curPage.fileIdx !== undefined) ? curPage.fileIdx : pIdx;
-                if (selectedFiles[targetIdx]) {
-                  selectedFiles[targetIdx].file = croppedFile;
+                if (selectedFiles && selectedFiles[targetIdx]) {
                   selectedFiles[targetIdx].magicFile = magic;
                   selectedFiles[targetIdx].url = curPage.url;
-                  selectedFiles[targetIdx].wasCropped = true;
                 }
 
                 renderStepPreviewPage();
@@ -3497,18 +3511,24 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = useMagic ? (sf.magicFile || sf.file) : sf.file;
-        var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
+        
+        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
+        var isCropped = (!isPdf && (sf.wasCropped || (pageEntry && pageEntry.wasCropped) || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
+
+        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
+        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
+
+        var fileToUpload = useMagic ? (activeMagic || activeFile) : activeFile;
+        var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
         if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
+          fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
         }
-        formData.append('files', fileToUpload, sf.file.name || 'file.png');
+        formData.append('files', fileToUpload, originalFileName);
         if (sf.pages) {
-          formData.append('pageCount_' + sf.file.name, sf.pages);
+          formData.append('pageCount_' + originalFileName, sf.pages);
         }
-        var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
-        formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (useMagic ? '1' : '0'));
+        formData.append('wasCropped_' + originalFileName, isCropped);
+        formData.append('usedMagic_' + originalFileName, isPdf ? '0' : (useMagic ? '1' : '0'));
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3639,18 +3659,24 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = useMagic ? (sf.magicFile || sf.file) : sf.file;
-        var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
+        
+        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
+        var isCropped = (!isPdf && (sf.wasCropped || (pageEntry && pageEntry.wasCropped) || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
+
+        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
+        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
+
+        var fileToUpload = useMagic ? (activeMagic || activeFile) : activeFile;
+        var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
         if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
+          fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
         }
-        formData.append('files', fileToUpload, sf.file.name || 'file.png');
+        formData.append('files', fileToUpload, originalFileName);
         if (sf.pages) {
-          formData.append('pageCount_' + sf.file.name, sf.pages);
+          formData.append('pageCount_' + originalFileName, sf.pages);
         }
-        var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
-        formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (useMagic ? '1' : '0'));
+        formData.append('wasCropped_' + originalFileName, isCropped);
+        formData.append('usedMagic_' + originalFileName, isPdf ? '0' : (useMagic ? '1' : '0'));
       }
 
       fetch('/api/upload', { method: 'POST', body: formData })
@@ -3772,18 +3798,24 @@
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        var rawFile = useMagic ? (sf.magicFile || sf.file) : sf.file;
-        var fileToUpload = enhancedFiles[sf.file.name] || rawFile;
+        
+        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
+        var isCropped = (!isPdf && (sf.wasCropped || (pageEntry && pageEntry.wasCropped) || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
+
+        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
+        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
+
+        var fileToUpload = useMagic ? (activeMagic || activeFile) : activeFile;
+        var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
         if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, sf.file.name);
+          fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
         }
-        formData.append('files', fileToUpload, sf.file.name || 'file.png');
+        formData.append('files', fileToUpload, originalFileName);
         if (sf.pages) {
-          formData.append('pageCount_' + sf.file.name, sf.pages);
+          formData.append('pageCount_' + originalFileName, sf.pages);
         }
-        var isCropped = (!isPdf && (sf.wasCropped || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
-        formData.append('wasCropped_' + sf.file.name, isCropped);
-        formData.append('usedMagic_' + sf.file.name, isPdf ? '0' : (useMagic ? '1' : '0'));
+        formData.append('wasCropped_' + originalFileName, isCropped);
+        formData.append('usedMagic_' + originalFileName, isPdf ? '0' : (useMagic ? '1' : '0'));
       }
 
 

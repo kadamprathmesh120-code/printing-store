@@ -39,9 +39,15 @@ $hasBack  = [string]::IsNullOrEmpty($backPath)  -eq $false -and (Test-Path $back
 if ($hasFront) {
   $frontStream = [System.IO.File]::OpenRead($frontPath)
   $frontImg    = [System.Drawing.Image]::FromStream($frontStream)
-  $fX = [int](($pageW - $cardW) / 2)
-  $fY = $marginTop
-  $destF = New-Object System.Drawing.RectangleF($fX, $fY, $cardW, $cardH)
+  if ($frontImg.Width -lt $frontImg.Height) {
+    $frontImg.RotateFlip([System.Drawing.RotateFlipType]::Rotate90FlipNone)
+  }
+  $fScale = [Math]::Min([float]$cardW / $frontImg.Width, [float]$cardH / $frontImg.Height)
+  $fDrawW = [int]($frontImg.Width * $fScale)
+  $fDrawH = [int]($frontImg.Height * $fScale)
+  $fX = [int](($pageW - $fDrawW) / 2)
+  $fY = [int]($marginTop + ($cardH - $fDrawH) / 2)
+  $destF = New-Object System.Drawing.RectangleF($fX, $fY, $fDrawW, $fDrawH)
   $srcF  = New-Object System.Drawing.RectangleF(0, 0, $frontImg.Width, $frontImg.Height)
   $gr.DrawImage($frontImg, $destF, $srcF, [System.Drawing.GraphicsUnit]::Pixel)
   $frontImg.Dispose()
@@ -51,9 +57,15 @@ if ($hasFront) {
 if ($hasBack) {
   $backStream = [System.IO.File]::OpenRead($backPath)
   $backImg    = [System.Drawing.Image]::FromStream($backStream)
-  $bX = [int](($pageW - $cardW) / 2)
-  $bY = if ($hasFront) { $marginTop + $cardH + $gap } else { $marginTop }
-  $destB = New-Object System.Drawing.RectangleF($bX, $bY, $cardW, $cardH)
+  if ($backImg.Width -lt $backImg.Height) {
+    $backImg.RotateFlip([System.Drawing.RotateFlipType]::Rotate90FlipNone)
+  }
+  $bScale = [Math]::Min([float]$cardW / $backImg.Width, [float]$cardH / $backImg.Height)
+  $bDrawW = [int]($backImg.Width * $bScale)
+  $bDrawH = [int]($backImg.Height * $bScale)
+  $bX = [int](($pageW - $bDrawW) / 2)
+  $bY = if ($hasFront) { [int]($marginTop + $cardH + $gap + ($cardH - $bDrawH) / 2) } else { [int]($marginTop + ($cardH - $bDrawH) / 2) }
+  $destB = New-Object System.Drawing.RectangleF($bX, $bY, $bDrawW, $bDrawH)
   $srcB  = New-Object System.Drawing.RectangleF(0, 0, $backImg.Width, $backImg.Height)
   $gr.DrawImage($backImg, $destB, $srcB, [System.Drawing.GraphicsUnit]::Pixel)
   $backImg.Dispose()
