@@ -47,7 +47,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=33_large_preview">
+  <link rel="stylesheet" href="style.css?v=34_remove_cash">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"
     onload="if(typeof lucide!=='undefined')lucide.createIcons()"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -959,8 +959,12 @@
 
           <div class="dual-button-row">
             <button type="button" class="btn-action-white" onclick="goToStep(3)">← Back</button>
-            <button type="button" class="btn-action-green" id="btnGoToPayment" onclick="openPaymentSelectionModal()">💳
-              Go to Payment</button>
+            <button type="button" class="btn-action-green" id="btnGoToPayment" onclick="payWithCashfree()">
+              🔒 Pay ₹<span id="btnCashfreeAmount">5</span> Online
+            </button>
+          </div>
+          <div style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:8px;">
+            Instant Auto-Print via UPI (GPay, PhonePe, Paytm, BHIM) • Cards • Net Banking
           </div>
         </div>
       </div>
@@ -977,29 +981,17 @@
         <div style="text-align:center;margin-bottom:16px;">
           <div style="font-size:0.85rem;font-weight:800;color:#64748b;letter-spacing:0.5px;">CHECKOUT TOTAL</div>
           <div style="font-size:2rem;font-weight:900;color:#8b5cf6;">₹<span id="payModalTotalAmount">5</span></div>
-          <div style="font-size:0.82rem;color:#475569;margin-top:2px;">Select your preferred payment method</div>
+          <div style="font-size:0.82rem;color:#475569;margin-top:2px;">Online Payment</div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:12px;">
           <!-- Online Payment Button (Cashfree with UPI / GPay / PhonePe / Paytm / Cards) -->
           <button type="button" onclick="payWithCashfree()" class="kiosk-cta-btn" id="btnCashfreeReview"
             style="width:100%;padding:14px;border-radius:14px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(37,99,235,0.3);">
-            <span>🔒 Pay Online ₹<span id="btnCashfreeAmount">5</span></span>
+            <span>🔒 Pay Online</span>
           </button>
           <div style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:-6px;">UPI (Google Pay, PhonePe,
             Paytm, BHIM, CRED) • Cards • Net Banking</div>
-
-          <div style="display:flex;align-items:center;margin:4px 0;color:#cbd5e1;font-size:0.75rem;font-weight:700;">
-            <div style="flex:1;height:1px;background:#e2e8f0;"></div>
-            <span style="padding:0 8px;color:#94a3b8;">OR</span>
-            <div style="flex:1;height:1px;background:#e2e8f0;"></div>
-          </div>
-
-          <!-- Cash Payment Button -->
-          <button type="button" onclick="payWithCash()" class="rpc-cash-btn"
-            style="width:100%;background:#16a34a;color:#ffffff;font-weight:800;font-size:0.98rem;padding:13px;border-radius:14px;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,0.25);display:flex;align-items:center;justify-content:center;gap:6px;">
-            <span>💵 Pay Cash at Counter (₹<span class="cash-amount-span">5</span>)</span>
-          </button>
         </div>
 
         <div id="paymentError" class="error"
@@ -1462,12 +1454,6 @@
                     🔒 Pay ₹<span id="idcPayBtnAmount2">5</span> Online
                   </button>
                   <div class="kiosk-cta-subtext">Instant Auto-Print via UPI / Cards</div>
-                </div>
-
-                <div class="kiosk-cash-wrapper">
-                  <button class="kiosk-cash-btn rpc-cash-btn" onclick="idcPayCash()">
-                    💵 Pay Cash at Counter
-                  </button>
                 </div>
               </div>
             </div>
@@ -3615,19 +3601,21 @@
 
     function payWithCashfree() {
       var name = document.getElementById('reviewName').value.trim();
+      var errEl = document.getElementById('reviewContactError') || document.getElementById('paymentError');
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
         document.getElementById('reviewName').focus();
-        document.getElementById('paymentError').textContent = 'Please enter Your Name.';
+        if (errEl) errEl.textContent = 'Please enter Your Name.';
         return;
       }
       document.getElementById('reviewName').style.borderColor = '';
+      if (errEl) errEl.textContent = '';
       if (selectedFiles.length === 0) {
-        document.getElementById('paymentError').textContent = 'No files selected.';
+        if (errEl) errEl.textContent = 'No files selected.';
         return;
       }
 
-      var btn = document.getElementById('btnCashfreeReview');
+      var btn = document.getElementById('btnGoToPayment') || document.getElementById('btnCashfreeReview');
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
@@ -3672,10 +3660,10 @@
         })
         .then(function (data) {
           if (data.error) {
-            document.getElementById('paymentError').textContent = data.error;
+            if (errEl) errEl.textContent = data.error;
             if (btn) {
               btn.disabled = false;
-              btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+              btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span> Online';
             }
             return;
           }
@@ -3714,23 +3702,23 @@
 
               if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+                btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span> Online';
               }
             })
             .catch(function (err) {
-              document.getElementById('paymentError').textContent = 'Cashfree error: ' + (err.message || 'Try again.');
+              if (errEl) errEl.textContent = 'Cashfree error: ' + (err.message || 'Try again.');
               if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span>';
+                btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span> Online';
               }
             });
         })
         .catch(function (err) {
-          document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+          if (errEl) errEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
           if (btn) {
             btn.disabled = false;
             var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
-            btn.innerHTML = 'Cashfree ₹<span id="btnCashfreeAmount">' + displayPrice + '</span>';
+            btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + displayPrice + '</span> Online';
           }
         });
     }

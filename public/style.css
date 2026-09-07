@@ -887,7 +887,7 @@ body {
 
 /* 2. Large Primary CTA Payment Button */
 .kiosk-btn-wrapper {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .kiosk-cta-btn {
