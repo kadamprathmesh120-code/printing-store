@@ -47,7 +47,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=35_crop_fix">
+  <link rel="stylesheet" href="style.css?v=36_max_quality">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"
     onload="if(typeof lucide!=='undefined')lucide.createIcons()"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -2159,7 +2159,7 @@
               rotateBtn.style.opacity = '1';
             }
           });
-        }, 'image/jpeg', 0.95);
+        }, 'image/jpeg', 0.98);
       };
       img.onerror = function () {
         if (rotateBtn) { rotateBtn.disabled = false; rotateBtn.style.opacity = '1'; }
@@ -2462,7 +2462,7 @@
             var magicFile = new File([blob], file.name || 'document.jpg', { type: 'image/jpeg' });
             magicFile.isMagicEnhanced = true;
             safeCallback(magicFile);
-          }, 'image/jpeg', 0.92);
+          }, 'image/jpeg', 0.98);
         } catch (e) {
           console.warn('Auto Magic Color error:', e);
           safeCallback(file);
@@ -5776,7 +5776,7 @@
         document.getElementById('cropModal').style.display = 'none';
         cropIndex++;
         startCropItem();
-      }, outputType, outputType === 'image/jpeg' ? 0.95 : undefined);
+      }, outputType, outputType === 'image/jpeg' ? 0.98 : undefined);
     }
 
     function showFileList() {
