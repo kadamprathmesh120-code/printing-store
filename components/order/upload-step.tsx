@@ -6,7 +6,7 @@ import type { OrderPublic } from '@/lib/store'
 
 const PRICE = { bw: 5, color: 10 }
 
-const ACCEPT = '.pdf,.jpg,.jpeg,.png,.docx'
+const ACCEPT = 'application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.docx'
 const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 interface UploadStepProps {

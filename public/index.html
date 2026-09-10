@@ -691,6 +691,12 @@
             <div class="dropzone-prompt">Tap to select from Device or Drive</div>
           </label>
 
+          <!-- Mobile Multi-Select Guidance Hint -->
+          <div class="mobile-multi-hint" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:8px 0 14px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:0.79rem;color:#166534;font-weight:600;text-align:center;line-height:1.4;">
+            <span>💡</span>
+            <span><strong>Mobile Tip:</strong> Press &amp; hold (long-press) a file to select multiple files at once.</span>
+          </div>
+
           <!-- Single Prominent ID Card Option -->
           <div class="id-card-option-box" onclick="startIdCopy()">
             <div class="id-card-icon-circle" style="padding: 2px; background: #fff;">
@@ -738,6 +744,15 @@
             </button>
           </div>
 
+          <!-- Add More Files Row (Works for both PDF & Images) -->
+          <div style="display:flex;justify-content:center;margin:6px 0 10px;">
+            <button type="button" id="btnAddMoreStep2" onclick="document.getElementById('addMoreInput').click()" 
+              style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1.5px dashed #3b82f6;color:#2563eb;padding:7px 16px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.15s ease;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>+ Add More Files / Pages</span>
+            </button>
+          </div>
+
           <!-- Page Navigator in Step 2 [ < ] Page 1 / 2 [ > ] -->
           <div class="page-navigator-bar" id="editPageNav" style="display:none;">
             <button type="button" class="page-nav-btn" id="btnPrevEditPage" onclick="prevPreviewPage()">‹</button>
@@ -777,11 +792,18 @@
         <div class="flow-card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <h2 class="screen-header-title" style="margin:0;">👀 Print Preview</h2>
-            <!-- Quick Orientation Toggle in Preview -->
-            <button type="button" onclick="togglePreviewOrientation()"
-              style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:5px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;color:#334155;">
-              <span>📐</span> <span id="quickOrientationLabel">Portrait</span>
-            </button>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <!-- Add More Files button -->
+              <button type="button" id="btnAddMoreStep3" onclick="document.getElementById('addMoreInput').click()"
+                style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:5px 9px;font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;color:#2563eb;">
+                <span>➕</span> <span>Add More</span>
+              </button>
+              <!-- Quick Orientation Toggle in Preview -->
+              <button type="button" onclick="togglePreviewOrientation()"
+                style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:5px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;color:#334155;">
+                <span>📐</span> <span id="quickOrientationLabel">Portrait</span>
+              </button>
+            </div>
           </div>
 
           <div class="preview-sheet-frame">
@@ -1022,11 +1044,13 @@
     <div id="fileCountDisplay" style="display:none;">0</div>
 
     <!-- Hidden file inputs -->
-    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple
-      style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
+    <input type="file" id="fileInput" accept="application/pdf,image/*,.pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple
+      style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files, false)">
+    <input type="file" id="addMoreInput" accept="application/pdf,image/*,.pdf,.doc,.docx,.jpg,.jpeg,.png,.txt" multiple
+      style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files, true)">
     <input type="file" id="cameraInput" accept="image/*" capture="environment"
-      style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files)">
-    <input type="file" id="scanMoreInput" accept="image/*,.pdf,.doc,.docx" multiple
+      style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0" onchange="onFilesSelected(this.files, false)">
+    <input type="file" id="scanMoreInput" accept="image/*,application/pdf,.pdf,.doc,.docx" multiple
       style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0"
       onchange="onScanMoreSelected(this.files)">
 
@@ -2265,11 +2289,14 @@
       if (sheet) sheet.classList.remove('open');
     }
 
-    function onFilesSelected(files) {
+    function onFilesSelected(files, append) {
       if (!files || files.length === 0) return;
-      selectedFiles = [];
-      window.allPreviewPages = [];
-      window.currentPreviewPageIndex = 0;
+      if (!append) {
+        selectedFiles = [];
+        window.allPreviewPages = [];
+        window.currentPreviewPageIndex = 0;
+      }
+      var previousPageCount = (window.allPreviewPages && window.allPreviewPages.length) ? window.allPreviewPages.length : 0;
       selectedEditFilter = (selectedPrintType === 'color') ? 'original' : 'magic';
 
       var fileArr = [];
@@ -2289,6 +2316,7 @@
       }
 
       if (document.getElementById('fileInput')) document.getElementById('fileInput').value = '';
+      if (document.getElementById('addMoreInput')) document.getElementById('addMoreInput').value = '';
       if (document.getElementById('cameraInput')) document.getElementById('cameraInput').value = '';
 
       showProgress('Loading documents...', 20);
@@ -2303,24 +2331,38 @@
 
         if (completedItems >= totalItems) {
           hideProgress();
-          goToStep(2);
+          if (append) {
+            if (window.currentFlowStep === 1) {
+              goToStep(2);
+            } else {
+              window.currentPreviewPageIndex = previousPageCount;
+              renderStepPreviewPage();
+              syncWhichPagesCount();
+              if (typeof updatePrice === 'function') updatePrice();
+            }
+          } else {
+            goToStep(2);
+          }
         }
       }
 
       // 1. Process Image Files — also generate magic-enhanced versions
-      imageFiles.forEach(function (imgFile, imgIdx) {
+      imageFiles.forEach(function (imgFile) {
         var url = URL.createObjectURL(imgFile);
+        var currentFileObj = { file: imgFile, pages: 1, url: url };
+        var targetFileIdx = selectedFiles.length;
+        selectedFiles.push(currentFileObj);
+
         var pageEntry = {
           type: 'image',
           url: url,
           originalUrl: url,
           magicUrl: null,
           file: imgFile,
-          fileIdx: imgIdx,
+          fileIdx: targetFileIdx,
           pageNum: 1,
           name: imgFile.name
         };
-        selectedFiles.push({ file: imgFile, pages: 1, url: url });
         window.allPreviewPages.push(pageEntry);
 
         // Generate magic color version in background
@@ -2341,10 +2383,8 @@
                 if (mainImg && window.currentFlowStep === 3) mainImg.src = magicUrl;
               }
             }
-            // Also store in selectedFiles
-            if (selectedFiles[imgIdx]) {
-              selectedFiles[imgIdx].magicFile = magicFile;
-            }
+            // Also store in currentFileObj
+            currentFileObj.magicFile = magicFile;
           }
         });
         checkAllDone();
@@ -2358,7 +2398,9 @@
             var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
             loadingTask.promise.then(async function (pdf) {
               var numPages = pdf.numPages;
-              selectedFiles.push({ file: pdfFile, pages: numPages });
+              var currentPdfObj = { file: pdfFile, pages: numPages };
+              var pdfFileIdx = selectedFiles.length;
+              selectedFiles.push(currentPdfObj);
 
               var orderedPages = [];
               for (var p = 1; p <= numPages; p++) {
@@ -2375,6 +2417,7 @@
                     type: 'pdf',
                     url: pageUrl,
                     file: pdfFile,
+                    fileIdx: pdfFileIdx,
                     pageNum: p,
                     name: pdfFile.name
                   });
@@ -2390,23 +2433,28 @@
               checkAllDone();
             }).catch(function () {
               // PDF fallback
-              selectedFiles.push({ file: pdfFile, pages: 1 });
+              var fallbackPdfObj = { file: pdfFile, pages: 1 };
+              var fallbackIdx = selectedFiles.length;
+              selectedFiles.push(fallbackPdfObj);
               window.allPreviewPages.push({
                 type: 'pdf',
                 url: '',
                 file: pdfFile,
+                fileIdx: fallbackIdx,
                 pageNum: 1,
                 name: pdfFile.name
               });
               checkAllDone();
             });
           } catch (err) {
-            selectedFiles.push({ file: pdfFile, pages: 1 });
+            var fallbackPdfObj2 = { file: pdfFile, pages: 1 };
+            selectedFiles.push(fallbackPdfObj2);
             checkAllDone();
           }
         };
         reader.onerror = function () {
-          selectedFiles.push({ file: pdfFile, pages: 1 });
+          var fallbackPdfObj3 = { file: pdfFile, pages: 1 };
+          selectedFiles.push(fallbackPdfObj3);
           checkAllDone();
         };
         reader.readAsArrayBuffer(pdfFile);
