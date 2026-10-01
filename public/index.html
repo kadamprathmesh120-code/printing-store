@@ -770,7 +770,7 @@
                 <span>📷</span> <span>Original</span>
               </button>
               <button type="button" class="edit-filter-tab active" id="editFilterMagic" onclick="selectEditFilter('magic')">
-                <span>✨</span> <span>Magic Color</span>
+                <span>✨</span> <span>HD QUALITY</span>
               </button>
             </div>
           </div>
@@ -3013,7 +3013,7 @@
           '<div class="file-thumb' + (isPdf ? ' pdf' : isImage ? ' image' : ' doc') + '" style="overflow:hidden;position:relative;' + (isPdf ? 'background:#fff;' : '') + '">' + thumbHtml + '</div>' +
           '<div class="file-info">' +
           '<div class="fi-name">' + escapeHtml(f.name) + '</div>' +
-          '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + (isImage ? (selectedEditFilter === 'original' ? ' <span style="color:#3b82f6;font-weight:700;">📷 Original</span>' : ' <span style="color:#22c55e;font-weight:700;">✨ Magic Color</span>') : '') + '</div>' +
+          '<div class="fi-meta">' + pagesDisplay + ' · ' + formatSize(f.size) + (isImage ? (selectedEditFilter === 'original' ? ' <span style="color:#3b82f6;font-weight:700;">📷 Original</span>' : ' <span style="color:#22c55e;font-weight:700;">✨ HD QUALITY</span>') : '') + '</div>' +
           '</div>' +
           '<div class="file-actions" style="gap:8px;">' +
           (isImage ? '<button class="file-btn crop-btn" onclick="openCrop(' + i + ')" title="Crop Image" style="background:#16A34A;color:#fff;width:auto;padding:0 12px;font-size:0.82em;font-weight:700;gap:4px;border-radius:8px;"><i data-lucide="crop" style="width:18px;height:18px;"></i> Crop</button>' : '') +

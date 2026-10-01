@@ -1566,19 +1566,19 @@ function createMagicPromptHTML() {
       '<div style="text-align:center;margin-bottom:14px;">' +
         '<div style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
           '<span style="font-size:1.6rem;line-height:1;">✨</span>' +
-          '<h2 style="font-size:1.55rem;font-weight:900;color:#0f172a;margin:0;letter-spacing:-0.02em;">Choose <span style="background:linear-gradient(135deg,#9333ea,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Magic Color</span></h2>' +
+          '<h2 style="font-size:1.55rem;font-weight:900;color:#0f172a;margin:0;letter-spacing:-0.02em;">Choose <span style="background:linear-gradient(135deg,#9333ea,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">HD QUALITY</span></h2>' +
         '</div>' +
         '<div style="font-size:1.1rem;font-weight:800;color:#1e293b;margin-top:2px;">for Best Print!</div>' +
         '<div style="width:36px;height:4px;background:linear-gradient(90deg,#9333ea,#c084fc);border-radius:2px;margin:8px auto 0;"></div>' +
       '</div>' +
 
-      // Card 1: B&W -> Magic Color
+      // Card 1: B&W -> HD QUALITY
       '<div style="background:#faf5ff;border:1.5px solid #f3e8ff;border-radius:20px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(147,51,234,0.04);">' +
         '<div style="width:46px;height:46px;border-radius:14px;background:#ffffff;border:1px solid #e9d5ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(147,51,234,0.08);">' +
           '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>' +
         '</div>' +
         '<div style="flex:1;min-width:0;text-align:left;">' +
-          '<div style="font-size:0.96rem;font-weight:900;color:#0f172a;">B&amp;W <span style="color:#94a3b8;font-weight:600;margin:0 2px;">→</span> <span style="color:#7e22ce;font-weight:900;">Magic Color</span></div>' +
+          '<div style="font-size:0.96rem;font-weight:900;color:#0f172a;">B&amp;W <span style="color:#94a3b8;font-weight:600;margin:0 2px;">→</span> <span style="color:#7e22ce;font-weight:900;">HD QUALITY</span></div>' +
           '<div style="font-size:0.76rem;color:#475569;font-weight:500;margin-top:2px;line-height:1.35;">Removes dark background<br>&amp; makes text sharper.</div>' +
         '</div>' +
         '<div style="width:34px;height:34px;border-radius:50%;background:#ede9fe;color:#7e22ce;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.15rem;flex-shrink:0;">' +
@@ -1662,7 +1662,7 @@ function showPreviewModal() {
             '<span>Original</span>' +
           '</button>' +
           '<button type="button" id="ocvBtnMagic" class="which-page-tab active" style="padding:10px 8px;font-size:0.85rem;font-weight:800;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s;">' +
-            '<span>Magic Color</span>' +
+            '<span>HD QUALITY</span>' +
           '</button>' +
         '</div>' +
 
@@ -2073,7 +2073,7 @@ function createModalHTML() {
         '<canvas id="ocvCropCanvas" style="display:block;touch-action:none;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.3);"></canvas>' +
       '</div>' +
       '<div id="ocvMagicRecBanner" style="' + (isId ? 'display:none;' : '') + 'background:rgba(22,163,74,0.16);border:1.5px solid #16a34a;border-radius:10px;padding:8px 12px;margin:8px 0;align-items:center;justify-content:space-between;color:#22c55e;font-size:0.76rem;font-weight:700;box-shadow:0 0 12px rgba(22,163,74,0.2);">' +
-        '<span>⭐ Recommended: Use <strong>Magic Color</strong> in next step for crystal clear HD text &amp; pure white paper!</span>' +
+        '<span>⭐ Recommended: Use <strong>HD QUALITY</strong> in next step for crystal clear HD text &amp; pure white paper!</span>' +
         '<span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:6px;font-size:0.65rem;font-weight:800;white-space:nowrap;margin-left:6px;">BEST PRINT</span>' +
       '</div>' +
       '<div style="display:flex;gap:10px;padding:8px 4px 4px;">' +
@@ -2095,7 +2095,7 @@ function createModalHTML() {
 // ---------- Build filter thumbnails (CamScanner style) ----------
 var FILTER_DEFS = [
   { id: 'original', label: 'Original' },
-  { id: 'magic', label: 'Magic Color' }
+  { id: 'magic', label: 'HD QUALITY' }
 ];
 
 function buildFilterThumbnails() {
@@ -2128,7 +2128,7 @@ function buildFilterThumbnails() {
 
     var label = document.createElement('div');
     label.className = 'ocv-filter-label';
-    label.textContent = (f.id === 'magic') ? 'Magic Color' : f.label;
+    label.textContent = (f.id === 'magic') ? 'HD QUALITY' : f.label;
     if (f.id === 'magic') {
       label.style.color = '#22c55e';
       label.style.fontWeight = '800';
