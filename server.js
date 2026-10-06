@@ -161,6 +161,354 @@ async function resolvePrinterName(targetName, isColor) {
   return bwPrinter;
 }
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+function getActiveBwPrinterName() {
+  const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
+  const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
+  if (fs.existsSync(PRINTER_CONFIG)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8'));
+      if (cfg && cfg.bwPrinter) return cfg.bwPrinter;
+    } catch (e) {}
+  }
+  return BW_PRINTER_DEFAULT;
+}
+
+function getPrinterTimingInfo(printerName, printType) {
+  const pName = String(printerName || '').toLowerCase();
+  const isColor = printType === 'color' || pName.includes('hp') || pName.includes('smart tank');
+  if (isColor) {
+    return {
+      name: 'HP95224C (HP Smart Tank 580-590 series)',
+      displayName: 'HP Smart Tank',
+      ppm: 10,
+      firstPrintSec: 14.0,
+      isBw: false
+    };
+  }
+  if (pName.includes('konica') || pName.includes('205i')) {
+    return {
+      name: 'KONICA MINOLTA 205i(36:33:9E)',
+      displayName: 'Konica Minolta bizhub 205i',
+      ppm: 20,
+      firstPrintSec: 6.5,
+      isBw: true
+    };
+  }
+  return {
+    name: 'Kyocera ECOSYS MA4000x KX',
+    displayName: 'Kyocera ECOSYS MA4000x',
+    ppm: 40,
+    firstPrintSec: 6.4,
+    isBw: true
+  };
+}
+
+function calculateSheetCount(pageCount, printSide, copies) {
+  const pages = Math.max(1, parseInt(pageCount, 10) || 1);
+  const copyNum = Math.max(1, parseInt(copies, 10) || 1);
+  const isDuplex = printSide === 'both';
+  const sheetsPerCopy = isDuplex ? Math.ceil(pages / 2) : pages;
+  return sheetsPerCopy * copyNum;
+}
+
+function checkWindowsPrintJob(printerName) {
+  const p = (printerName || '').replace(/'/g, "''");
+  const script = `
+$p = '${p}';
+$jobs = Get-PrintJob -PrinterName $p -ErrorAction SilentlyContinue;
+if (-not $jobs) {
+    $jobs = Get-CimInstance Win32_PrintJob -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*$p*" };
+}
+$act = @($jobs) | Where-Object {
+    $s = [string]$_.JobStatus;
+    -not ($s -match 'Complete' -or $s -match 'Printed')
+};
+$first = $act | Select-Object -First 1;
+[PSCustomObject]@{
+    activeCount = @($act).Count;
+    pagesPrinted = if ($first) { [int]$first.PagesPrinted } else { 0 };
+    totalPages = if ($first) { [int]$first.TotalPages } else { 0 };
+} | ConvertTo-Json -Compress
+`;
+
+  return new Promise(resolve => {
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script], { windowsHide: true, timeout: 10000 }, (err, stdout) => {
+      if (err || !stdout) {
+        return resolve({ activeCount: 0, pagesPrinted: 0, totalPages: 0 });
+      }
+      try {
+        const parsed = JSON.parse(stdout.trim());
+        resolve(parsed);
+      } catch (e) {
+        resolve({ activeCount: 0, pagesPrinted: 0, totalPages: 0 });
+      }
+    });
+  });
+}
+
+let activePrintingJob = null; // { orderId, startTime, pagesPrinted, totalPages }
+
+function enrichOrderForCustomer(order) {
+  if (!order) return order;
+  const currentBatchId = order.batch_id || order.id;
+
+  // Retrieve all files belonging to this customer batch
+  let batchOrders = [order];
+  if (order.batch_id) {
+    batchOrders = db.prepare('SELECT * FROM orders WHERE batch_id = ?').all(order.batch_id);
+  }
+
+  // Calculate total printable PDF pages and sheets across all files in this customer batch
+  let totalBatchPdfPages = 0;
+  let totalBatchSheets = 0;
+  for (const b of batchOrders) {
+    const bCopies = Math.max(1, parseInt(b.copies, 10) || 1);
+    const bPages = Math.max(1, parseInt(b.effective_pages || b.page_count, 10) || 1) * bCopies;
+    totalBatchPdfPages += bPages;
+    totalBatchSheets += calculateSheetCount(b.page_count, b.print_side, bCopies);
+  }
+
+  const isColor = order.print_type === 'color';
+  const targetPrinter = order.printer_name || (isColor ? 'HP95224C (HP Smart Tank 580-590 series)' : getActiveBwPrinterName());
+  const printerInfo = getPrinterTimingInfo(targetPrinter, order.print_type);
+
+  // Individual file metrics
+  const copies = Math.max(1, parseInt(order.copies, 10) || 1);
+  const filePdfPages = Math.max(1, parseInt(order.effective_pages || order.page_count, 10) || 1) * copies;
+  const fileSheetCount = calculateSheetCount(order.page_count, order.print_side, copies);
+
+  // RULE 1, 3, 6, 8, 9: Estimated printing time is based ONLY on total printable PDF pages of the customer batch and printer PPM
+  // Simplex or duplex DOES NOT CHANGE printing time!
+  const batchPrintTimeSec = (totalBatchPdfPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
+
+  // Determine queue status and position by distinct customer batches in FIFO order
+  let queueStatus = 'pending';
+  let ordersAhead = 0;
+  let estimatedWaitSec = 0;
+
+  const allBatchPrinted = batchOrders.every(b => b.is_printed === 1);
+  const anyBatchRejected = batchOrders.some(b => b.status === 'rejected');
+  const anyBatchPaymentFailed = batchOrders.some(b => b.status === 'payment_failed');
+
+  if (allBatchPrinted) {
+    queueStatus = 'ready';
+  } else if (anyBatchRejected) {
+    queueStatus = 'rejected';
+  } else if (anyBatchPaymentFailed) {
+    queueStatus = 'payment_failed';
+  } else if (order.status === 'pending') {
+    queueStatus = 'pending';
+  } else if (order.status === 'paid') {
+    queueStatus = 'paid';
+  } else if (order.status === 'accepted' || batchOrders.some(b => b.status === 'accepted')) {
+    // In print queue (FIFO)
+    const unprintedOrders = db.prepare(`
+      SELECT id, batch_id, page_count, effective_pages, copies, print_side, print_type, printer_name, created_at, rowid
+      FROM orders
+      WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL)
+      ORDER BY created_at ASC, rowid ASC
+    `).all();
+
+    // Group into distinct batches in strict FIFO order
+    const distinctBatches = [];
+    const batchOrdersMap = new Map();
+
+    for (const o of unprintedOrders) {
+      const bId = o.batch_id || o.id;
+      if (!batchOrdersMap.has(bId)) {
+        batchOrdersMap.set(bId, []);
+        distinctBatches.push(bId);
+      }
+      batchOrdersMap.get(bId).push(o);
+    }
+
+    const batchIdx = distinctBatches.indexOf(currentBatchId);
+    if (batchIdx === 0) {
+      // First customer batch in queue: actively printing
+      queueStatus = 'printing';
+      ordersAhead = 0;
+      estimatedWaitSec = 0;
+    } else if (batchIdx > 0) {
+      // Waiting behind other customer batch(es)
+      queueStatus = 'waiting';
+      ordersAhead = batchIdx; // Distinct customer batches ahead
+      let totalWait = 0;
+      for (let i = 0; i < batchIdx; i++) {
+        const aheadBatchId = distinctBatches[i];
+        const aheadFiles = batchOrdersMap.get(aheadBatchId);
+        let aheadBatchPages = 0;
+        let aheadPrinter = null;
+        let aheadPrintType = null;
+        for (const af of aheadFiles) {
+          const afCopies = Math.max(1, parseInt(af.copies, 10) || 1);
+          aheadBatchPages += Math.max(1, parseInt(af.effective_pages || af.page_count, 10) || 1) * afCopies;
+          if (!aheadPrinter && af.printer_name) aheadPrinter = af.printer_name;
+          if (!aheadPrintType && af.print_type) aheadPrintType = af.print_type;
+        }
+        const aPName = aheadPrinter || (aheadPrintType === 'color' ? 'HP' : getActiveBwPrinterName());
+        const aInfo = getPrinterTimingInfo(aPName, aheadPrintType);
+        const aTime = (aheadBatchPages / aInfo.ppm) * 60 + aInfo.firstPrintSec;
+        totalWait += aTime;
+        // 15-second safety buffer between consecutive customer print jobs
+        totalWait += 15;
+      }
+      if (activePrintingJob && distinctBatches[0]) {
+        const headBatchFiles = batchOrdersMap.get(distinctBatches[0]);
+        if (headBatchFiles && headBatchFiles.some(f => f.id === activePrintingJob.orderId)) {
+          const elapsed = (Date.now() - activePrintingJob.startTime) / 1000;
+          totalWait = Math.max(15, totalWait - elapsed);
+        }
+      }
+      estimatedWaitSec = Math.round(totalWait);
+    } else {
+      queueStatus = order.is_printed === 1 ? 'ready' : (order.status || 'pending');
+      ordersAhead = 0;
+      estimatedWaitSec = 0;
+    }
+  }
+
+  let actualPagesPrinted = null;
+  let actualTotalPages = null;
+  if (activePrintingJob && batchOrders.some(b => b.id === activePrintingJob.orderId) && activePrintingJob.pagesPrinted > 0) {
+    actualPagesPrinted = activePrintingJob.pagesPrinted;
+    actualTotalPages = activePrintingJob.totalPages || totalBatchPdfPages;
+  }
+
+  return {
+    ...order,
+    total_pdf_pages: totalBatchPdfPages,
+    sheet_count: totalBatchSheets,
+    file_pdf_pages: filePdfPages,
+    file_sheet_count: fileSheetCount,
+    printer_ppm: printerInfo.ppm,
+    printer_display_name: printerInfo.displayName || printerInfo.name,
+    queue_status: queueStatus,
+    orders_ahead: ordersAhead,
+    estimated_print_time_sec: Math.round(batchPrintTimeSec),
+    estimated_wait_time_sec: estimatedWaitSec,
+    actual_pages_printed: actualPagesPrinted,
+    actual_total_pages: actualTotalPages
+  };
+}
+
+let serverQueueProcessing = false;
+async function processServerPrintQueue() {
+  if (serverQueueProcessing) return;
+  serverQueueProcessing = true;
+  try {
+    const printers = await getPrintersHidden();
+    if (!printers || printers.length === 0) {
+      serverQueueProcessing = false;
+      return;
+    }
+
+    while (true) {
+      const pendingJobs = db.prepare(`
+        SELECT * FROM orders 
+        WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL)
+        ORDER BY created_at ASC, rowid ASC
+      `).all();
+
+      const unprintedJobs = pendingJobs.filter(o => !tracker.isOrderPrinted(o.id));
+      if (unprintedJobs.length === 0) break;
+
+      const currentJob = unprintedJobs[0];
+      const isColor = currentJob.print_type === 'color';
+      const printer = await resolvePrinterName(currentJob.printer_name, isColor);
+      const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
+      if (!hasPrinter) {
+        break;
+      }
+
+      const printerInfo = getPrinterTimingInfo(printer, currentJob.print_type);
+      const copies = Math.max(1, parseInt(currentJob.copies) || 1);
+      const pdfPages = Math.max(1, parseInt(currentJob.effective_pages || currentJob.page_count) || 1) * copies;
+      
+      // RULE 1 & 6: ONLY PDF page count and selected printer PPM determine printing time!
+      const printTimeSec = (pdfPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
+      const printTimeMs = printTimeSec * 1000;
+
+      activePrintingJob = { orderId: currentJob.id, startTime: Date.now(), pagesPrinted: 0, totalPages: pdfPages };
+
+      try {
+        console.log(`[SERVER QUEUE] Printing order ${currentJob.id} (${pdfPages} pages to ${printer})...`);
+        if (currentJob.is_id_copy) {
+          const frontPath = path.join(__dirname, 'uploads', currentJob.file_path);
+          const backPath = currentJob.back_file_path ? path.join(__dirname, 'uploads', currentJob.back_file_path) : '';
+          const combinedPath = path.join(__dirname, 'uploads', 'combined_' + currentJob.file_path);
+          await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+          await printFile(combinedPath, 'combined_' + currentJob.file_name, printer, currentJob.print_type, currentJob.print_side, currentJob.page_range, currentJob.copies, currentJob.orientation);
+        } else {
+          await printFile(path.join(__dirname, 'uploads', currentJob.file_path), currentJob.file_name, printer, currentJob.print_type, currentJob.print_side, currentJob.page_range, currentJob.copies, currentJob.orientation);
+        }
+
+        const jobStartTime = Date.now();
+        // Wait for estimated printing duration
+        while (Date.now() - jobStartTime < printTimeMs) {
+          const jobInfo = await checkWindowsPrintJob(printer);
+          if (jobInfo && jobInfo.pagesPrinted > 0) {
+            activePrintingJob.pagesPrinted = jobInfo.pagesPrinted;
+            activePrintingJob.totalPages = jobInfo.totalPages || pdfPages;
+          }
+          const waitChunk = Math.min(2000, Math.max(500, printTimeMs - (Date.now() - jobStartTime)));
+          await sleep(waitChunk);
+        }
+
+        // Verify Windows spooler completion for this file
+        while (true) {
+          const jobInfo = await checkWindowsPrintJob(printer);
+          if (jobInfo.activeCount <= 0) break;
+          await sleep(1500);
+        }
+
+        tracker.markOrderPrinted(currentJob.id);
+        db.prepare('UPDATE orders SET is_printed = 1 WHERE id = ?').run(currentJob.id);
+
+        const currentBatchId = currentJob.batch_id || currentJob.id;
+        const remaining = db.prepare(`
+          SELECT id, batch_id FROM orders 
+          WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL) AND id != ?
+        `).all(currentJob.id).filter(o => !tracker.isOrderPrinted(o.id));
+
+        const hasSameBatchRemaining = remaining.some(o => (o.batch_id || o.id) === currentBatchId);
+        if (!hasSameBatchRemaining) {
+          console.log(`[SERVER QUEUE] Customer batch ${currentBatchId} complete.`);
+          const hasDifferentBatchWaiting = remaining.some(o => (o.batch_id || o.id) !== currentBatchId);
+          if (hasDifferentBatchWaiting) {
+            console.log(`[SERVER QUEUE] Next customer order waiting. Starting 15-second safety buffer...`);
+            await sleep(15000);
+
+            console.log(`[SERVER QUEUE] Checking actual Windows printer job status for ${printer}...`);
+            while (true) {
+              const jobInfo = await checkWindowsPrintJob(printer);
+              if (jobInfo.activeCount <= 0) {
+                console.log(`[SERVER QUEUE] Windows print job completed for ${printer}. Releasing next customer order.`);
+                break;
+              }
+              console.log(`[SERVER QUEUE] Windows job still active. Waiting 2s...`);
+              await sleep(2000);
+            }
+          } else {
+            console.log(`[SERVER QUEUE] No other customer order waiting. No 15-second buffer.`);
+          }
+        } else {
+          console.log(`[SERVER QUEUE] More files remaining for customer batch ${currentBatchId}. Proceeding immediately without 15s delay.`);
+        }
+      } catch (err) {
+        console.error(`[SERVER QUEUE] Error printing order ${currentJob.id}:`, err.message);
+      } finally {
+        activePrintingJob = null;
+      }
+    }
+  } catch (e) {
+    console.error('[SERVER QUEUE] Error in processServerPrintQueue:', e);
+  } finally {
+    serverQueueProcessing = false;
+  }
+}
+
 // Load environment variables from .env file
 require('dotenv').config();
 
@@ -587,7 +935,7 @@ app.get('/api/orders/:id', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    res.json(order);
+    res.json(enrichOrderForCustomer(order));
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -597,19 +945,38 @@ app.get('/api/orders/batch/:id', (req, res) => {
   try {
     const q = req.params.id;
     const orders = db.prepare('SELECT * FROM orders WHERE batch_id = ? OR cashfree_order_id = ? OR razorpay_order_id = ? OR id = ?').all(q, q, q, q);
-    res.json(orders);
+    res.json(orders.map(enrichOrderForCustomer));
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
+app.all('/api/orders/:id/start-printing', (req, res) => {
+  const id = req.params.id;
+  activePrintingJob = { orderId: id, startTime: Date.now(), pagesPrinted: 0, totalPages: 0 };
+  res.json({ success: true });
+});
+
+app.post('/api/orders/:id/progress', (req, res) => {
+  const id = req.params.id;
+  if (!activePrintingJob || activePrintingJob.orderId !== id) {
+    activePrintingJob = { orderId: id, startTime: Date.now(), pagesPrinted: 0, totalPages: 0 };
+  }
+  if (req.body && req.body.pagesPrinted !== undefined) activePrintingJob.pagesPrinted = req.body.pagesPrinted;
+  if (req.body && req.body.totalPages !== undefined) activePrintingJob.totalPages = req.body.totalPages;
+  res.json({ success: true });
+});
+
 app.all('/api/orders/:id/mark-printed', (req, res) => {
   try {
     const id = req.params.id;
+    if (activePrintingJob && activePrintingJob.orderId === id) {
+      activePrintingJob = null;
+    }
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
     if (order) {
       tracker.markOrderPrinted(id);
-      // Files are retained for admin preview and cleaned up based on PREVIEW_RETENTION_HOURS
+      db.prepare('UPDATE orders SET is_printed = 1 WHERE id = ?').run(id);
     }
     res.json({ success: true, message: 'Marked printed successfully. Document retained for admin preview.' });
   } catch (err) {
@@ -1078,7 +1445,11 @@ app.get('/api/admin/orders', (req, res) => {
     if (unprinted === '1' || unprinted === 'true') {
       query += ' AND (is_printed = 0 OR is_printed IS NULL)';
     }
-    query += ' ORDER BY created_at DESC';
+    if (unprinted === '1' || unprinted === 'true' || req.query.order === 'asc') {
+      query += ' ORDER BY created_at ASC, rowid ASC';
+    } else {
+      query += ' ORDER BY created_at DESC, rowid DESC';
+    }
     if (limit) {
       query += ' LIMIT ?';
       params.push(parseInt(limit, 10));

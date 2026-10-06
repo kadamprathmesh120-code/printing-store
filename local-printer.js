@@ -216,10 +216,112 @@ async function resolvePrinterName(targetName) {
   return activeBw;
 }
 
+const sleep = function(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); };
+
+function getPrinterTimingInfo(printerName, printType) {
+  var pName = String(printerName || '').toLowerCase();
+  var isColor = printType === 'color' || pName.includes('hp') || pName.includes('smart tank');
+  if (isColor) {
+    return {
+      name: COLOR_PRINTER_DEFAULT,
+      displayName: 'HP Smart Tank',
+      ppm: 10,
+      firstPrintSec: 14.0,
+      isBw: false
+    };
+  }
+  if (pName.includes('konica') || pName.includes('205i')) {
+    return {
+      name: 'KONICA MINOLTA 205i(36:33:9E)',
+      displayName: 'Konica Minolta bizhub 205i',
+      ppm: 20,
+      firstPrintSec: 6.5,
+      isBw: true
+    };
+  }
+  return {
+    name: BW_PRINTER_DEFAULT,
+    displayName: 'Kyocera ECOSYS MA4000x',
+    ppm: 40,
+    firstPrintSec: 6.4,
+    isBw: true
+  };
+}
+
+function calculateSheetCount(pageCount, printSide, copies) {
+  var pages = Math.max(1, parseInt(pageCount, 10) || 1);
+  var copyNum = Math.max(1, parseInt(copies, 10) || 1);
+  var isDuplex = printSide === 'both';
+  var sheetsPerCopy = isDuplex ? Math.ceil(pages / 2) : pages;
+  return sheetsPerCopy * copyNum;
+}
+
+function checkWindowsPrintJob(printerName) {
+  var p = (printerName || '').replace(/'/g, "''");
+  var script = `
+$p = '${p}';
+$jobs = Get-PrintJob -PrinterName $p -ErrorAction SilentlyContinue;
+if (-not $jobs) {
+    $jobs = Get-CimInstance Win32_PrintJob -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*$p*" };
+}
+$act = @($jobs) | Where-Object {
+    $s = [string]$_.JobStatus;
+    -not ($s -match 'Complete' -or $s -match 'Printed')
+};
+$first = $act | Select-Object -First 1;
+[PSCustomObject]@{
+    activeCount = @($act).Count;
+    pagesPrinted = if ($first) { [int]$first.PagesPrinted } else { 0 };
+    totalPages = if ($first) { [int]$first.TotalPages } else { 0 };
+} | ConvertTo-Json -Compress
+`;
+
+  return new Promise(function(resolve) {
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script], { windowsHide: true, timeout: 10000 }, function(err, stdout) {
+      if (err || !stdout) {
+        return resolve({ activeCount: 0, pagesPrinted: 0, totalPages: 0 });
+      }
+      try {
+        var parsed = JSON.parse(stdout.trim());
+        resolve(parsed);
+      } catch (e) {
+        resolve({ activeCount: 0, pagesPrinted: 0, totalPages: 0 });
+      }
+    });
+  });
+}
+
+function postJson(urlStr, data) {
+  return new Promise(function(resolve, reject) {
+    var url = new URL(urlStr);
+    var mod = url.protocol === 'https:' ? https : http;
+    var payload = JSON.stringify(data || {});
+    var req = mod.request(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    }, function(res) {
+      var d = '';
+      res.on('data', function(c) { d += c; });
+      res.on('end', function() {
+        try { resolve(JSON.parse(d)); } catch(e) { resolve({}); }
+      });
+    });
+    req.on('error', function(e) { resolve({}); });
+    req.write(payload);
+    req.end();
+  });
+}
+
 var activePrints = new Set();
 var printerConfigSyncCounter = 0;
+var isQueueProcessing = false;
 
 async function checkAndPrint() {
+  if (isQueueProcessing) return;
+  isQueueProcessing = true;
   try {
     // Sync active B&W printer selection from Render server periodically (every 30s instead of every 3s)
     if (printerConfigSyncCounter++ % 10 === 0) {
@@ -235,19 +337,22 @@ async function checkAndPrint() {
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders?status=accepted&unprinted=1');
     if (!Array.isArray(orders)) return; // server not ready or returned an error object
     var acceptedOrders = orders.filter(function(o) { return !tracker.isOrderPrinted(o.id) && !activePrints.has(o.id); });
+
+    // Enforce FIFO order (oldest first, preserving rowid insertion order)
+    acceptedOrders.sort(function(a, b) { return (new Date(a.created_at) - new Date(b.created_at)) || ((a.rowid || 0) - (b.rowid || 0)); });
+
     if (acceptedOrders.length > 0) {
-      console.log('Found', acceptedOrders.length, 'new order(s) to print');
+      console.log('Found', acceptedOrders.length, 'new order(s) in FIFO queue');
     }
-    for (var i = 0; i < orders.length; i++) {
-      var order = orders[i];
+
+    for (var i = 0; i < acceptedOrders.length; i++) {
+      var order = acceptedOrders[i];
       if (tracker.isOrderPrinted(order.id)) {
-        // Already printed locally; sync with server so server marks is_printed = 1
         fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){});
         continue;
       }
       if (order.status === 'accepted' && !activePrints.has(order.id)) {
         activePrints.add(order.id);
-        tracker.markOrderPrinted(order.id);
         var backLocal = '';
         var combinedPath = '';
         var localFile = '';
@@ -270,14 +375,25 @@ async function checkAndPrint() {
           var isColorOrder = (order.print_type === 'color');
           var requestedPrinter = isColorOrder ? COLOR_PRINTER : activeBw;
           var printer = await resolvePrinterName(requestedPrinter);
-          console.log('DEBUG: order.id=' + order.id + ', copies=' + order.copies + ', printer=' + printer + ', file=' + order.file_name);
+          var printerInfo = getPrinterTimingInfo(printer, order.print_type);
+          var copyNum = Math.max(1, parseInt(order.copies) || 1);
+          var pdfPages = Math.max(1, parseInt(order.effective_pages || order.page_count) || 1) * copyNum;
+
+          // RULE 1 & 6: ONLY PDF page count and selected printer PPM determine printing time!
+          // simplex or duplex MUST NOT change the printing time!
+          var printTimeSec = (pdfPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
+          var printTimeMs = printTimeSec * 1000;
+
+          console.log('DEBUG: order.id=' + order.id + ', pages=' + pdfPages + ', PPM=' + printerInfo.ppm + ', estSec=' + Math.round(printTimeSec) + ', printer=' + printer);
           var isPdf = ext === '.pdf';
           var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
-          var copyNum = Math.max(1, parseInt(order.copies) || 1);
 
           var orient = (order.orientation || 'portrait').toLowerCase();
+
+          // Notify server printing has started
+          fetchJson(RENDER_URL + '/api/orders/' + order.id + '/start-printing').catch(function(){});
+
           if (order.is_id_copy) {
-            // Combine front (+ back if available) into side-by-side A4 image (86x54 mm)
             if (order.back_file_path) {
               var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
               backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
@@ -302,11 +418,35 @@ async function checkAndPrint() {
             await execP('print /D:"' + printer + '" "' + localFile + '"');
           }
 
+          var jobStartTime = Date.now();
+          console.log('[QUEUE] Waiting estimated duration (' + Math.round(printTimeSec) + 's) for order ' + order.id + '...');
+
+          // Wait for estimated printing time (poll actual page progress from Windows)
+          while (Date.now() - jobStartTime < printTimeMs) {
+            var currentJobCheck = await checkWindowsPrintJob(printer);
+            if (currentJobCheck && currentJobCheck.pagesPrinted > 0) {
+              postJson(RENDER_URL + '/api/orders/' + order.id + '/progress', {
+                pagesPrinted: currentJobCheck.pagesPrinted,
+                totalPages: currentJobCheck.totalPages || pdfPages
+              }).catch(function(){});
+            }
+            var remainingWait = printTimeMs - (Date.now() - jobStartTime);
+            await sleep(Math.min(2000, Math.max(500, remainingWait)));
+          }
+
+          // Verify Windows print job completion for this file
+          while (true) {
+            var jobInfo = await checkWindowsPrintJob(printer);
+            if (jobInfo.activeCount <= 0) break;
+            await sleep(1500);
+          }
+
           console.log('Printed:', order.file_name, 'to', printer);
+          tracker.markOrderPrinted(order.id);
 
           // Notify server to mark printed & delete server uploads
           try {
-            fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){});
+            await fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){});
           } catch(e){}
 
           // Clean up downloaded local files
@@ -317,6 +457,47 @@ async function checkAndPrint() {
             console.log('Deleted downloaded local files for order:', order.id);
           } catch(e) {
             console.error('Error deleting local downloaded files:', e.message);
+          }
+
+          // Check if the current customer batch is finished, and if a DIFFERENT customer batch is waiting
+          var currentBatchId = order.batch_id || order.id;
+          var latestOrders = await fetchJson(RENDER_URL + '/api/admin/orders?status=accepted&unprinted=1');
+          var unprintedQueue = Array.isArray(latestOrders) ? latestOrders.filter(function(o) {
+            return o.id !== order.id && !tracker.isOrderPrinted(o.id);
+          }) : [];
+
+          var hasSameBatchRemaining = unprintedQueue.some(function(o) {
+            return (o.batch_id || o.id) === currentBatchId;
+          });
+
+          if (!hasSameBatchRemaining) {
+            // All files of this customer batch are completed!
+            console.log('[QUEUE] Customer batch ' + currentBatchId + ' completed.');
+            var hasDifferentBatchWaiting = unprintedQueue.some(function(o) {
+              return (o.batch_id || o.id) !== currentBatchId;
+            });
+
+            if (hasDifferentBatchWaiting) {
+              // Rule 5: 15-second safety buffer ONLY IF another customer order is waiting
+              console.log('[QUEUE] Next customer order waiting. Starting 15-second safety buffer...');
+              await sleep(15000);
+
+              // Rule 6, 10: Verify Windows spooler queue is clear before releasing next customer
+              console.log('[QUEUE] Checking actual Windows printer job status for ' + printer + '...');
+              while (true) {
+                var winCheck = await checkWindowsPrintJob(printer);
+                if (winCheck.activeCount <= 0) {
+                  console.log('[QUEUE] Windows print queue clear. Releasing next customer batch.');
+                  break;
+                }
+                console.log('[QUEUE] Windows job still active on ' + printer + ' (' + winCheck.pagesPrinted + '/' + (winCheck.totalPages || pdfPages) + '). Waiting 2s...');
+                await sleep(2000);
+              }
+            } else {
+              console.log('[QUEUE] No other customer order waiting. No 15-second buffer.');
+            }
+          } else {
+            console.log('[QUEUE] More files remaining for customer batch ' + currentBatchId + '. Proceeding immediately without 15s delay.');
           }
         } catch(e) {
           console.error('Failed to print order ' + order.id + ':', e.message);
@@ -329,6 +510,8 @@ async function checkAndPrint() {
   } catch (e) {
     console.error('Error:', e.message);
     if (e.stack) console.error('Stack:', e.stack.split('\n').slice(0,3).join('\n'));
+  } finally {
+    isQueueProcessing = false;
   }
 }
 

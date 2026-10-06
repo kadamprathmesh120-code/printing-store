@@ -1181,6 +1181,10 @@
           </div>
         </div>
 
+        <!-- Live Print Timing & Queue Status Card -->
+        <div id="printTimingBox" style="display:none;background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:18px;padding:16px 18px;margin-bottom:14px;text-align:left;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+        </div>
+
         <!-- 3. Green WhatsApp Action Card -->
         <div style="background:linear-gradient(135deg, #059669, #10B981);color:#ffffff;padding:18px 16px;border-radius:18px;margin-bottom:14px;text-align:center;box-shadow:0 6px 20px rgba(16,185,129,0.3);position:relative;overflow:hidden;border:1px solid #34D399;">
           <div style="font-size:1.1rem;font-weight:900;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px;">
@@ -5256,6 +5260,102 @@
       var nPill = document.getElementById('noticeAmountPill');
 
       var anyPrinterError = orders.some(function (o) { return o.status === 'printer_error'; });
+      var allPrinted = orders.length > 0 && orders.every(function (o) { return o.is_printed === 1; });
+      var anyAccepted = orders.some(function (o) { return o.status === 'accepted'; });
+      var anyRejected = orders.some(function (o) { return o.status === 'rejected'; });
+
+      // Calculate batch aggregates
+      var totalPdfPages = 0;
+      var totalSheets = 0;
+      for (var bi = 0; bi < orders.length; bi++) {
+        var bo = orders[bi];
+        var bCopies = Math.max(1, parseInt(bo.copies) || 1);
+        var bPages = Math.max(1, parseInt(bo.effective_pages || bo.page_count) || 1) * bCopies;
+        totalPdfPages += bPages;
+        var bSingle = (bo.print_side || 'single') !== 'both';
+        var bSheets = (bSingle ? bPages : Math.ceil(bPages / 2));
+        totalSheets += bSheets;
+      }
+
+      var firstOrder = orders[0] || {};
+      var qStatus = firstOrder.queue_status || (allPrinted ? 'ready' : (anyAccepted ? 'printing' : status));
+      var ordersAhead = (typeof firstOrder.orders_ahead === 'number') ? firstOrder.orders_ahead : 0;
+      var printerPpm = firstOrder.printer_ppm || (firstOrder.print_type === 'color' ? 10 : 40);
+      var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'HP Smart Tank' : 'Kyocera ECOSYS MA4000x');
+      var estPrintTimeSec = firstOrder.estimated_print_time_sec || Math.round((totalPdfPages / printerPpm) * 60 + 6.4);
+      var estWaitSec = firstOrder.estimated_wait_time_sec || 0;
+      var actualPrinted = firstOrder.actual_pages_printed;
+      var actualTotal = firstOrder.actual_total_pages || totalPdfPages;
+
+      var timingBox = document.getElementById('printTimingBox');
+      if (timingBox) {
+        if (allPrinted || qStatus === 'ready') {
+          timingBox.style.display = 'block';
+          timingBox.innerHTML =
+            '<div style="background:#ECFDF5;border:1.5px solid #10B981;border-radius:14px;padding:14px 16px;color:#065F46;">' +
+              '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+                '<span style="font-size:1.4rem;">🎉</span>' +
+                '<div>' +
+                  '<div style="font-weight:900;font-size:1.05rem;color:#065F46;">Prints Ready!</div>' +
+                  '<div style="font-size:0.8rem;color:#047857;font-weight:600;">Please collect your printed pages from Counter 1</div>' +
+                '</div>' +
+              '</div>' +
+              '<div style="display:flex;gap:12px;margin-top:10px;font-size:0.82rem;font-weight:700;color:#047857;background:rgba(255,255,255,0.7);padding:8px 12px;border-radius:10px;">' +
+                '<span>📄 ' + totalPdfPages + ' pages</span>' +
+                '<span>•</span>' +
+                '<span>📑 ' + totalSheets + ' sheets</span>' +
+                '<span>•</span>' +
+                '<span>⚡ Completed</span>' +
+              '</div>' +
+            '</div>';
+        } else if (qStatus === 'printing' || (anyAccepted && ordersAhead === 0 && !allPrinted)) {
+          timingBox.style.display = 'block';
+          var printMsg = (actualPrinted !== null && actualPrinted > 0) ? ('Printing page ' + actualPrinted + ' of ' + actualTotal + '...') : ('Estimated print time: ~' + estPrintTimeSec + ' sec');
+          timingBox.innerHTML =
+            '<div style="background:#EFF6FF;border:1.5px solid #3B82F6;border-radius:14px;padding:14px 16px;color:#1E40AF;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                  '<span style="font-size:1.3rem;">🖨️</span>' +
+                  '<span style="font-weight:900;font-size:1rem;color:#1E40AF;">Printing Now</span>' +
+                '</div>' +
+                '<span style="background:#DBEAFE;color:#1E40AF;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;">Order 1 of 1</span>' +
+              '</div>' +
+              '<div style="font-size:0.88rem;font-weight:700;color:#1D4ED8;margin-bottom:10px;">' +
+                printMsg +
+              '</div>' +
+              '<div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:0.8rem;font-weight:700;color:#3B82F6;background:rgba(255,255,255,0.85);padding:8px 12px;border-radius:10px;">' +
+                '<span>📄 ' + totalPdfPages + ' pages</span>' +
+                '<span>📑 ' + totalSheets + ' sheets</span>' +
+                '<span>⚡ ' + printerPpm + ' pages/min (' + escapeHtml(printerName) + ')</span>' +
+              '</div>' +
+            '</div>';
+        } else if (qStatus === 'waiting' || (anyAccepted && ordersAhead > 0)) {
+          timingBox.style.display = 'block';
+          var waitDisplay = Math.ceil(estWaitSec / 60) > 1 ? (Math.ceil(estWaitSec / 60) + ' min') : (estWaitSec + ' sec');
+          timingBox.innerHTML =
+            '<div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:14px;padding:14px 16px;color:#92400E;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                  '<span style="font-size:1.3rem;">⏳</span>' +
+                  '<span style="font-weight:900;font-size:1rem;color:#92400E;">In Print Queue</span>' +
+                '</div>' +
+                '<span style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;">' +
+                  ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + ' ahead' +
+                '</span>' +
+              '</div>' +
+              '<div style="font-size:0.88rem;font-weight:700;color:#B45309;margin-bottom:10px;">' +
+                'Estimated wait time: ~' + waitDisplay +
+              '</div>' +
+              '<div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:0.8rem;font-weight:700;color:#92400E;background:rgba(255,255,255,0.85);padding:8px 12px;border-radius:10px;">' +
+                '<span>📄 Your order: ' + totalPdfPages + ' pages</span>' +
+                '<span>📑 ' + totalSheets + ' sheets</span>' +
+                '<span>⚡ ' + printerPpm + ' pages/min (' + escapeHtml(printerName) + ')</span>' +
+              '</div>' +
+            '</div>';
+        } else {
+          timingBox.style.display = 'none';
+        }
+      }
 
       if (badge) badge.className = 'status-badge ' + (anyPrinterError ? 'rejected' : status);
       if (done) done.classList.add('hidden');
@@ -5284,7 +5384,7 @@
           if (nBody) nBody.textContent = 'Store admin reported a minor machine issue (Paper Jam / Refill). Store staff is resolving it. Your order will print as soon as the machine is ready!';
           if (nPill) nPill.style.display = 'none';
         }
-      } else if (status === 'accepted') {
+      } else if (allPrinted || qStatus === 'ready') {
         if (cardTitle) cardTitle.textContent = 'PRINTS READY';
         if (cardSub) cardSub.textContent = 'Collect your prints at Counter 1';
         if (tokenNoticeEl) tokenNoticeEl.innerHTML = '🎉 <strong>Prints Ready!</strong> Please collect your printed document from Counter 1.';
@@ -5308,6 +5408,51 @@
           if (nPill) nPill.style.display = 'none';
         }
         playCustomerSuccessAudioSequence();
+      } else if (qStatus === 'printing') {
+        if (cardTitle) cardTitle.textContent = 'PRINTING NOW';
+        if (cardSub) cardSub.textContent = (actualPrinted ? ('Printing page ' + actualPrinted + ' of ' + actualTotal + '...') : ('Printing on ' + printerName + '...'));
+        if (tokenNoticeEl) tokenNoticeEl.innerHTML = '🖨️ <strong>Printing Now!</strong> Your document is currently printing on ' + escapeHtml(printerName) + '.';
+        var s3IconP = s3 ? s3.querySelector('.step-icon-circle') : null;
+        if (s3IconP) s3IconP.textContent = '🖨️';
+        if (line) line.style.width = '75%';
+        if (s1) s1.className = 'step-item completed';
+        if (s2) s2.className = 'step-item completed';
+        if (s3) s3.className = 'step-item active';
+        if (s4) s4.className = 'step-item';
+
+        if (badge) badge.textContent = 'Printing in Progress';
+        if (msg) msg.textContent = 'Your documents are being printed on ' + printerName;
+
+        if (noticeBox) {
+          noticeBox.className = 'notice-box online';
+          if (nIcon) nIcon.textContent = '🖨️';
+          if (nTitle) nTitle.textContent = 'Printing in Progress';
+          if (nBody) nBody.textContent = 'Your documents are being printed on ' + printerName + '. Please wait at the counter.';
+          if (nPill) nPill.style.display = 'none';
+        }
+      } else if (qStatus === 'waiting' || ordersAhead > 0) {
+        if (cardTitle) cardTitle.textContent = 'IN PRINT QUEUE';
+        if (cardSub) cardSub.textContent = ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + ' ahead of you';
+        var waitMsg = Math.ceil(estWaitSec / 60) > 1 ? (Math.ceil(estWaitSec / 60) + ' min') : (estWaitSec + ' sec');
+        if (tokenNoticeEl) tokenNoticeEl.innerHTML = '⏳ <strong>In Queue.</strong> ' + ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + ' ahead. Estimated wait: ~' + waitMsg + '.';
+        var s3IconW = s3 ? s3.querySelector('.step-icon-circle') : null;
+        if (s3IconW) s3IconW.textContent = '⏳';
+        if (line) line.style.width = '40%';
+        if (s1) s1.className = 'step-item completed';
+        if (s2) s2.className = 'step-item active';
+        if (s3) s3.className = 'step-item';
+        if (s4) s4.className = 'step-item';
+
+        if (badge) badge.textContent = 'In Queue (' + ordersAhead + ' ahead)';
+        if (msg) msg.textContent = 'Your order is queued behind ' + ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + '.';
+
+        if (noticeBox) {
+          noticeBox.className = 'notice-box online';
+          if (nIcon) nIcon.textContent = '⏳';
+          if (nTitle) nTitle.textContent = 'In Print Queue';
+          if (nBody) nBody.textContent = 'Your order is queued behind ' + ordersAhead + ' customer order(s). Printing will start automatically.';
+          if (nPill) nPill.style.display = 'none';
+        }
       } else if (status === 'rejected') {
         if (cardTitle) cardTitle.textContent = 'ORDER REJECTED';
         if (cardSub) cardSub.textContent = 'Please speak with shop counter staff';
@@ -5377,17 +5522,19 @@
       Promise.all(checks).then(function (orders) {
         orders = orders.filter(function (o) { return o && !o.error; });
         if (orders.length === 0) return;
-        var allAccepted = orders.every(function (o) { return o.status === 'accepted'; });
+        var allPrinted = orders.every(function (o) { return o.is_printed === 1; });
         var anyRejected = orders.some(function (o) { return o.status === 'rejected'; });
-        var allDone = orders.every(function (o) { return o.status === 'accepted' || o.status === 'rejected'; });
+        var allDone = (allPrinted && orders.length > 0) || anyRejected;
 
         if (allDone) {
           if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
           document.querySelector('#stepStatus .btn-secondary') && (document.querySelector('#stepStatus .btn-secondary').classList.add('hidden'));
           document.getElementById('stepStartOver').classList.remove('hidden');
         }
-        if (allAccepted) { updateStatusDisplay('accepted', orders); return; }
+        if (allPrinted) { updateStatusDisplay('printed', orders); return; }
         if (anyRejected) { updateStatusDisplay('rejected', orders); return; }
+        var anyAccepted = orders.some(function (o) { return o.status === 'accepted'; });
+        if (anyAccepted) { updateStatusDisplay('accepted', orders); return; }
         updateStatusDisplay('paid', orders);
       });
     }
