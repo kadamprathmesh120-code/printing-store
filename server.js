@@ -13,6 +13,7 @@ const https = require('https');
 const zlib = require('zlib');
 const db = require('./db');
 const tracker = require('./printer-tracker');
+const combiner = require('./print-batch-combiner');
 
 const SUMATRA = path.join(__dirname, 'node_modules', 'pdf-to-printer', 'dist', 'SumatraPDF-3.4.6-32.exe');
 
@@ -1609,6 +1610,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
     const payMethod = (req.body && req.body.paymentMethod) || 'cash';
     let count = 0;
 
+    const acceptedList = [];
     for (const bOrder of batchOrders) {
       if (['paid', 'payment_failed', 'pending', 'created'].includes(bOrder.status)) {
         tracker.unmarkOrderPrinted(bOrder.id);
@@ -1617,27 +1619,83 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
 
         const printer = await resolvePrinterName(req.body && req.body.printer, bOrder.print_type === 'color');
         db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, bOrder.id);
-
-        try {
-          const printers = await getPrintersHidden();
-          const hasPrinter = printers.some(p => matchPrinter(p.name, printer));
-          if (hasPrinter) {
-            tracker.markOrderPrinted(bOrder.id);
-            if (bOrder.is_id_copy) {
-              const frontPath = path.join(__dirname, 'uploads', bOrder.file_path);
-              const backPath = bOrder.back_file_path ? path.join(__dirname, 'uploads', bOrder.back_file_path) : '';
-              const combinedPath = path.join(__dirname, 'uploads', 'combined_' + bOrder.file_path);
-              await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
-              await printFile(combinedPath, 'combined_' + bOrder.file_name, printer, bOrder.print_type, bOrder.print_side, bOrder.page_range, bOrder.copies, bOrder.orientation);
-            } else {
-              await printFile(path.join(__dirname, 'uploads', bOrder.file_path), bOrder.file_name, printer, bOrder.print_type, bOrder.print_side, bOrder.page_range, bOrder.copies, bOrder.orientation);
-            }
-          }
-        } catch (e) {
-          console.error('Accept direct print error:', e.message);
-        }
+        bOrder.resolvedPrinter = printer;
+        acceptedList.push(bOrder);
         count++;
       }
+    }
+
+    try {
+      const printers = await getPrintersHidden();
+      const printerGroups = new Map();
+      for (const bOrder of acceptedList) {
+        const hasPrinter = printers.some(p => matchPrinter(p.name, bOrder.resolvedPrinter));
+        if (hasPrinter) {
+          if (!printerGroups.has(bOrder.resolvedPrinter)) {
+            printerGroups.set(bOrder.resolvedPrinter, []);
+          }
+          printerGroups.get(bOrder.resolvedPrinter).push(bOrder);
+        }
+      }
+
+      for (const [printer, groupOrders] of printerGroups.entries()) {
+        if (groupOrders.length === 1) {
+          const bOrder = groupOrders[0];
+          tracker.markOrderPrinted(bOrder.id);
+          if (bOrder.is_id_copy) {
+            const frontPath = path.join(__dirname, 'uploads', bOrder.file_path);
+            const backPath = bOrder.back_file_path ? path.join(__dirname, 'uploads', bOrder.back_file_path) : '';
+            const combinedPath = path.join(__dirname, 'uploads', 'combined_' + bOrder.file_path);
+            await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), { frontPath, backPath, outputPath: combinedPath });
+            await printFile(combinedPath, 'combined_' + bOrder.file_name, printer, bOrder.print_type, bOrder.print_side, bOrder.page_range, bOrder.copies, bOrder.orientation);
+          } else {
+            await printFile(path.join(__dirname, 'uploads', bOrder.file_path), bOrder.file_name, printer, bOrder.print_type, bOrder.print_side, bOrder.page_range, bOrder.copies, bOrder.orientation);
+          }
+        } else if (groupOrders.length > 1) {
+          // COMBINE MULTI-FILE ORDER INTO A SINGLE CONTINUOUS PRINT JOB!
+          groupOrders.forEach(o => tracker.markOrderPrinted(o.id));
+          const itemsToCombine = [];
+          for (const bOrder of groupOrders) {
+            let itemPath = path.join(__dirname, 'uploads', bOrder.file_path);
+            let backPath = bOrder.back_file_path ? path.join(__dirname, 'uploads', bOrder.back_file_path) : '';
+            itemsToCombine.push({
+              filePath: itemPath,
+              fileName: bOrder.file_name,
+              ext: path.extname(bOrder.file_name).toLowerCase(),
+              isIdCopy: !!bOrder.is_id_copy,
+              runIdCombine: !!bOrder.is_id_copy,
+              backFilePath: backPath,
+              pageRange: bOrder.page_range,
+              orientation: (bOrder.orientation || 'portrait').toLowerCase()
+            });
+          }
+
+          const firstOrder = groupOrders[0];
+          const isDuplex = groupOrders.some(o => o.print_side === 'both');
+          const mergedPdfPath = path.join(__dirname, 'uploads', `merged_batch_${Date.now()}_${uuidv4().substring(0,8)}.pdf`);
+
+          await combiner.combineBatchFilesToPdf(itemsToCombine, mergedPdfPath, { isDuplex });
+          const copyNum = Math.max(1, parseInt(firstOrder.copies) || 1);
+          const orient = (firstOrder.orientation || 'portrait').toLowerCase();
+
+          const opts = {
+            printer,
+            monochrome: firstOrder.print_type === 'bw',
+            side: isDuplex ? 'duplex' : 'simplex',
+            copies: copyNum,
+            orientation: orient,
+            paperSize: 'A4',
+            pagesPerSheet: firstOrder.pages_per_sheet || 1
+          };
+          console.log(`[SERVER BATCH PRINT] Printing merged customer batch (${groupOrders.length} files) to ${printer}`);
+          await printPdfSilent(mergedPdfPath, opts);
+          if (fs.existsSync(mergedPdfPath)) {
+            try { fs.unlinkSync(mergedPdfPath); } catch (e) {}
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Accept direct print error:', e.message);
     }
 
     res.json({ success: true, message: `Accepted ${count} order file(s)` });

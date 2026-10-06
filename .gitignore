@@ -23,3 +23,8 @@ scratch/
 *.apk
 downloads/
 *.tsbuildinfo
+test-data/
+*.mp3
+Desktop*/
+HP95224C*
+Kyocera*

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Se Print - Self Service Poster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-blue: #1d4ed8;
+      --deep-navy: #0b192c;
+      --accent-yellow: #f59e0b;
+      --light-yellow: #fef3c7;
+      --emerald-green: #10b981;
+      --card-bg: #f8fafc;
+      --card-border: #e2e8f0;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* Floating control bar (hidden on print) */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      background: #ffffff;
+      padding: 12px 20px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+      position: sticky;
+      top: 16px;
+      z-index: 100;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 9999px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--primary-blue);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #1e40af;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: var(--text-dark);
+    }
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .toolbar-info {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: 8px;
+    }
+
+    /* Standard A4 Poster Canvas */
+    .poster-sheet {
+      width: 794px; /* A4 width at 96dpi (print media will handle full vector scaling) */
+      min-height: 1123px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Header styling */
+    .poster-header {
+      padding: 32px 32px 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .main-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 64px;
+      font-weight: 900;
+      color: var(--primary-blue);
+      letter-spacing: -1.5px;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .main-title span.se {
+      font-size: 52px;
+      color: var(--deep-navy);
+      font-weight: 800;
+    }
+
+    .printer-icon-header {
+      width: 58px;
+      height: 58px;
+      color: var(--primary-blue);
+    }
+
+    .yellow-badge {
+      display: inline-block;
+      background: var(--accent-yellow);
+      color: #000;
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      padding: 6px 28px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3);
+      margin-bottom: 12px;
+    }
+
+    .tagline-steps {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--deep-navy);
+    }
+
+    .tagline-steps .dot {
+      color: var(--accent-yellow);
+      font-size: 24px;
+      line-height: 0;
+    }
+
+    /* 2x2 Steps Grid */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 10px 32px 20px;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 2.5px solid var(--card-border);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      background: var(--primary-blue);
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 900;
+      font-size: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--deep-navy);
+      letter-spacing: -0.5px;
+      text-align: left;
+    }
+
+    .step-visual {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    /* Step 1: QR Box */
+    .qr-frame {
+      border: 3px solid var(--primary-blue);
+      border-radius: 14px;
+      padding: 8px;
+      background: #fff;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .qr-frame img {
+      width: 110px;
+      height: 110px;
+      display: block;
+      object-fit: contain;
+    }
+
+    .scan-here-tag {
+      background: var(--primary-blue);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 12px;
+      border-radius: 999px;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .step-hint {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--deep-navy);
+      line-height: 1.35;
+    }
+
+    .step-subhint {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    /* Step 2: Document icon */
+    .doc-icon-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .upload-badge {
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      background: var(--primary-blue);
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    /* Step 3: Payment icons */
+    .upi-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .payment-logos-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .pay-pill {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--deep-navy);
+    }
+
+    /* Step 4: Printer icon */
+    .printer-visual {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .ready-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1.5px solid #10b981;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+
+    /* Pricing banner */
+    .pricing-banner {
+      margin: 0 32px 18px;
+      background: #eff6ff;
+      border: 2px dashed var(--primary-blue);
+      border-radius: 14px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .price-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--deep-navy);
+    }
+
+    .price-item span.highlight {
+      color: var(--primary-blue);
+      font-size: 22px;
+    }
+
+    .price-divider {
+      width: 2px;
+      height: 24px;
+      background: #cbd5e1;
+    }
+
+    /* Bottom Navy Footer */
+    .poster-footer {
+      background: var(--deep-navy);
+      color: #ffffff;
+      padding: 16px 32px 20px;
+      text-align: center;
+    }
+
+    .footer-perks {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 28px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .perk-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f8fafc;
+    }
+
+    .perk-item svg {
+      color: var(--accent-yellow);
+    }
+
+    .footer-divider {
+      color: #475569;
+    }
+
+    .footer-subtext {
+      font-family: 'Caveat', cursive;
+      font-size: 24px;
+      color: #93c5fd;
+      letter-spacing: 1px;
+    }
+
+    /* Editable hint for user */
+    [contenteditable="true"]:hover {
+      outline: 2px dashed var(--primary-blue);
+      border-radius: 4px;
+      background: rgba(29, 78, 216, 0.05);
+      cursor: text;
+    }
+
+    /* Print settings */
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+      }
+      .toolbar {
+        display: none !important;
+      }
+      .poster-sheet {
+        box-shadow: none;
+        border: none;
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-primary" onclick="window.print()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+      Print / Save as PDF
+    </button>
+    <button class="btn btn-secondary" id="toggleEditBtn" onclick="toggleEdit()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Edit Text
+    </button>
+    <button class="btn btn-secondary" onclick="reloadQR()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Reload QR
+    </button>
+    <span class="toolbar-info">💡 Click "Edit Text" to customize pricing or shop name before printing!</span>
+  </div>
+
+  <!-- Poster Canvas -->
+  <div class="poster-sheet">
+    
+    <!-- Top Header -->
+    <header class="poster-header">
+      <div class="title-row">
+        <h1 class="main-title" contenteditable="true">
+          QR <span class="se">SE</span> PRINT
+        </h1>
+        <svg class="printer-icon-header" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="8" width="18" height="11" rx="2" fill="#eff6ff"/>
+          <path d="M6 8V3h12v5" stroke-linecap="round"/>
+          <path d="M6 14h12v7H6z" fill="#fff"/>
+          <circle cx="18" cy="11" r="1" fill="#10b981"/>
+        </svg>
+      </div>
+
+      <div>
+        <div class="yellow-badge" contenteditable="true">SELF SERVICE PRINTING</div>
+      </div>
+
+      <div class="tagline-steps">
+        <span>SCAN</span>
+        <span class="dot">•</span>
+        <span>UPLOAD</span>
+        <span class="dot">•</span>
+        <span>PAY</span>
+        <span class="dot">•</span>
+        <span>PRINT</span>
+      </div>
+    </header>
+
+    <!-- 4 Step Cards Grid (2x2) -->
+    <main class="steps-grid">
+      
+      <!-- Step 1: Scan -->
+      <section class="step-card">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <h2 class="step-title" contenteditable="true">SCAN QR CODE</h2>
+        </div>
+
+        <div class="step-visual">
+          <div class="qr-frame">
+            <img id="posterQrImg" src="/paytm-qr.png" alt="Scan QR Code" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://qrseprint.com'">
+            <div class="scan-here-tag">SCAN HERE</div>
+          </div>
+        </div>
+
+        <p class="step-hint" contenteditable="true">Open Phone Camera or Google Lens</p>
+        <p class="step-subhint" contenteditable="true">Point camera at QR to open upload page</p>
+      </section>
+
+      <!-- Step 2: Upload -->
+      <section class="step-card">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <h2 class="step-title" contenteditable="true">UPLOAD DOCUMENT</h2>
+        </div>
+
+        <div class="step-visual">
+          <div class="doc-icon-wrapper">
+            <svg width="90" height="110" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.8">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#eff6ff"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/>
+              <line x1="8" y1="17" x2="14" y2="17"/>
+            </svg>
+            <div class="upload-badge">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <p class="step-hint" contenteditable="true">Upload PDF, Word, JPG, or PNG</p>
+        <p class="step-subhint" contenteditable="true">Choose B&W or Colour & Copies</p>
+      </section>
+
+      <!-- Step 3: Pay -->
+      <section class="step-card">
+        <div class="step-header">
+          <div class="step-num">3</div>
+          <h2 class="step-title" contenteditable="true">PAY VIA UPI</h2>
+        </div>
+
+        <div class="step-visual">
+          <div class="upi-display">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                <rect x="5" y="2" width="14" height="20" rx="3" fill="#ecfdf5"/>
+                <circle cx="12" cy="18" r="1" fill="#10b981"/>
+                <path d="M9 10l2 2 4-4" stroke="#10b981" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span style="font-family:'Outfit'; font-size:22px; font-weight:900; color:#0f172a;">UPI</span>
+            </div>
+            
+            <div class="payment-logos-row">
+              <span class="pay-pill">GPay</span>
+              <span class="pay-pill">PhonePe</span>
+              <span class="pay-pill">Paytm</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="step-hint" contenteditable="true">Instant Online UPI Payment</p>
+        <p class="step-subhint" contenteditable="true">100% Safe & Secure Transaction</p>
+      </section>
+
+      <!-- Step 4: Print -->
+      <section class="step-card">
+        <div class="step-header">
+          <div class="step-num">4</div>
+          <h2 class="step-title" contenteditable="true">INSTANT PRINT</h2>
+        </div>
+
+        <div class="step-visual">
+          <div class="printer-visual">
+            <svg width="100" height="90" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="1.8">
+              <path d="M6 9V3h12v6" stroke="#2563eb" fill="#eff6ff"/>
+              <rect x="3" y="9" width="18" height="10" rx="2" fill="#f8fafc"/>
+              <path d="M6 14h12v7H6z" fill="#ffffff" stroke="#0f172a"/>
+              <circle cx="18" cy="12" r="1" fill="#10b981"/>
+            </svg>
+            <div class="ready-badge">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+              PRINT READY
+            </div>
+          </div>
+        </div>
+
+        <p class="step-hint" contenteditable="true">Collect your prints instantly!</p>
+        <p class="step-subhint" contenteditable="true">Automatic printing within 30 seconds</p>
+      </section>
+
+    </main>
+
+    <!-- Pricing Callout Banner -->
+    <div class="pricing-banner">
+      <div class="price-item">
+        <span>B&W Print:</span>
+        <span class="highlight" contenteditable="true">₹5 / page</span>
+      </div>
+      <div class="price-divider"></div>
+      <div class="price-item">
+        <span>Colour Print:</span>
+        <span class="highlight" contenteditable="true">₹10 / page</span>
+      </div>
+    </div>
+
+    <!-- Bottom Dark Navy Bar -->
+    <footer class="poster-footer">
+      <div class="footer-perks">
+        <div class="perk-item">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span contenteditable="true">FAST</span>
+        </div>
+        <span class="footer-divider">|</span>
+        <div class="perk-item">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span contenteditable="true">EASY</span>
+        </div>
+        <span class="footer-divider">|</span>
+        <div class="perk-item">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+          <span contenteditable="true">100% AUTOMATIC</span>
+        </div>
+      </div>
+      <div class="footer-subtext" contenteditable="true">— Print Made Simple! —</div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Fetch live QR code from server
+    async function reloadQR() {
+      try {
+        const res = await fetch('/api/qr');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.qr) {
+            document.getElementById('posterQrImg').src = data.qr;
+          }
+        }
+      } catch (e) {
+        console.log('Using default QR');
+      }
+    }
+    reloadQR();
+
+    // Toggle editable mode
+    let isEditing = true;
+    function toggleEdit() {
+      isEditing = !isEditing;
+      const elements = document.querySelectorAll('[contenteditable]');
+      elements.forEach(el => el.setAttribute('contenteditable', isEditing ? 'true' : 'false'));
+      const btn = document.getElementById('toggleEditBtn');
+      btn.style.background = isEditing ? '#fef3c7' : '#e2e8f0';
+      btn.innerHTML = isEditing 
+        ? '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Done Editing'
+        : '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Text';
+    }
+  </script>
+</body>
+</html>
