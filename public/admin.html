@@ -1713,23 +1713,50 @@
       }
     }
 
+    // -------------------------------------------------------
+    //  Batch Helper: ONE CUSTOMER = ONE QUEUE ORDER
+    // -------------------------------------------------------
+    function getBatchKey(o) {
+      if (!o) return '';
+      return o.batch_id || o.cashfree_order_id || o.razorpay_order_id || (o.customer_name + '_' + (o.created_at ? o.created_at.substring(0, 16) : o.id));
+    }
+
+    function groupOrdersByBatch(ordersList) {
+      var batchMap = {};
+      var batchList = [];
+      (ordersList || []).forEach(function(o) {
+        var bKey = getBatchKey(o);
+        if (!batchMap[bKey]) {
+          batchMap[bKey] = [];
+          batchList.push(batchMap[bKey]);
+        }
+        batchMap[bKey].push(o);
+      });
+      return batchList;
+    }
+
     function updatePrinterCards() {
-      var bwJobs = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'bw'; });
-      var colorJobs = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'color'; });
+      // RULE: ONE CUSTOMER = ONE QUEUE ORDER (Grouped by customer batch)
+      var bwJobs = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'bw' && o.is_printed !== 1; });
+      var colorJobs = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'color' && o.is_printed !== 1; });
+      var bwBatches = groupOrdersByBatch(bwJobs);
+      var colorBatches = groupOrdersByBatch(colorJobs);
 
       // Konica BW Printer
+      var konicaCount = activeBwPrinter === 'konica' ? bwBatches.length : 0;
       setPrinterCardState('bwPrinterCard', 'bwPrinterStatus', bwPrinterOnline, 
-        activeBwPrinter === 'konica' ? bwJobs.length : 0, 
+        konicaCount, 
         bwJobs.length > 0 ? bwJobs[0].file_name : null);
       document.getElementById('bwCurrentJob').textContent = (activeBwPrinter === 'konica' && bwJobs.length > 0) ? bwJobs[0].file_name : 'None';
-      document.getElementById('bwQueueCount').textContent = (activeBwPrinter === 'konica' ? bwJobs.length : 0) + ' jobs';
+      document.getElementById('bwQueueCount').textContent = konicaCount + (konicaCount === 1 ? ' job' : ' jobs');
 
       // Kyocera BW Printer
+      var kyoceraCount = activeBwPrinter === 'kyocera' ? bwBatches.length : 0;
       setPrinterCardState('kyoceraPrinterCard', 'kyoceraPrinterStatus', kyoceraPrinterOnline,
-        activeBwPrinter === 'kyocera' ? bwJobs.length : 0,
+        kyoceraCount,
         bwJobs.length > 0 ? bwJobs[0].file_name : null);
       document.getElementById('kyoceraCurrentJob').textContent = (activeBwPrinter === 'kyocera' && bwJobs.length > 0) ? bwJobs[0].file_name : 'None';
-      document.getElementById('kyoceraQueueCount').textContent = (activeBwPrinter === 'kyocera' ? bwJobs.length : 0) + ' jobs';
+      document.getElementById('kyoceraQueueCount').textContent = kyoceraCount + (kyoceraCount === 1 ? ' job' : ' jobs');
 
       // Mark active BW printer card
       if (activeBwPrinter === 'konica') {
@@ -1739,10 +1766,11 @@
       }
 
       // Color Printer
-      setPrinterCardState('colorPrinterCard', 'colorPrinterStatus', colorPrinterOnline, colorJobs.length,
+      var colorCount = colorBatches.length;
+      setPrinterCardState('colorPrinterCard', 'colorPrinterStatus', colorPrinterOnline, colorCount,
         colorJobs.length > 0 ? colorJobs[0].file_name : null);
       document.getElementById('colorCurrentJob').textContent = colorJobs.length > 0 ? colorJobs[0].file_name : 'None';
-      document.getElementById('colorQueueCount').textContent = colorJobs.length + ' jobs';
+      document.getElementById('colorQueueCount').textContent = colorCount + (colorCount === 1 ? ' job' : ' jobs');
 
       // Update header status card (3 printers now)
       var onlineCount = (bwPrinterOnline ? 1 : 0) + (kyoceraPrinterOnline ? 1 : 0) + (colorPrinterOnline ? 1 : 0);
@@ -1828,22 +1856,27 @@
         if (o.status === 'paid' || o.status === 'accepted' || o.payment_method === 'cash') return sum + (o.price || 0);
         return sum;
       }, 0);
-      var queueLength = paidOrders.length + printingOrders.length;
 
-      document.getElementById('jobsPrintingValue').textContent = printingOrders.length;
-      document.getElementById('newOrdersValue').textContent = paidOrders.length;
+      // RULE: ONE CUSTOMER = ONE QUEUE ORDER (Batch-aware metrics)
+      var activeOrders = orders.filter(function(o) { return o.status !== 'rejected'; });
+      var allBatches = groupOrdersByBatch(activeOrders);
+      var paidBatches = groupOrdersByBatch(paidOrders);
+      var printingBatches = groupOrdersByBatch(printingOrders);
+      var completedBatches = groupOrdersByBatch(orders.filter(function(o) { return o.status === 'accepted'; }));
+      var failedBatches = groupOrdersByBatch(orders.filter(function(o) { return o.status === 'rejected' || o.status === 'payment_failed'; }));
+      var queueLength = paidBatches.length + printingBatches.length;
+
+      document.getElementById('jobsPrintingValue').textContent = printingBatches.length;
+      document.getElementById('newOrdersValue').textContent = paidBatches.length;
       document.getElementById('revenueValue').textContent = '₹' + Math.round(todayRevenue);
       document.getElementById('queueLengthValue').textContent = queueLength;
 
-      // Tab counts
-      var completedCount = orders.filter(function(o) { return o.status === 'accepted'; }).length;
-      var failedCount = orders.filter(function(o) { return o.status === 'rejected' || o.status === 'payment_failed'; }).length;
-
-      document.getElementById('tabAllCount').textContent = orders.length;
-      document.getElementById('tabPrintingCount').textContent = paidOrders.length;
-      document.getElementById('tabCompletedCount').textContent = completedCount;
-      document.getElementById('tabFailedCount').textContent = failedCount;
-      document.getElementById('totalOrdersBadge').textContent = orders.length + ' orders';
+      // Tab counts based strictly on customer queue orders (batches)
+      document.getElementById('tabAllCount').textContent = allBatches.length;
+      document.getElementById('tabPrintingCount').textContent = paidBatches.length;
+      document.getElementById('tabCompletedCount').textContent = completedBatches.length;
+      document.getElementById('tabFailedCount').textContent = failedBatches.length;
+      document.getElementById('totalOrdersBadge').textContent = allBatches.length + (allBatches.length === 1 ? ' order' : ' orders');
     }
 
     // -------------------------------------------------------
@@ -1897,17 +1930,8 @@
         return;
       }
 
-      // Group orders by batch
-      var batchMap = {};
-      var batchList = [];
-      orders.forEach(function(o) {
-        var bKey = o.batch_id || o.cashfree_order_id || o.razorpay_order_id || (o.customer_name + '_' + (o.created_at ? o.created_at.substring(0, 16) : ''));
-        if (!batchMap[bKey]) {
-          batchMap[bKey] = [];
-          batchList.push(batchMap[bKey]);
-        }
-        batchMap[bKey].push(o);
-      });
+      // Group orders by customer batch (ONE CUSTOMER = ONE QUEUE ORDER)
+      var batchList = groupOrdersByBatch(orders);
 
       grid.innerHTML = batchList.map(function(batch) {
         var o = batch[0]; // primary order item
@@ -1993,14 +2017,14 @@
           '</div>';
         }
 
-        var batchTag = isMulti ? (' <span style="background:#8b5cf6;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px;">📦 ' + batch.length + ' Files</span>') : '';
+        var batchTag = isMulti ? (' <span style="background:#8b5cf6;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px;">📦 ' + batch.length + ' Files (1 Queue)</span>') : '';
 
         // Build files HTML section
         var filesHtml = '';
         if (isMulti) {
           filesHtml += '<div style="margin:8px 0 10px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">' +
             '<div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">' +
-              '<span>Uploaded Files (' + batch.length + ')</span>' +
+              '<span>Uploaded Files (' + batch.length + ' • 1 Queue Order)</span>' +
               '<span>Total Sheets: ' + totalSheets + '</span>' +
             '</div>';
           batch.forEach(function(item) {
@@ -2196,8 +2220,11 @@
 
           if (newPaidOrders.length > 0) {
             pendingNewIds = newPaidOrders.map(function(o) { return o.id; });
-            newPaidOrders.reverse().forEach(function(o) {
-              showNotification(o.customer_name, o.file_name, new Date(o.created_at).toLocaleTimeString());
+            var newBatches = groupOrdersByBatch(newPaidOrders);
+            newBatches.reverse().forEach(function(batch) {
+              var o = batch[0];
+              var countText = batch.length > 1 ? (' (' + batch.length + ' files = 1 order)') : '';
+              showNotification(o.customer_name, o.file_name + countText, new Date(o.created_at).toLocaleTimeString());
               // Play sound announcement for Online orders immediately; Cash orders wait until Accept
               if (o.payment_method !== 'cash') {
                 var printType = o.print_type || 'bw';
@@ -2205,24 +2232,27 @@
                 playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType, o.id);
               }
             });
-            unreadCount += newPaidOrders.length;
+            unreadCount += newBatches.length;
             updateNotifBadge(unreadCount);
           }
           isFirstLoad = false;
 
           allOrders = orders;
 
-          // Cash alert with Customer Name Callout
+          // Cash alert with Customer Name Callout (Grouped by customer batch)
           var cashPaid = orders.filter(function(o) { return (o.payment_method === 'cash' || o.status === 'pending') && o.status !== 'accepted' && o.status !== 'rejected'; });
+          var cashBatches = groupOrdersByBatch(cashPaid);
           var cashAlert = document.getElementById('cashAlert');
-          if (cashPaid.length > 0) {
+          if (cashBatches.length > 0) {
             cashAlert.classList.remove('hidden');
             cashAlert.style.display = 'flex';
-            var callNames = cashPaid.map(function(o) {
+            var callNames = cashBatches.map(function(batch) {
+              var o = batch[0];
+              var bTotal = batch.reduce(function(sum, item) { return sum + (item.price || 0); }, 0);
               var token = 'Token #P-' + o.id.substring(0, 6).toUpperCase();
-              return '<strong>' + escapeHtml(o.customer_name) + '</strong> (' + token + ' - ₹' + o.price + ')';
+              return '<strong>' + escapeHtml(o.customer_name) + '</strong> (' + token + ' - ₹' + bTotal + ')';
             }).join(', ');
-            document.getElementById('cashAlertCount').innerHTML = '📢 Cash Payment Pending (' + cashPaid.length + ' order' + (cashPaid.length > 1 ? 's' : '') + ')';
+            document.getElementById('cashAlertCount').innerHTML = '📢 Cash Payment Pending (' + cashBatches.length + ' customer' + (cashBatches.length > 1 ? 's' : '') + ')';
             var cashDescEl = cashAlert.querySelector('.alert-desc');
             if (cashDescEl) {
               cashDescEl.innerHTML = 'Call Customer: ' + callNames + ' — Collect cash before accepting.';

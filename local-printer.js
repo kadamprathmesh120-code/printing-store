@@ -342,7 +342,8 @@ async function checkAndPrint() {
     acceptedOrders.sort(function(a, b) { return (new Date(a.created_at) - new Date(b.created_at)) || ((a.rowid || 0) - (b.rowid || 0)); });
 
     if (acceptedOrders.length > 0) {
-      console.log('Found', acceptedOrders.length, 'new order(s) in FIFO queue');
+      var batchSet = new Set(acceptedOrders.map(function(o) { return o.batch_id || o.id; }));
+      console.log('Found ' + batchSet.size + ' customer queue order(s) (' + acceptedOrders.length + ' files) in FIFO queue');
     }
 
     for (var i = 0; i < acceptedOrders.length; i++) {
