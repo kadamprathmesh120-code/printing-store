@@ -304,12 +304,12 @@ function enrichOrderForCustomer(order) {
   } else if (order.status === 'paid') {
     queueStatus = 'paid';
   } else if (order.status === 'accepted' || batchOrders.some(b => b.status === 'accepted')) {
-    // In print queue (FIFO)
+    // In print queue (FIFO by payment time)
     const unprintedOrders = db.prepare(`
-      SELECT id, batch_id, page_count, effective_pages, copies, print_side, print_type, printer_name, created_at, rowid
+      SELECT id, batch_id, page_count, effective_pages, copies, print_side, print_type, printer_name, created_at, paid_at, rowid
       FROM orders
       WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL)
-      ORDER BY created_at ASC, rowid ASC
+      ORDER BY COALESCE(paid_at, created_at) ASC, rowid ASC
     `).all();
 
     // Group into distinct batches in strict FIFO order
@@ -409,7 +409,7 @@ async function processServerPrintQueue() {
       const pendingJobs = db.prepare(`
         SELECT * FROM orders 
         WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL)
-        ORDER BY created_at ASC, rowid ASC
+        ORDER BY COALESCE(paid_at, created_at) ASC, rowid ASC
       `).all();
 
       const unprintedJobs = pendingJobs.filter(o => !tracker.isOrderPrinted(o.id));
@@ -995,7 +995,11 @@ app.post('/api/orders/:id/confirm-payment', (req, res) => {
       return res.status(400).json({ error: `Order already ${order.status}` });
     }
 
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('paid', req.params.id);
+    if (order.batch_id) {
+      db.prepare('UPDATE orders SET status = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE batch_id = ?').run('paid', order.batch_id);
+    } else {
+      db.prepare('UPDATE orders SET status = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?').run('paid', req.params.id);
+    }
 
     res.json({ success: true, message: 'Payment confirmed. Waiting for admin approval.' });
   } catch (err) {
@@ -1011,7 +1015,11 @@ app.post('/api/orders/:id/pay-cash', (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
     // Set status to 'paid' (Cash Confirmed - Awaiting Admin Approval to Print)
-    db.prepare('UPDATE orders SET status = ?, payment_method = ? WHERE id = ?').run('paid', 'cash', req.params.id);
+    if (order.batch_id) {
+      db.prepare('UPDATE orders SET status = ?, payment_method = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE batch_id = ?').run('paid', 'cash', order.batch_id);
+    } else {
+      db.prepare('UPDATE orders SET status = ?, payment_method = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?').run('paid', 'cash', req.params.id);
+    }
     console.log(`Cash payment recorded for order ${req.params.id}. Awaiting admin approval.`);
     res.json({ success: true, message: 'Cash payment recorded. Waiting for admin approval.' });
   } catch (err) {
@@ -1100,14 +1108,14 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
 
     if (Array.isArray(orderIds)) {
       for (const oid of orderIds) {
-        db.prepare('UPDATE orders SET status = ?, razorpay_order_id = ? WHERE id = ? AND status = ?').run('paid', razorpayOrderId, oid, 'pending');
+        db.prepare('UPDATE orders SET status = ?, razorpay_order_id = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ? AND status = ?').run('paid', razorpayOrderId, oid, 'pending');
 
         // Auto-accept and print only if enabled
         if (autoPrintEnabled) {
           const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
           if (order) {
             tracker.unmarkOrderPrinted(oid);
-            db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', oid);
+            db.prepare('UPDATE orders SET status = ?, is_printed = 0, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?').run('accepted', oid);
             const printer = await resolvePrinterName(order.printer_name, order.print_type === 'color');
             db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
             try {
@@ -1280,14 +1288,14 @@ app.all('/api/verify-cashfree-payment', async (req, res) => {
             }
 
             for (const oid of targetOrderIds) {
-              db.prepare('UPDATE orders SET status = ?, payment_method = ?, cashfree_order_id = ? WHERE id = ?')
+              db.prepare('UPDATE orders SET status = ?, payment_method = ?, cashfree_order_id = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?')
                 .run('paid', 'cashfree', cfOrderId, oid);
 
               if (autoPrintEnabled) {
                 const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(oid);
                 if (order) {
                   tracker.unmarkOrderPrinted(oid);
-                  db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', oid);
+                  db.prepare('UPDATE orders SET status = ?, is_printed = 0, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?').run('accepted', oid);
                   const printer = await resolvePrinterName(order.printer_name, order.print_type === 'color');
                   db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, oid);
                   try {
@@ -1390,11 +1398,11 @@ function autoCheckPendingCashfreeOrders() {
               const targetOrders = db.prepare('SELECT * FROM orders WHERE cashfree_order_id = ? AND status = ?').all(cfOrderId, 'pending');
 
               for (const order of targetOrders) {
-                db.prepare('UPDATE orders SET status = ?, payment_method = ? WHERE id = ?').run('paid', 'cashfree', order.id);
+                db.prepare('UPDATE orders SET status = ?, payment_method = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?').run('paid', 'cashfree', order.id);
 
                 if (autoPrintEnabled) {
                   tracker.unmarkOrderPrinted(order.id);
-                  db.prepare('UPDATE orders SET status = ?, is_printed = 0 WHERE id = ?').run('accepted', order.id);
+                  db.prepare('UPDATE orders SET status = ?, is_printed = 0, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?').run('accepted', order.id);
                   const printer = await resolvePrinterName(order.printer_name, order.print_type === 'color');
                   db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, order.id);
                   try {
@@ -1447,9 +1455,9 @@ app.get('/api/admin/orders', (req, res) => {
       query += ' AND (is_printed = 0 OR is_printed IS NULL)';
     }
     if (unprinted === '1' || unprinted === 'true' || req.query.order === 'asc') {
-      query += ' ORDER BY created_at ASC, rowid ASC';
+      query += ' ORDER BY COALESCE(paid_at, created_at) ASC, rowid ASC';
     } else {
-      query += ' ORDER BY created_at DESC, rowid DESC';
+      query += ' ORDER BY COALESCE(paid_at, created_at) DESC, rowid DESC';
     }
     if (limit) {
       query += ' LIMIT ?';
@@ -1615,7 +1623,7 @@ app.post('/api/admin/orders/:id/accept', async (req, res) => {
       if (['paid', 'payment_failed', 'pending', 'created'].includes(bOrder.status)) {
         tracker.unmarkOrderPrinted(bOrder.id);
         const finalPayMethod = (['payment_failed', 'pending', 'created'].includes(bOrder.status)) ? payMethod : (bOrder.payment_method || payMethod);
-        db.prepare("UPDATE orders SET status = 'accepted', payment_method = ?, is_printed = 0 WHERE id = ?").run(finalPayMethod, bOrder.id);
+        db.prepare("UPDATE orders SET status = 'accepted', payment_method = ?, is_printed = 0, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?").run(finalPayMethod, bOrder.id);
 
         const printer = await resolvePrinterName(req.body && req.body.printer, bOrder.print_type === 'color');
         db.prepare('UPDATE orders SET printer_name = ? WHERE id = ?').run(printer, bOrder.id);
@@ -1755,7 +1763,7 @@ app.post('/api/admin/orders/:id/resume', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run('paid', req.params.id);
+    db.prepare('UPDATE orders SET status = ?, paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP) WHERE id = ?').run('paid', req.params.id);
     console.log(`Order ${req.params.id} resumed from printer error back to paid.`);
     res.json({ success: true, message: 'Order resumed. Ready for admin accept/print.' });
   } catch (err) {

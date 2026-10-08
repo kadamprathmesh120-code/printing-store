@@ -339,12 +339,16 @@ async function checkAndPrint() {
     if (!Array.isArray(orders)) return; // server not ready or returned an error object
     var acceptedOrders = orders.filter(function(o) { return !tracker.isOrderPrinted(o.id) && !activePrints.has(o.id); });
 
-    // Enforce FIFO order (oldest first, preserving rowid insertion order)
-    acceptedOrders.sort(function(a, b) { return (new Date(a.created_at) - new Date(b.created_at)) || ((a.rowid || 0) - (b.rowid || 0)); });
+    // Enforce FIFO order by payment timestamp (first to pay = first to print)
+    acceptedOrders.sort(function(a, b) {
+      var timeA = new Date(a.paid_at || a.created_at);
+      var timeB = new Date(b.paid_at || b.created_at);
+      return (timeA - timeB) || ((a.rowid || 0) - (b.rowid || 0));
+    });
 
     if (acceptedOrders.length > 0) {
       var batchSet = new Set(acceptedOrders.map(function(o) { return o.batch_id || o.id; }));
-      console.log('Found ' + batchSet.size + ' customer queue order(s) (' + acceptedOrders.length + ' files) in FIFO queue');
+      console.log('Found ' + batchSet.size + ' customer queue order(s) (' + acceptedOrders.length + ' files) sorted by payment priority');
     }
 
     // Group unprinted orders by customer batch, preserving FIFO order

@@ -1796,12 +1796,12 @@
       var bwAccepted = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'bw'; });
       var colorAccepted = allOrders.filter(function(o) { return o.status === 'accepted' && o.print_type === 'color'; });
       if (bwAccepted.length > 0) {
-        var t = new Date(bwAccepted[0].created_at).toLocaleTimeString();
+        var t = new Date(bwAccepted[0].paid_at || bwAccepted[0].created_at).toLocaleTimeString();
         document.getElementById('bwLastPrint').textContent = t;
         document.getElementById('kyoceraLastPrint').textContent = t;
       }
       if (colorAccepted.length > 0) {
-        document.getElementById('colorLastPrint').textContent = new Date(colorAccepted[0].created_at).toLocaleTimeString();
+        document.getElementById('colorLastPrint').textContent = new Date(colorAccepted[0].paid_at || colorAccepted[0].created_at).toLocaleTimeString();
       }
     }
 
@@ -1936,7 +1936,7 @@
       grid.innerHTML = batchList.map(function(batch) {
         var o = batch[0]; // primary order item
         var isMulti = batch.length > 1;
-        var date = new Date(o.created_at);
+        var date = new Date(o.paid_at || o.created_at);
         var timeStr = date.toLocaleTimeString();
         var dateStr = date.toLocaleDateString();
 
@@ -2224,7 +2224,7 @@
             newBatches.reverse().forEach(function(batch) {
               var o = batch[0];
               var countText = batch.length > 1 ? (' (' + batch.length + ' files = 1 order)') : '';
-              showNotification(o.customer_name, o.file_name + countText, new Date(o.created_at).toLocaleTimeString());
+              showNotification(o.customer_name, o.file_name + countText, new Date(o.paid_at || o.created_at).toLocaleTimeString());
               // Play sound announcement for Online orders immediately; Cash orders wait until Accept
               if (o.payment_method !== 'cash') {
                 var printType = o.print_type || 'bw';

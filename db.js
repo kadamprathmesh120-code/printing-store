@@ -113,6 +113,7 @@ try { db.exec(`ALTER TABLE orders ADD COLUMN pages_per_sheet INTEGER NOT NULL DE
 try { db.exec(`ALTER TABLE orders ADD COLUMN batch_id TEXT`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN used_magic INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
 try { db.exec(`ALTER TABLE orders ADD COLUMN was_cropped INTEGER NOT NULL DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN paid_at DATETIME`); } catch (e) {}
 
 module.exports = db;
 
