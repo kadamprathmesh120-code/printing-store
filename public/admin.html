@@ -822,8 +822,8 @@
           <div class="pc-name-row">
             <div class="pc-icon color">🖨️</div>
             <div>
-              <div class="pc-name">HP Smart Tank 580-590</div>
-              <div class="pc-type">Color</div>
+              <div class="pc-name" id="colorPrinterName">EPSON L6370 Series</div>
+              <div class="pc-type">Color • Duplex</div>
             </div>
           </div>
           <span class="pc-status-badge ready" id="colorPrinterStatus">
@@ -917,8 +917,8 @@
       <button class="ctrl-btn secondary" onclick="toggleSettings()" id="settingsToggle">
         <i data-lucide="sliders" style="width:18px;height:18px;"></i> Printer Settings
       </button>
-      <button class="ctrl-btn secondary" onclick="testHpAlert()" id="testHpBtn" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">
-        <i data-lucide="volume-2" style="width:18px;height:18px;"></i> Test HP Alert
+      <button class="ctrl-btn secondary" onclick="testEpsonAlert()" id="testEpsonBtn" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">
+        <i data-lucide="volume-2" style="width:18px;height:18px;"></i> Test Epson Alert
       </button>
       <button class="ctrl-btn secondary" onclick="testKonicaAlert()" id="testKonicaBtn" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">
         <i data-lucide="printer" style="width:18px;height:18px;"></i> Test Konica Alert
@@ -1112,7 +1112,8 @@
     var pollInterval = null;
     var KONICA_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
     var KYOCERA_PRINTER = 'Kyocera ECOSYS MA4000x KX';
-    var HP_COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+    var EPSON_COLOR_PRINTER = 'EPSON L6370 Series';
+    var COLOR_PRINTER = EPSON_COLOR_PRINTER;
     var activeBwPrinter = localStorage.getItem('activeBwPrinter') || 'kyocera';
     var bwPrinterOnline = false;
     var kyoceraPrinterOnline = false;
@@ -1127,7 +1128,7 @@
     }
 
     function getColorPrinter() {
-      return HP_COLOR_PRINTER;
+      return COLOR_PRINTER;
     }
 
     function setActiveBwPrinter(which) {
@@ -1166,6 +1167,11 @@
             document.getElementById('selectKonica').className = 'printer-select-btn' + (activeBwPrinter === 'konica' ? ' active' : '');
             document.getElementById('selectKyocera').className = 'printer-select-btn' + (activeBwPrinter === 'kyocera' ? ' active' : '');
             updatePrinterCards();
+          }
+          if (data && data.colorPrinter) {
+            COLOR_PRINTER = data.colorPrinter;
+            var el = document.getElementById('colorPrinterName');
+            if (el) el.textContent = data.colorPrinter;
           }
         }).catch(function(e) {});
       fetch('/api/admin/razorpay-autoprint')
@@ -1255,11 +1261,22 @@
       playedAlertOrders.add(alertKey);
 
       var pLower = (printerName || '').toLowerCase();
-      var isHp = pLower.indexOf('hp') !== -1 || pLower.indexOf('smart tank') !== -1 || pLower.indexOf('deskjet') !== -1 || pLower.indexOf('laserjet') !== -1;
-      var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || (printType === 'color' && !isHp);
-      var isKyocera = pLower.indexOf('kyocera') !== -1 || pLower.indexOf('ecosys') !== -1 || pLower.indexOf('taskalfa') !== -1 || (printType === 'bw' && !isHp);
+      var isEpson = pLower.indexOf('epson') !== -1 || pLower.indexOf('l6370') !== -1 || (printType === 'color' && pLower.indexOf('hp') === -1);
+      var isHp = pLower.indexOf('hp') !== -1 || pLower.indexOf('smart tank') !== -1;
+      var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || pLower.indexOf('205i') !== -1;
+      var isKyocera = pLower.indexOf('kyocera') !== -1 || pLower.indexOf('ecosys') !== -1 || pLower.indexOf('ma4000x') !== -1;
 
-      if (isHp) {
+      if (isEpson) {
+        // Play announcement sound or voice for Epson
+        if (voiceEnabled && 'speechSynthesis' in window) {
+          try {
+            var utter = new SpeechSynthesisUtterance('New print job on Epson color printer');
+            utter.rate = 1.0;
+            window.speechSynthesis.speak(utter);
+          } catch(e) {}
+        }
+        playAudioFile(['/announcements.mp3', '/HP.mp3', '/sound.mp3']);
+      } else if (isHp) {
         // Play HP sound file
         playAudioFile(['/HP.mp3', '/Hp smart Tank.mp3', '/hp.mp3']);
       } else if (isKonica) {
@@ -1270,7 +1287,7 @@
         playAudioFile(['/KYOCERA.mp3', '/Kyocera.mp3', '/kyocera.mp3']);
       } else {
         // Fallback check
-        playAudioFile(['/HP.mp3', '/KONICA.mp3', '/KYOCERA.mp3', '/sound.mp3']);
+        playAudioFile(['/announcements.mp3', '/HP.mp3', '/KONICA.mp3', '/KYOCERA.mp3', '/sound.mp3']);
       }
     }
 
@@ -1585,9 +1602,13 @@
     // -------------------------------------------------------
     //  Test Printer Announcements
     // -------------------------------------------------------
+    function testEpsonAlert() {
+      playPrinterAlert(COLOR_PRINTER, 'Test Customer', 'test.pdf', 1, 'color');
+      showToast('info', '🔊 Epson Printer Alert Test', 'Playing Epson printer announcement...', new Date().toLocaleTimeString());
+    }
+
     function testHpAlert() {
-      playPrinterAlert(HP_COLOR_PRINTER, 'Test Customer', 'test.pdf', 1, 'color');
-      showToast('info', '🔊 HP Printer Alert Test', 'Playing HP.mp3 printer announcement...', new Date().toLocaleTimeString());
+      testEpsonAlert();
     }
 
     function testKonicaAlert() {
@@ -1671,7 +1692,7 @@
           var colorFound = printers.some(function(p) {
             if (!p || !p.name) return false;
             var name = p.name.toLowerCase();
-            return name.includes('hp95224c') || name.includes('smart tank');
+            return name.includes('epson') || name.includes('l6370') || name.includes('hp95224c') || name.includes('smart tank');
           });
           bwPrinterOnline = bwFound;
           kyoceraPrinterOnline = kyoceraFound;

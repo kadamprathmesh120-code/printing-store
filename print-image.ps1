@@ -36,8 +36,8 @@ if ($orientation -eq 'landscape') {
 # Force Simplex (Single Side) to prevent duplex printer drivers from ejecting a 2nd blank page
 $pd.DefaultPageSettings.Duplex = [System.Drawing.Printing.Duplex]::Simplex
 
-# Enable Color Printing for HP printer (respects user's Windows Driver Printing Preferences for Quality/DPI)
-if ($printerName -like '*HP*' -or $printerName -like '*Smart Tank*') {
+# Enable Color Printing for Color printers (Epson, HP, etc.)
+if ($printerName -like '*EPSON*' -or $printerName -like '*L6370*' -or $printerName -like '*HP*' -or $printerName -like '*Smart Tank*') {
   $pd.DefaultPageSettings.Color = $true
   try { $pd.PrinterSettings.DefaultPageSettings.Color = $true } catch {}
 }

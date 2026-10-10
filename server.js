@@ -62,7 +62,19 @@ function sanitizePageRange(rangeStr) {
 }
 
 function printSinglePdfPage(filePath, opts) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    // For Epson Color Duplex printer: ensure driver duplex mode matches the customer's selection
+    if (opts.printer && (opts.printer.toLowerCase().includes('epson') || opts.printer.toLowerCase().includes('l6370'))) {
+      const mode = opts.side === 'duplex' ? 'TwoSidedLongEdge' : 'OneSided';
+      try {
+        await new Promise((res) => {
+          exec(`powershell.exe -NoProfile -Command "Set-PrintConfiguration -PrinterName '${opts.printer}' -DuplexingMode ${mode}"`, { windowsHide: true, timeout: 5000 }, () => res());
+        });
+      } catch (e) {
+        console.warn('[PRINT] Epson Duplex configuration warning:', e.message);
+      }
+    }
+
     const sumatraArgs = [
       '-print-to', opts.printer,
       '-silent',
@@ -129,25 +141,32 @@ function matchPrinter(pName, targetName) {
   if ((tLower.includes('205i') || tLower.includes('konica')) && (pLower.includes('205i') || pLower.includes('konica'))) return true;
   if (tLower.includes('kyocera') && pLower.includes('kyocera')) return true;
   if ((tLower.includes('hp95224c') || tLower.includes('smart tank')) && (pLower.includes('hp95224c') || pLower.includes('smart tank'))) return true;
+  if ((tLower.includes('epson') || tLower.includes('l6370')) && (pLower.includes('epson') || pLower.includes('l6370'))) return true;
   return false;
 }
 
 async function resolvePrinterName(targetName, isColor) {
   const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
-  const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+  const COLOR_PRINTER_DEFAULT = 'EPSON L6370 Series';
   let bwPrinter = BW_PRINTER_DEFAULT;
+  let colorPrinter = COLOR_PRINTER_DEFAULT;
   const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
   if (fs.existsSync(PRINTER_CONFIG)) {
-    try { bwPrinter = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || bwPrinter; } catch(e) {}
+    try {
+      const cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8'));
+      bwPrinter = cfg.bwPrinter || bwPrinter;
+      colorPrinter = cfg.colorPrinter || colorPrinter;
+    } catch(e) {}
   }
 
-  if (isColor) return COLOR_PRINTER;
+  if (isColor) return colorPrinter;
   if (!targetName) return bwPrinter;
 
   const tName = String(targetName).toLowerCase();
   if (tName.includes('205i') || tName.includes('konica')) return 'KONICA MINOLTA 205i(36:33:9E)';
   if (tName.includes('kyocera')) return 'Kyocera ECOSYS MA4000x KX';
-  if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
+  if (tName.includes('epson') || tName.includes('l6370')) return colorPrinter;
+  if (tName.includes('hp') || tName.includes('smart tank')) return colorPrinter;
 
   try {
     const printers = await getPrintersHidden();
@@ -176,15 +195,27 @@ function getActiveBwPrinterName() {
   return BW_PRINTER_DEFAULT;
 }
 
+function getActiveColorPrinterName() {
+  const COLOR_PRINTER_DEFAULT = 'EPSON L6370 Series';
+  const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
+  if (fs.existsSync(PRINTER_CONFIG)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8'));
+      if (cfg && cfg.colorPrinter) return cfg.colorPrinter;
+    } catch (e) {}
+  }
+  return COLOR_PRINTER_DEFAULT;
+}
+
 function getPrinterTimingInfo(printerName, printType) {
   const pName = String(printerName || '').toLowerCase();
-  const isColor = printType === 'color' || pName.includes('hp') || pName.includes('smart tank');
+  const isColor = printType === 'color' || pName.includes('epson') || pName.includes('l6370') || pName.includes('hp') || pName.includes('smart tank');
   if (isColor) {
     return {
-      name: 'HP95224C (HP Smart Tank 580-590 series)',
-      displayName: 'HP Smart Tank',
+      name: getActiveColorPrinterName(),
+      displayName: 'Epson L6370 Series (Duplex)',
       ppm: 10,
-      firstPrintSec: 14.0,
+      firstPrintSec: 12.0,
       isBw: false
     };
   }
@@ -272,7 +303,7 @@ function enrichOrderForCustomer(order) {
   }
 
   const isColor = order.print_type === 'color';
-  const targetPrinter = order.printer_name || (isColor ? 'HP95224C (HP Smart Tank 580-590 series)' : getActiveBwPrinterName());
+  const targetPrinter = order.printer_name || (isColor ? getActiveColorPrinterName() : getActiveBwPrinterName());
   const printerInfo = getPrinterTimingInfo(targetPrinter, order.print_type);
 
   // Individual file metrics
@@ -348,7 +379,7 @@ function enrichOrderForCustomer(order) {
           if (!aheadPrinter && af.printer_name) aheadPrinter = af.printer_name;
           if (!aheadPrintType && af.print_type) aheadPrintType = af.print_type;
         }
-        const aPName = aheadPrinter || (aheadPrintType === 'color' ? 'HP' : getActiveBwPrinterName());
+        const aPName = aheadPrinter || (aheadPrintType === 'color' ? getActiveColorPrinterName() : getActiveBwPrinterName());
         const aInfo = getPrinterTimingInfo(aPName, aheadPrintType);
         const aTime = (aheadBatchPages / aInfo.ppm) * 60 + aInfo.firstPrintSec;
         totalWait += aTime;
@@ -794,9 +825,6 @@ app.post('/api/upload', (req, res) => {
       if (!customerName || !printType || !printSide || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-      if (printType === 'color' && printSide === 'both') {
-        return res.status(400).json({ error: 'Color printing does not support Both Sides' });
-      }
 
       const copyCount = parseInt(copies) || 1;
       const batchId = 'batch_' + uuidv4();
@@ -879,7 +907,7 @@ app.post('/api/upload', (req, res) => {
         totalDistributedPrice += price;
 
         // Proportional discount allocation
-        const filePriceBeforeDiscount = sheets * copyCount * 5;
+        const filePriceBeforeDiscount = sheets * copyCount * baseRate;
         const fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / totalPriceBeforeDiscount));
 
         const isPdfFile = (file.originalname || '').toLowerCase().endsWith('.pdf');
@@ -1099,8 +1127,8 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
     }
 
     // Signature verified — mark all associated orders as paid
-    const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
-    const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+    const BW_PRINTER = getActiveBwPrinterName();
+    const COLOR_PRINTER = getActiveColorPrinterName();
 
     // Check auto-print setting
     const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
@@ -1275,8 +1303,8 @@ app.all('/api/verify-cashfree-payment', async (req, res) => {
         try {
           const resObj = JSON.parse(result);
           if (resObj.order_status === 'PAID') {
-            const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
-            const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+            const BW_PRINTER = getActiveBwPrinterName();
+            const COLOR_PRINTER = getActiveColorPrinterName();
 
             const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
             const autoPrintEnabled = autoPrintRow ? autoPrintRow.value === '1' : true;
@@ -1494,12 +1522,9 @@ app.post('/api/admin/autoprint', (req, res) => {
 
 app.get('/api/admin/printer-config', (req, res) => {
   try {
-    const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
-    let bwPrinter = 'Kyocera ECOSYS MA4000x KX';
-    if (fs.existsSync(PRINTER_CONFIG)) {
-      try { bwPrinter = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || bwPrinter; } catch(e){}
-    }
-    res.json({ bwPrinter });
+    const bwPrinter = getActiveBwPrinterName();
+    const colorPrinter = getActiveColorPrinterName();
+    res.json({ bwPrinter, colorPrinter });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1507,13 +1532,17 @@ app.get('/api/admin/printer-config', (req, res) => {
 
 app.post('/api/admin/select-printer', (req, res) => {
   try {
-    const { bwPrinter } = req.body;
-    if (!bwPrinter) return res.status(400).json({ error: 'bwPrinter required' });
-
+    const { bwPrinter, colorPrinter } = req.body;
     const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
-    fs.writeFileSync(PRINTER_CONFIG, JSON.stringify({ bwPrinter }, null, 2));
-    console.log('[PRINTER] Active B&W printer switched to:', bwPrinter);
-    res.json({ success: true, bwPrinter });
+    let cfg = {};
+    if (fs.existsSync(PRINTER_CONFIG)) {
+      try { cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')); } catch(e){}
+    }
+    if (bwPrinter) cfg.bwPrinter = bwPrinter;
+    if (colorPrinter) cfg.colorPrinter = colorPrinter;
+    fs.writeFileSync(PRINTER_CONFIG, JSON.stringify(cfg, null, 2));
+    console.log('[PRINTER] Printer config updated:', cfg);
+    res.json({ success: true, ...cfg });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update printer config' });
   }
@@ -1952,10 +1981,8 @@ app.get('/api/admin/printers', async (req, res) => {
     if (lastPrinterHeartbeat.printers && lastPrinterHeartbeat.printers.length > 0) {
       return res.json(lastPrinterHeartbeat.printers);
     }
-    if (cachedPrinters) {
-      return res.json(cachedPrinters);
-    }
-    res.json([]);
+    const printers = await getPrintersHidden();
+    res.json(printers || []);
   } catch (err) {
     res.status(500).json({ error: 'Failed to get printers' });
   }
@@ -2121,9 +2148,6 @@ app.post('/api/upload-id-copy', (req, res) => {
       const { customerName, printType, printSide, paymentMethod, backEnabled } = req.body;
       if (!customerName || !printType || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
-      }
-      if (printType === 'color' && printSide === 'both') {
-        return res.status(400).json({ error: 'Color printing does not support Both Sides' });
       }
 
       const initialStatus = 'pending';

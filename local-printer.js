@@ -57,7 +57,21 @@ function sanitizePageRange(rangeStr) {
 
 // Print PDF silently using SumatraPDF directly via spawn (no flash)
 function printSinglePdfPage(filePath, opts) {
-  return new Promise(function(resolve, reject) {
+  return new Promise(async function(resolve, reject) {
+    // For Epson Color Duplex printer: ensure driver duplex mode matches the customer's selection
+    if (opts.printer && (opts.printer.toLowerCase().indexOf('epson') !== -1 || opts.printer.toLowerCase().indexOf('l6370') !== -1)) {
+      var mode = opts.side === 'duplex' ? 'TwoSidedLongEdge' : 'OneSided';
+      try {
+        await new Promise(function(res) {
+          exec('powershell.exe -NoProfile -Command "Set-PrintConfiguration -PrinterName \'' + opts.printer + '\' -DuplexingMode ' + mode + '"', { windowsHide: true, timeout: 5000 }, function() {
+            res();
+          });
+        });
+      } catch (e) {
+        console.warn('[PRINT] Epson Duplex configuration warning:', e.message);
+      }
+    }
+
     var sumatraArgs = [
       '-print-to', opts.printer,
       '-silent',
@@ -116,7 +130,7 @@ function execP(cmd) {
 
 const RENDER_URL = 'https://printing-store.onrender.com';
 const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
-const COLOR_PRINTER_DEFAULT = 'HP95224C (HP Smart Tank 580-590 series)';
+const COLOR_PRINTER_DEFAULT = 'EPSON L6370 Series';
 const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
 var BW_PRINTER = BW_PRINTER_DEFAULT;
 var COLOR_PRINTER = COLOR_PRINTER_DEFAULT;
@@ -203,7 +217,7 @@ async function resolvePrinterName(targetName) {
   var tName = (targetName || '').toLowerCase();
   if (tName.includes('205i') || tName.includes('konica')) return 'KONICA MINOLTA 205i(36:33:9E)';
   if (tName.includes('kyocera')) return 'Kyocera ECOSYS MA4000x KX';
-  if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
+  if (tName.includes('epson') || tName.includes('l6370') || tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
   try {
     var printers = await getPrintersHidden();
     for (var i = 0; i < printers.length; i++) {
@@ -221,13 +235,13 @@ const sleep = function(ms) { return new Promise(function(resolve) { setTimeout(r
 
 function getPrinterTimingInfo(printerName, printType) {
   var pName = String(printerName || '').toLowerCase();
-  var isColor = printType === 'color' || pName.includes('hp') || pName.includes('smart tank');
+  var isColor = printType === 'color' || pName.includes('epson') || pName.includes('l6370') || pName.includes('hp') || pName.includes('smart tank');
   if (isColor) {
     return {
       name: COLOR_PRINTER_DEFAULT,
-      displayName: 'HP Smart Tank',
+      displayName: 'Epson L6370 Series (Duplex)',
       ppm: 10,
-      firstPrintSec: 14.0,
+      firstPrintSec: 12.0,
       isBw: false
     };
   }
@@ -328,8 +342,16 @@ async function checkAndPrint() {
     if (printerConfigSyncCounter++ % 10 === 0) {
       try {
         var serverCfg = await fetchJson(RENDER_URL + '/api/admin/printer-config');
-        if (serverCfg && serverCfg.bwPrinter) {
-          fs.writeFileSync(PRINTER_CONFIG, JSON.stringify({ bwPrinter: serverCfg.bwPrinter }, null, 2));
+        if (serverCfg) {
+          var updatedCfg = {};
+          if (fs.existsSync(PRINTER_CONFIG)) {
+            try { updatedCfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')); } catch(e){}
+          }
+          if (serverCfg.bwPrinter) updatedCfg.bwPrinter = serverCfg.bwPrinter;
+          if (serverCfg.colorPrinter) updatedCfg.colorPrinter = serverCfg.colorPrinter;
+          fs.writeFileSync(PRINTER_CONFIG, JSON.stringify(updatedCfg, null, 2));
+          if (updatedCfg.bwPrinter) BW_PRINTER = updatedCfg.bwPrinter;
+          if (updatedCfg.colorPrinter) COLOR_PRINTER = updatedCfg.colorPrinter;
         }
       } catch(e) {}
     }

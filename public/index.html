@@ -3101,15 +3101,7 @@
         }
         var bothPills = document.querySelector('.qp-card .qp-pair .pill-option[data-value="both"]');
         if (bothPills) {
-          if (selectedPrintType === 'color') {
-            bothPills.classList.add('hidden');
-            if (selectedPrintSide === 'both') {
-              var singlePill = document.querySelector('.qp-card .qp-pair .pill-option[data-value="single"]');
-              if (singlePill) selectPill(singlePill, 'printSide');
-            }
-          } else {
-            bothPills.classList.remove('hidden');
-          }
+          bothPills.classList.remove('hidden');
         }
         renderFileCards();
       } else if (group === 'printSide') {
@@ -5281,7 +5273,7 @@
       var qStatus = firstOrder.queue_status || (allPrinted ? 'ready' : (anyAccepted ? 'printing' : status));
       var ordersAhead = (typeof firstOrder.orders_ahead === 'number') ? firstOrder.orders_ahead : 0;
       var printerPpm = firstOrder.printer_ppm || (firstOrder.print_type === 'color' ? 10 : 40);
-      var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'HP Smart Tank' : 'Kyocera ECOSYS MA4000x');
+      var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'Epson L6370 (Duplex)' : 'Kyocera ECOSYS MA4000x');
       var estPrintTimeSec = firstOrder.estimated_print_time_sec || Math.round((totalPdfPages / printerPpm) * 60 + 6.4);
       var estWaitSec = firstOrder.estimated_wait_time_sec || 0;
       var actualPrinted = firstOrder.actual_pages_printed;
