@@ -2350,49 +2350,58 @@
         }
       }
 
-      // 1. Process Image Files — also generate magic-enhanced versions
-      imageFiles.forEach(function (imgFile) {
-        var url = URL.createObjectURL(imgFile);
-        var currentFileObj = { file: imgFile, pages: 1, url: url };
-        var targetFileIdx = selectedFiles.length;
-        selectedFiles.push(currentFileObj);
+      // 1. Process Image Files sequentially — generate magic-enhanced versions
+      (async function () {
+        for (var imgIdx = 0; imgIdx < imageFiles.length; imgIdx++) {
+          var imgFile = imageFiles[imgIdx];
+          var url = URL.createObjectURL(imgFile);
+          var currentFileObj = { file: imgFile, pages: 1, url: url };
+          var targetFileIdx = selectedFiles.length;
+          selectedFiles.push(currentFileObj);
 
-        var pageEntry = {
-          type: 'image',
-          url: url,
-          originalUrl: url,
-          magicUrl: null,
-          file: imgFile,
-          fileIdx: targetFileIdx,
-          pageNum: 1,
-          name: imgFile.name
-        };
-        window.allPreviewPages.push(pageEntry);
+          var pageEntry = {
+            type: 'image',
+            url: url,
+            originalUrl: url,
+            magicUrl: null,
+            file: imgFile,
+            fileIdx: targetFileIdx,
+            pageNum: 1,
+            name: imgFile.name
+          };
+          window.allPreviewPages.push(pageEntry);
 
-        // Generate magic color version in background
-        processAutoMagicColor(imgFile, function (magicFile) {
-          if (magicFile && magicFile !== imgFile) {
-            var magicUrl = URL.createObjectURL(magicFile);
-            pageEntry.magicUrl = magicUrl;
-            pageEntry.magicFile = magicFile;
-            pageEntry.url = getPageActiveUrl(pageEntry, selectedEditFilter);
-
-            // If magic filter is selected and we're currently viewing this page, update preview
-            if (selectedEditFilter === 'magic') {
-              var currentPage = (window.allPreviewPages && window.allPreviewPages.length > 0) ? window.allPreviewPages[window.currentPreviewPageIndex] : null;
-              if (currentPage === pageEntry) {
-                var editImg = document.getElementById('editPreviewImg');
-                if (editImg && window.currentFlowStep === 2) editImg.src = magicUrl;
-                var mainImg = document.getElementById('mainPreviewImg');
-                if (mainImg && window.currentFlowStep === 3) mainImg.src = magicUrl;
-              }
-            }
-            // Also store in currentFileObj
-            currentFileObj.magicFile = magicFile;
+          if (imageFiles.length > 1) {
+            showProgress('HD Quality: Processing image ' + (imgIdx + 1) + ' of ' + imageFiles.length + '...', Math.round(((completedItems + 0.5) / totalItems) * 100));
           }
-        });
-        checkAllDone();
-      });
+
+          // Await HD Quality processing so magicFile is 100% ready
+          await new Promise(function (resolve) {
+            processAutoMagicColor(imgFile, function (magicFile) {
+              if (magicFile && magicFile !== imgFile) {
+                var magicUrl = URL.createObjectURL(magicFile);
+                pageEntry.magicUrl = magicUrl;
+                pageEntry.magicFile = magicFile;
+                pageEntry.url = getPageActiveUrl(pageEntry, selectedEditFilter);
+
+                if (selectedEditFilter === 'magic') {
+                  var currentPage = (window.allPreviewPages && window.allPreviewPages.length > 0) ? window.allPreviewPages[window.currentPreviewPageIndex] : null;
+                  if (currentPage === pageEntry) {
+                    var editImg = document.getElementById('editPreviewImg');
+                    if (editImg && window.currentFlowStep === 2) editImg.src = magicUrl;
+                    var mainImg = document.getElementById('mainPreviewImg');
+                    if (mainImg && window.currentFlowStep === 3) mainImg.src = magicUrl;
+                  }
+                }
+                currentFileObj.magicFile = magicFile;
+              }
+              resolve();
+            });
+          });
+
+          checkAllDone();
+        }
+      })();
 
       // 2. Process PDF Files (render each page to canvas in strict sequential order 1..numPages)
       pdfFiles.forEach(function (pdfFile) {
@@ -2481,19 +2490,19 @@
         callback(resFile);
       }
 
-      // Safety fallback: if processing takes more than 2.5 seconds, pass original file
+      // Safety fallback: if processing takes more than 15 seconds, pass original file
       var safetyTimer = setTimeout(function () {
         console.warn('Auto Magic Color timeout, falling back to original file');
         safeCallback(file);
-      }, 2500);
+      }, 15000);
 
       var img = new Image();
       var url = URL.createObjectURL(file);
       img.onload = function () {
         URL.revokeObjectURL(url);
         try {
-          // Downscale high-res mobile camera photos to max 1600px for lightning-fast 80ms processing
-          var maxDim = 1600;
+          // Downscale high-res mobile camera photos to max 1400px for crystal-clear 300dpi A4 print & instant mobile processing
+          var maxDim = 1400;
           var w = img.width, h = img.height;
           if (w > maxDim || h > maxDim) {
             if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
@@ -2671,10 +2680,10 @@
         }
       }
 
-      // 4. Mild Unsharp Mask Sharpening on text edges only
-      var shBufR = new Float32Array(len);
-      var shBufG = new Float32Array(len);
-      var shBufB = new Float32Array(len);
+      // 4. Mild Unsharp Mask Sharpening on text edges only (reuses tmpR/G/B to avoid 25MB allocation)
+      var shBufR = tmpR;
+      var shBufG = tmpG;
+      var shBufB = tmpB;
 
       for (var y = 1; y < h - 1; y++) {
         for (var x = 1; x < w - 1; x++) {
@@ -3525,7 +3534,38 @@
       }
     }
 
-    function payWithRazorpay() {
+    async function ensureAllMagicFilesReady() {
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      if (!useMagic) return;
+
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var sf = selectedFiles[i];
+        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
+        if (isPdf) continue;
+
+        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
+        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
+        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
+
+        if (!activeMagic && activeFile) {
+          await new Promise(function (resolve) {
+            processAutoMagicColor(activeFile, function (resMagic) {
+              if (resMagic && resMagic !== activeFile) {
+                sf.magicFile = resMagic;
+                if (pageEntry) {
+                  pageEntry.magicFile = resMagic;
+                  pageEntry.magicUrl = URL.createObjectURL(resMagic);
+                }
+              }
+              resolve();
+            });
+          });
+        }
+      }
+    }
+
+    async function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
       if (!name) {
         document.getElementById('reviewName').style.borderColor = '#ef4444';
@@ -3542,8 +3582,16 @@
       _customerAudioPlayed = false;
       unlockCustomerAudio();
       var btn = document.getElementById('btnRazorpayReview');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="rpc-spinner"></span> Preparing & Uploading...';
+      }
+
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      if (useMagic) {
+        await ensureAllMagicFilesReady();
+      }
 
       var formData = new FormData();
       formData.append('customerName', name);
@@ -3556,10 +3604,8 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-      var isColorOrder = (selectedPrintType === 'color');
-      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
-      formData.append('usedMagic', useMagic ? '1' : '0');
 
+      var anyMagicActive = false;
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
@@ -3570,18 +3616,22 @@
         var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
         var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
 
-        var fileToUpload = useMagic ? (activeMagic || activeFile) : activeFile;
+        var fileToUpload = (useMagic && activeMagic) ? activeMagic : activeFile;
         var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
         }
+        var fileUsedMagic = (!isPdf && useMagic && activeMagic) ? '1' : '0';
+        if (fileUsedMagic === '1') anyMagicActive = true;
+
         formData.append('files', fileToUpload, originalFileName);
         if (sf.pages) {
           formData.append('pageCount_' + originalFileName, sf.pages);
         }
         formData.append('wasCropped_' + originalFileName, isCropped);
-        formData.append('usedMagic_' + originalFileName, isPdf ? '0' : (useMagic ? '1' : '0'));
+        formData.append('usedMagic_' + originalFileName, fileUsedMagic);
       }
+      formData.append('usedMagic', (useMagic && anyMagicActive) ? '1' : '0');
 
       fetch('/api/upload', { method: 'POST', body: formData })
         .then(function (r) {
@@ -3671,7 +3721,7 @@
         });
     }
 
-    function payWithCashfree() {
+    async function payWithCashfree() {
       var name = document.getElementById('reviewName').value.trim();
       var errEl = document.getElementById('reviewContactError') || document.getElementById('paymentError');
       if (!name) {
@@ -3690,7 +3740,13 @@
       var btn = document.getElementById('btnGoToPayment') || document.getElementById('btnCashfreeReview');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="rpc-spinner"></span> Uploading...';
+        btn.innerHTML = '<span class="rpc-spinner"></span> Preparing & Uploading...';
+      }
+
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      if (useMagic) {
+        await ensureAllMagicFilesReady();
       }
 
       var formData = new FormData();
@@ -3704,10 +3760,8 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-      var isColorOrder = (selectedPrintType === 'color');
-      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
-      formData.append('usedMagic', useMagic ? '1' : '0');
 
+      var anyMagicActive = false;
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
@@ -3718,18 +3772,22 @@
         var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
         var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
 
-        var fileToUpload = useMagic ? (activeMagic || activeFile) : activeFile;
+        var fileToUpload = (useMagic && activeMagic) ? activeMagic : activeFile;
         var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
         }
+        var fileUsedMagic = (!isPdf && useMagic && activeMagic) ? '1' : '0';
+        if (fileUsedMagic === '1') anyMagicActive = true;
+
         formData.append('files', fileToUpload, originalFileName);
         if (sf.pages) {
           formData.append('pageCount_' + originalFileName, sf.pages);
         }
         formData.append('wasCropped_' + originalFileName, isCropped);
-        formData.append('usedMagic_' + originalFileName, isPdf ? '0' : (useMagic ? '1' : '0'));
+        formData.append('usedMagic_' + originalFileName, fileUsedMagic);
       }
+      formData.append('usedMagic', (useMagic && anyMagicActive) ? '1' : '0');
 
       fetch('/api/upload', { method: 'POST', body: formData })
         .then(function (r) {
@@ -3827,10 +3885,16 @@
       showStep('stepReview');
     }
 
-    function confirmCashPaid() {
+    async function confirmCashPaid() {
       var name = pendingCashName;
       var btn = document.getElementById('btnCashYes');
       if (btn) { btn.disabled = true; btn.innerHTML = '<span class="rpc-spinner"></span> Placing order...'; }
+
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      if (useMagic) {
+        await ensureAllMagicFilesReady();
+      }
 
       var formData = new FormData();
       formData.append('customerName', name);
@@ -3843,10 +3907,8 @@
       formData.append('copies', copiesCount);
       formData.append('pageRange', selectedPageRange);
       formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-      var isColorOrder = (selectedPrintType === 'color');
-      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
-      formData.append('usedMagic', useMagic ? '1' : '0');
 
+      var anyMagicActive = false;
       for (var i = 0; i < selectedFiles.length; i++) {
         var sf = selectedFiles[i];
         var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
@@ -3857,19 +3919,22 @@
         var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
         var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
 
-        var fileToUpload = useMagic ? (activeMagic || activeFile) : activeFile;
+        var fileToUpload = (useMagic && activeMagic) ? activeMagic : activeFile;
         var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
         if (typeof fileToUpload === 'string') {
           fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
         }
+        var fileUsedMagic = (!isPdf && useMagic && activeMagic) ? '1' : '0';
+        if (fileUsedMagic === '1') anyMagicActive = true;
+
         formData.append('files', fileToUpload, originalFileName);
         if (sf.pages) {
           formData.append('pageCount_' + originalFileName, sf.pages);
         }
         formData.append('wasCropped_' + originalFileName, isCropped);
-        formData.append('usedMagic_' + originalFileName, isPdf ? '0' : (useMagic ? '1' : '0'));
+        formData.append('usedMagic_' + originalFileName, fileUsedMagic);
       }
-
+      formData.append('usedMagic', (useMagic && anyMagicActive) ? '1' : '0');
 
       fetch('/api/upload', { method: 'POST', body: formData })
         .then(function (r) {
