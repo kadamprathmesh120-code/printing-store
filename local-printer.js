@@ -71,7 +71,21 @@ function sanitizePageRange(rangeStr) {
 
 // Print PDF silently using SumatraPDF directly via spawn (no flash)
 function printSinglePdfPage(filePath, opts) {
-  return new Promise(function(resolve, reject) {
+  return new Promise(async function(resolve, reject) {
+    // For Epson Color Duplex printer: ensure driver duplex mode matches the customer's selection
+    if (opts.printer && (opts.printer.toLowerCase().indexOf('epson') !== -1 || opts.printer.toLowerCase().indexOf('l6370') !== -1)) {
+      var mode = opts.side === 'duplex' ? 'TwoSidedLongEdge' : 'OneSided';
+      try {
+        await new Promise(function(res) {
+          exec('powershell.exe -NoProfile -Command "Set-PrintConfiguration -PrinterName \'' + opts.printer + '\' -DuplexingMode ' + mode + '"', { windowsHide: true, timeout: 5000 }, function() {
+            res();
+          });
+        });
+      } catch (e) {
+        console.warn('[PRINT] Epson Duplex configuration warning:', e.message);
+      }
+    }
+
     var sumatraArgs = [
       '-print-to', opts.printer,
       '-silent',
