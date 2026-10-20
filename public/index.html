@@ -3534,6 +3534,78 @@
       }
     }
 
+    function sanitizeUploadFileName(name, mimeType) {
+      var clean = (name || 'document.jpg').trim().replace(/[/\\?%*:|"<>]/g, '_');
+      var dotIdx = clean.lastIndexOf('.');
+      var ext = dotIdx > 0 ? clean.substring(dotIdx).toLowerCase() : '';
+      var validExts = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt', '.heic', '.heif', '.webp', '.bmp', '.tif', '.tiff', '.ppt', '.pptx', '.xls', '.xlsx', '.csv', '.rtf', '.jfif'];
+      if (!ext || !validExts.includes(ext)) {
+        if (mimeType && mimeType.indexOf('pdf') !== -1) clean += '.pdf';
+        else if (mimeType && mimeType.indexOf('png') !== -1) clean += '.png';
+        else if (mimeType && mimeType.indexOf('webp') !== -1) clean += '.webp';
+        else clean += '.jpg';
+      }
+      return clean;
+    }
+
+    async function prepareOptimizedUploadFile(rawFile, originalName) {
+      if (!rawFile) return { file: rawFile, name: originalName };
+      var mimeType = rawFile.type || '';
+      var cleanName = sanitizeUploadFileName(originalName || rawFile.name || 'document.jpg', mimeType);
+
+      var isImage = (mimeType.indexOf('image/') !== -1) || /\.(jpe?g|png|webp|bmp|jfif)$/i.test(cleanName);
+      if (!isImage || (rawFile.size && rawFile.size <= 3.5 * 1024 * 1024)) {
+        return { file: rawFile, name: cleanName };
+      }
+
+      // If user chose Original and phone photo is giant (>3.5 MB, e.g. 10MB 50MP photo),
+      // downscale to max 2400px (300 DPI on A4) at 0.92 JPEG quality.
+      // Keeps 100% laser print sharpness while cutting file size by 85% to avoid mobile timeouts.
+      return new Promise(function (resolve) {
+        var img = new Image();
+        var url = URL.createObjectURL(rawFile);
+        var timer = setTimeout(function () {
+          URL.revokeObjectURL(url);
+          resolve({ file: rawFile, name: cleanName });
+        }, 4000);
+
+        img.onload = function () {
+          clearTimeout(timer);
+          URL.revokeObjectURL(url);
+          try {
+            var maxDim = 2400;
+            var w = img.width, h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+              else { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob(function (blob) {
+              if (blob && blob.size < rawFile.size) {
+                resolve({ file: blob, name: cleanName });
+              } else {
+                resolve({ file: rawFile, name: cleanName });
+              }
+            }, 'image/jpeg', 0.92);
+          } catch (e) {
+            resolve({ file: rawFile, name: cleanName });
+          }
+        };
+
+        img.onerror = function () {
+          clearTimeout(timer);
+          URL.revokeObjectURL(url);
+          resolve({ file: rawFile, name: cleanName });
+        };
+
+        img.src = url;
+      });
+    }
+
     async function ensureAllMagicFilesReady() {
       var isColorOrder = (selectedPrintType === 'color');
       var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
@@ -3565,6 +3637,96 @@
       }
     }
 
+    async function buildOrderFormData(paymentMethod, name) {
+      var isColorOrder = (selectedPrintType === 'color');
+      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
+      if (useMagic) {
+        await ensureAllMagicFilesReady();
+      }
+
+      var formData = new FormData();
+      formData.append('customerName', name);
+      formData.append('printType', selectedPrintType);
+      formData.append('printSide', selectedPrintSide);
+      formData.append('paymentMethod', paymentMethod);
+      formData.append('mobileNumber', '');
+      formData.append('orderNotes', (document.getElementById('reviewNotes') ? document.getElementById('reviewNotes').value.trim() : ''));
+      formData.append('orientation', selectedOrientation);
+      formData.append('copies', copiesCount);
+      formData.append('pageRange', selectedPageRange);
+      formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
+
+      var anyMagicActive = false;
+      for (var i = 0; i < selectedFiles.length; i++) {
+        var sf = selectedFiles[i];
+        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
+
+        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
+        var isCropped = (!isPdf && (sf.wasCropped || (pageEntry && pageEntry.wasCropped) || (window.allPreviewPages && window.allPreviewPages.some(function (p) { return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
+
+        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
+        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
+
+        var fileToUpload = (useMagic && activeMagic) ? activeMagic : activeFile;
+        var rawName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
+        if (typeof fileToUpload === 'string') {
+          fileToUpload = dataURLtoBlob(fileToUpload, rawName);
+        }
+
+        var opt = await prepareOptimizedUploadFile(fileToUpload, rawName);
+        var finalFile = opt.file;
+        var finalName = opt.name;
+
+        var fileUsedMagic = (!isPdf && useMagic && activeMagic) ? '1' : '0';
+        if (fileUsedMagic === '1') anyMagicActive = true;
+
+        formData.append('files', finalFile, finalName);
+        if (sf.pages) {
+          formData.append('pageCount_' + finalName, sf.pages);
+        }
+        formData.append('wasCropped_' + finalName, isCropped);
+        formData.append('usedMagic_' + finalName, fileUsedMagic);
+      }
+      formData.append('usedMagic', (useMagic && anyMagicActive) ? '1' : '0');
+
+      return formData;
+    }
+
+    async function postOrderUpload(formData) {
+      var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timeoutId = null;
+      if (controller) {
+        timeoutId = setTimeout(function () {
+          controller.abort();
+        }, 90000);
+      }
+
+      try {
+        var opts = { method: 'POST', body: formData };
+        if (controller) opts.signal = controller.signal;
+        var r = await fetch('/api/upload', opts);
+        if (timeoutId) clearTimeout(timeoutId);
+
+        var data = null;
+        try { data = await r.json(); } catch (e) { }
+
+        if (!r.ok) {
+          var serverErrMsg = (data && data.error) ? data.error : ('Server returned HTTP ' + r.status);
+          throw new Error(serverErrMsg);
+        }
+        if (!data || data.error) {
+          throw new Error((data && data.error) || 'Upload returned an invalid response');
+        }
+        return data;
+      } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (err && err.name === 'AbortError') {
+          throw new Error('Upload timed out. Your connection might be slow. Please try again.');
+        }
+        throw err;
+      }
+    }
+
     async function payWithRazorpay() {
       var name = document.getElementById('reviewName').value.trim();
       if (!name) {
@@ -3587,136 +3749,85 @@
         btn.innerHTML = '<span class="rpc-spinner"></span> Preparing & Uploading...';
       }
 
-      var isColorOrder = (selectedPrintType === 'color');
-      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
-      if (useMagic) {
-        await ensureAllMagicFilesReady();
-      }
-
-      var formData = new FormData();
-      formData.append('customerName', name);
-      formData.append('printType', selectedPrintType);
-      formData.append('printSide', selectedPrintSide);
-      formData.append('paymentMethod', 'razorpay');
-      formData.append('mobileNumber', '');
-      formData.append('orderNotes', (document.getElementById('reviewNotes') ? document.getElementById('reviewNotes').value.trim() : ''));
-      formData.append('orientation', selectedOrientation);
-      formData.append('copies', copiesCount);
-      formData.append('pageRange', selectedPageRange);
-      formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-
-      var anyMagicActive = false;
-      for (var i = 0; i < selectedFiles.length; i++) {
-        var sf = selectedFiles[i];
-        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        
-        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
-        var isCropped = (!isPdf && (sf.wasCropped || (pageEntry && pageEntry.wasCropped) || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
-
-        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
-        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
-
-        var fileToUpload = (useMagic && activeMagic) ? activeMagic : activeFile;
-        var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
-        if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
-        }
-        var fileUsedMagic = (!isPdf && useMagic && activeMagic) ? '1' : '0';
-        if (fileUsedMagic === '1') anyMagicActive = true;
-
-        formData.append('files', fileToUpload, originalFileName);
-        if (sf.pages) {
-          formData.append('pageCount_' + originalFileName, sf.pages);
-        }
-        formData.append('wasCropped_' + originalFileName, isCropped);
-        formData.append('usedMagic_' + originalFileName, fileUsedMagic);
-      }
-      formData.append('usedMagic', (useMagic && anyMagicActive) ? '1' : '0');
-
-      fetch('/api/upload', { method: 'POST', body: formData })
-        .then(function (r) {
-          if (!r.ok) { throw new Error('Server returned ' + r.status); }
-          return r.json();
-        })
-        .then(function (data) {
-          if (data.error) {
-            document.getElementById('paymentError').textContent = data.error;
-            btn.disabled = false;
-            btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
-            return;
-          }
-          currentOrderIds = data.orders.map(function (o) { return o.orderId; });
-
-          btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
-          fetch('/api/create-razorpay-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: data.totalPrice, orderIds: currentOrderIds })
-          })
-            .then(function (r) { return r.json(); })
-            .then(function (rpData) {
-              if (rpData.error) { throw new Error(rpData.error); }
-              if (!rpData.key_id) { throw new Error('Server did not return a Razorpay Key ID'); }
-              var options = {
-                key: rpData.key_id,
-                amount: rpData.amount,
-                currency: rpData.currency,
-                name: 'Printing Store',
-                description: 'Order #' + currentOrderIds[0].slice(0, 8),
-                order_id: rpData.razorpayOrderId,
-                handler: function (payment) {
-                  fetch('/api/verify-razorpay-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      razorpayOrderId: payment.razorpay_order_id,
-                      razorpayPaymentId: payment.razorpay_payment_id,
-                      razorpaySignature: payment.razorpay_signature,
-                      orderIds: currentOrderIds
-                    })
-                  })
-                    .then(function (vr) { return vr.json(); })
-                    .then(function (vrData) {
-                      if (vrData.error) {
-                        document.getElementById('paymentError').textContent = 'Payment verification failed: ' + vrData.error;
-                        btn.disabled = false;
-                        btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
-                        return;
-                      }
-                      try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
-                      document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-                      closePaymentSelectionModal();
-                      playCustomerSuccessAudioSequence();
-                      showStep('stepStatus');
-                      updateStatusDisplay('paid', data.orders);
-                    });
-                },
-                modal: {
-                  ondismiss: function () {
-                    btn.disabled = false;
-                    btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
-                  }
-                },
-                prefill: {
-                  name: name,
-                  contact: ''
-                },
-                theme: { color: '#7c3aed' }
-              };
-              var rzp = new Razorpay(options);
-              rzp.open();
-            })
-            .catch(function (err) {
-              document.getElementById('paymentError').textContent = 'Razorpay error: ' + (err.message || 'Try again.');
-              btn.disabled = false;
-              var displayPrice = (data && data.totalPrice) || (window.currentPricing && window.currentPricing.totalPrice) || 5;
-              btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + displayPrice + '</span>';
-            });
-        })
-        .catch(function (err) {
-          document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+      var data;
+      try {
+        var formData = await buildOrderFormData('razorpay', name);
+        data = await postOrderUpload(formData);
+      } catch (err) {
+        document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+        if (btn) {
           btn.disabled = false;
           var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
+          btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + displayPrice + '</span>';
+        }
+        return;
+      }
+
+      currentOrderIds = data.orders.map(function (o) { return o.orderId; });
+
+      if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
+      fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: data.totalPrice, orderIds: currentOrderIds })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (rpData) {
+          if (rpData.error) { throw new Error(rpData.error); }
+          if (!rpData.key_id) { throw new Error('Server did not return a Razorpay Key ID'); }
+          var options = {
+            key: rpData.key_id,
+            amount: rpData.amount,
+            currency: rpData.currency,
+            name: 'Printing Store',
+            description: 'Order #' + currentOrderIds[0].slice(0, 8),
+            order_id: rpData.razorpayOrderId,
+            handler: function (payment) {
+              fetch('/api/verify-razorpay-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpayOrderId: payment.razorpay_order_id,
+                  razorpayPaymentId: payment.razorpay_payment_id,
+                  razorpaySignature: payment.razorpay_signature,
+                  orderIds: currentOrderIds
+                })
+              })
+                .then(function (vr) { return vr.json(); })
+                .then(function (vrData) {
+                  if (vrData.error) {
+                    document.getElementById('paymentError').textContent = 'Payment verification failed: ' + vrData.error;
+                    btn.disabled = false;
+                    btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
+                    return;
+                  }
+                  try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
+                  document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+                  closePaymentSelectionModal();
+                  playCustomerSuccessAudioSequence();
+                  showStep('stepStatus');
+                  updateStatusDisplay('paid', data.orders);
+                });
+            },
+            modal: {
+              ondismiss: function () {
+                btn.disabled = false;
+                btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + data.totalPrice + '</span>';
+              }
+            },
+            prefill: {
+              name: name,
+              contact: ''
+            },
+            theme: { color: '#7c3aed' }
+          };
+          var rzp = new Razorpay(options);
+          rzp.open();
+        })
+        .catch(function (err) {
+          document.getElementById('paymentError').textContent = 'Razorpay error: ' + (err.message || 'Try again.');
+          btn.disabled = false;
+          var displayPrice = (data && data.totalPrice) || (window.currentPricing && window.currentPricing.totalPrice) || 5;
           btn.innerHTML = 'Pay ₹<span id="btnRazorpayAmount">' + displayPrice + '</span>';
         });
     }
@@ -3743,118 +3854,68 @@
         btn.innerHTML = '<span class="rpc-spinner"></span> Preparing & Uploading...';
       }
 
-      var isColorOrder = (selectedPrintType === 'color');
-      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
-      if (useMagic) {
-        await ensureAllMagicFilesReady();
+      var data;
+      try {
+        var formData = await buildOrderFormData('cashfree', name);
+        data = await postOrderUpload(formData);
+      } catch (err) {
+        if (errEl) errEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+        if (btn) {
+          btn.disabled = false;
+          var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
+          btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + displayPrice + '</span> Online';
+        }
+        return;
       }
 
-      var formData = new FormData();
-      formData.append('customerName', name);
-      formData.append('printType', selectedPrintType);
-      formData.append('printSide', selectedPrintSide);
-      formData.append('paymentMethod', 'cashfree');
-      formData.append('mobileNumber', '');
-      formData.append('orderNotes', (document.getElementById('reviewNotes') ? document.getElementById('reviewNotes').value.trim() : ''));
-      formData.append('orientation', selectedOrientation);
-      formData.append('copies', copiesCount);
-      formData.append('pageRange', selectedPageRange);
-      formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
+      currentOrderIds = data.orders.map(function (o) { return o.orderId; });
 
-      var anyMagicActive = false;
-      for (var i = 0; i < selectedFiles.length; i++) {
-        var sf = selectedFiles[i];
-        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        
-        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
-        var isCropped = (!isPdf && (sf.wasCropped || (pageEntry && pageEntry.wasCropped) || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
+      if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Creating Session...';
 
-        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
-        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
-
-        var fileToUpload = (useMagic && activeMagic) ? activeMagic : activeFile;
-        var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
-        if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
-        }
-        var fileUsedMagic = (!isPdf && useMagic && activeMagic) ? '1' : '0';
-        if (fileUsedMagic === '1') anyMagicActive = true;
-
-        formData.append('files', fileToUpload, originalFileName);
-        if (sf.pages) {
-          formData.append('pageCount_' + originalFileName, sf.pages);
-        }
-        formData.append('wasCropped_' + originalFileName, isCropped);
-        formData.append('usedMagic_' + originalFileName, fileUsedMagic);
-      }
-      formData.append('usedMagic', (useMagic && anyMagicActive) ? '1' : '0');
-
-      fetch('/api/upload', { method: 'POST', body: formData })
-        .then(function (r) {
-          if (!r.ok) { throw new Error('Server returned ' + r.status); }
-          return r.json();
+      fetch('/api/create-cashfree-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: data.totalPrice,
+          orderIds: currentOrderIds,
+          customerName: name,
+          customerMobile: ''
         })
-        .then(function (data) {
-          if (data.error) {
-            if (errEl) errEl.textContent = data.error;
-            if (btn) {
-              btn.disabled = false;
-              btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span> Online';
-            }
-            return;
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (cfData) {
+          if (cfData.error) throw new Error(cfData.error);
+          if (!cfData.paymentSessionId) throw new Error('Failed to obtain Cashfree Payment Session');
+
+          if (typeof Cashfree === 'undefined') {
+            throw new Error('Cashfree SDK not loaded. Please refresh.');
           }
-          currentOrderIds = data.orders.map(function (o) { return o.orderId; });
 
-          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Creating Session...';
-
-          fetch('/api/create-cashfree-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              amount: data.totalPrice,
-              orderIds: currentOrderIds,
-              customerName: name,
-              customerMobile: ''
-            })
-          })
-            .then(function (r) { return r.json(); })
-            .then(function (cfData) {
-              if (cfData.error) throw new Error(cfData.error);
-              if (!cfData.paymentSessionId) throw new Error('Failed to obtain Cashfree Payment Session');
-
-              if (typeof Cashfree === 'undefined') {
-                throw new Error('Cashfree SDK is not loaded. Please refresh the page and try again.');
-              }
-
-              var envMode = (cfData.environment === 'PROD' || cfData.environment === 'PRODUCTION') ? 'production' : 'sandbox';
-              var cashfree = Cashfree({ mode: envMode });
-
-              var checkoutOptions = {
-                paymentSessionId: cfData.paymentSessionId,
-                redirectTarget: "_self"
-              };
-
-              cashfree.checkout(checkoutOptions);
-
+          var cashfree = Cashfree({ mode: 'production' });
+          cashfree.checkout({
+            paymentSessionId: cfData.paymentSessionId,
+            redirectTarget: '_modal'
+          }).then(function (result) {
+            if (result.error) {
+              if (errEl) errEl.textContent = result.error.message || 'Payment cancelled or failed.';
               if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span> Online';
               }
-            })
-            .catch(function (err) {
-              if (errEl) errEl.textContent = 'Cashfree error: ' + (err.message || 'Try again.');
-              if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span> Online';
-              }
-            });
+              return;
+            }
+            if (result.paymentDetails) {
+              closePaymentSelectionModal();
+              showStep('stepStatus');
+              updateStatusDisplay('paid', data.orders);
+            }
+          });
         })
         .catch(function (err) {
-          if (errEl) errEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+          if (errEl) errEl.textContent = 'Cashfree error: ' + (err.message || 'Try again.');
           if (btn) {
             btn.disabled = false;
-            var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
-            btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + displayPrice + '</span> Online';
+            btn.innerHTML = '🔒 Pay ₹<span id="btnCashfreeAmount">' + data.totalPrice + '</span> Online';
           }
         });
     }
@@ -3873,7 +3934,6 @@
         return;
       }
 
-      // Direct Token issuance for cash order
       pendingCashName = name;
       closePaymentSelectionModal();
       confirmCashPaid();
@@ -3890,76 +3950,25 @@
       var btn = document.getElementById('btnCashYes');
       if (btn) { btn.disabled = true; btn.innerHTML = '<span class="rpc-spinner"></span> Placing order...'; }
 
-      var isColorOrder = (selectedPrintType === 'color');
-      var useMagic = (!isColorOrder && selectedEditFilter === 'magic');
-      if (useMagic) {
-        await ensureAllMagicFilesReady();
+      var data;
+      try {
+        var formData = await buildOrderFormData('cash', name);
+        data = await postOrderUpload(formData);
+      } catch (err) {
+        document.getElementById('cashConfirmError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+        if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yes, I Paid'; }
+        return;
       }
 
-      var formData = new FormData();
-      formData.append('customerName', name);
-      formData.append('printType', selectedPrintType);
-      formData.append('printSide', selectedPrintSide);
-      formData.append('paymentMethod', 'cash');
-      formData.append('mobileNumber', '');
-      formData.append('orderNotes', (document.getElementById('reviewNotes') ? document.getElementById('reviewNotes').value.trim() : ''));
-      formData.append('orientation', selectedOrientation);
-      formData.append('copies', copiesCount);
-      formData.append('pageRange', selectedPageRange);
-      formData.append('pagesPerSheet', selectedPagesPerSheet || 1);
-
-      var anyMagicActive = false;
-      for (var i = 0; i < selectedFiles.length; i++) {
-        var sf = selectedFiles[i];
-        var isPdf = sf.file && sf.file.name && sf.file.name.toLowerCase().endsWith('.pdf');
-        
-        var pageEntry = (window.allPreviewPages && window.allPreviewPages.find(function (p) { return p.fileIdx === i; })) || null;
-        var isCropped = (!isPdf && (sf.wasCropped || (pageEntry && pageEntry.wasCropped) || (window.allPreviewPages && window.allPreviewPages.some(function(p){ return p.fileIdx === i && p.wasCropped; })))) ? '1' : '0';
-
-        var activeFile = (pageEntry && pageEntry.file) ? pageEntry.file : sf.file;
-        var activeMagic = (pageEntry && pageEntry.magicFile) ? pageEntry.magicFile : sf.magicFile;
-
-        var fileToUpload = (useMagic && activeMagic) ? activeMagic : activeFile;
-        var originalFileName = (activeFile && activeFile.name) || sf.file.name || 'document.jpg';
-        if (typeof fileToUpload === 'string') {
-          fileToUpload = dataURLtoBlob(fileToUpload, originalFileName);
-        }
-        var fileUsedMagic = (!isPdf && useMagic && activeMagic) ? '1' : '0';
-        if (fileUsedMagic === '1') anyMagicActive = true;
-
-        formData.append('files', fileToUpload, originalFileName);
-        if (sf.pages) {
-          formData.append('pageCount_' + originalFileName, sf.pages);
-        }
-        formData.append('wasCropped_' + originalFileName, isCropped);
-        formData.append('usedMagic_' + originalFileName, fileUsedMagic);
-      }
-      formData.append('usedMagic', (useMagic && anyMagicActive) ? '1' : '0');
-
-      fetch('/api/upload', { method: 'POST', body: formData })
-        .then(function (r) {
-          if (!r.ok) { throw new Error('Server returned ' + r.status); }
-          return r.json();
-        })
-        .then(function (data) {
-          if (data.error) {
-            document.getElementById('cashConfirmError').textContent = data.error;
-            if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yes, I Paid'; }
-            return;
-          }
-          currentOrderIds = data.orders.map(function (o) { return o.orderId; });
-          try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
-          document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
-          closePaymentSelectionModal();
-          playCustomerSuccessAudioSequence();
-          showStep('stepStatus');
-          updateStatusDisplay('paid', data.orders);
-        })
-        .catch(function (err) {
-          document.getElementById('cashConfirmError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
-          if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yes, I Paid'; }
-        });
+      currentOrderIds = data.orders.map(function (o) { return o.orderId; });
+      try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
+      document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
+      closePaymentSelectionModal();
+      playCustomerSuccessAudioSequence();
+      showStep('stepStatus');
+      updateStatusDisplay('paid', data.orders);
     }
+
 
     // --- ID Copy 4-Step Wizard State & Handlers ---
     var idcCurrentStep = 1;
@@ -4721,9 +4730,11 @@
           }
 
           return fetch('/api/upload-id-copy', { method: 'POST', body: fd })
-            .then(function (r) {
-              if (!r.ok) throw new Error('Upload failed with status ' + r.status);
-              return r.json();
+            .then(async function (r) {
+              var data = null;
+              try { data = await r.json(); } catch (e) { }
+              if (!r.ok) throw new Error((data && data.error) ? data.error : ('Upload failed with status ' + r.status));
+              return data;
             })
             .then(function (data) {
               if (data.error) throw new Error(data.error);

@@ -607,12 +607,18 @@ if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt', '.heic', '.heif', '.webp', '.bmp', '.tif', '.tiff', '.ppt', '.pptx', '.xls', '.xlsx', '.csv', '.rtf'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) {
+    const allowed = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt', '.heic', '.heif', '.webp', '.bmp', '.tif', '.tiff', '.ppt', '.pptx', '.xls', '.xlsx', '.csv', '.rtf', '.jfif'];
+    let ext = path.extname(file.originalname || '').toLowerCase();
+    if (!ext && file.mimetype) {
+      if (file.mimetype.startsWith('image/jpeg')) ext = '.jpg';
+      else if (file.mimetype.startsWith('image/png')) ext = '.png';
+      else if (file.mimetype.startsWith('image/webp')) ext = '.webp';
+      else if (file.mimetype === 'application/pdf') ext = '.pdf';
+    }
+    if (allowed.includes(ext) || (!ext && file.mimetype && file.mimetype.startsWith('image/'))) {
       cb(null, true);
     } else {
-      cb(new Error(`File type ${ext} not allowed. Allowed types: PDF, Word, Excel, PowerPoint, Images, Text`));
+      cb(new Error(`File type "${ext || 'unknown'}" is not supported. Supported: PDF, Word, Excel, PowerPoint, Text, Images`));
     }
   },
   limits: { fileSize: 100 * 1024 * 1024 }
@@ -775,12 +781,15 @@ function countPagesInRange(rangeStr, maxPages) {
   return Math.max(1, count);
 }
 
-const uploadMw = upload.array('files', 20);
+const uploadMw = upload.array('files', 50);
 app.post('/api/upload', (req, res) => {
   uploadMw(req, res, async function(err) {
     if (err) {
       console.error('Multer error:', err.message);
-      return res.status(400).json({ error: err.message });
+      let errMsg = err.message;
+      if (err.code === 'LIMIT_FILE_SIZE') errMsg = 'File size exceeds 100MB limit.';
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') errMsg = 'Too many files uploaded in one order (limit 50 files).';
+      return res.status(400).json({ error: errMsg });
     }
     try {
       const files = req.files;
