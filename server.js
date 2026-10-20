@@ -128,26 +128,47 @@ function matchPrinter(pName, targetName) {
   if (pLower.includes(tLower) || tLower.includes(pLower)) return true;
   if ((tLower.includes('205i') || tLower.includes('konica')) && (pLower.includes('205i') || pLower.includes('konica'))) return true;
   if (tLower.includes('kyocera') && pLower.includes('kyocera')) return true;
+  if ((tLower.includes('epson') || tLower.includes('l6370')) && (pLower.includes('epson') || pLower.includes('l6370'))) return true;
   if ((tLower.includes('hp95224c') || tLower.includes('smart tank')) && (pLower.includes('hp95224c') || pLower.includes('smart tank'))) return true;
   return false;
 }
 
-async function resolvePrinterName(targetName, isColor) {
+function getActiveBwPrinterName() {
   const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
-  const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
-  let bwPrinter = BW_PRINTER_DEFAULT;
   const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
   if (fs.existsSync(PRINTER_CONFIG)) {
-    try { bwPrinter = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || bwPrinter; } catch(e) {}
+    try {
+      const cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8'));
+      if (cfg && cfg.bwPrinter) return cfg.bwPrinter;
+    } catch (e) {}
   }
+  return BW_PRINTER_DEFAULT;
+}
 
-  if (isColor) return COLOR_PRINTER;
+function getActiveColorPrinterName() {
+  const COLOR_PRINTER_DEFAULT = 'EPSON L6370 Series';
+  const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
+  if (fs.existsSync(PRINTER_CONFIG)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8'));
+      if (cfg && cfg.colorPrinter) return cfg.colorPrinter;
+    } catch (e) {}
+  }
+  return COLOR_PRINTER_DEFAULT;
+}
+
+async function resolvePrinterName(targetName, isColor) {
+  const bwPrinter = getActiveBwPrinterName();
+  const colorPrinter = getActiveColorPrinterName();
+
+  if (isColor) return colorPrinter;
   if (!targetName) return bwPrinter;
 
   const tName = String(targetName).toLowerCase();
   if (tName.includes('205i') || tName.includes('konica')) return 'KONICA MINOLTA 205i(36:33:9E)';
   if (tName.includes('kyocera')) return 'Kyocera ECOSYS MA4000x KX';
-  if (tName.includes('hp') || tName.includes('smart tank')) return COLOR_PRINTER;
+  if (tName.includes('epson') || tName.includes('l6370')) return colorPrinter;
+  if (tName.includes('hp') || tName.includes('smart tank')) return colorPrinter;
 
   try {
     const printers = await getPrintersHidden();
@@ -164,27 +185,15 @@ async function resolvePrinterName(targetName, isColor) {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-function getActiveBwPrinterName() {
-  const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
-  const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
-  if (fs.existsSync(PRINTER_CONFIG)) {
-    try {
-      const cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8'));
-      if (cfg && cfg.bwPrinter) return cfg.bwPrinter;
-    } catch (e) {}
-  }
-  return BW_PRINTER_DEFAULT;
-}
-
 function getPrinterTimingInfo(printerName, printType) {
   const pName = String(printerName || '').toLowerCase();
-  const isColor = printType === 'color' || pName.includes('hp') || pName.includes('smart tank');
+  const isColor = printType === 'color' || pName.includes('epson') || pName.includes('l6370') || pName.includes('hp') || pName.includes('smart tank');
   if (isColor) {
     return {
-      name: 'HP95224C (HP Smart Tank 580-590 series)',
-      displayName: 'HP Smart Tank',
-      ppm: 10,
-      firstPrintSec: 14.0,
+      name: getActiveColorPrinterName(),
+      displayName: 'Epson L6370 (Duplex)',
+      ppm: 15,
+      firstPrintSec: 12.0,
       isBw: false
     };
   }
@@ -272,7 +281,7 @@ function enrichOrderForCustomer(order) {
   }
 
   const isColor = order.print_type === 'color';
-  const targetPrinter = order.printer_name || (isColor ? 'HP95224C (HP Smart Tank 580-590 series)' : getActiveBwPrinterName());
+  const targetPrinter = order.printer_name || (isColor ? getActiveColorPrinterName() : getActiveBwPrinterName());
   const printerInfo = getPrinterTimingInfo(targetPrinter, order.print_type);
 
   // Individual file metrics
@@ -803,9 +812,6 @@ app.post('/api/upload', (req, res) => {
       if (!customerName || !printType || !printSide || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-      if (printType === 'color' && printSide === 'both') {
-        return res.status(400).json({ error: 'Color printing does not support Both Sides' });
-      }
 
       const copyCount = parseInt(copies) || 1;
       const batchId = 'batch_' + uuidv4();
@@ -833,7 +839,7 @@ app.post('/api/upload', (req, res) => {
         }
       }
 
-      // First pass: calculate sheets per file
+      // First pass: calculate sheets & base price per file
       const fileSheets = [];
       for (const file of files) {
         const ext = path.extname(file.originalname).toLowerCase();
@@ -854,48 +860,75 @@ app.post('/api/upload', (req, res) => {
         }
         var ppsPages = Math.ceil(effectivePages / pagesPerSheet);
         const sheets = Math.max(1, printSide === 'both' ? Math.ceil(ppsPages / 2) : ppsPages);
+
+        let fileSingleCopyPrice = 0;
+        if (printType === 'color') {
+          if (printSide === 'both') {
+            const completeSheets = Math.floor(ppsPages / 2);
+            const remainingPages = ppsPages % 2;
+            fileSingleCopyPrice = (completeSheets * 15) + (remainingPages * 10);
+          } else {
+            fileSingleCopyPrice = ppsPages * 10;
+          }
+        }
         
-        fileSheets.push({ file, pages, effectivePages, sheets });
+        fileSheets.push({ file, pages, effectivePages, sheets, fileSingleCopyPrice });
         totalSheets += sheets;
         totalPdfPages += effectivePages;
       }
 
       totalSheets = Math.max(1, totalSheets);
 
-      // Calculate total price with tiered pricing on TOTAL sheets × copies
-      const totalSheetsWithCopies = Math.max(1, totalSheets * copyCount);
-      const baseRate = printType === 'color' ? 10 : 5;
-      const totalTieredPrice = Math.max(baseRate, calculateTieredPrice(totalSheetsWithCopies, printType));
-      
-      // Calculate price before discount
-      const totalPriceBeforeDiscount = totalSheetsWithCopies * baseRate;
-      const totalDiscountAmount = Math.max(0, totalPriceBeforeDiscount - totalTieredPrice);
+      let totalOrderPrice = 0;
+      let totalPriceBeforeDiscount = 0;
+      let totalDiscountAmount = 0;
+      const isColor = (printType === 'color');
 
-      // Distribute price proportionally to each file based on their sheet count
+      if (isColor) {
+        for (const fs of fileSheets) {
+          totalOrderPrice += fs.fileSingleCopyPrice * copyCount;
+        }
+        totalPriceBeforeDiscount = totalOrderPrice;
+        totalDiscountAmount = 0;
+      } else {
+        // B&W tiered pricing (₹5 standard up to 20 sheets, ₹3 bulk)
+        const totalSheetsWithCopies = Math.max(1, totalSheets * copyCount);
+        const baseRate = 5;
+        totalOrderPrice = Math.max(baseRate, calculateTieredPrice(totalSheetsWithCopies, 'bw'));
+        totalPriceBeforeDiscount = totalSheetsWithCopies * baseRate;
+        totalDiscountAmount = Math.max(0, totalPriceBeforeDiscount - totalOrderPrice);
+      }
+
+      // Distribute price to each file
       let totalDistributedPrice = 0;
       for (let i = 0; i < fileSheets.length; i++) {
-        const { file, pages, effectivePages, sheets } = fileSheets[i];
+        const { file, pages, effectivePages, sheets, fileSingleCopyPrice } = fileSheets[i];
         const id = uuidv4();
         
-        // Proportional price allocation
         let price;
-        if (i === fileSheets.length - 1) {
-          // Last file gets remainder to avoid rounding errors
-          price = totalTieredPrice - totalDistributedPrice;
+        let filePriceBeforeDiscount;
+        let fileDiscountAmount;
+
+        if (isColor) {
+          price = fileSingleCopyPrice * copyCount;
+          filePriceBeforeDiscount = price;
+          fileDiscountAmount = 0;
         } else {
-          price = Math.round(totalTieredPrice * (sheets / totalSheets));
+          if (i === fileSheets.length - 1) {
+            price = totalOrderPrice - totalDistributedPrice;
+          } else {
+            price = Math.round(totalOrderPrice * (sheets / totalSheets));
+          }
+          filePriceBeforeDiscount = sheets * copyCount * 5;
+          fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / (totalPriceBeforeDiscount || 1)));
         }
         totalDistributedPrice += price;
-
-        // Proportional discount allocation
-        const filePriceBeforeDiscount = sheets * copyCount * 5;
-        const fileDiscountAmount = Math.round(totalDiscountAmount * (filePriceBeforeDiscount / totalPriceBeforeDiscount));
 
         const isPdfFile = (file.originalname || '').toLowerCase().endsWith('.pdf');
         const fileUsedMagic = isPdfFile ? 0 : ((req.body['usedMagic_' + file.originalname] !== undefined) ? parseInt(req.body['usedMagic_' + file.originalname]) : (req.body.usedMagic === '1' || req.body.usedMagic === 'true' || req.body.usedMagic === 1 ? 1 : 0));
         const fileWasCropped = isPdfFile ? 0 : ((req.body['wasCropped_' + file.originalname] !== undefined) ? parseInt(req.body['wasCropped_' + file.originalname]) : (req.body.wasCropped === '1' || req.body.wasCropped === 'true' || req.body.wasCropped === 1 ? 1 : 0));
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, totalSheetsWithCopies > 20 ? 'bulk' : 'standard', pagesPerSheet, batchId, fileUsedMagic, fileWasCropped);
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, (!isColor && totalSheets * copyCount > 20) ? 'bulk' : 'standard', pagesPerSheet, batchId, fileUsedMagic, fileWasCropped);
 
 
         orders.push({
@@ -1108,8 +1141,8 @@ app.post('/api/verify-razorpay-payment', async (req, res) => {
     }
 
     // Signature verified — mark all associated orders as paid
-    const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
-    const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+    const BW_PRINTER = getActiveBwPrinterName();
+    const COLOR_PRINTER = getActiveColorPrinterName();
 
     // Check auto-print setting
     const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
@@ -1284,8 +1317,8 @@ app.all('/api/verify-cashfree-payment', async (req, res) => {
         try {
           const resObj = JSON.parse(result);
           if (resObj.order_status === 'PAID') {
-            const BW_PRINTER = 'Kyocera ECOSYS MA4000x KX';
-            const COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+            const BW_PRINTER = getActiveBwPrinterName();
+            const COLOR_PRINTER = getActiveColorPrinterName();
 
             const autoPrintRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('razorpay_autoprint_enabled');
             const autoPrintEnabled = autoPrintRow ? autoPrintRow.value === '1' : true;
@@ -1503,12 +1536,9 @@ app.post('/api/admin/autoprint', (req, res) => {
 
 app.get('/api/admin/printer-config', (req, res) => {
   try {
-    const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
-    let bwPrinter = 'Kyocera ECOSYS MA4000x KX';
-    if (fs.existsSync(PRINTER_CONFIG)) {
-      try { bwPrinter = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || bwPrinter; } catch(e){}
-    }
-    res.json({ bwPrinter });
+    const bwPrinter = getActiveBwPrinterName();
+    const colorPrinter = getActiveColorPrinterName();
+    res.json({ bwPrinter, colorPrinter });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1516,13 +1546,17 @@ app.get('/api/admin/printer-config', (req, res) => {
 
 app.post('/api/admin/select-printer', (req, res) => {
   try {
-    const { bwPrinter } = req.body;
-    if (!bwPrinter) return res.status(400).json({ error: 'bwPrinter required' });
-
+    const { bwPrinter, colorPrinter } = req.body;
     const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
-    fs.writeFileSync(PRINTER_CONFIG, JSON.stringify({ bwPrinter }, null, 2));
-    console.log('[PRINTER] Active B&W printer switched to:', bwPrinter);
-    res.json({ success: true, bwPrinter });
+    let cfg = {};
+    if (fs.existsSync(PRINTER_CONFIG)) {
+      try { cfg = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')); } catch(e){}
+    }
+    if (bwPrinter) cfg.bwPrinter = bwPrinter;
+    if (colorPrinter) cfg.colorPrinter = colorPrinter;
+    fs.writeFileSync(PRINTER_CONFIG, JSON.stringify(cfg, null, 2));
+    console.log('[PRINTER] Printer config updated:', cfg);
+    res.json({ success: true, ...cfg });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update printer config' });
   }
@@ -2131,9 +2165,6 @@ app.post('/api/upload-id-copy', (req, res) => {
       if (!customerName || !printType || !paymentMethod) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-      if (printType === 'color' && printSide === 'both') {
-        return res.status(400).json({ error: 'Color printing does not support Both Sides' });
-      }
 
       const initialStatus = 'pending';
       const isBack = backEnabled === 'true' || backEnabled === true;
@@ -2141,7 +2172,7 @@ app.post('/api/upload-id-copy', (req, res) => {
 
       const numCopies = Math.max(1, parseInt(req.body.copies) || 1);
       const pages = 1; // ID Copy is 1 sheet
-      const price = (printType === 'bw' ? 5 : 10) * numCopies;
+      const price = (printType === 'bw' ? 5 : (printSide === 'both' ? 15 : 10)) * numCopies;
 
       const id = uuidv4();
       const stmt = db.prepare(`

@@ -822,8 +822,8 @@
           <div class="pc-name-row">
             <div class="pc-icon color">🖨️</div>
             <div>
-              <div class="pc-name">HP Smart Tank 580-590</div>
-              <div class="pc-type">Color</div>
+              <div class="pc-name">Epson EcoTank L6370</div>
+              <div class="pc-type">Color (Duplex)</div>
             </div>
           </div>
           <span class="pc-status-badge ready" id="colorPrinterStatus">
@@ -1112,7 +1112,7 @@
     var pollInterval = null;
     var KONICA_PRINTER = 'KONICA MINOLTA 205i(36:33:9E)';
     var KYOCERA_PRINTER = 'Kyocera ECOSYS MA4000x KX';
-    var HP_COLOR_PRINTER = 'HP95224C (HP Smart Tank 580-590 series)';
+    var HP_COLOR_PRINTER = 'EPSON L6370 Series';
     var activeBwPrinter = localStorage.getItem('activeBwPrinter') || 'kyocera';
     var bwPrinterOnline = false;
     var kyoceraPrinterOnline = false;
@@ -1255,12 +1255,12 @@
       playedAlertOrders.add(alertKey);
 
       var pLower = (printerName || '').toLowerCase();
-      var isHp = pLower.indexOf('hp') !== -1 || pLower.indexOf('smart tank') !== -1 || pLower.indexOf('deskjet') !== -1 || pLower.indexOf('laserjet') !== -1;
-      var isKonica = pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1 || (printType === 'color' && !isHp);
-      var isKyocera = pLower.indexOf('kyocera') !== -1 || pLower.indexOf('ecosys') !== -1 || pLower.indexOf('taskalfa') !== -1 || (printType === 'bw' && !isHp);
+      var isColor = (printType === 'color') || pLower.indexOf('epson') !== -1 || pLower.indexOf('l6370') !== -1 || pLower.indexOf('hp') !== -1 || pLower.indexOf('smart tank') !== -1 || pLower.indexOf('deskjet') !== -1 || pLower.indexOf('laserjet') !== -1;
+      var isKonica = !isColor && (pLower.indexOf('konica') !== -1 || pLower.indexOf('bizhub') !== -1);
+      var isKyocera = !isColor && (pLower.indexOf('kyocera') !== -1 || pLower.indexOf('ecosys') !== -1 || pLower.indexOf('taskalfa') !== -1);
 
-      if (isHp) {
-        // Play HP sound file
+      if (isColor) {
+        // Play Color sound file
         playAudioFile(['/HP.mp3', '/Hp smart Tank.mp3', '/hp.mp3']);
       } else if (isKonica) {
         // Play KONICA sound file
@@ -1671,7 +1671,7 @@
           var colorFound = printers.some(function(p) {
             if (!p || !p.name) return false;
             var name = p.name.toLowerCase();
-            return name.includes('hp95224c') || name.includes('smart tank');
+            return name.includes('epson') || name.includes('l6370') || name.includes('hp95224c') || name.includes('smart tank');
           });
           bwPrinterOnline = bwFound;
           kyoceraPrinterOnline = kyoceraFound;

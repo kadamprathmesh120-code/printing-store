@@ -3110,15 +3110,7 @@
         }
         var bothPills = document.querySelector('.qp-card .qp-pair .pill-option[data-value="both"]');
         if (bothPills) {
-          if (selectedPrintType === 'color') {
-            bothPills.classList.add('hidden');
-            if (selectedPrintSide === 'both') {
-              var singlePill = document.querySelector('.qp-card .qp-pair .pill-option[data-value="single"]');
-              if (singlePill) selectPill(singlePill, 'printSide');
-            }
-          } else {
-            bothPills.classList.remove('hidden');
-          }
+          bothPills.classList.remove('hidden');
         }
         renderFileCards();
       } else if (group === 'printSide') {
@@ -3193,27 +3185,72 @@
 
       var totalPages = countPagesInRange(pageRange, totalOverallPages);
       var pps = selectedPagesPerSheet || 1;
-      var effectivePages = Math.ceil(totalPages / pps);
-      var totalSheets = (selectedPrintSide === 'both') ? Math.ceil(effectivePages / 2) : effectivePages;
-      if (totalSheets < 1) totalSheets = 1;
-
-      // Tiered pricing: B&W (₹5 base, ₹3 bulk) vs Color (₹10 base, ₹8 bulk)
       var isColor = (selectedPrintType === 'color');
-      var baseRate = isColor ? 10 : 5;
-      var bulkRate = isColor ? 8 : 3;
+      var isBoth = (selectedPrintSide === 'both');
 
-      var calculateTieredPrice = function (sheets) {
-        if (sheets <= 20) return sheets * baseRate;
-        return 20 * baseRate + (sheets - 20) * bulkRate;
-      };
+      var totalSheets = 0;
+      var totalSheetsAllCopies = 0;
+      var totalPrice = 0;
+      var savings = 0;
+      var isBulk = false;
 
-      var totalSheetsAllCopies = totalSheets * copiesCount;
-      var totalPrice = calculateTieredPrice(totalSheetsAllCopies);
+      if (isColor) {
+        var totalPrice1Copy = 0;
+        var totalSheets1Copy = 0;
 
-      // Calculate savings compared to standard pricing
-      var standardPrice = totalSheetsAllCopies * baseRate;
-      var savings = Math.max(0, standardPrice - totalPrice);
-      var isBulk = totalSheetsAllCopies > 20;
+        if (selectedFiles.length > 0) {
+          for (var fi = 0; fi < selectedFiles.length; fi++) {
+            var sf = selectedFiles[fi];
+            var fPages = sf.pages || 1;
+            if (selectedPageRange && selectedPageRange !== 'all') {
+              fPages = countPagesInRange(selectedPageRange, fPages);
+            }
+            var fPps = Math.ceil(fPages / pps);
+            if (isBoth) {
+              var compSheets = Math.floor(fPps / 2);
+              var remPages = fPps % 2;
+              totalPrice1Copy += (compSheets * 15) + (remPages * 10);
+              totalSheets1Copy += Math.max(1, compSheets + remPages);
+            } else {
+              totalPrice1Copy += fPps * 10;
+              totalSheets1Copy += Math.max(1, fPps);
+            }
+          }
+        } else {
+          var dummyPps = Math.ceil(totalPages / pps);
+          if (isBoth) {
+            totalPrice1Copy = (Math.floor(dummyPps / 2) * 15) + ((dummyPps % 2) * 10);
+            totalSheets1Copy = Math.max(1, Math.ceil(dummyPps / 2));
+          } else {
+            totalPrice1Copy = dummyPps * 10;
+            totalSheets1Copy = Math.max(1, dummyPps);
+          }
+        }
+
+        totalSheets = Math.max(1, totalSheets1Copy);
+        totalSheetsAllCopies = totalSheets * copiesCount;
+        totalPrice = totalPrice1Copy * copiesCount;
+        savings = 0;
+        isBulk = false;
+      } else {
+        // Tiered pricing for B&W (₹5 base, ₹3 bulk)
+        var effectivePages = Math.ceil(totalPages / pps);
+        totalSheets = isBoth ? Math.ceil(effectivePages / 2) : effectivePages;
+        if (totalSheets < 1) totalSheets = 1;
+
+        var baseRate = 5;
+        var bulkRate = 3;
+        var calculateTieredPrice = function (sheets) {
+          if (sheets <= 20) return sheets * baseRate;
+          return 20 * baseRate + (sheets - 20) * bulkRate;
+        };
+
+        totalSheetsAllCopies = totalSheets * copiesCount;
+        totalPrice = calculateTieredPrice(totalSheetsAllCopies);
+        var standardPrice = totalSheetsAllCopies * baseRate;
+        savings = Math.max(0, standardPrice - totalPrice);
+        isBulk = totalSheetsAllCopies > 20;
+      }
 
       var rangeLabel = '';
       if (selectedPageRange !== 'all') {
@@ -5357,7 +5394,7 @@
       var qStatus = firstOrder.queue_status || (allPrinted ? 'ready' : (anyAccepted ? 'printing' : status));
       var ordersAhead = (typeof firstOrder.orders_ahead === 'number') ? firstOrder.orders_ahead : 0;
       var printerPpm = firstOrder.printer_ppm || (firstOrder.print_type === 'color' ? 10 : 40);
-      var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'HP Smart Tank' : 'Kyocera ECOSYS MA4000x');
+      var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'Epson L6370 (Duplex)' : 'Kyocera ECOSYS MA4000x');
       var estPrintTimeSec = firstOrder.estimated_print_time_sec || Math.round((totalPdfPages / printerPpm) * 60 + 6.4);
       var estWaitSec = firstOrder.estimated_wait_time_sec || 0;
       var actualPrinted = firstOrder.actual_pages_printed;
