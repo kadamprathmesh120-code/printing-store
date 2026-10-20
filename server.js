@@ -878,6 +878,7 @@ app.post('/api/upload', (req, res) => {
       }
 
       totalSheets = Math.max(1, totalSheets);
+      const totalSheetsWithCopies = Math.max(1, totalSheets * copyCount);
 
       let totalOrderPrice = 0;
       let totalPriceBeforeDiscount = 0;
@@ -892,7 +893,6 @@ app.post('/api/upload', (req, res) => {
         totalDiscountAmount = 0;
       } else {
         // B&W tiered pricing (₹5 standard up to 20 sheets, ₹3 bulk)
-        const totalSheetsWithCopies = Math.max(1, totalSheets * copyCount);
         const baseRate = 5;
         totalOrderPrice = Math.max(baseRate, calculateTieredPrice(totalSheetsWithCopies, 'bw'));
         totalPriceBeforeDiscount = totalSheetsWithCopies * baseRate;
@@ -928,7 +928,7 @@ app.post('/api/upload', (req, res) => {
         const fileUsedMagic = isPdfFile ? 0 : ((req.body['usedMagic_' + file.originalname] !== undefined) ? parseInt(req.body['usedMagic_' + file.originalname]) : (req.body.usedMagic === '1' || req.body.usedMagic === 'true' || req.body.usedMagic === 1 ? 1 : 0));
         const fileWasCropped = isPdfFile ? 0 : ((req.body['wasCropped_' + file.originalname] !== undefined) ? parseInt(req.body['wasCropped_' + file.originalname]) : (req.body.wasCropped === '1' || req.body.wasCropped === 'true' || req.body.wasCropped === 1 ? 1 : 0));
 
-        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, (!isColor && totalSheets * copyCount > 20) ? 'bulk' : 'standard', pagesPerSheet, batchId, fileUsedMagic, fileWasCropped);
+        stmt.run(id, customerName, file.originalname, file.filename, pages, printType, printSide, price, paymentMethod, initialStatus, mobileNumber || null, orderNotes || null, orientation || 'portrait', copyCount, pageRange || 'all', effectivePages, sheets, filePriceBeforeDiscount, fileDiscountAmount, (!isColor && totalSheetsWithCopies > 20) ? 'bulk' : 'standard', pagesPerSheet, batchId, fileUsedMagic, fileWasCropped);
 
 
         orders.push({
@@ -941,7 +941,7 @@ app.post('/api/upload', (req, res) => {
           effectivePages,
           priceBeforeDiscount: filePriceBeforeDiscount,
           discountAmount: fileDiscountAmount,
-          pricingType: totalSheetsWithCopies > 20 ? 'bulk' : 'standard'
+          pricingType: (!isColor && totalSheetsWithCopies > 20) ? 'bulk' : 'standard'
         });
         totalPrice += price;
       }
