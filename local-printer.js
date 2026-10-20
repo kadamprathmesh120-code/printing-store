@@ -2,8 +2,22 @@ const https = require('https');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 const { exec, spawn, execFile } = require('child_process');
 const combiner = require('./print-batch-combiner');
+
+// SINGLE-INSTANCE MUTEX LOCK: Prevents multiple local-printer.js processes from running concurrently and double-printing jobs
+const LOCK_PORT = 39281;
+const lockServer = net.createServer();
+lockServer.once('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error('\n❌ [ERROR] Another instance of local-printer.js is already running!');
+    console.error('Exiting this instance immediately to prevent duplicate / double printing.\n');
+    process.exit(1);
+  }
+});
+lockServer.listen(LOCK_PORT, '127.0.0.1');
+
 // Don't import getPrinters — it spawns Powershell.exe without windowsHide (causes the flash loop)
 // We implement our own hidden version below
 // SumatraPDF path bundled with pdf-to-printer
@@ -647,18 +661,23 @@ async function checkAndPrint() {
   }
 }
 
-console.log('Local printer agent started');
-console.log('Polling:', RENDER_URL);
-console.log('B&W printer:', BW_PRINTER);
-console.log('Color printer:', COLOR_PRINTER);
-console.log('Downloads dir:', DOWNLOAD_DIR);
-console.log('Tracking file:', TRACKING_FILE);
-console.log('Already printed:', Object.keys(printed).length, 'orders');
-try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); console.log('Downloads dir ready'); } catch(e) { console.error('Failed to create downloads dir:', e.message); }
-console.log('');
-console.log('IMPORTANT: If the BW printer prints extra copies, run this ONCE as Admin:');
-console.log('  Set-PrintConfiguration -PrinterName "' + BW_PRINTER + '" -CopyCount 1');
-console.log('');
-console.log('Checking every 3 seconds...');
-checkAndPrint();
-setInterval(checkAndPrint, 3000);
+function startWorker() {
+  console.log('Local printer agent started');
+  console.log('Polling:', RENDER_URL);
+  console.log('B&W printer:', BW_PRINTER);
+  console.log('Color printer:', COLOR_PRINTER);
+  console.log('Downloads dir:', DOWNLOAD_DIR);
+  console.log('Tracking file:', TRACKING_FILE);
+  console.log('Already printed:', Object.keys(printed).length, 'orders');
+  try { fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }); console.log('Downloads dir ready'); } catch(e) { console.error('Failed to create downloads dir:', e.message); }
+  console.log('');
+  console.log('IMPORTANT: If the BW printer prints extra copies, run this ONCE as Admin:');
+  console.log('  Set-PrintConfiguration -PrinterName "' + BW_PRINTER + '" -CopyCount 1');
+  console.log('');
+  console.log('Checking every 3 seconds...');
+  checkAndPrint();
+  setInterval(checkAndPrint, 3000);
+}
+
+lockServer.once('listening', startWorker);
+
