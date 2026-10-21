@@ -2167,7 +2167,8 @@
               curPage.magicFile = null;
               curPage.magicUrl = null;
             }
-            curPage.url = getPageActiveUrl(curPage, selectedEditFilter);
+            selectEditFilter('magic');
+            curPage.url = getPageActiveUrl(curPage, 'magic');
 
             var targetIdx = (curPage.fileIdx !== undefined) ? curPage.fileIdx : pIdx;
             if (selectedFiles && selectedFiles[targetIdx]) {
@@ -2207,7 +2208,7 @@
       var img = new Image();
       img.onload = function () {
         if (typeof OCV_CROP !== 'undefined' && OCV_CROP.openModal) {
-          OCV_CROP.openModal(img, false, function (croppedFile) {
+          OCV_CROP.openModal(img, false, function (croppedFile, filter) {
             if (croppedFile) {
               var croppedUrl = URL.createObjectURL(croppedFile);
               curPage.wasCropped = true;
@@ -2232,7 +2233,11 @@
                 var magicUrl = (magic && magic !== croppedFile) ? URL.createObjectURL(magic) : croppedUrl;
                 curPage.magicUrl = magicUrl;
                 curPage.magicFile = magic;
-                curPage.url = getPageActiveUrl(curPage, selectedEditFilter);
+
+                // Auto-force to Magic Color after crop (user can decide to toggle back to Original in Step 2)
+                var activeFilter = (filter === 'original') ? 'original' : 'magic';
+                selectEditFilter(activeFilter);
+                curPage.url = getPageActiveUrl(curPage, activeFilter);
 
                 // Sync with selectedFiles
                 if (selectedFiles && selectedFiles[targetIdx]) {
@@ -2866,6 +2871,7 @@
             }
             processAutoMagicColor(croppedFile, function (magicFile) {
               selectedFiles.push({ file: croppedFile, magicFile: magicFile, pages: 1 });
+              selectEditFilter('magic');
               startImageCrop(files, idx + 1, cb);
             });
           }, f);
@@ -4337,6 +4343,9 @@
             }
 
             // 5. Update Edit and A4 Print Previews
+            if (typeof idcSelectFilter === 'function') {
+              idcSelectFilter('magic');
+            }
             idcRenderEditPreview();
             idcUpdatePreview();
 
@@ -4754,7 +4763,7 @@
           fd.append('printSide', 'single');
           fd.append('paymentMethod', paymentMethod);
           fd.append('copies', copies);
-          fd.append('usedMagic', '0');
+          fd.append('usedMagic', (selectedIdcFilter === 'magic' && printType === 'bw') ? '1' : '0');
           fd.append('wasCropped', '1');
 
           fd.append('front', frontBlob, frontName);
@@ -5722,10 +5731,12 @@
                     p.croppedUrl = croppedUrl;
                     p.magicUrl = magicUrl;
                     p.magicFile = newMagic;
-                    p.url = getPageActiveUrl(p, selectedEditFilter);
+                    selectEditFilter('magic');
+                    p.url = getPageActiveUrl(p, 'magic');
                     item.url = p.url;
                   } else {
-                    item.url = (selectedEditFilter === 'magic') ? magicUrl : croppedUrl;
+                    selectEditFilter('magic');
+                    item.url = magicUrl;
                   }
                   renderStepPreviewPage();
                   goToStep(2);

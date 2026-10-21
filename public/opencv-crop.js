@@ -1155,7 +1155,7 @@ var currentCrop = null;
 var currentCallback = null;
 var isIdCopyMode = false;
 var hasRotated = false;
-var selectedFilter = 'original';
+var selectedFilter = 'magic';
 var filteredCanvas = null; // cached filtered image
 var filteredFilter = null; // which filter is cached
 var _originalFileRef = null;
@@ -1526,6 +1526,9 @@ function showPreview() {
   // Store unfiltered corrected data before applying filter
   previewCanvas._unfilteredData = new Uint8ClampedArray(correctedData);
 
+  // Auto-force default to Magic Color (HD Quality)
+  selectedFilter = 'magic';
+
   // Apply selected filter to preview
   applyFilter(pCtx, previewW, previewH, selectedFilter);
 
@@ -1715,6 +1718,7 @@ function showPreviewModal() {
     previewCanvas.style.cssText = 'max-width:100%;max-height:100%;display:block;border-radius:6px;object-fit:contain;';
     container.appendChild(previewCanvas);
   }
+  if (!selectedFilter) selectedFilter = 'magic';
   updatePreviewFilterSelection();
 }
 
@@ -1803,8 +1807,11 @@ function commitCropResult() {
     fCtx.drawImage(sourceImage, 0, 0, fullW, fullH);
   }
 
-  // Apply filter at full resolution
-  applyFilter(fCtx, fullW, fullH, selectedFilter);
+  // In ID copy mode, if a filter is chosen, apply it directly to full-resolution canvas
+  // For standard document mode, we export the pristine clean crop so both Original & Magic versions exist!
+  if (isIdCopyMode && selectedFilter && selectedFilter !== 'original') {
+    applyFilter(fCtx, fullW, fullH, selectedFilter);
+  }
 
   // Always export as PNG for maximum print quality
   fCtx.canvas.toBlob(function(blob) {
@@ -1881,7 +1888,7 @@ function openModal(image, idCopy, callback, originalFile) {
     hasRotated = false;
     currentCallback = callback;
     _originalFileRef = fileRef || originalFile || null;
-    selectedFilter = 'original';
+    selectedFilter = 'magic';
     filteredCanvas = null;
     filteredFilter = null;
     zoomLevel = 1;
