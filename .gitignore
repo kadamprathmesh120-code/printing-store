@@ -25,6 +25,7 @@ downloads/
 *.tsbuildinfo
 test-data/
 *.mp3
+!public/*.mp3
 Desktop*/
 HP95224C*
 Kyocera*

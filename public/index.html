@@ -4007,7 +4007,6 @@
       try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
       document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
       closePaymentSelectionModal();
-      playCustomerSuccessAudioSequence();
       showStep('stepStatus');
       updateStatusDisplay('paid', data.orders);
     }
@@ -4869,7 +4868,6 @@
             .then(function (r) { return r.json(); })
             .then(function (cData) {
               if (cData.error) throw new Error(cData.error);
-              playCustomerSuccessAudioSequence();
               showStep('stepStatus');
               updateStatusDisplay('paid', [{ id: data.orderId, status: 'paid' }]);
             });
@@ -5176,9 +5174,12 @@
 
       if (id === 'stepStatus') {
         startAutoStatusPolling();
-      } else if (statusPollTimer) {
-        clearInterval(statusPollTimer);
-        statusPollTimer = null;
+      } else {
+        if (statusPollTimer) {
+          clearInterval(statusPollTimer);
+          statusPollTimer = null;
+        }
+        stopLiveCountdown();
       }
     }
 
@@ -5189,122 +5190,261 @@
       window._heroUrls = [];
     }
 
-    // --- Customer Success Audio Sequence (Google Pay Chime 0.8s -> 0.5s Pause -> Uploaded MP3) ---
-    var _customerAudioPlayed = false;
-    var _customerAudioUnlocked = false;
-    var _unlockedAudioElement = null;
+    // --- Customer Pickup Alert & Audio Manager ---
+    var _pickupAudio = null;
+    var _pickupPlayedOrderIds = {};
     var _customerAudioContext = null;
+    var _audioContextUnlocked = false;
+
+    function initPickupAudio() {
+      if (!_pickupAudio) {
+        _pickupAudio = new Audio('/pickup.mp3?v=' + Date.now());
+        _pickupAudio.preload = 'auto';
+      }
+    }
 
     function unlockCustomerAudio() {
-      if (_customerAudioUnlocked) return;
-      _customerAudioUnlocked = true;
+      initPickupAudio();
+      if (_audioContextUnlocked) return;
+      _audioContextUnlocked = true;
       try {
         var AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
-          _customerAudioContext = new AudioCtx();
+          if (!_customerAudioContext) _customerAudioContext = new AudioCtx();
           if (_customerAudioContext.state === 'suspended') {
             _customerAudioContext.resume();
           }
-          var buffer = _customerAudioContext.createBuffer(1, 1, 22050);
-          var source = _customerAudioContext.createBufferSource();
-          source.buffer = buffer;
-          source.connect(_customerAudioContext.destination);
-          source.start(0);
+          var buf = _customerAudioContext.createBuffer(1, 1, 22050);
+          var src = _customerAudioContext.createBufferSource();
+          src.buffer = buf;
+          src.connect(_customerAudioContext.destination);
+          src.start(0);
+        }
+        if (_pickupAudio) {
+          _pickupAudio.volume = 0;
+          var p = _pickupAudio.play();
+          if (p && p.then) {
+            p.then(function () {
+              _pickupAudio.pause();
+              _pickupAudio.currentTime = 0;
+              _pickupAudio.volume = 1.0;
+            }).catch(function () {
+              _pickupAudio.volume = 1.0;
+            });
+          }
         }
       } catch (e) { }
     }
 
     document.addEventListener('touchstart', unlockCustomerAudio, { passive: true });
     document.addEventListener('click', unlockCustomerAudio, { passive: true });
+    document.addEventListener('pointerdown', unlockCustomerAudio, { passive: true });
 
-    function playCustomerSuccessAudioSequence() {
-      if (_customerAudioPlayed) return;
-      _customerAudioPlayed = true;
-      unlockCustomerAudio();
+    function playPickupAlert(orderKey) {
+      if (orderKey && _pickupPlayedOrderIds[orderKey]) return;
+      if (orderKey) _pickupPlayedOrderIds[orderKey] = true;
 
+      // 1. Phone Vibration (pattern: buzz, pause, buzz, pause, long buzz)
+      if (navigator && typeof navigator.vibrate === 'function') {
+        try {
+          navigator.vibrate([350, 150, 350, 150, 600]);
+        } catch (e) { }
+      }
+
+      // 2. Play Web Audio Chime (immediate fallback sound)
       try {
         var ctx = _customerAudioContext;
         if (!ctx) {
           var AudioCtx = window.AudioContext || window.webkitAudioContext;
           if (AudioCtx) ctx = new AudioCtx();
         }
-        if (ctx && ctx.state === 'suspended') {
-          ctx.resume();
-        }
-
         if (ctx) {
+          if (ctx.state === 'suspended') ctx.resume();
           var now = ctx.currentTime;
           var osc1 = ctx.createOscillator();
           var osc2 = ctx.createOscillator();
           var gain = ctx.createGain();
-
-          osc1.type = 'sine';
+          osc1.type = 'triangle';
           osc2.type = 'sine';
-
           osc1.frequency.setValueAtTime(659.25, now);
           osc1.frequency.setValueAtTime(1046.50, now + 0.18);
           osc2.frequency.setValueAtTime(1318.51, now + 0.18);
-
           gain.gain.setValueAtTime(0.001, now);
           gain.gain.exponentialRampToValueAtTime(0.40, now + 0.04);
           gain.gain.exponentialRampToValueAtTime(0.25, now + 0.18);
           gain.gain.exponentialRampToValueAtTime(0.40, now + 0.22);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.80);
-
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
           osc1.connect(gain);
           osc2.connect(gain);
           gain.connect(ctx.destination);
-
           osc1.start(now);
-          osc1.stop(now + 0.80);
+          osc1.stop(now + 0.85);
           osc2.start(now + 0.18);
-          osc2.stop(now + 0.80);
+          osc2.stop(now + 0.85);
+        }
+      } catch (e) { }
 
-          // 2. Pause 0.5s (0.8s chime + 0.5s pause = 1.3s total delay)
-          setTimeout(function () {
-            playUploadedVoiceMP3();
-          }, 1300);
-
-        } else {
-          playUploadedVoiceMP3();
+      // 3. Play ElevenLabs / Custom Pickup MP3 File
+      try {
+        initPickupAudio();
+        _pickupAudio.volume = 1.0;
+        _pickupAudio.currentTime = 0;
+        var p = _pickupAudio.play();
+        if (p && p.catch) {
+          p.catch(function (err) {
+            console.warn('Pickup MP3 waiting for tap to play:', err);
+          });
         }
       } catch (e) {
-        console.error('Customer audio sequence error:', e);
-        playUploadedVoiceMP3();
+        console.error('Error playing pickup MP3:', e);
       }
     }
 
-    var _customerActiveVoiceAudio = null;
-    var _customerPendingVoice = false;
+    // --- Live Countdown Timer Manager ---
+    var _cdTimerHandle = null;
+    var _cdRemainingSec = 0;
+    var _cdTotalSec = 0;
+    var _cdMode = ''; // 'printing', 'waiting', 'ready', 'none'
+    var _cdInfo = {};
 
-    function unlockCustomerAudio() {
-      try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') ctx.resume();
-      } catch (e) { }
-      if (_customerPendingVoice) {
-        _customerPendingVoice = false;
-        playUploadedVoiceMP3();
+    function formatTimeMinSec(sec) {
+      sec = Math.max(0, Math.round(sec));
+      var m = Math.floor(sec / 60);
+      var s = sec % 60;
+      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    function renderLiveCountdownBox() {
+      var box = document.getElementById('printTimingBox');
+      if (!box) return;
+
+      if (_cdMode === 'ready') {
+        box.style.display = 'block';
+        box.innerHTML =
+          '<div style="background:linear-gradient(135deg, #059669, #10B981);border:2px solid #34D399;border-radius:18px;padding:18px 16px;color:#ffffff;box-shadow:0 8px 24px rgba(16,185,129,0.3);text-align:center;">' +
+            '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px;">' +
+              '<span style="font-size:2rem;">🎉</span>' +
+              '<span style="font-size:1.35rem;font-weight:900;letter-spacing:0.5px;color:#ffffff;">PRINTS READY!</span>' +
+              '<span style="font-size:2rem;">🔔</span>' +
+            '</div>' +
+            '<div style="font-size:0.95rem;font-weight:700;color:#ECFDF5;margin:4px 0 12px;line-height:1.4;">' +
+              'Please collect your printed documents from the machine output tray.' +
+            '</div>' +
+            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.22);backdrop-filter:blur(4px);padding:6px 14px;border-radius:20px;font-size:0.85rem;font-weight:800;border:1px solid rgba(255,255,255,0.35);">' +
+              '<span>⏱️ Completed • 100% Done</span>' +
+            '</div>' +
+          '</div>';
+        return;
+      }
+
+      if (_cdMode === 'printing') {
+        box.style.display = 'block';
+        var pct = _cdTotalSec > 0 ? Math.min(99, Math.max(5, Math.round(((_cdTotalSec - _cdRemainingSec) / _cdTotalSec) * 100))) : 50;
+        var timeStr = formatTimeMinSec(_cdRemainingSec);
+        var subText = (_cdInfo.actualPrinted && _cdInfo.actualPrinted > 0)
+          ? ('Printing page ' + _cdInfo.actualPrinted + ' of ' + (_cdInfo.actualTotal || _cdInfo.totalPdfPages) + '...')
+          : ('Printing on ' + (_cdInfo.printerName || 'Printer') + '...');
+
+        box.innerHTML =
+          '<div style="background:linear-gradient(135deg, #1E40AF, #2563EB);border:2px solid #60A5FA;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(37,99,235,0.28);">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="font-size:1.3rem;">⚙️</span>' +
+                '<span style="font-size:1rem;font-weight:900;letter-spacing:0.5px;">PRINTING NOW</span>' +
+              '</div>' +
+              '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;letter-spacing:0.3px;">' +
+                '⚡ ' + (_cdInfo.printerPpm || 20) + ' PPM' +
+              '</span>' +
+            '</div>' +
+            '<div style="background:rgba(0,0,0,0.22);border-radius:14px;padding:10px 14px;margin:10px 0;text-align:center;border:1px solid rgba(255,255,255,0.15);">' +
+              '<div style="font-size:0.75rem;font-weight:700;color:#BFDBFE;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">⏱️ Ready In</div>' +
+              '<div style="font-size:2.2rem;font-weight:900;font-variant-numeric:tabular-nums;color:#FACC15;letter-spacing:1px;font-family:monospace,sans-serif;">' +
+                timeStr +
+              '</div>' +
+              '<div style="font-size:0.8rem;color:#E0E7FF;font-weight:600;margin-top:2px;">' + subText + '</div>' +
+              '<div style="background:rgba(255,255,255,0.2);height:8px;border-radius:999px;overflow:hidden;margin-top:8px;">' +
+                '<div style="width:' + pct + '%;height:100%;background:#FACC15;border-radius:999px;transition:width 0.9s linear;"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-around;font-size:0.78rem;font-weight:700;color:#DBEAFE;padding-top:4px;">' +
+              '<span>📄 ' + (_cdInfo.totalPdfPages || 1) + ' pages</span>' +
+              '<span>•</span>' +
+              '<span>📑 ' + (_cdInfo.totalSheets || 1) + ' sheets</span>' +
+              '<span>•</span>' +
+              '<span>🖨️ ' + escapeHtml(_cdInfo.printerName || 'Printer') + '</span>' +
+            '</div>' +
+          '</div>';
+        return;
+      }
+
+      if (_cdMode === 'waiting') {
+        box.style.display = 'block';
+        var timeStr = formatTimeMinSec(_cdRemainingSec);
+        var ahead = _cdInfo.ordersAhead || 1;
+
+        box.innerHTML =
+          '<div style="background:linear-gradient(135deg, #78350F, #B45309);border:2px solid #F59E0B;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(245,158,11,0.25);">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="font-size:1.3rem;">⏳</span>' +
+                '<span style="font-size:1rem;font-weight:900;letter-spacing:0.5px;">IN PRINT QUEUE</span>' +
+              '</div>' +
+              '<span style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:900;">' +
+                ahead + ' customer' + (ahead > 1 ? 's' : '') + ' ahead' +
+              '</span>' +
+            '</div>' +
+            '<div style="background:rgba(0,0,0,0.22);border-radius:14px;padding:10px 14px;margin:10px 0;text-align:center;border:1px solid rgba(255,255,255,0.15);">' +
+              '<div style="font-size:0.75rem;font-weight:700;color:#FDE68A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">⏱️ Estimated Turn In</div>' +
+              '<div style="font-size:2.2rem;font-weight:900;font-variant-numeric:tabular-nums;color:#FDE68A;letter-spacing:1px;font-family:monospace,sans-serif;">' +
+                timeStr +
+              '</div>' +
+              '<div style="font-size:0.8rem;color:#FEF3C7;font-weight:600;margin-top:2px;">Your job will print automatically next!</div>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-around;font-size:0.78rem;font-weight:700;color:#FDE68A;padding-top:4px;">' +
+              '<span>📄 Your Order: ' + (_cdInfo.totalPdfPages || 1) + ' pages</span>' +
+              '<span>•</span>' +
+              '<span>📑 ' + (_cdInfo.totalSheets || 1) + ' sheets</span>' +
+            '</div>' +
+          '</div>';
+        return;
+      }
+
+      box.style.display = 'none';
+    }
+
+    function syncLiveCountdown(mode, remainingSec, totalSec, details) {
+      _cdMode = mode;
+      _cdInfo = details || {};
+      if (mode === 'ready') {
+        _cdRemainingSec = 0;
+        _cdTotalSec = 0;
+        renderLiveCountdownBox();
+        return;
+      }
+      _cdRemainingSec = Math.max(0, parseInt(remainingSec) || 0);
+      _cdTotalSec = Math.max(_cdRemainingSec, parseInt(totalSec) || _cdRemainingSec || 15);
+      renderLiveCountdownBox();
+
+      if (!_cdTimerHandle) {
+        _cdTimerHandle = setInterval(function () {
+          if (_cdMode === 'ready' || _cdMode === 'none') return;
+          if (_cdRemainingSec > 0) {
+            _cdRemainingSec--;
+            renderLiveCountdownBox();
+          }
+        }, 1000);
       }
     }
-    document.addEventListener('click', unlockCustomerAudio, { passive: true });
-    document.addEventListener('touchstart', unlockCustomerAudio, { passive: true });
-    document.addEventListener('pointerdown', unlockCustomerAudio, { passive: true });
 
-    function playUploadedVoiceMP3() {
-      if (_customerActiveVoiceAudio) {
-        try { _customerActiveVoiceAudio.pause(); _customerActiveVoiceAudio.currentTime = 0; } catch (e) { }
-        _customerActiveVoiceAudio = null;
+    function stopLiveCountdown() {
+      if (_cdTimerHandle) {
+        clearInterval(_cdTimerHandle);
+        _cdTimerHandle = null;
       }
-      var audio = new Audio('/announcements.mp3?v=' + Date.now());
-      _customerActiveVoiceAudio = audio;
-      var p = audio.play();
-      if (p && p.catch) {
-        p.catch(function (err) {
-          console.warn('Customer background announcement queued for user tap:', err);
-          _customerPendingVoice = true;
-        });
-      }
+      _cdMode = 'none';
+      _cdRemainingSec = 0;
+      var box = document.getElementById('printTimingBox');
+      if (box) box.style.display = 'none';
     }
 
     function updateStatusDisplay(status, orders) {
@@ -5409,81 +5549,9 @@
       var actualPrinted = firstOrder.actual_pages_printed;
       var actualTotal = firstOrder.actual_total_pages || totalPdfPages;
 
-      var timingBox = document.getElementById('printTimingBox');
-      if (timingBox) {
-        if (allPrinted || qStatus === 'ready') {
-          timingBox.style.display = 'block';
-          timingBox.innerHTML =
-            '<div style="background:#ECFDF5;border:1.5px solid #10B981;border-radius:14px;padding:14px 16px;color:#065F46;">' +
-              '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
-                '<span style="font-size:1.4rem;">🎉</span>' +
-                '<div>' +
-                  '<div style="font-weight:900;font-size:1.05rem;color:#065F46;">Prints Ready!</div>' +
-                  '<div style="font-size:0.8rem;color:#047857;font-weight:600;">Please collect your printed pages from Counter 1</div>' +
-                '</div>' +
-              '</div>' +
-              '<div style="display:flex;gap:12px;margin-top:10px;font-size:0.82rem;font-weight:700;color:#047857;background:rgba(255,255,255,0.7);padding:8px 12px;border-radius:10px;">' +
-                '<span>📄 ' + totalPdfPages + ' pages</span>' +
-                '<span>•</span>' +
-                '<span>📑 ' + totalSheets + ' sheets</span>' +
-                '<span>•</span>' +
-                '<span>⚡ Completed</span>' +
-              '</div>' +
-            '</div>';
-        } else if (qStatus === 'printing' || (anyAccepted && ordersAhead === 0 && !allPrinted)) {
-          timingBox.style.display = 'block';
-          var printMsg = (actualPrinted !== null && actualPrinted > 0) ? ('Printing page ' + actualPrinted + ' of ' + actualTotal + '...') : ('Estimated print time: ~' + estPrintTimeSec + ' sec');
-          timingBox.innerHTML =
-            '<div style="background:#EFF6FF;border:1.5px solid #3B82F6;border-radius:14px;padding:14px 16px;color:#1E40AF;">' +
-              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
-                '<div style="display:flex;align-items:center;gap:8px;">' +
-                  '<span style="font-size:1.3rem;">🖨️</span>' +
-                  '<span style="font-weight:900;font-size:1rem;color:#1E40AF;">Printing Now</span>' +
-                '</div>' +
-                '<span style="background:#DBEAFE;color:#1E40AF;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;">Order 1 of 1</span>' +
-              '</div>' +
-              '<div style="font-size:0.88rem;font-weight:700;color:#1D4ED8;margin-bottom:10px;">' +
-                printMsg +
-              '</div>' +
-              '<div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:0.8rem;font-weight:700;color:#3B82F6;background:rgba(255,255,255,0.85);padding:8px 12px;border-radius:10px;">' +
-                '<span>📄 ' + totalPdfPages + ' pages</span>' +
-                '<span>📑 ' + totalSheets + ' sheets</span>' +
-                '<span>⚡ ' + printerPpm + ' pages/min (' + escapeHtml(printerName) + ')</span>' +
-              '</div>' +
-            '</div>';
-        } else if (qStatus === 'waiting' || (anyAccepted && ordersAhead > 0)) {
-          timingBox.style.display = 'block';
-          var waitDisplay = Math.ceil(estWaitSec / 60) > 1 ? (Math.ceil(estWaitSec / 60) + ' min') : (estWaitSec + ' sec');
-          timingBox.innerHTML =
-            '<div style="background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:14px;padding:14px 16px;color:#92400E;">' +
-              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
-                '<div style="display:flex;align-items:center;gap:8px;">' +
-                  '<span style="font-size:1.3rem;">⏳</span>' +
-                  '<span style="font-weight:900;font-size:1rem;color:#92400E;">In Print Queue</span>' +
-                '</div>' +
-                '<span style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;">' +
-                  ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + ' ahead' +
-                '</span>' +
-              '</div>' +
-              '<div style="font-size:0.88rem;font-weight:700;color:#B45309;margin-bottom:10px;">' +
-                'Estimated wait time: ~' + waitDisplay +
-              '</div>' +
-              '<div style="display:flex;flex-wrap:wrap;gap:8px 14px;font-size:0.8rem;font-weight:700;color:#92400E;background:rgba(255,255,255,0.85);padding:8px 12px;border-radius:10px;">' +
-                '<span>📄 Your order: ' + totalPdfPages + ' pages</span>' +
-                '<span>📑 ' + totalSheets + ' sheets</span>' +
-                '<span>⚡ ' + printerPpm + ' pages/min (' + escapeHtml(printerName) + ')</span>' +
-              '</div>' +
-            '</div>';
-        } else {
-          timingBox.style.display = 'none';
-        }
-      }
-
-      if (badge) badge.className = 'status-badge ' + (anyPrinterError ? 'rejected' : status);
-      if (done) done.classList.add('hidden');
-
       var tokenNoticeEl = document.getElementById('tokenNoticeText');
       if (anyPrinterError) {
+        stopLiveCountdown();
         if (cardTitle) cardTitle.textContent = 'PRINTER DELAY';
         if (cardSub) cardSub.textContent = 'Staff resolving machine issue...';
         if (tokenNoticeEl) tokenNoticeEl.innerHTML = '⚠️ <strong>Printer Technical Delay.</strong> Store staff is resolving it. Your order will print as soon as ready!';
@@ -5503,13 +5571,13 @@
           noticeBox.className = 'notice-box cash';
           if (nIcon) nIcon.textContent = '⚠️';
           if (nTitle) nTitle.textContent = 'Store Printer Technical Delay';
-          if (nBody) nBody.textContent = 'Store admin reported a minor machine issue (Paper Jam / Refill). Store staff is resolving it. Your order will print as soon as the machine is ready!';
+          if (nBody) nBody.textContent = 'Store admin reported a minor machine issue (Paper Jam / Refill). Your order will print as soon as ready!';
           if (nPill) nPill.style.display = 'none';
         }
       } else if (allPrinted || qStatus === 'ready') {
         if (cardTitle) cardTitle.textContent = 'PRINTS READY';
-        if (cardSub) cardSub.textContent = 'Collect your prints at Counter 1';
-        if (tokenNoticeEl) tokenNoticeEl.innerHTML = '🎉 <strong>Prints Ready!</strong> Please collect your printed document from Counter 1.';
+        if (cardSub) cardSub.textContent = 'Collect your prints from the tray';
+        if (tokenNoticeEl) tokenNoticeEl.innerHTML = '🎉 <strong>Prints Ready!</strong> Please collect your printed document from the printer tray.';
         var s3IconAcc = s3 ? s3.querySelector('.step-icon-circle') : null;
         if (s3IconAcc) s3IconAcc.textContent = '🖨️';
         if (line) line.style.width = '100%';
@@ -5526,10 +5594,14 @@
           noticeBox.className = 'notice-box online';
           if (nIcon) nIcon.textContent = '🎉';
           if (nTitle) nTitle.textContent = 'Prints Ready!';
-          if (nBody) nBody.textContent = 'Please collect your printed pages from Store Counter 1.';
+          if (nBody) nBody.textContent = 'Please collect your printed pages from the machine output tray.';
           if (nPill) nPill.style.display = 'none';
         }
-        playCustomerSuccessAudioSequence();
+
+        // Live Countdown: Switch to Ready & Ring Pickup MP3!
+        syncLiveCountdown('ready');
+        var firstId = currentOrderIds[0] || (orders[0] && orders[0].id) || 'order';
+        playPickupAlert(firstId);
       } else if (qStatus === 'printing') {
         if (cardTitle) cardTitle.textContent = 'PRINTING NOW';
         if (cardSub) cardSub.textContent = (actualPrinted ? ('Printing page ' + actualPrinted + ' of ' + actualTotal + '...') : ('Printing on ' + printerName + '...'));
@@ -5549,9 +5621,19 @@
           noticeBox.className = 'notice-box online';
           if (nIcon) nIcon.textContent = '🖨️';
           if (nTitle) nTitle.textContent = 'Printing in Progress';
-          if (nBody) nBody.textContent = 'Your documents are being printed on ' + printerName + '. Please wait at the counter.';
+          if (nBody) nBody.textContent = 'Your documents are being printed on ' + printerName + '. Please wait at the machine.';
           if (nPill) nPill.style.display = 'none';
         }
+
+        // Live Countdown for Printing Order
+        syncLiveCountdown('printing', estPrintTimeSec, estPrintTimeSec, {
+          totalPdfPages: totalPdfPages,
+          totalSheets: totalSheets,
+          printerPpm: printerPpm,
+          printerName: printerName,
+          actualPrinted: actualPrinted,
+          actualTotal: actualTotal
+        });
       } else if (qStatus === 'waiting' || ordersAhead > 0) {
         if (cardTitle) cardTitle.textContent = 'IN PRINT QUEUE';
         if (cardSub) cardSub.textContent = ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + ' ahead of you';
@@ -5575,7 +5657,18 @@
           if (nBody) nBody.textContent = 'Your order is queued behind ' + ordersAhead + ' customer order(s). Printing will start automatically.';
           if (nPill) nPill.style.display = 'none';
         }
+
+        // Live Countdown for Queue Order (Wait time + Print time)
+        var totalQueueWait = estWaitSec + estPrintTimeSec;
+        syncLiveCountdown('waiting', totalQueueWait, totalQueueWait, {
+          totalPdfPages: totalPdfPages,
+          totalSheets: totalSheets,
+          printerPpm: printerPpm,
+          printerName: printerName,
+          ordersAhead: ordersAhead
+        });
       } else if (status === 'rejected') {
+        stopLiveCountdown();
         if (cardTitle) cardTitle.textContent = 'ORDER REJECTED';
         if (cardSub) cardSub.textContent = 'Please speak with shop counter staff';
         if (tokenNoticeEl) tokenNoticeEl.innerHTML = '❌ <strong>Order Rejected.</strong> Please speak with store staff.';
@@ -5608,15 +5701,15 @@
             }
           }
         } else {
-          if (tokenNoticeEl) tokenNoticeEl.innerHTML = 'Payment Received! Show your <strong>Token Number</strong> at the shop counter or send 1-Tap WhatsApp to print!';
+          if (tokenNoticeEl) tokenNoticeEl.innerHTML = 'Payment Received! Your files are in queue and will print automatically!';
           if (line) line.style.width = '66%';
           if (s1) s1.className = 'step-item completed';
           if (s2) s2.className = 'step-item completed';
           if (s3) s3.className = 'step-item active';
           if (s4) s4.className = 'step-item';
 
-          if (badge) badge.textContent = 'Payment Received - Printing...';
-          if (msg) msg.textContent = 'Your payment was confirmed. Store admin is reviewing and printing your order.';
+          if (badge) badge.textContent = 'Payment Received - Queued';
+          if (msg) msg.textContent = 'Payment confirmed! Your files are in the print queue.';
 
           if (noticeBox) {
             noticeBox.className = 'notice-box online';
@@ -5625,7 +5718,7 @@
             if (nBody) nBody.textContent = 'Payment of ₹' + totalPrice.toFixed(2) + ' received. Your files are in the print queue.';
             if (nPill) nPill.style.display = 'none';
           }
-          playCustomerSuccessAudioSequence();
+          // Quiet on payment: early sound removed
         }
       }
     }
@@ -5668,6 +5761,8 @@
     }
 
     function startOver() {
+      stopLiveCountdown();
+      _pickupPlayedOrderIds = {};
       currentOrderIds = [];
       try { sessionStorage.removeItem('last_order_ids'); } catch (e) { }
       selectedFiles = [];
