@@ -2200,18 +2200,19 @@
           if (refreshBtn) refreshBtn.style.opacity = '1';
           if (!Array.isArray(orders)) { hideLoading(); return; }
 
-          var isActionable = function(o) {
-            return o.status === 'paid' || o.status === 'accepted' || o.payment_method === 'cash' || o.status === 'pending';
+          // Sound alert only plays AFTER PAYMENT IS CONFIRMED (paid or accepted), never on pending/upload
+          var isPaidOrAccepted = function(o) {
+            return o.status === 'paid' || o.status === 'accepted';
           };
           var newPaidOrders = [];
           if (!isFirstLoad) {
             newPaidOrders = orders.filter(function(o) {
-              return isActionable(o) && !knownPaidOrderIds.has(o.id);
+              return isPaidOrAccepted(o) && !knownPaidOrderIds.has(o.id);
             });
           }
           orders.forEach(function(o) {
             knownOrderIds.add(o.id);
-            if (isActionable(o)) {
+            if (isPaidOrAccepted(o)) {
               knownPaidOrderIds.add(o.id);
             }
           });
@@ -2225,8 +2226,8 @@
               var o = batch[0];
               var countText = batch.length > 1 ? (' (' + batch.length + ' files = 1 order)') : '';
               showNotification(o.customer_name, o.file_name + countText, new Date(o.paid_at || o.created_at).toLocaleTimeString());
-              // Play sound announcement for Online orders immediately; Cash orders wait until Accept
-              if (o.payment_method !== 'cash') {
+              // Play printer sound announcement ONLY after payment is confirmed
+              if (o.payment_method !== 'cash' && isPaidOrAccepted(o)) {
                 var printType = o.print_type || 'bw';
                 var printer = o.printer_name || ((printType === 'color') ? getColorPrinter() : getBwPrinter());
                 playPrinterAlert(printer, o.customer_name, o.file_name, o.copies || 1, printType, o.id);
@@ -2240,7 +2241,7 @@
           allOrders = orders;
 
           // Cash alert with Customer Name Callout (Grouped by customer batch)
-          var cashPaid = orders.filter(function(o) { return (o.payment_method === 'cash' || o.status === 'pending') && o.status !== 'accepted' && o.status !== 'rejected'; });
+          var cashPaid = orders.filter(function(o) { return o.payment_method === 'cash' && o.status !== 'accepted' && o.status !== 'rejected'; });
           var cashBatches = groupOrdersByBatch(cashPaid);
           var cashAlert = document.getElementById('cashAlert');
           if (cashBatches.length > 0) {
