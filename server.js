@@ -259,6 +259,7 @@ $first = $act | Select-Object -First 1;
 }
 
 let activePrintingJob = null; // { orderId, startTime, pagesPrinted, totalPages }
+const batchActiveStartTimes = new Map(); // batchId -> timestamp ms
 
 function enrichOrderForCustomer(order) {
   if (!order) return order;
@@ -297,6 +298,7 @@ function enrichOrderForCustomer(order) {
   let queueStatus = 'pending';
   let ordersAhead = 0;
   let estimatedWaitSec = 0;
+  let remainingPrintSec = Math.round(batchPrintTimeSec);
 
   const allBatchPrinted = batchOrders.every(b => b.is_printed === 1);
   const anyBatchRejected = batchOrders.some(b => b.status === 'rejected');
@@ -334,12 +336,34 @@ function enrichOrderForCustomer(order) {
       batchOrdersMap.get(bId).push(o);
     }
 
+    // Clean up batches no longer in queue
+    for (const bId of batchActiveStartTimes.keys()) {
+      if (!distinctBatches.includes(bId)) {
+        batchActiveStartTimes.delete(bId);
+      }
+    }
+    // Track start time of active head batch if not yet tracked
+    if (distinctBatches.length > 0 && !batchActiveStartTimes.has(distinctBatches[0])) {
+      batchActiveStartTimes.set(distinctBatches[0], Date.now());
+    }
+
+    const headBatchId = distinctBatches[0];
+    let headElapsedSec = 0;
+    if (headBatchId) {
+      if (activePrintingJob && batchOrdersMap.get(headBatchId)?.some(f => f.id === activePrintingJob.orderId)) {
+        headElapsedSec = Math.max(0, (Date.now() - activePrintingJob.startTime) / 1000);
+      } else if (batchActiveStartTimes.has(headBatchId)) {
+        headElapsedSec = Math.max(0, (Date.now() - batchActiveStartTimes.get(headBatchId)) / 1000);
+      }
+    }
+
     const batchIdx = distinctBatches.indexOf(currentBatchId);
     if (batchIdx === 0) {
       // First customer batch in queue: actively printing
       queueStatus = 'printing';
       ordersAhead = 0;
       estimatedWaitSec = 0;
+      remainingPrintSec = Math.max(2, Math.round(batchPrintTimeSec - headElapsedSec));
     } else if (batchIdx > 0) {
       // Waiting behind other customer batch(es)
       queueStatus = 'waiting';
@@ -364,14 +388,11 @@ function enrichOrderForCustomer(order) {
         // 15-second safety buffer between consecutive customer print jobs
         totalWait += 15;
       }
-      if (activePrintingJob && distinctBatches[0]) {
-        const headBatchFiles = batchOrdersMap.get(distinctBatches[0]);
-        if (headBatchFiles && headBatchFiles.some(f => f.id === activePrintingJob.orderId)) {
-          const elapsed = (Date.now() - activePrintingJob.startTime) / 1000;
-          totalWait = Math.max(15, totalWait - elapsed);
-        }
+      if (headElapsedSec > 0) {
+        totalWait = Math.max(5, totalWait - headElapsedSec);
       }
       estimatedWaitSec = Math.round(totalWait);
+      remainingPrintSec = Math.round(batchPrintTimeSec);
     } else {
       queueStatus = order.is_printed === 1 ? 'ready' : (order.status || 'pending');
       ordersAhead = 0;
@@ -396,7 +417,7 @@ function enrichOrderForCustomer(order) {
     printer_display_name: printerInfo.displayName || printerInfo.name,
     queue_status: queueStatus,
     orders_ahead: ordersAhead,
-    estimated_print_time_sec: Math.round(batchPrintTimeSec),
+    estimated_print_time_sec: remainingPrintSec,
     estimated_wait_time_sec: estimatedWaitSec,
     actual_pages_printed: actualPagesPrinted,
     actual_total_pages: actualTotalPages
@@ -1018,6 +1039,7 @@ app.all('/api/orders/:id/mark-printed', (req, res) => {
     }
     const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
     if (order) {
+      batchActiveStartTimes.delete(order.batch_id || order.id);
       tracker.markOrderPrinted(id);
       db.prepare('UPDATE orders SET is_printed = 1 WHERE id = ?').run(id);
     }

@@ -5339,11 +5339,14 @@
 
       if (_cdMode === 'printing') {
         box.style.display = 'block';
-        var pct = _cdTotalSec > 0 ? Math.min(99, Math.max(5, Math.round(((_cdTotalSec - _cdRemainingSec) / _cdTotalSec) * 100))) : 50;
+        var isFinishing = _cdRemainingSec <= 0;
+        var pct = isFinishing ? 99 : (_cdTotalSec > 0 ? Math.min(98, Math.max(5, Math.round(((_cdTotalSec - _cdRemainingSec) / _cdTotalSec) * 100))) : 50);
         var timeStr = formatTimeMinSec(_cdRemainingSec);
-        var subText = (_cdInfo.actualPrinted && _cdInfo.actualPrinted > 0)
-          ? ('Printing page ' + _cdInfo.actualPrinted + ' of ' + (_cdInfo.actualTotal || _cdInfo.totalPdfPages) + '...')
-          : ('Printing on ' + (_cdInfo.printerName || 'Printer') + '...');
+        var subText = isFinishing
+          ? 'Finishing up prints... Almost ready!'
+          : ((_cdInfo.actualPrinted && _cdInfo.actualPrinted > 0)
+            ? ('Printing page ' + _cdInfo.actualPrinted + ' of ' + (_cdInfo.actualTotal || _cdInfo.totalPdfPages) + '...')
+            : ('Printing on ' + (_cdInfo.printerName || 'Printer') + '...'));
 
         box.innerHTML =
           '<div style="background:linear-gradient(135deg, #1E40AF, #2563EB);border:2px solid #60A5FA;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(37,99,235,0.28);">' +
@@ -5379,8 +5382,12 @@
 
       if (_cdMode === 'waiting') {
         box.style.display = 'block';
+        var isFinishingWait = _cdRemainingSec <= 0;
         var timeStr = formatTimeMinSec(_cdRemainingSec);
         var ahead = _cdInfo.ordersAhead || 1;
+        var waitSub = isFinishingWait
+          ? 'Preparing your print job... Starting next!'
+          : 'Your job will print automatically next!';
 
         box.innerHTML =
           '<div style="background:linear-gradient(135deg, #78350F, #B45309);border:2px solid #F59E0B;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(245,158,11,0.25);">' +
@@ -5398,7 +5405,7 @@
               '<div style="font-size:2.2rem;font-weight:900;font-variant-numeric:tabular-nums;color:#FDE68A;letter-spacing:1px;font-family:monospace,sans-serif;">' +
                 timeStr +
               '</div>' +
-              '<div style="font-size:0.8rem;color:#FEF3C7;font-weight:600;margin-top:2px;">Your job will print automatically next!</div>' +
+              '<div style="font-size:0.8rem;color:#FEF3C7;font-weight:600;margin-top:2px;">' + waitSub + '</div>' +
             '</div>' +
             '<div style="display:flex;justify-content:space-around;font-size:0.78rem;font-weight:700;color:#FDE68A;padding-top:4px;">' +
               '<span>📄 Your Order: ' + (_cdInfo.totalPdfPages || 1) + ' pages</span>' +
@@ -5413,16 +5420,43 @@
     }
 
     function syncLiveCountdown(mode, remainingSec, totalSec, details) {
+      var prevMode = _cdMode;
+      var prevAhead = (_cdInfo && typeof _cdInfo.ordersAhead === 'number') ? _cdInfo.ordersAhead : null;
       _cdMode = mode;
       _cdInfo = details || {};
+
       if (mode === 'ready') {
         _cdRemainingSec = 0;
         _cdTotalSec = 0;
         renderLiveCountdownBox();
         return;
       }
-      _cdRemainingSec = Math.max(0, parseInt(remainingSec) || 0);
-      _cdTotalSec = Math.max(_cdRemainingSec, parseInt(totalSec) || _cdRemainingSec || 15);
+
+      var serverRemaining = Math.max(0, parseInt(remainingSec) || 0);
+      var serverTotal = Math.max(serverRemaining, parseInt(totalSec) || serverRemaining || 15);
+
+      if (prevMode !== mode) {
+        // Mode changed (e.g. from waiting -> printing, or initial load)
+        _cdRemainingSec = serverRemaining;
+        _cdTotalSec = serverTotal;
+      } else if (mode === 'waiting' && prevAhead !== null && typeof _cdInfo.ordersAhead === 'number' && _cdInfo.ordersAhead < prevAhead) {
+        // Ahead customer completed, queue moved up!
+        _cdRemainingSec = Math.min(_cdRemainingSec, serverRemaining);
+        _cdTotalSec = Math.max(_cdTotalSec, _cdRemainingSec);
+      } else {
+        // Same mode and queue position: NEVER JUMP UPWARDS (prevent timer flicker / fluctuation)
+        if (_cdRemainingSec === 0 && serverRemaining > 0 && prevMode === mode) {
+          // Keep at 0 to show "Finishing up..." unless mode changed
+        } else if (_cdRemainingSec > 0 && serverRemaining < _cdRemainingSec - 3) {
+          // Server is noticeably faster (e.g. quick print), sync down
+          _cdRemainingSec = serverRemaining;
+        } else if (!_cdRemainingSec && _cdRemainingSec !== 0) {
+          _cdRemainingSec = serverRemaining;
+          _cdTotalSec = serverTotal;
+        }
+        // If serverRemaining >= _cdRemainingSec, keep local ticking countdown so it ticks down smoothly without bouncing back
+      }
+
       renderLiveCountdownBox();
 
       if (!_cdTimerHandle) {
@@ -5430,8 +5464,8 @@
           if (_cdMode === 'ready' || _cdMode === 'none') return;
           if (_cdRemainingSec > 0) {
             _cdRemainingSec--;
-            renderLiveCountdownBox();
           }
+          renderLiveCountdownBox();
         }, 1000);
       }
     }
@@ -5637,7 +5671,8 @@
       } else if (qStatus === 'waiting' || ordersAhead > 0) {
         if (cardTitle) cardTitle.textContent = 'IN PRINT QUEUE';
         if (cardSub) cardSub.textContent = ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + ' ahead of you';
-        var waitMsg = Math.ceil(estWaitSec / 60) > 1 ? (Math.ceil(estWaitSec / 60) + ' min') : (estWaitSec + ' sec');
+        var waitMin = Math.ceil(estWaitSec / 60);
+        var waitMsg = estWaitSec > 60 ? (waitMin + ' min') : (estWaitSec > 0 ? (estWaitSec + ' sec') : 'A few moments');
         if (tokenNoticeEl) tokenNoticeEl.innerHTML = '⏳ <strong>In Queue.</strong> ' + ordersAhead + ' customer order' + (ordersAhead > 1 ? 's' : '') + ' ahead. Estimated wait: ~' + waitMsg + '.';
         var s3IconW = s3 ? s3.querySelector('.step-icon-circle') : null;
         if (s3IconW) s3IconW.textContent = '⏳';
