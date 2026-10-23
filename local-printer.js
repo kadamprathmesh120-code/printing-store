@@ -248,15 +248,17 @@ async function resolvePrinterName(targetName) {
 
 const sleep = function(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); };
 
-function getPrinterTimingInfo(printerName, printType) {
+function getPrinterTimingInfo(printerName, printType, isDuplex) {
   var pName = String(printerName || '').toLowerCase();
   var isColor = printType === 'color' || pName.includes('epson') || pName.includes('l6370') || pName.includes('hp') || pName.includes('smart tank');
   if (isColor) {
+    var duplex = !!isDuplex;
     return {
       name: COLOR_PRINTER,
       displayName: 'Epson L6370 (Duplex)',
-      ppm: 15,
-      firstPrintSec: 12.0,
+      // Standard ISO speed: 9 ppm for single-sided (simplex), 5 ppm for double-sided (duplex)
+      ppm: duplex ? 5 : 9,
+      firstPrintSec: duplex ? 15.0 : 14.0,
       isBw: false
     };
   }
@@ -347,14 +349,223 @@ function postJson(urlStr, data) {
 
 var activePrints = new Set();
 var printerConfigSyncCounter = 0;
-var isQueueProcessing = false;
+var isBwProcessing = false;
+var isColorProcessing = false;
 
-async function checkAndPrint() {
-  if (isQueueProcessing) return;
-  isQueueProcessing = true;
+async function printSingleOrder(order, resolvedPrinter, isColorQueue, logPrefix) {
+  activePrints.add(order.id);
+  var backLocal = '';
+  var combinedPath = '';
+  var localFile = '';
   try {
-    // Sync active B&W printer selection from Render server periodically (every 30s instead of every 3s)
-    if (printerConfigSyncCounter++ % 10 === 0) {
+    var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
+    console.log(logPrefix + ' New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
+    console.log(logPrefix + ' Downloading:', fileUrl);
+    var ext = path.extname(order.file_name).toLowerCase();
+    localFile = path.join(DOWNLOAD_DIR, order.file_path);
+
+    fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
+    await downloadFile(fileUrl, localFile);
+
+    var isDuplex = (order.print_side === 'both');
+    var printerInfo = getPrinterTimingInfo(resolvedPrinter, order.print_type, isDuplex);
+    var copyNum = Math.max(1, parseInt(order.copies) || 1);
+    var pdfPages = Math.max(1, parseInt(order.effective_pages || order.page_count) || 1) * copyNum;
+
+    var printTimeSec = (pdfPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
+    var printTimeMs = printTimeSec * 1000;
+
+    console.log(logPrefix + ' Printing ' + pdfPages + ' pages to ' + resolvedPrinter + ' (est ' + Math.round(printTimeSec) + 's)...');
+    var isPdf = ext === '.pdf';
+    var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
+    var orient = (order.orientation || 'portrait').toLowerCase();
+
+    fetchJson(RENDER_URL + '/api/orders/' + order.id + '/start-printing').catch(function(){});
+
+    if (order.is_id_copy) {
+      if (order.back_file_path) {
+        var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
+        backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
+        await downloadFile(backUrl, backLocal);
+      }
+      combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
+      var psParams = { frontPath: localFile, outputPath: combinedPath };
+      if (backLocal) psParams.backPath = backLocal;
+      await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), psParams);
+      var idPrintParams = { filePath: combinedPath, printerName: resolvedPrinter, copies: copyNum, orientation: orient };
+      await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
+      console.log(logPrefix + ' Printed combined ID copy to', resolvedPrinter);
+    } else if (isPdf) {
+      var pdfOpts = { printer: resolvedPrinter, silent: true, monochrome: !isColorQueue, side: isDuplex ? 'duplex' : 'simplex', paperSize: 'A4', copies: copyNum, orientation: orient, pagesPerSheet: order.pages_per_sheet || 1 };
+      if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
+      await printPdfSilent(localFile, pdfOpts);
+      console.log(logPrefix + ' Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', resolvedPrinter);
+    } else if (isImage) {
+      var imgPrintParams = { filePath: localFile, printerName: resolvedPrinter, copies: copyNum, orientation: orient };
+      await runPsScript(path.join(__dirname, 'print-image.ps1'), imgPrintParams);
+    } else {
+      await execP('print /D:"' + resolvedPrinter + '" "' + localFile + '"');
+    }
+
+    var jobStartTime = Date.now();
+    while (Date.now() - jobStartTime < printTimeMs) {
+      var currentJobCheck = await checkWindowsPrintJob(resolvedPrinter);
+      if (currentJobCheck && currentJobCheck.pagesPrinted > 0) {
+        postJson(RENDER_URL + '/api/orders/' + order.id + '/progress', {
+          pagesPrinted: currentJobCheck.pagesPrinted,
+          totalPages: currentJobCheck.totalPages || pdfPages
+        }).catch(function(){});
+      }
+      var remainingWait = printTimeMs - (Date.now() - jobStartTime);
+      await sleep(Math.min(2000, Math.max(500, remainingWait)));
+    }
+
+    while (true) {
+      var jobInfo = await checkWindowsPrintJob(resolvedPrinter);
+      if (jobInfo.activeCount <= 0) break;
+      await sleep(1500);
+    }
+
+    console.log(logPrefix + ' Printed:', order.file_name, 'to', resolvedPrinter);
+    tracker.markOrderPrinted(order.id);
+    try { await fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){}); } catch(e){}
+
+    try {
+      if (localFile && fs.existsSync(localFile)) { fs.unlinkSync(localFile); }
+      if (backLocal && fs.existsSync(backLocal)) { fs.unlinkSync(backLocal); }
+      if (combinedPath && fs.existsSync(combinedPath)) { fs.unlinkSync(combinedPath); }
+    } catch(e) {}
+  } catch(e) {
+    console.error(logPrefix + ' Failed to print order ' + order.id + ':', e.message);
+    try { tracker.unmarkOrderPrinted(order.id); } catch(err){}
+  } finally {
+    activePrints.delete(order.id);
+  }
+}
+
+async function printMergedBatch(batchFiles, resolvedPrinter, isColorQueue, currentBatchId, logPrefix) {
+  batchFiles.forEach(function(o) { activePrints.add(o.id); });
+  var downloadedItems = [];
+  var mergedBatchPath = '';
+  try {
+    fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
+    console.log(logPrefix + ' Customer: ' + batchFiles[0].customer_name + ' | Combining ' + batchFiles.length + ' files for ' + resolvedPrinter);
+
+    for (var g = 0; g < batchFiles.length; g++) {
+      var ord = batchFiles[g];
+      var fileUrl = RENDER_URL + '/uploads/' + ord.file_path;
+      var localFile = path.join(DOWNLOAD_DIR, ord.file_path);
+      await downloadFile(fileUrl, localFile);
+
+      var backLocal = '';
+      if (ord.is_id_copy && ord.back_file_path) {
+        var backUrl = RENDER_URL + '/uploads/' + ord.back_file_path;
+        backLocal = path.join(DOWNLOAD_DIR, ord.back_file_path);
+        await downloadFile(backUrl, backLocal);
+      }
+
+      downloadedItems.push({
+        order: ord,
+        filePath: localFile,
+        fileName: ord.file_name,
+        ext: path.extname(ord.file_name).toLowerCase(),
+        isIdCopy: !!ord.is_id_copy,
+        runIdCombine: !!ord.is_id_copy,
+        backFilePath: backLocal,
+        pageRange: ord.page_range,
+        orientation: (ord.orientation || 'portrait').toLowerCase()
+      });
+
+      fetchJson(RENDER_URL + '/api/orders/' + ord.id + '/start-printing').catch(function(){});
+    }
+
+    var firstOrder = batchFiles[0];
+    var isDuplex = batchFiles.some(function(o) { return o.print_side === 'both'; });
+    var copyNum = Math.max(1, parseInt(firstOrder.copies) || 1);
+    var safeBatchTag = currentBatchId.replace(/[^a-zA-Z0-9_-]/g, '');
+    mergedBatchPath = path.join(DOWNLOAD_DIR, 'batch_' + safeBatchTag + '_' + Date.now() + '.pdf');
+
+    var combineRes = await combiner.combineBatchFilesToPdf(downloadedItems, mergedBatchPath, { isDuplex: isDuplex });
+    var totalJobPages = combineRes.totalPages * copyNum;
+    var printerInfo = getPrinterTimingInfo(resolvedPrinter, firstOrder.print_type, isDuplex);
+
+    var printTimeSec = (totalJobPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
+    var printTimeMs = printTimeSec * 1000;
+
+    console.log(logPrefix + ' Merged ' + batchFiles.length + ' files into ' + combineRes.totalPages + ' page PDF. Printing 1 continuous job to ' + resolvedPrinter + ' (' + totalJobPages + ' total pages, est ' + Math.round(printTimeSec) + 's)...');
+
+    var pdfOpts = {
+      printer: resolvedPrinter,
+      silent: true,
+      monochrome: !isColorQueue,
+      side: isDuplex ? 'duplex' : 'simplex',
+      paperSize: 'A4',
+      copies: copyNum,
+      orientation: (firstOrder.orientation || 'portrait').toLowerCase(),
+      pagesPerSheet: firstOrder.pages_per_sheet || 1
+    };
+
+    await printPdfSilent(mergedBatchPath, pdfOpts);
+
+    var jobStartTime = Date.now();
+    while (Date.now() - jobStartTime < printTimeMs) {
+      var currentJobCheck = await checkWindowsPrintJob(resolvedPrinter);
+      if (currentJobCheck && currentJobCheck.pagesPrinted > 0) {
+        batchFiles.forEach(function(o) {
+          postJson(RENDER_URL + '/api/orders/' + o.id + '/progress', {
+            pagesPrinted: currentJobCheck.pagesPrinted,
+            totalPages: currentJobCheck.totalPages || totalJobPages
+          }).catch(function(){});
+        });
+      }
+      var remainingWait = printTimeMs - (Date.now() - jobStartTime);
+      await sleep(Math.min(2000, Math.max(500, remainingWait)));
+    }
+
+    while (true) {
+      var jobInfo = await checkWindowsPrintJob(resolvedPrinter);
+      if (jobInfo.activeCount <= 0) break;
+      await sleep(1500);
+    }
+
+    // Mark all orders in batch as printed
+    for (var item of downloadedItems) {
+      var o = item.order;
+      console.log(logPrefix + ' Printed batch item:', o.file_name, 'to', resolvedPrinter);
+      tracker.markOrderPrinted(o.id);
+      fetchJson(RENDER_URL + '/api/orders/' + o.id + '/mark-printed').catch(function(){});
+      if (item.filePath && fs.existsSync(item.filePath)) try { fs.unlinkSync(item.filePath); } catch(e){}
+      if (item.backFilePath && fs.existsSync(item.backFilePath)) try { fs.unlinkSync(item.backFilePath); } catch(e){}
+    }
+    if (mergedBatchPath && fs.existsSync(mergedBatchPath)) try { fs.unlinkSync(mergedBatchPath); } catch(e){}
+    console.log(logPrefix + ' Customer batch ' + currentBatchId + ' (' + batchFiles.length + ' files) successfully printed in 1 job!');
+  } catch (e) {
+    console.error(logPrefix + ' Error in batch print for ' + currentBatchId + ':', e.message);
+    batchFiles.forEach(function(o) {
+      try { tracker.unmarkOrderPrinted(o.id); } catch(err){}
+    });
+  } finally {
+    batchFiles.forEach(function(o) {
+      activePrints.delete(o.id);
+    });
+  }
+}
+
+async function checkAndPrintQueue(queueType) {
+  var isColorQueue = (queueType === 'color');
+  var logPrefix = isColorQueue ? '[COLOR QUEUE]' : '[BW QUEUE]';
+
+  if (isColorQueue) {
+    if (isColorProcessing) return;
+    isColorProcessing = true;
+  } else {
+    if (isBwProcessing) return;
+    isBwProcessing = true;
+  }
+
+  try {
+    // Sync active B&W printer selection occasionally
+    if (!isColorQueue && printerConfigSyncCounter++ % 10 === 0) {
       try {
         var serverCfg = await fetchJson(RENDER_URL + '/api/admin/printer-config');
         if (serverCfg && serverCfg.bwPrinter) {
@@ -363,10 +574,17 @@ async function checkAndPrint() {
       } catch(e) {}
     }
 
-    // Fetch only unprinted accepted orders (empty [] when idle, saves >99% bandwidth)
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders?status=accepted&unprinted=1');
-    if (!Array.isArray(orders)) return; // server not ready or returned an error object
-    var acceptedOrders = orders.filter(function(o) { return !tracker.isOrderPrinted(o.id) && !activePrints.has(o.id); });
+    if (!Array.isArray(orders)) return;
+
+    // Filter strictly by queue type: B&W prints only B&W, Color prints only Color
+    var acceptedOrders = orders.filter(function(o) {
+      var isOrdColor = (o.print_type === 'color');
+      if (isColorQueue ? !isOrdColor : isOrdColor) return false;
+      return !tracker.isOrderPrinted(o.id) && !activePrints.has(o.id);
+    });
+
+    if (acceptedOrders.length === 0) return;
 
     // Enforce FIFO order by payment timestamp (first to pay = first to print)
     acceptedOrders.sort(function(a, b) {
@@ -375,12 +593,7 @@ async function checkAndPrint() {
       return (timeA - timeB) || ((a.rowid || 0) - (b.rowid || 0));
     });
 
-    if (acceptedOrders.length > 0) {
-      var batchSet = new Set(acceptedOrders.map(function(o) { return o.batch_id || o.id; }));
-      console.log('Found ' + batchSet.size + ' customer queue order(s) (' + acceptedOrders.length + ' files) sorted by payment priority');
-    }
-
-    // Group unprinted orders by customer batch, preserving FIFO order
+    // Group into batches for this queue
     var batchMap = new Map();
     var orderedBatchIds = [];
     for (var k = 0; k < acceptedOrders.length; k++) {
@@ -393,272 +606,68 @@ async function checkAndPrint() {
       batchMap.get(bId).push(ord);
     }
 
+    // Determine target printer for this queue
+    var activeBw = BW_PRINTER_DEFAULT;
+    if (fs.existsSync(PRINTER_CONFIG)) {
+      try { activeBw = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || activeBw; } catch(e) {}
+    }
+    var requestedPrinter = isColorQueue ? COLOR_PRINTER : activeBw;
+    var resolvedPrinter = await resolvePrinterName(requestedPrinter);
+
     for (var bIdx = 0; bIdx < orderedBatchIds.length; bIdx++) {
       var currentBatchId = orderedBatchIds[bIdx];
       var batchFiles = batchMap.get(currentBatchId) || [];
       batchFiles = batchFiles.filter(function(o) { return !tracker.isOrderPrinted(o.id) && !activePrints.has(o.id); });
       if (batchFiles.length === 0) continue;
 
-      // Dynamically fetch current active B&W printer
-      var activeBw = BW_PRINTER_DEFAULT;
-      if (fs.existsSync(PRINTER_CONFIG)) {
-        try { activeBw = JSON.parse(fs.readFileSync(PRINTER_CONFIG, 'utf8')).bwPrinter || activeBw; } catch(e) {}
+      if (batchFiles.length === 1) {
+        await printSingleOrder(batchFiles[0], resolvedPrinter, isColorQueue, logPrefix);
+      } else {
+        await printMergedBatch(batchFiles, resolvedPrinter, isColorQueue, currentBatchId, logPrefix);
       }
 
-      // Group files in this customer batch by target printer
-      var printerJobGroups = new Map();
-      for (var fIdx = 0; fIdx < batchFiles.length; fIdx++) {
-        var o = batchFiles[fIdx];
-        var isColor = (o.print_type === 'color');
-        var requestedPrinter = isColor ? COLOR_PRINTER : activeBw;
-        var targetPrinter = await resolvePrinterName(requestedPrinter);
-        if (!printerJobGroups.has(targetPrinter)) {
-          printerJobGroups.set(targetPrinter, []);
-        }
-        printerJobGroups.get(targetPrinter).push(o);
-      }
-
-      // Process each printer group for this customer
-      for (var [printer, groupOrders] of printerJobGroups.entries()) {
-        if (!groupOrders || groupOrders.length === 0) continue;
-
-        if (groupOrders.length === 1) {
-          // Single file order
-          var order = groupOrders[0];
-          activePrints.add(order.id);
-          var backLocal = '';
-          var combinedPath = '';
-          var localFile = '';
-          try {
-            var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
-            console.log('New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
-            console.log('Downloading:', fileUrl);
-            var ext = path.extname(order.file_name).toLowerCase();
-            localFile = path.join(DOWNLOAD_DIR, order.file_path);
-
-            fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
-            await downloadFile(fileUrl, localFile);
-
-            var printerInfo = getPrinterTimingInfo(printer, order.print_type);
-            var copyNum = Math.max(1, parseInt(order.copies) || 1);
-            var pdfPages = Math.max(1, parseInt(order.effective_pages || order.page_count) || 1) * copyNum;
-
-            var printTimeSec = (pdfPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
-            var printTimeMs = printTimeSec * 1000;
-
-            console.log('DEBUG: order.id=' + order.id + ', pages=' + pdfPages + ', PPM=' + printerInfo.ppm + ', estSec=' + Math.round(printTimeSec) + ', printer=' + printer);
-            var isPdf = ext === '.pdf';
-            var isImage = ['.jpg', '.jpeg', '.png'].includes(ext);
-            var orient = (order.orientation || 'portrait').toLowerCase();
-
-            fetchJson(RENDER_URL + '/api/orders/' + order.id + '/start-printing').catch(function(){});
-
-            if (order.is_id_copy) {
-              if (order.back_file_path) {
-                var backUrl = RENDER_URL + '/uploads/' + order.back_file_path;
-                backLocal = path.join(DOWNLOAD_DIR, order.back_file_path);
-                await downloadFile(backUrl, backLocal);
-              }
-              combinedPath = path.join(DOWNLOAD_DIR, 'combined_' + order.file_path);
-              var psParams = { frontPath: localFile, outputPath: combinedPath };
-              if (backLocal) psParams.backPath = backLocal;
-              await runPsScript(path.join(__dirname, 'combine-idcopy.ps1'), psParams);
-              var idPrintParams = { filePath: combinedPath, printerName: printer, copies: copyNum, orientation: orient };
-              await runPsScript(path.join(__dirname, 'print-image.ps1'), idPrintParams);
-              console.log('Printed combined ID copy (86x54 mm) to', printer);
-            } else if (isPdf) {
-              var pdfOpts = { printer: printer, silent: true, monochrome: order.print_type === 'bw', side: order.print_side === 'both' ? 'duplex' : 'simplex', paperSize: 'A4', copies: copyNum, orientation: orient, pagesPerSheet: order.pages_per_sheet || 1 };
-              if (order.page_range && order.page_range !== 'all') pdfOpts.pages = order.page_range;
-              await printPdfSilent(localFile, pdfOpts);
-              console.log('Printed', copyNum, 'copy' + (copyNum > 1 ? 'ies' : '') + ' to', printer);
-            } else if (isImage) {
-              var imgPrintParams = { filePath: localFile, printerName: printer, copies: copyNum, orientation: orient };
-              await runPsScript(path.join(__dirname, 'print-image.ps1'), imgPrintParams);
-            } else {
-              await execP('print /D:"' + printer + '" "' + localFile + '"');
-            }
-
-            var jobStartTime = Date.now();
-            console.log('[QUEUE] Waiting estimated duration (' + Math.round(printTimeSec) + 's) for order ' + order.id + '...');
-
-            while (Date.now() - jobStartTime < printTimeMs) {
-              var currentJobCheck = await checkWindowsPrintJob(printer);
-              if (currentJobCheck && currentJobCheck.pagesPrinted > 0) {
-                postJson(RENDER_URL + '/api/orders/' + order.id + '/progress', {
-                  pagesPrinted: currentJobCheck.pagesPrinted,
-                  totalPages: currentJobCheck.totalPages || pdfPages
-                }).catch(function(){});
-              }
-              var remainingWait = printTimeMs - (Date.now() - jobStartTime);
-              await sleep(Math.min(2000, Math.max(500, remainingWait)));
-            }
-
-            while (true) {
-              var jobInfo = await checkWindowsPrintJob(printer);
-              if (jobInfo.activeCount <= 0) break;
-              await sleep(1500);
-            }
-
-            console.log('Printed:', order.file_name, 'to', printer);
-            tracker.markOrderPrinted(order.id);
-            try { await fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){}); } catch(e){}
-
-            try {
-              if (localFile && fs.existsSync(localFile)) { fs.unlinkSync(localFile); }
-              if (backLocal && fs.existsSync(backLocal)) { fs.unlinkSync(backLocal); }
-              if (combinedPath && fs.existsSync(combinedPath)) { fs.unlinkSync(combinedPath); }
-            } catch(e) {}
-          } catch(e) {
-            console.error('Failed to print order ' + order.id + ':', e.message);
-            try { tracker.unmarkOrderPrinted(order.id); } catch(err){}
-          } finally {
-            activePrints.delete(order.id);
-          }
-        } else {
-          // Multiple files in customer batch for this printer: COMBINE INTO 1 CONTINUOUS JOB!
-          groupOrders.forEach(function(o) { activePrints.add(o.id); });
-          var downloadedItems = [];
-          var mergedBatchPath = '';
-          try {
-            fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
-            console.log('[BATCH PRINT] Customer: ' + groupOrders[0].customer_name + ' | Combining ' + groupOrders.length + ' files for ' + printer);
-
-            for (var g = 0; g < groupOrders.length; g++) {
-              var ord = groupOrders[g];
-              var fileUrl = RENDER_URL + '/uploads/' + ord.file_path;
-              var localFile = path.join(DOWNLOAD_DIR, ord.file_path);
-              await downloadFile(fileUrl, localFile);
-
-              var backLocal = '';
-              if (ord.is_id_copy && ord.back_file_path) {
-                var backUrl = RENDER_URL + '/uploads/' + ord.back_file_path;
-                backLocal = path.join(DOWNLOAD_DIR, ord.back_file_path);
-                await downloadFile(backUrl, backLocal);
-              }
-
-              downloadedItems.push({
-                order: ord,
-                filePath: localFile,
-                fileName: ord.file_name,
-                ext: path.extname(ord.file_name).toLowerCase(),
-                isIdCopy: !!ord.is_id_copy,
-                runIdCombine: !!ord.is_id_copy,
-                backFilePath: backLocal,
-                pageRange: ord.page_range,
-                orientation: (ord.orientation || 'portrait').toLowerCase()
-              });
-
-              fetchJson(RENDER_URL + '/api/orders/' + ord.id + '/start-printing').catch(function(){});
-            }
-
-            var firstOrder = groupOrders[0];
-            var isDuplex = groupOrders.some(function(o) { return o.print_side === 'both'; });
-            var copyNum = Math.max(1, parseInt(firstOrder.copies) || 1);
-            var safeBatchTag = currentBatchId.replace(/[^a-zA-Z0-9_-]/g, '');
-            mergedBatchPath = path.join(DOWNLOAD_DIR, 'batch_' + safeBatchTag + '_' + Date.now() + '.pdf');
-
-            var combineRes = await combiner.combineBatchFilesToPdf(downloadedItems, mergedBatchPath, { isDuplex: isDuplex });
-            var totalJobPages = combineRes.totalPages * copyNum;
-            var printerInfo = getPrinterTimingInfo(printer, firstOrder.print_type);
-
-            var printTimeSec = (totalJobPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
-            var printTimeMs = printTimeSec * 1000;
-
-            console.log('[BATCH PRINT] Merged ' + groupOrders.length + ' files into ' + combineRes.totalPages + ' page PDF. Printing 1 continuous job to ' + printer + ' (' + totalJobPages + ' total pages, est ' + Math.round(printTimeSec) + 's)...');
-
-            var pdfOpts = {
-              printer: printer,
-              silent: true,
-              monochrome: firstOrder.print_type === 'bw',
-              side: isDuplex ? 'duplex' : 'simplex',
-              paperSize: 'A4',
-              copies: copyNum,
-              orientation: (firstOrder.orientation || 'portrait').toLowerCase(),
-              pagesPerSheet: firstOrder.pages_per_sheet || 1
-            };
-
-            await printPdfSilent(mergedBatchPath, pdfOpts);
-
-            var jobStartTime = Date.now();
-            console.log('[BATCH QUEUE] Waiting estimated duration (' + Math.round(printTimeSec) + 's) for batch ' + currentBatchId + '...');
-
-            while (Date.now() - jobStartTime < printTimeMs) {
-              var currentJobCheck = await checkWindowsPrintJob(printer);
-              if (currentJobCheck && currentJobCheck.pagesPrinted > 0) {
-                groupOrders.forEach(function(o) {
-                  postJson(RENDER_URL + '/api/orders/' + o.id + '/progress', {
-                    pagesPrinted: currentJobCheck.pagesPrinted,
-                    totalPages: currentJobCheck.totalPages || totalJobPages
-                  }).catch(function(){});
-                });
-              }
-              var remainingWait = printTimeMs - (Date.now() - jobStartTime);
-              await sleep(Math.min(2000, Math.max(500, remainingWait)));
-            }
-
-            while (true) {
-              var jobInfo = await checkWindowsPrintJob(printer);
-              if (jobInfo.activeCount <= 0) break;
-              await sleep(1500);
-            }
-
-            // Mark all orders in batch as printed
-            for (var item of downloadedItems) {
-              var o = item.order;
-              console.log('Printed batch item:', o.file_name, 'to', printer);
-              tracker.markOrderPrinted(o.id);
-              fetchJson(RENDER_URL + '/api/orders/' + o.id + '/mark-printed').catch(function(){});
-              if (item.filePath && fs.existsSync(item.filePath)) try { fs.unlinkSync(item.filePath); } catch(e){}
-              if (item.backFilePath && fs.existsSync(item.backFilePath)) try { fs.unlinkSync(item.backFilePath); } catch(e){}
-            }
-            if (mergedBatchPath && fs.existsSync(mergedBatchPath)) try { fs.unlinkSync(mergedBatchPath); } catch(e){}
-            console.log('[BATCH PRINT] Customer batch ' + currentBatchId + ' (' + groupOrders.length + ' files) successfully printed in 1 job!');
-          } catch (e) {
-            console.error('[BATCH PRINT] Error in batch print for ' + currentBatchId + ':', e.message);
-            groupOrders.forEach(function(o) {
-              try { tracker.unmarkOrderPrinted(o.id); } catch(err){}
-            });
-          } finally {
-            groupOrders.forEach(function(o) {
-              activePrints.delete(o.id);
-            });
-          }
-        }
-      }
-
-      // Check if another customer batch is waiting
+      // Check if ANOTHER customer batch is waiting IN THIS QUEUE (same printer tray)
       var latestOrders = await fetchJson(RENDER_URL + '/api/admin/orders?status=accepted&unprinted=1');
-      var unprintedQueue = Array.isArray(latestOrders) ? latestOrders.filter(function(o) {
+      var unprintedInQueue = Array.isArray(latestOrders) ? latestOrders.filter(function(o) {
+        var isOrdColor = (o.print_type === 'color');
+        if (isColorQueue ? !isOrdColor : isOrdColor) return false;
         return !tracker.isOrderPrinted(o.id);
       }) : [];
 
-      var hasDifferentBatchWaiting = unprintedQueue.some(function(o) {
+      var hasDifferentBatchWaiting = unprintedInQueue.some(function(o) {
         return (o.batch_id || o.id) !== currentBatchId;
       });
 
       if (hasDifferentBatchWaiting) {
-        console.log('[QUEUE] Next customer order waiting. Starting 15-second safety buffer...');
+        console.log(logPrefix + ' Next customer waiting in ' + queueType.toUpperCase() + ' queue. Starting 15-second safety buffer...');
         await sleep(15000);
 
         while (true) {
-          var winCheck = await checkWindowsPrintJob(BW_PRINTER);
+          var winCheck = await checkWindowsPrintJob(resolvedPrinter);
           if (winCheck.activeCount <= 0) {
-            console.log('[QUEUE] Windows print queue clear. Releasing next customer batch.');
+            console.log(logPrefix + ' Windows print queue clear for ' + resolvedPrinter + '. Releasing next customer in ' + queueType.toUpperCase() + ' queue.');
             break;
           }
-          console.log('[QUEUE] Windows job still active. Waiting 2s...');
+          console.log(logPrefix + ' Windows job still active on ' + resolvedPrinter + '. Waiting 2s...');
           await sleep(2000);
         }
       } else {
-        console.log('[QUEUE] Customer batch ' + currentBatchId + ' finished. No other customer order waiting.');
+        console.log(logPrefix + ' Customer batch ' + currentBatchId + ' finished. No other customer waiting in ' + queueType.toUpperCase() + ' queue.');
       }
     }
   } catch (e) {
-    console.error('Error:', e.message);
-    if (e.stack) console.error('Stack:', e.stack.split('\n').slice(0,3).join('\n'));
+    console.error(logPrefix + ' Error:', e.message);
+    if (e.stack) console.error(logPrefix + ' Stack:', e.stack.split('\n').slice(0,3).join('\n'));
   } finally {
-    isQueueProcessing = false;
+    if (isColorQueue) isColorProcessing = false;
+    else isBwProcessing = false;
   }
+}
+
+async function checkAndPrint() {
+  // Fire both B&W and Color queues simultaneously in parallel
+  checkAndPrintQueue('bw').catch(function(e) { console.error('[BW QUEUE ERROR]', e); });
+  checkAndPrintQueue('color').catch(function(e) { console.error('[COLOR QUEUE ERROR]', e); });
 }
 
 function startWorker() {

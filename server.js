@@ -185,15 +185,17 @@ async function resolvePrinterName(targetName, isColor) {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-function getPrinterTimingInfo(printerName, printType) {
+function getPrinterTimingInfo(printerName, printType, isDuplex) {
   const pName = String(printerName || '').toLowerCase();
   const isColor = printType === 'color' || pName.includes('epson') || pName.includes('l6370') || pName.includes('hp') || pName.includes('smart tank');
   if (isColor) {
+    const duplex = !!isDuplex;
     return {
       name: getActiveColorPrinterName(),
       displayName: 'Epson L6370 (Duplex)',
-      ppm: 15,
-      firstPrintSec: 12.0,
+      // Standard ISO speed: 9 ppm for single-sided (simplex), 5 ppm for double-sided (duplex)
+      ppm: duplex ? 5 : 9,
+      firstPrintSec: duplex ? 15.0 : 14.0,
       isBw: false
     };
   }
@@ -282,8 +284,9 @@ function enrichOrderForCustomer(order) {
   }
 
   const isColor = order.print_type === 'color';
+  const isDuplex = batchOrders.some(b => b.print_side === 'both');
   const targetPrinter = order.printer_name || (isColor ? getActiveColorPrinterName() : getActiveBwPrinterName());
-  const printerInfo = getPrinterTimingInfo(targetPrinter, order.print_type);
+  const printerInfo = getPrinterTimingInfo(targetPrinter, order.print_type, isDuplex);
 
   // Individual file metrics
   const copies = Math.max(1, parseInt(order.copies, 10) || 1);
@@ -316,6 +319,7 @@ function enrichOrderForCustomer(order) {
     queueStatus = 'paid';
   } else if (order.status === 'accepted' || batchOrders.some(b => b.status === 'accepted')) {
     // In print queue (FIFO by payment time)
+    const isThisOrderColor = (order.print_type === 'color');
     const unprintedOrders = db.prepare(`
       SELECT id, batch_id, page_count, effective_pages, copies, print_side, print_type, printer_name, created_at, paid_at, rowid
       FROM orders
@@ -323,11 +327,17 @@ function enrichOrderForCustomer(order) {
       ORDER BY COALESCE(paid_at, created_at) ASC, rowid ASC
     `).all();
 
+    // Isolated Queue: B&W orders only queue against B&W orders; Color only against Color
+    const sameQueueOrders = unprintedOrders.filter(o => {
+      const isOrdColor = (o.print_type === 'color');
+      return isThisOrderColor ? isOrdColor : !isOrdColor;
+    });
+
     // Group into distinct batches in strict FIFO order
     const distinctBatches = [];
     const batchOrdersMap = new Map();
 
-    for (const o of unprintedOrders) {
+    for (const o of sameQueueOrders) {
       const bId = o.batch_id || o.id;
       if (!batchOrdersMap.has(bId)) {
         batchOrdersMap.set(bId, []);
@@ -381,8 +391,9 @@ function enrichOrderForCustomer(order) {
           if (!aheadPrinter && af.printer_name) aheadPrinter = af.printer_name;
           if (!aheadPrintType && af.print_type) aheadPrintType = af.print_type;
         }
+        const aheadDuplex = aheadFiles.some(af => af.print_side === 'both');
         const aPName = aheadPrinter || (aheadPrintType === 'color' ? 'HP' : getActiveBwPrinterName());
-        const aInfo = getPrinterTimingInfo(aPName, aheadPrintType);
+        const aInfo = getPrinterTimingInfo(aPName, aheadPrintType, aheadDuplex);
         const aTime = (aheadBatchPages / aInfo.ppm) * 60 + aInfo.firstPrintSec;
         totalWait += aTime;
         // 15-second safety buffer between consecutive customer print jobs
@@ -453,7 +464,8 @@ async function processServerPrintQueue() {
         break;
       }
 
-      const printerInfo = getPrinterTimingInfo(printer, currentJob.print_type);
+      const isDuplex = currentJob.print_side === 'both';
+      const printerInfo = getPrinterTimingInfo(printer, currentJob.print_type, isDuplex);
       const copies = Math.max(1, parseInt(currentJob.copies) || 1);
       const pdfPages = Math.max(1, parseInt(currentJob.effective_pages || currentJob.page_count) || 1) * copies;
       
