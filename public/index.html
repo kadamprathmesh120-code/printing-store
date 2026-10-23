@@ -5194,111 +5194,177 @@
     var _pickupAudio = null;
     var _pickupPlayedOrderIds = {};
     var _customerAudioContext = null;
-    var _audioContextUnlocked = false;
+    var _pickupAudioBuffer = null;
+    var _pickupBufferLoading = false;
+    var _pickupPendingPlay = false;
+    var _pickupLastPlayTime = 0;
+
+    function getCustomerAudioContext() {
+      if (!_customerAudioContext) {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          try {
+            _customerAudioContext = new AudioCtx();
+          } catch (e) { }
+        }
+      }
+      return _customerAudioContext;
+    }
+
+    function preloadPickupAudioBuffer() {
+      if (_pickupAudioBuffer || _pickupBufferLoading) return;
+      var ctx = getCustomerAudioContext();
+      if (!ctx) return;
+      _pickupBufferLoading = true;
+
+      fetch('/pickup.mp3')
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function (arrayBuf) {
+          var currentCtx = getCustomerAudioContext();
+          if (!currentCtx) { _pickupBufferLoading = false; return; }
+
+          var copyBuf = arrayBuf.slice(0);
+          var decodePromise = currentCtx.decodeAudioData(copyBuf, function (decoded) {
+            _pickupAudioBuffer = decoded;
+            _pickupBufferLoading = false;
+            console.log('[PICKUP AUDIO] pickup.mp3 buffer decoded successfully');
+          }, function (decErr) {
+            _pickupBufferLoading = false;
+            console.warn('[PICKUP AUDIO] decodeAudioData callback error:', decErr);
+          });
+
+          if (decodePromise && typeof decodePromise.then === 'function') {
+            decodePromise.then(function (decoded) {
+              if (decoded) _pickupAudioBuffer = decoded;
+              _pickupBufferLoading = false;
+            }).catch(function () {
+              _pickupBufferLoading = false;
+            });
+          }
+        })
+        .catch(function (err) {
+          _pickupBufferLoading = false;
+          console.warn('[PICKUP AUDIO] fetch pickup.mp3 error:', err);
+        });
+    }
 
     function initPickupAudio() {
       if (!_pickupAudio) {
-        _pickupAudio = new Audio('/pickup.mp3?v=' + Date.now());
-        _pickupAudio.preload = 'auto';
+        try {
+          _pickupAudio = new Audio('/pickup.mp3');
+          _pickupAudio.preload = 'auto';
+        } catch (e) { }
       }
+      preloadPickupAudioBuffer();
     }
 
     function unlockCustomerAudio() {
       initPickupAudio();
-      if (_audioContextUnlocked) return;
-      _audioContextUnlocked = true;
-      try {
-        var AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          if (!_customerAudioContext) _customerAudioContext = new AudioCtx();
-          if (_customerAudioContext.state === 'suspended') {
-            _customerAudioContext.resume();
-          }
-          var buf = _customerAudioContext.createBuffer(1, 1, 22050);
-          var src = _customerAudioContext.createBufferSource();
+      var ctx = getCustomerAudioContext();
+      if (ctx) {
+        if (ctx.state === 'suspended') {
+          try { ctx.resume(); } catch (e) { }
+        }
+        try {
+          var buf = ctx.createBuffer(1, 1, 22050);
+          var src = ctx.createBufferSource();
           src.buffer = buf;
-          src.connect(_customerAudioContext.destination);
+          src.connect(ctx.destination);
           src.start(0);
-        }
-        if (_pickupAudio) {
-          _pickupAudio.volume = 0;
-          var p = _pickupAudio.play();
-          if (p && p.then) {
-            p.then(function () {
-              _pickupAudio.pause();
-              _pickupAudio.currentTime = 0;
-              _pickupAudio.volume = 1.0;
-            }).catch(function () {
-              _pickupAudio.volume = 1.0;
-            });
-          }
-        }
-      } catch (e) { }
+        } catch (e) { }
+      }
+      // If pickup alert was waiting for user interaction, play it immediately on gesture!
+      if (_pickupPendingPlay) {
+        _pickupPendingPlay = false;
+        playPickupAlert(null, true);
+      }
     }
 
     document.addEventListener('touchstart', unlockCustomerAudio, { passive: true });
     document.addEventListener('click', unlockCustomerAudio, { passive: true });
     document.addEventListener('pointerdown', unlockCustomerAudio, { passive: true });
+    document.addEventListener('keydown', unlockCustomerAudio, { passive: true });
 
-    function playPickupAlert(orderKey) {
-      if (orderKey && _pickupPlayedOrderIds[orderKey]) return;
+    // Preload pickup sound on page load
+    try { initPickupAudio(); } catch (e) { }
+
+    function playPickupAlert(orderKey, forcePlay) {
+      if (orderKey && !forcePlay && _pickupPlayedOrderIds[orderKey]) return;
       if (orderKey) _pickupPlayedOrderIds[orderKey] = true;
 
-      // 1. Phone Vibration (pattern: buzz, pause, buzz, pause, long buzz)
+      var nowTs = Date.now();
+      if (!forcePlay && (nowTs - _pickupLastPlayTime) < 1500) return;
+      _pickupLastPlayTime = nowTs;
+
+      // 1. Phone Vibration (buzz, pause, buzz, pause, long buzz)
       if (navigator && typeof navigator.vibrate === 'function') {
         try {
           navigator.vibrate([350, 150, 350, 150, 600]);
         } catch (e) { }
       }
 
-      // 2. Play Web Audio Chime (immediate fallback sound)
-      try {
-        var ctx = _customerAudioContext;
-        if (!ctx) {
-          var AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx) ctx = new AudioCtx();
-        }
-        if (ctx) {
-          if (ctx.state === 'suspended') ctx.resume();
-          var now = ctx.currentTime;
-          var osc1 = ctx.createOscillator();
-          var osc2 = ctx.createOscillator();
-          var gain = ctx.createGain();
-          osc1.type = 'triangle';
-          osc2.type = 'sine';
-          osc1.frequency.setValueAtTime(659.25, now);
-          osc1.frequency.setValueAtTime(1046.50, now + 0.18);
-          osc2.frequency.setValueAtTime(1318.51, now + 0.18);
-          gain.gain.setValueAtTime(0.001, now);
-          gain.gain.exponentialRampToValueAtTime(0.40, now + 0.04);
-          gain.gain.exponentialRampToValueAtTime(0.25, now + 0.18);
-          gain.gain.exponentialRampToValueAtTime(0.40, now + 0.22);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
-          osc1.connect(gain);
-          osc2.connect(gain);
-          gain.connect(ctx.destination);
-          osc1.start(now);
-          osc1.stop(now + 0.85);
-          osc2.start(now + 0.18);
-          osc2.stop(now + 0.85);
-        }
-      } catch (e) { }
+      var played = false;
 
-      // 3. Play ElevenLabs / Custom Pickup MP3 File
+      // 2. Play ElevenLabs / Custom Pickup MP3 File via Web Audio decoded buffer
+      // (This is NOT an oscillator synth robot sound — it plays the actual audio buffer of /pickup.mp3)
       try {
-        initPickupAudio();
-        _pickupAudio.volume = 1.0;
-        _pickupAudio.currentTime = 0;
-        var p = _pickupAudio.play();
-        if (p && p.catch) {
-          p.catch(function (err) {
-            console.warn('Pickup MP3 waiting for tap to play:', err);
-          });
+        var ctx = getCustomerAudioContext();
+        if (ctx && _pickupAudioBuffer) {
+          if (ctx.state === 'suspended') {
+            try { ctx.resume(); } catch (e) { }
+          }
+          var src = ctx.createBufferSource();
+          src.buffer = _pickupAudioBuffer;
+          var gain = ctx.createGain ? ctx.createGain() : null;
+          if (gain) {
+            gain.gain.setValueAtTime(1.0, ctx.currentTime);
+            src.connect(gain);
+            gain.connect(ctx.destination);
+          } else {
+            src.connect(ctx.destination);
+          }
+          src.start(0);
+          played = true;
+          _pickupPendingPlay = false;
+          console.log('[PICKUP AUDIO] Playing custom pickup.mp3 via Web Audio BufferSource');
         }
       } catch (e) {
-        console.error('Error playing pickup MP3:', e);
+        console.warn('[PICKUP AUDIO] Web Audio playback error:', e);
+      }
+
+      // 3. Play HTML5 Audio element fallback / alternative
+      if (!played) {
+        try {
+          initPickupAudio();
+          if (_pickupAudio) {
+            _pickupAudio.volume = 1.0;
+            _pickupAudio.currentTime = 0;
+            var p = _pickupAudio.play();
+            if (p && p.then) {
+              p.then(function () {
+                _pickupPendingPlay = false;
+                console.log('[PICKUP AUDIO] Playing custom pickup.mp3 via HTML5 Audio element');
+              }).catch(function (err) {
+                console.warn('[PICKUP AUDIO] Autoplay waiting for user gesture:', err);
+                _pickupPendingPlay = true;
+              });
+            } else {
+              _pickupPendingPlay = false;
+            }
+          }
+        } catch (err) {
+          _pickupPendingPlay = true;
+          console.warn('[PICKUP AUDIO] HTML5 audio error:', err);
+        }
       }
     }
+
+    // Expose for testing & manual trigger
+    window.playPickupAlert = playPickupAlert;
+    window.testPickupSound = function () { playPickupAlert(null, true); };
 
     // --- Live Countdown Timer Manager ---
     var _cdTimerHandle = null;
@@ -5330,8 +5396,13 @@
             '<div style="font-size:0.95rem;font-weight:700;color:#ECFDF5;margin:4px 0 12px;line-height:1.4;">' +
               'Please collect your printed documents from the machine output tray.' +
             '</div>' +
-            '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.22);backdrop-filter:blur(4px);padding:6px 14px;border-radius:20px;font-size:0.85rem;font-weight:800;border:1px solid rgba(255,255,255,0.35);">' +
-              '<span>⏱️ Completed • 100% Done</span>' +
+            '<div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:6px;">' +
+              '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.22);backdrop-filter:blur(4px);padding:6px 14px;border-radius:20px;font-size:0.85rem;font-weight:800;border:1px solid rgba(255,255,255,0.35);">' +
+                '<span>⏱️ Completed • 100% Done</span>' +
+              '</div>' +
+              '<button type="button" onclick="playPickupAlert(null, true)" style="background:#ffffff;color:#065f46;border:none;padding:6px 16px;border-radius:20px;font-size:0.85rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(0,0,0,0.18);transition:transform 0.15s ease;">' +
+                '<span>🔊 Play Pickup Sound</span>' +
+              '</button>' +
             '</div>' +
           '</div>';
         return;
@@ -5628,7 +5699,12 @@
           noticeBox.className = 'notice-box online';
           if (nIcon) nIcon.textContent = '🎉';
           if (nTitle) nTitle.textContent = 'Prints Ready!';
-          if (nBody) nBody.textContent = 'Please collect your printed pages from the machine output tray.';
+          if (nBody) {
+            nBody.innerHTML = 'Please collect your printed pages from the machine output tray.<br>' +
+              '<button type="button" onclick="playPickupAlert(null, true)" style="margin-top:10px;background:#059669;color:#ffffff;border:none;padding:6px 14px;border-radius:8px;font-weight:700;font-size:0.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(5,150,105,0.25);">' +
+              '🔊 Play Pickup Sound' +
+              '</button>';
+          }
           if (nPill) nPill.style.display = 'none';
         }
 
@@ -5798,6 +5874,7 @@
     function startOver() {
       stopLiveCountdown();
       _pickupPlayedOrderIds = {};
+      _pickupPendingPlay = false;
       currentOrderIds = [];
       try { sessionStorage.removeItem('last_order_ids'); } catch (e) { }
       selectedFiles = [];
