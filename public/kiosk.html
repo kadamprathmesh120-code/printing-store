@@ -227,11 +227,11 @@
       background: var(--card-white);
       border: 2px solid var(--cyan-border);
       border-radius: 22px;
-      padding: 18px 20px;
+      padding: 16px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
+      justify-content: space-evenly;
       box-shadow: 0 6px 20px rgba(0, 180, 216, 0.08);
       position: relative;
     }
@@ -249,17 +249,17 @@
     .panel-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 18px; }
     .panel-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 18px; }
 
-    /* Centered Glowing QR Box */
+    /* Centered Glowing QR Box: Neon Aura Directly Around QR */
     .qr-bracket-box {
       position: relative;
-      padding: 16px;
-      border-radius: 24px;
-      background: #ffffff;
-      margin: auto 0;
+      padding: 8px;
+      border-radius: 20px;
+      background: radial-gradient(circle, rgba(0, 210, 240, 0.22) 0%, rgba(0, 192, 107, 0.16) 55%, rgba(255, 255, 255, 0.95) 85%);
+      box-shadow: 0 0 35px rgba(0, 210, 240, 0.35), 0 0 60px rgba(0, 192, 107, 0.22);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 26px rgba(0, 210, 240, 0.16);
+      margin: 4px 0;
     }
 
     .qr-corner {
@@ -269,36 +269,38 @@
       border: 4.5px solid var(--cyan-bright);
       pointer-events: none;
     }
-    .qr-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 18px; }
-    .qr-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 18px; }
-    .qr-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 18px; }
-    .qr-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 18px; }
+    .qr-corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 16px; }
+    .qr-corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 16px; }
+    .qr-corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 16px; }
+    .qr-corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 16px; }
 
     /* Animated cyan radar scan line */
     .radar-line {
       position: absolute;
-      left: 14px;
-      right: 14px;
+      left: 10px;
+      right: 10px;
       height: 3.5px;
       background: linear-gradient(90deg, transparent, #00d2f0, #00c06b, transparent);
       box-shadow: 0 0 16px #00d2f0, 0 0 24px #00c06b;
-      top: 18px;
+      top: 14px;
       animation: scan-radar 2.6s ease-in-out infinite;
       z-index: 5;
       pointer-events: none;
     }
 
     @keyframes scan-radar {
-      0%, 100% { top: 18px; opacity: 0.3; }
-      50% { top: calc(100% - 20px); opacity: 1; }
+      0%, 100% { top: 14px; opacity: 0.3; }
+      50% { top: calc(100% - 16px); opacity: 1; }
     }
 
     .qr-img {
-      width: clamp(180px, 28vh, 280px);
-      height: clamp(180px, 28vh, 280px);
+      width: clamp(210px, 34vh, 320px);
+      height: clamp(210px, 34vh, 320px);
       display: block;
-      border-radius: 12px;
+      border-radius: 14px;
       object-fit: contain;
+      background: #ffffff;
+      padding: 4px;
     }
 
     .qr-callout-title {
@@ -429,8 +431,8 @@
     /* Middle Layout: Kyocera printer on Left, details on Right */
     .printing-content-split {
       display: grid;
-      grid-template-columns: 44% 56%;
-      gap: 20px;
+      grid-template-columns: 46% 54%;
+      gap: 22px;
       align-items: center;
       flex: 1;
       min-height: 0;
@@ -451,14 +453,14 @@
       position: relative;
       width: 100%;
       height: 100%;
-      max-height: clamp(260px, 44vh, 420px);
+      max-height: clamp(280px, 48vh, 440px);
     }
 
     .kyocera-img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 14px 28px rgba(12, 54, 90, 0.2));
+      filter: drop-shadow(0 16px 32px rgba(12, 54, 90, 0.22));
       animation: float-printer 4s ease-in-out infinite;
     }
 
@@ -471,8 +473,10 @@
     .printing-details-col {
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      justify-content: center;
+      gap: 12px;
+      justify-content: space-evenly;
+      height: 100%;
+      min-height: 0;
     }
 
     /* Customer Name Card */
@@ -504,6 +508,7 @@
       display: flex;
       align-items: baseline;
       gap: 8px;
+      min-width: 0;
     }
 
     .customer-text-line strong {
@@ -511,12 +516,16 @@
       font-size: 1.55rem;
       font-weight: 900;
       color: #0c365a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .customer-text-line span {
       font-size: 0.95rem;
       font-weight: 700;
       color: #577793;
+      white-space: nowrap;
     }
 
     /* Document Card */
@@ -531,13 +540,20 @@
       box-shadow: 0 2px 8px rgba(0, 140, 200, 0.04);
     }
 
+    .doc-info-block {
+      flex: 1;
+      min-width: 0;
+    }
+
     .doc-info-block strong {
       font-family: var(--font-display);
       font-size: 1.25rem;
       font-weight: 800;
       color: #0c365a;
       display: block;
-      word-break: break-all;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .doc-subspecs {
@@ -939,7 +955,7 @@
                 </svg>
               </div>
               <div class="doc-info-block">
-                <strong id="docName">Scan QR code with mobile to upload &amp; print</strong>
+                <strong id="docName">Scan QR to upload &amp; print</strong>
                 <div class="doc-subspecs">
                   <span>📄 <span id="docPages">40 PPM</span></span>
                   <span>•</span>
@@ -1219,7 +1235,7 @@
           document.getElementById('panelHeadingText').textContent = 'PRINTER READY';
           document.getElementById('custName').textContent = 'Printer Ready';
           document.getElementById('custOrderNum').textContent = '(Standby)';
-          document.getElementById('docName').textContent = 'Scan QR code with mobile to upload & print';
+          document.getElementById('docName').textContent = 'Scan QR to upload & print';
           document.getElementById('docPages').textContent = '40 PPM';
           document.getElementById('docDuplex').textContent = 'Duplex Ready';
 
