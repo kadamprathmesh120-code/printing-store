@@ -853,24 +853,30 @@
         </div>
 
         <!-- Idle overlay: shown when no active job -->
-        <div id="idleOverlay" style="position:absolute;inset:0;background:rgba(220,242,253,0.92);border-radius:20px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;overflow:hidden;">
+        <div id="idleOverlay" style="position:absolute;inset:0;background:#dcf2fd;border-radius:20px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;overflow:hidden;">
           <!-- Default idle message -->
           <div id="idleDefault" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0099cc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.55">
+            <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="#0099cc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.65">
               <polyline points="6 9 6 2 18 2 18 9"></polyline>
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
               <rect x="6" y="14" width="12" height="8"></rect>
             </svg>
-            <div style="font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:#0c365a;opacity:0.7;text-align:center;">Printer Ready</div>
-            <div style="font-family:var(--font-body);font-size:1rem;font-weight:700;color:#577793;text-align:center;">Waiting for next order…</div>
+            <div style="font-family:var(--font-display);font-size:1.7rem;font-weight:900;color:#0c365a;text-align:center;">Printer Ready</div>
+            <div style="font-family:var(--font-body);font-size:1.05rem;font-weight:700;color:#577793;text-align:center;">Scan QR code on left to upload & print</div>
           </div>
           <!-- Awaiting payment list (shown when customers have uploaded but not paid) -->
-          <div id="pendingPayList" style="display:none;width:100%;max-width:420px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-              <span style="font-size:1.3rem;">⏳</span>
-              <span style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#b45309;">Awaiting Payment — Print Will Start After Payment</span>
+          <div id="pendingPayList" style="display:none;width:100%;max-width:440px;">
+            <div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:14px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 12px rgba(245,158,11,0.15);">
+              <span style="font-size:1.6rem;">⏳</span>
+              <div>
+                <div style="font-family:var(--font-display);font-size:1.05rem;font-weight:900;color:#92400e;">File Uploaded — Awaiting Payment</div>
+                <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:600;color:#b45309;">Complete payment on your phone • Print starts immediately!</div>
+              </div>
             </div>
-            <div id="pendingPayItems" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="pendingPayItems" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:2px;"></div>
+            <div style="margin-top:10px;text-align:center;font-size:0.8rem;font-weight:700;color:#64748b;">
+              ⚡ Once paid, Kyocera printer starts printing in ~5 seconds
+            </div>
           </div>
         </div>
 
@@ -906,8 +912,8 @@
                 </svg>
               </div>
               <div class="customer-text-line">
-                <strong id="custName">Rahul S.</strong>
-                <span id="custOrderNum">(Order #104)</span>
+                <strong id="custName">—</strong>
+                <span id="custOrderNum"></span>
               </div>
             </div>
 
@@ -920,11 +926,11 @@
                 </svg>
               </div>
               <div class="doc-info-block">
-                <strong id="docName">College_Notes.pdf</strong>
+                <strong id="docName">No active print</strong>
                 <div class="doc-subspecs">
-                  <span>📄 <span id="docPages">4 Pages</span></span>
+                  <span>📄 <span id="docPages">—</span></span>
                   <span>•</span>
-                  <span>📑 <span id="docDuplex">Duplex</span></span>
+                  <span>📑 <span id="docDuplex">—</span></span>
                 </div>
               </div>
             </div>
@@ -933,10 +939,10 @@
             <div class="progress-wrapper">
               <div class="progress-text-row">
                 <span>Printing Progress</span>
-                <span class="progress-pct-green" id="progressPctText">65%</span>
+                <span class="progress-pct-green" id="progressPctText">0%</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" id="progressBarFill"></div>
+                <div class="bar-fill" id="progressBarFill" style="width:0%"></div>
               </div>
             </div>
 
@@ -1107,15 +1113,18 @@
         }
 
         // 4. Up Next Queue
+        const pendingList = data.pendingPayment || [];
         if (data.queue && data.queue.length > 0) {
           const firstInQueue = data.queue[0];
           document.getElementById('queueDisplay').textContent = `${firstInQueue.customerName} (~${firstInQueue.estimatedWaitSec || 15}s)`;
+        } else if (pendingList.length > 0) {
+          const names = pendingList.map(p => p.customerName).join(', ');
+          document.getElementById('queueDisplay').innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment: ${names}</span>`;
         } else {
           document.getElementById('queueDisplay').textContent = 'No orders in queue';
         }
 
         // 5. Pending Payment list (uploaded but not paid)
-        const pendingList = data.pendingPayment || [];
         const pendingContainer = document.getElementById('pendingPayItems');
         const pendingSection = document.getElementById('pendingPayList');
         const idleDefault = document.getElementById('idleDefault');
@@ -1127,14 +1136,14 @@
           if (pendingContainer) {
             pendingContainer.innerHTML = pendingList.map(p => {
               const typeLabel = p.printType === 'color' ? '🎨 Color' : '⬛ B&W';
-              const shortFile = p.fileName.length > 28 ? p.fileName.substring(0, 26) + '…' : p.fileName;
-              return `<div style="background:#fffbeb;border:2px solid #fbbf24;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;animation:payPulse 1.8s ease-in-out infinite;">
-                <span style="font-size:1.5rem;">💳</span>
+              const shortFile = p.fileName.length > 26 ? p.fileName.substring(0, 24) + '…' : p.fileName;
+              return `<div style="background:#ffffff;border:2px solid #fbbf24;border-left:5px solid #d97706;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 10px rgba(0,0,0,0.06);animation:payPulse 1.8s ease-in-out infinite;">
+                <span style="font-size:1.5rem;">📄</span>
                 <div style="flex:1;min-width:0;">
-                  <div style="font-family:var(--font-display);font-size:1rem;font-weight:900;color:#92400e;">${p.customerName}</div>
-                  <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:700;color:#b45309;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${p.pages} pg</div>
+                  <div style="font-family:var(--font-display);font-size:1.05rem;font-weight:900;color:#0f172a;">${p.customerName}</div>
+                  <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${p.copies > 1 ? p.copies + ' copies' : p.pages + ' pg'}</div>
                 </div>
-                <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;background:#fbbf24;color:#78350f;padding:4px 10px;border-radius:20px;white-space:nowrap;">PAY NOW</span>
+                <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;background:#fbbf24;color:#78350f;padding:5px 12px;border-radius:20px;white-space:nowrap;letter-spacing:0.02em;">PAY ON PHONE</span>
               </div>`;
             }).join('');
           }
