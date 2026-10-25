@@ -267,7 +267,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
       name: 'KONICA MINOLTA 205i(36:33:9E)',
       displayName: 'Konica Minolta bizhub 205i',
       ppm: 20,
-      firstPrintSec: 6.5,
+      firstPrintSec: 0,
       isBw: true
     };
   }
@@ -275,7 +275,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
     name: BW_PRINTER_DEFAULT,
     displayName: 'Kyocera ECOSYS MA4000x',
     ppm: 40,
-    firstPrintSec: 6.4,
+    firstPrintSec: 0,
     isBw: true
   };
 }

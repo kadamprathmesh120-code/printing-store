@@ -1232,6 +1232,46 @@
         <div id="printTimingBox" style="display:none;background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:18px;padding:16px 18px;margin-bottom:14px;text-align:left;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
         </div>
 
+        <!-- 2b. Order Summary Card (Visible on Phone after payment) -->
+        <div id="orderSummaryCard" style="display:none;background:#FFFFFF;border:1.5px solid #E2E8F0;border-radius:18px;padding:16px 18px;margin-bottom:14px;text-align:left;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1.5px solid #F1F5F9;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:1.15rem;">📋</span>
+              <span style="font-size:0.95rem;font-weight:900;color:#0F172A;letter-spacing:0.3px;">ORDER SUMMARY</span>
+            </div>
+            <span id="orderSummaryPayBadge" style="background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;">
+              ✓ Paid
+            </span>
+          </div>
+
+          <!-- Customer Name & Token Reference -->
+          <div id="orderSummaryCustomerLine" style="font-size:0.8rem;font-weight:700;color:#64748B;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+            <span>Customer: <strong id="orderSummaryCustomerName" style="color:#0F172A;">-</strong></span>
+            <span id="orderSummaryTokenRef" style="color:#2563EB;font-family:monospace,sans-serif;font-weight:800;font-size:0.85rem;"></span>
+          </div>
+
+          <!-- List of items/files in this order -->
+          <div id="orderSummaryItemsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+          </div>
+
+          <!-- Order Totals Box -->
+          <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:12px;padding:10px 14px;font-size:0.82rem;">
+            <div style="display:flex;justify-content:space-between;color:#64748B;font-weight:600;margin-bottom:4px;">
+              <span>Total Documents:</span>
+              <span id="orderSummaryTotalDocs" style="font-weight:800;color:#0F172A;">0</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:#64748B;font-weight:600;margin-bottom:4px;">
+              <span>Pages & Sheets:</span>
+              <span id="orderSummaryTotalPagesSheets" style="font-weight:800;color:#0F172A;">0 pgs • 0 sheets</span>
+            </div>
+            <div style="border-top:1px dashed #CBD5E1;margin:6px 0;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:900;color:#0F172A;font-size:0.92rem;">Total Amount:</span>
+              <span id="orderSummaryGrandTotal" style="font-weight:900;color:#059669;font-size:1.15rem;">₹0</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 3. Green WhatsApp Action Card -->
         <div style="background:linear-gradient(135deg, #059669, #10B981);color:#ffffff;padding:18px 16px;border-radius:18px;margin-bottom:14px;text-align:center;box-shadow:0 6px 20px rgba(16,185,129,0.3);position:relative;overflow:hidden;border:1px solid #34D399;">
           <div style="font-size:1.1rem;font-weight:900;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px;">
@@ -5464,7 +5504,9 @@
           ? 'Finishing up prints... Almost ready!'
           : ((_cdInfo.actualPrinted && _cdInfo.actualPrinted > 0)
             ? ('Printing page ' + _cdInfo.actualPrinted + ' of ' + (_cdInfo.actualTotal || _cdInfo.totalPdfPages) + '...')
-            : ('Printing on ' + (_cdInfo.printerName || 'Printer') + '...'));
+            : (((_cdTotalSec - _cdRemainingSec) < 6)
+              ? ('⚡ Machine warming up & starting print engine...')
+              : ('Printing on ' + (_cdInfo.printerName || 'Printer') + '...')));
 
         box.innerHTML =
           '<div style="background:linear-gradient(135deg, #1E40AF, #2563EB);border:2px solid #60A5FA;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(37,99,235,0.28);">' +
@@ -5529,6 +5571,46 @@
               '<span>📄 Your Order: ' + (_cdInfo.totalPdfPages || 1) + ' pages</span>' +
               '<span>•</span>' +
               '<span>📑 ' + (_cdInfo.totalSheets || 1) + ' sheets</span>' +
+            '</div>' +
+          '</div>';
+        return;
+      }
+
+      if (_cdMode === 'paid' || _cdMode === 'queued') {
+        box.style.display = 'block';
+        var isFinishingPaid = _cdRemainingSec <= 0;
+        var timeStr = formatTimeMinSec(_cdRemainingSec);
+        var subText = _cdInfo.isCash
+          ? 'Show Token at counter to pay cash • Prints in ' + timeStr
+          : 'Payment received! Your order is queued for printing.';
+
+        box.innerHTML =
+          '<div style="background:linear-gradient(135deg, #0F766E, #0D9488);border:2px solid #2DD4BF;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(13,148,136,0.28);">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="font-size:1.3rem;">⚡</span>' +
+                '<span style="font-size:1rem;font-weight:900;letter-spacing:0.5px;">ORDER QUEUED</span>' +
+              '</div>' +
+              '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;letter-spacing:0.3px;">' +
+                '⚡ ' + (_cdInfo.printerPpm || 20) + ' PPM' +
+              '</span>' +
+            '</div>' +
+            '<div style="background:rgba(0,0,0,0.22);border-radius:14px;padding:10px 14px;margin:10px 0;text-align:center;border:1px solid rgba(255,255,255,0.15);">' +
+              '<div style="font-size:0.75rem;font-weight:700;color:#CCFBF1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">⏱️ Ready In</div>' +
+              '<div style="font-size:2.2rem;font-weight:900;font-variant-numeric:tabular-nums;color:#FACC15;letter-spacing:1px;font-family:monospace,sans-serif;">' +
+                timeStr +
+              '</div>' +
+              '<div style="font-size:0.8rem;color:#F0FDFA;font-weight:600;margin-top:2px;">' + subText + '</div>' +
+              '<div style="background:rgba(255,255,255,0.2);height:8px;border-radius:999px;overflow:hidden;margin-top:8px;">' +
+                '<div style="width:100%;height:100%;background:#FACC15;border-radius:999px;"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-around;font-size:0.78rem;font-weight:700;color:#CCFBF1;padding-top:4px;">' +
+              '<span>📄 ' + (_cdInfo.totalPdfPages || 1) + ' pages</span>' +
+              '<span>•</span>' +
+              '<span>📑 ' + (_cdInfo.totalSheets || 1) + ' sheets</span>' +
+              '<span>•</span>' +
+              '<span>🖨️ ' + escapeHtml(_cdInfo.printerName || 'Printer') + '</span>' +
             '</div>' +
           '</div>';
         return;
@@ -5649,6 +5731,101 @@
         }).join('<br>');
       }
 
+      // Render prominent Order Summary Card for Customer
+      var summaryCard = document.getElementById('orderSummaryCard');
+      if (summaryCard) {
+        if (orders.length > 0) {
+          summaryCard.style.display = 'block';
+
+          // Pay Badge
+          var payBadge = document.getElementById('orderSummaryPayBadge');
+          if (payBadge) {
+            if (isCash) {
+              payBadge.textContent = '💵 Cash at Counter';
+              payBadge.style.background = '#FEF3C7';
+              payBadge.style.color = '#92400E';
+              payBadge.style.border = '1px solid #FCD34D';
+            } else {
+              payBadge.textContent = '💳 Paid Online';
+              payBadge.style.background = '#ECFDF5';
+              payBadge.style.color = '#059669';
+              payBadge.style.border = '1px solid #A7F3D0';
+            }
+          }
+
+          // Customer line
+          var custLine = document.getElementById('orderSummaryCustomerLine');
+          var custNameEl = document.getElementById('orderSummaryCustomerName');
+          var tokenRefEl = document.getElementById('orderSummaryTokenRef');
+          if (customerName) {
+            if (custNameEl) custNameEl.textContent = customerName;
+            if (custLine) custLine.style.display = 'flex';
+          } else if (custLine) {
+            custLine.style.display = 'none';
+          }
+          if (tokenRefEl && currentOrderIds.length > 0) {
+            tokenRefEl.textContent = '#P-' + currentOrderIds[0].substring(0, 6).toUpperCase();
+          }
+
+          // Total counts
+          var totalDocs = orders.length;
+          var totalPagesCount = 0;
+          var totalSheetsCount = 0;
+
+          var itemsList = document.getElementById('orderSummaryItemsList');
+          if (itemsList) {
+            itemsList.innerHTML = orders.map(function (o) {
+              var isBoth = (o.print_side === 'both');
+              var isColor = (o.print_type === 'color');
+              var copies = Math.max(1, parseInt(o.copies) || 1);
+              var pCount = Math.max(1, parseInt(o.effective_pages || o.page_count) || 1);
+              var totalFilePages = pCount * copies;
+              var totalFileSheets = isBoth ? Math.ceil(totalFilePages / 2) : totalFilePages;
+
+              totalPagesCount += totalFilePages;
+              totalSheetsCount += totalFileSheets;
+
+              var itemIcon = o.is_id_copy ? '🪪' : '📄';
+              var safeName = escapeHtml(o.file_name || 'Document');
+              var sideLabel = isBoth ? 'Duplex (Both Sides)' : 'Single Side';
+              var typeLabel = isColor ? '🎨 Color' : '⬛ B&W';
+              var typeBg = isColor ? '#FEF3C7' : '#F1F5F9';
+              var typeColor = isColor ? '#92400E' : '#334155';
+              var sideBg = isBoth ? '#E0F2FE' : '#F8FAFC';
+              var sideColor = isBoth ? '#0369A1' : '#475569';
+
+              return '<div style="background:#FFFFFF;border:1.5px solid #F1F5F9;border-radius:12px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">' +
+                '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">' +
+                  '<div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">' +
+                    '<span style="font-size:1.15rem;flex-shrink:0;">' + itemIcon + '</span>' +
+                    '<span style="font-size:0.88rem;font-weight:800;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + safeName + '">' + safeName + '</span>' +
+                  '</div>' +
+                  '<span style="font-size:0.95rem;font-weight:900;color:#0F172A;white-space:nowrap;">₹' + (o.price || 0) + '</span>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:0.75rem;font-weight:700;">' +
+                  '<span style="background:' + typeBg + ';color:' + typeColor + ';padding:2px 8px;border-radius:6px;">' + typeLabel + '</span>' +
+                  '<span style="background:' + sideBg + ';color:' + sideColor + ';padding:2px 8px;border-radius:6px;border:1px solid ' + (isBoth ? '#BAE6FD' : '#E2E8F0') + ';">' + sideLabel + '</span>' +
+                  '<span style="background:#F1F5F9;color:#334155;padding:2px 8px;border-radius:6px;">' + pCount + ' page' + (pCount > 1 ? 's' : '') + '</span>' +
+                  (copies > 1 ? ('<span style="background:#EDE9FE;color:#6D28D9;padding:2px 8px;border-radius:6px;">' + copies + ' Copies</span>') : '') +
+                  '<span style="background:#F8FAFC;color:#64748B;padding:2px 8px;border-radius:6px;border:1px solid #E2E8F0;">📑 ' + totalFileSheets + ' sheet' + (totalFileSheets > 1 ? 's' : '') + '</span>' +
+                '</div>' +
+              '</div>';
+            }).join('');
+          }
+
+          var totalDocsEl = document.getElementById('orderSummaryTotalDocs');
+          if (totalDocsEl) totalDocsEl.textContent = totalDocs + (totalDocs === 1 ? ' File' : ' Files');
+
+          var totalPagesSheetsEl = document.getElementById('orderSummaryTotalPagesSheets');
+          if (totalPagesSheetsEl) totalPagesSheetsEl.textContent = totalPagesCount + ' pages • ' + totalSheetsCount + ' sheets';
+
+          var grandTotalEl = document.getElementById('orderSummaryGrandTotal');
+          if (grandTotalEl) grandTotalEl.textContent = '₹' + totalPrice;
+        } else {
+          summaryCard.style.display = 'none';
+        }
+      }
+
       // Stepper Elements
       var line = document.getElementById('stepperLineActive');
       var s1 = document.getElementById('stepProgress1');
@@ -5694,9 +5871,10 @@
       var firstOrder = orders[0] || {};
       var qStatus = firstOrder.queue_status || (allPrinted ? 'ready' : (anyAccepted ? 'printing' : status));
       var ordersAhead = (typeof firstOrder.orders_ahead === 'number') ? firstOrder.orders_ahead : 0;
-      var printerPpm = firstOrder.printer_ppm || (firstOrder.print_type === 'color' ? 10 : 40);
-      var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'Epson L6370 (Duplex)' : 'Kyocera ECOSYS MA4000x');
-      var estPrintTimeSec = firstOrder.estimated_print_time_sec || Math.round((totalPdfPages / printerPpm) * 60 + 6.4);
+      var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'Epson L6370 (Duplex)' : (String(firstOrder.printer_name || '').toLowerCase().includes('konica') ? 'Konica Minolta bizhub 205i' : 'Kyocera ECOSYS MA4000x'));
+      var isKonica = String(printerName).toLowerCase().includes('konica') || String(firstOrder.printer_name || '').toLowerCase().includes('konica') || String(firstOrder.printer_name || '').toLowerCase().includes('205i');
+      var printerPpm = firstOrder.printer_ppm || (firstOrder.print_type === 'color' ? 10 : (isKonica ? 20 : 40));
+      var estPrintTimeSec = (typeof firstOrder.estimated_print_time_sec === 'number') ? firstOrder.estimated_print_time_sec : Math.max(2, Math.round((totalPdfPages / printerPpm) * 60));
       var estWaitSec = firstOrder.estimated_wait_time_sec || 0;
       var actualPrinted = firstOrder.actual_pages_printed;
       var actualTotal = firstOrder.actual_total_pages || totalPdfPages;
@@ -5878,6 +6056,15 @@
           }
           // Quiet on payment: early sound removed
         }
+
+        // Live Countdown for Paid / Queued Order (Visible immediately after payment)
+        syncLiveCountdown('paid', estPrintTimeSec, estPrintTimeSec, {
+          totalPdfPages: totalPdfPages,
+          totalSheets: totalSheets,
+          printerPpm: printerPpm,
+          printerName: printerName,
+          isCash: isCash
+        });
       }
     }
 

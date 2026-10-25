@@ -1174,17 +1174,17 @@
               </div>
             </div>
 
-            <!-- 5s Startup Banner -->
+            <!-- 6s Startup Banner -->
             <div id="startupBanner" style="display:none;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:8px 14px;margin-bottom:8px;animation:payPulse 1.2s infinite;">
               <div style="display:flex;align-items:center;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="font-size:1.2rem;">⚡</span>
                   <div>
-                    <div style="font-family:var(--font-display);font-size:0.92rem;font-weight:900;color:#92400e;">Preparing Kyocera Laser Engine…</div>
+                    <div id="startupEngineTitle" style="font-family:var(--font-display);font-size:0.92rem;font-weight:900;color:#92400e;">Preparing Laser Engine…</div>
                     <div style="font-family:var(--font-body);font-size:0.75rem;font-weight:700;color:#b45309;">Spooling document & warming up</div>
                   </div>
                 </div>
-                <span id="startupSecBadge" style="background:#f59e0b;color:#78350f;font-weight:900;font-size:0.95rem;padding:4px 12px;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">5s</span>
+                <span id="startupSecBadge" style="background:#f59e0b;color:#78350f;font-weight:900;font-size:0.95rem;padding:4px 12px;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">6s</span>
               </div>
             </div>
 
@@ -1321,7 +1321,7 @@
     let completionInterval = null;
 
     let isStartupRunning = false;
-    let startupCountdown = 5;
+    let startupCountdown = 6;
     let startupInterval = null;
 
     let localSeconds = 12;
@@ -1398,7 +1398,7 @@
           currentActiveId = data.activeJob.id;
           currentActiveName = data.activeJob.customerName || 'Customer';
           const printSec = Math.max(3, parseInt(data.activeJob.remainingPrintSec, 10) || 12);
-          triggerStartup(printSec);
+          triggerStartup(printSec, data.activeJob.printerName);
         } else if (!isStartupRunning) {
           // Progress calculation during active printing
           const pct = Math.max(5, Math.min(100, data.activeJob.percent || 5));
@@ -1549,11 +1549,11 @@
     }
 
     // -------------------------------------------------------------
-    // 5-SECOND STARTUP / WARMUP TIMER
+    // 6-SECOND STARTUP / WARMUP TIMER
     // -------------------------------------------------------------
-    function triggerStartup(printDurationSec) {
+    function triggerStartup(printDurationSec, printerName) {
       isStartupRunning = true;
-      startupCountdown = 5;
+      startupCountdown = 6;
       clearInterval(startupInterval);
       clearInterval(countdownTimer);
 
@@ -1562,10 +1562,12 @@
       const timerBadge = document.getElementById('timerTextBadge');
       const progressPct = document.getElementById('progressPctText');
       const progressBar = document.getElementById('progressBarFill');
+      const engineTitle = document.getElementById('startupEngineTitle');
 
       if (banner) banner.style.display = 'block';
-      if (badge) badge.textContent = '5s';
-      if (timerBadge) timerBadge.textContent = '5s Startup';
+      if (engineTitle) engineTitle.textContent = `Preparing ${printerName || 'Laser Engine'}…`;
+      if (badge) badge.textContent = '6s';
+      if (timerBadge) timerBadge.textContent = '6s Startup';
       if (progressPct) progressPct.textContent = 'Starting…';
       if (progressBar) {
         progressBar.style.width = '100%';

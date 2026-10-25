@@ -204,7 +204,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
       name: 'KONICA MINOLTA 205i(36:33:9E)',
       displayName: 'Konica Minolta bizhub 205i',
       ppm: 20,
-      firstPrintSec: 6.5,
+      firstPrintSec: 0,
       isBw: true
     };
   }
@@ -212,7 +212,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
     name: 'Kyocera ECOSYS MA4000x KX',
     displayName: 'Kyocera ECOSYS MA4000x',
     ppm: 40,
-    firstPrintSec: 6.4,
+    firstPrintSec: 0,
     isBw: true
   };
 }
@@ -2243,7 +2243,7 @@ app.get('/api/kiosk/status', async (req, res) => {
         printSide: headOrders.some(o => o.print_side === 'both') ? 'both' : 'single',
         printerName: getFriendlyName(first.printer_name || machine),
         printerModel: machine,
-        remainingPrintSec: first.remainingPrintSec || Math.max(3, Math.round((totalPdfPages / 40) * 60 + 5)),
+        remainingPrintSec: (first.estimated_print_time_sec != null) ? first.estimated_print_time_sec : Math.max(2, Math.round((totalPdfPages / (first.printer_ppm || (machine.toLowerCase().includes('konica') ? 20 : 40))) * 60)),
         pagesPrinted: pagesPrinted,
         totalPages: totalPages,
         percent: percent
@@ -2264,7 +2264,7 @@ app.get('/api/kiosk/status', async (req, res) => {
           printType: qFirst.print_type,
           copies: qFirst.copies || 1,
           pages: qPages,
-          estimatedWaitSec: qFirst.estimatedWaitSec || (i * 12)
+          estimatedWaitSec: (qFirst.estimated_wait_time_sec != null) ? qFirst.estimated_wait_time_sec : (i * 15)
         });
       }
     }
