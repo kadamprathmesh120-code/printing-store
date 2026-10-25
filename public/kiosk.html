@@ -619,16 +619,17 @@
       background: linear-gradient(135deg, #01382d 0%, #034b3e 50%, #065f46 100%);
       border: 3px solid #00f0b5;
       color: #ffffff;
-      padding: 16px 36px;
+      padding: clamp(12px, 1.6vh, 16px) clamp(20px, 2.5vw, 36px);
       border-radius: 9999px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 18px;
+      gap: clamp(10px, 1.2vw, 18px);
       font-family: var(--font-display);
-      font-size: 2.7rem;
+      font-size: clamp(1.35rem, 2.2vw, 2.7rem);
       font-weight: 900;
       letter-spacing: 0.5px;
+      white-space: nowrap;
       box-shadow: 0 0 30px rgba(0, 240, 181, 0.4), inset 0 0 16px rgba(0, 240, 181, 0.25);
       position: relative;
       width: 100%;
@@ -636,8 +637,9 @@
 
     .bracket-arrow {
       color: #00f0b5;
-      font-size: 2rem;
+      font-size: clamp(1.4rem, 1.8vw, 2rem);
       font-weight: 900;
+      flex-shrink: 0;
     }
 
     /* -------------------------------------------------------------
@@ -775,6 +777,202 @@
     @keyframes bounceBadge {
       0% { transform: scale(1); }
       100% { transform: scale(1.1); }
+    }
+
+    /* =============================================================
+       TABLET RESPONSIVE RULES (iPad 1024x768, 1180x820, 1280x800)
+    ============================================================= */
+    @media (max-width: 1200px), (max-height: 850px) {
+      .kiosk-frame-container {
+        padding: 10px 14px;
+        gap: 10px;
+      }
+
+      /* Header */
+      .header-bar {
+        padding: 8px 16px;
+        border-radius: 16px;
+      }
+      .brand-logo-svg {
+        width: 38px;
+        height: 38px;
+      }
+      .brand-text-block h1 {
+        font-size: 1.25rem;
+      }
+      .brand-subline {
+        font-size: 0.62rem;
+        letter-spacing: 1.5px;
+      }
+      .machine-status-capsule {
+        padding: 6px 16px;
+        gap: 8px;
+      }
+      .status-orb {
+        width: 10px;
+        height: 10px;
+      }
+      .machine-label-info strong {
+        font-size: 0.92rem;
+      }
+      .machine-label-info span {
+        font-size: 0.68rem;
+      }
+      .clock-icon-svg {
+        width: 22px;
+        height: 22px;
+      }
+      .clock-numbers {
+        font-size: 1.3rem;
+      }
+      .calendar-sub {
+        font-size: 0.68rem;
+      }
+
+      /* Main 2-panel grid */
+      .main-grid {
+        gap: 12px;
+        grid-template-columns: 35% 65%;
+      }
+
+      /* Left panel (QR) */
+      .panel-qr {
+        padding: 12px 14px;
+        border-radius: 18px;
+      }
+      .qr-bracket-box {
+        width: min(88%, 280px);
+        padding: 8px;
+      }
+      .qr-corner {
+        width: 26px;
+        height: 26px;
+        border-width: 4px;
+      }
+      .qr-callout-title {
+        font-size: 1.25rem;
+        margin: 2px 0 4px;
+      }
+      .three-steps-bar {
+        padding: 8px 10px;
+        border-radius: 16px;
+      }
+      .step-bubble {
+        width: 38px;
+        height: 38px;
+      }
+      .step-bubble svg {
+        width: 18px;
+        height: 18px;
+      }
+      .step-title {
+        font-size: 0.8rem;
+      }
+      .step-subtext {
+        font-size: 0.65rem;
+      }
+      .step-chevron {
+        font-size: 0.95rem;
+      }
+
+      /* Right panel (Printing) */
+      .panel-printing {
+        padding: 14px 18px;
+        border-radius: 18px;
+        gap: 10px;
+      }
+      .printing-heading {
+        font-size: 1.65rem;
+        gap: 8px;
+      }
+      .printing-heading svg {
+        width: 26px;
+        height: 26px;
+      }
+      .top-slant-bars span {
+        width: 10px;
+        height: 22px;
+      }
+
+      /* Split inside right card: 42% printer, 58% details */
+      .printing-content-split {
+        grid-template-columns: 42% 58%;
+        gap: 14px;
+      }
+      .kyocera-img-wrap {
+        max-height: clamp(220px, 38vh, 300px);
+      }
+      .printing-details-col {
+        gap: 10px;
+        max-width: 100%;
+      }
+
+      /* Cards */
+      .pill-card-customer,
+      .pill-card-doc {
+        padding: 10px 14px;
+        gap: 10px;
+        border-radius: 14px;
+      }
+      .icon-box-blue {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+      }
+      .icon-box-blue svg {
+        width: 18px;
+        height: 18px;
+      }
+      .customer-text-line strong {
+        font-size: clamp(1.05rem, 1.45vw, 1.25rem);
+      }
+      .customer-text-line span {
+        font-size: 0.82rem;
+      }
+      .doc-info-block strong {
+        font-size: clamp(0.95rem, 1.35vw, 1.12rem);
+      }
+      .doc-subspecs {
+        font-size: 0.76rem;
+        gap: 8px;
+        margin-top: 2px;
+        white-space: nowrap;
+      }
+      .progress-text-row {
+        font-size: 0.92rem;
+      }
+      .progress-pct-green {
+        font-size: 1.1rem;
+      }
+      .bar-track {
+        height: 18px;
+      }
+
+      /* Single line giant countdown button on tablet */
+      .giant-countdown-button {
+        padding: 10px 18px;
+        font-size: clamp(1.15rem, 1.85vw, 1.55rem);
+        gap: 10px;
+        white-space: nowrap;
+      }
+      .bracket-arrow {
+        font-size: 1.3rem;
+      }
+      .giant-countdown-button svg {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+      }
+
+      /* Footer */
+      .footer-bar {
+        padding: 8px 16px;
+        border-radius: 16px;
+      }
+      .footer-left-group,
+      .footer-right-group {
+        font-size: 0.95rem;
+      }
     }
   </style>
 </head>
