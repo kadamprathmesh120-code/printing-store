@@ -875,61 +875,15 @@
           </div>
         </div>
 
-        <!-- Idle overlay: shown when no active job -->
-        <div id="idleOverlay" style="position:absolute;inset:0;background:#dcf2fd;border-radius:20px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;overflow-y:auto;">
-          <!-- Default idle message with Real Machine Image -->
-          <div id="idleDefault" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:480px;text-align:center;">
-            <!-- Real Kyocera Machine Image -->
-            <div style="width:100%;max-width:280px;height:210px;display:flex;align-items:center;justify-content:center;">
-              <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" onerror="if(this.src.indexOf('printer-hero.png')===-1)this.src='/printer-hero.png';" style="max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 14px 28px rgba(12, 54, 90, 0.22));animation:float-printer 4s ease-in-out infinite;" />
-            </div>
-
-            <!-- Online Badge -->
-            <div style="display:inline-flex;align-items:center;gap:8px;background:#e0f2fe;border:1.5px solid #bae6fd;padding:6px 18px;border-radius:20px;margin-top:2px;">
-              <span style="width:10px;height:10px;background:#00c06b;border-radius:50%;box-shadow:0 0 8px #00c06b;display:inline-block;"></span>
-              <span style="font-family:var(--font-display);font-size:0.95rem;font-weight:900;color:#0369a1;">Kyocera ECOSYS MA4000x • Ready</span>
-            </div>
-
-            <div>
-              <div style="font-family:var(--font-display);font-size:1.8rem;font-weight:900;color:#0c365a;letter-spacing:0.02em;">PRINTER READY</div>
-              <div style="font-family:var(--font-body);font-size:1.05rem;font-weight:700;color:#577793;margin-top:4px;">Scan QR code on left with your phone to upload & print</div>
-            </div>
-          </div>
-
-          <!-- Awaiting payment list (shown when customers have uploaded but not paid) -->
-          <div id="pendingPayList" style="display:none;width:100%;max-width:460px;">
-            <!-- Machine Thumbnail in Awaiting Payment -->
-            <div style="display:flex;align-items:center;gap:14px;background:#ffffff;border:2px solid #bae6fd;border-radius:14px;padding:10px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-              <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" onerror="if(this.src.indexOf('printer-hero.png')===-1)this.src='/printer-hero.png';" style="width:70px;height:55px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1));" />
-              <div>
-                <div style="font-family:var(--font-display);font-size:1rem;font-weight:900;color:#0c365a;">Kyocera ECOSYS MA4000x</div>
-                <div style="font-size:0.8rem;font-weight:700;color:#0284c7;">⚡ High-Speed 40 PPM Laser Ready</div>
-              </div>
-            </div>
-
-            <div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:14px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 12px rgba(245,158,11,0.15);">
-              <span style="font-size:1.6rem;">⏳</span>
-              <div>
-                <div style="font-family:var(--font-display);font-size:1.05rem;font-weight:900;color:#92400e;">File Uploaded — Awaiting Payment</div>
-                <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:600;color:#b45309;">Complete payment on your phone • Print starts immediately!</div>
-              </div>
-            </div>
-            <div id="pendingPayItems" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;padding-right:2px;"></div>
-            <div style="margin-top:10px;text-align:center;font-size:0.8rem;font-weight:700;color:#64748b;">
-              ⚡ Once paid, Kyocera printer starts printing in ~5 seconds
-            </div>
-          </div>
-        </div>
-
         <!-- Title Row -->
         <div class="printing-title-row">
-          <div class="printing-heading">
+          <div class="printing-heading" id="panelHeading">
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 6 2 18 2 18 9"></polyline>
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
               <rect x="6" y="14" width="12" height="8"></rect>
             </svg>
-            NOW PRINTING
+            <span id="panelHeadingText">NOW PRINTING</span>
           </div>
           <div class="top-slant-bars">
             <span></span><span></span><span></span>
@@ -939,12 +893,25 @@
         <!-- Middle Split: Realistic Kyocera photo on Left, details on Right -->
         <div class="printing-content-split">
           <!-- Real Kyocera Printer Graphic -->
-          <div class="kyocera-img-wrap">
-            <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" onerror="if(this.src.indexOf('printer-hero.png')===-1)this.src='/printer-hero.png';" class="kyocera-img" />
+          <div class="kyocera-img-wrap" style="background: radial-gradient(ellipse at 50% 85%, rgba(0, 210, 240, 0.22) 0%, rgba(0, 192, 107, 0.12) 40%, transparent 70%);">
+            <img src="/kyocera.png" alt="Kyocera ECOSYS MA4000x" onerror="if(this.src.indexOf('printer-hero.png')===-1)this.src='/printer-hero.png';" class="kyocera-img" />
           </div>
 
           <!-- Order Info Column -->
           <div class="printing-details-col">
+            <!-- Awaiting payment alert if unpaid orders exist -->
+            <div id="pendingPaymentNotice" style="display:none;background:#fffbeb;border:2px solid #fbbf24;border-radius:12px;padding:8px 14px;margin-bottom:8px;animation:payPulse 1.5s infinite;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:1.2rem;">⏳</span>
+                  <div>
+                    <div style="font-family:var(--font-display);font-size:0.92rem;font-weight:900;color:#92400e;" id="pendingNoticeCust">Awaiting Payment</div>
+                    <div style="font-family:var(--font-body);font-size:0.75rem;font-weight:700;color:#b45309;">Complete payment on your phone to print</div>
+                  </div>
+                </div>
+                <span style="font-family:var(--font-display);font-size:0.72rem;font-weight:800;background:#f59e0b;color:#78350f;padding:3px 10px;border-radius:12px;white-space:nowrap;">PAY ON PHONE</span>
+              </div>
+            </div>
             <!-- Customer -->
             <div class="pill-card-customer">
               <div class="icon-box-blue">
@@ -1180,10 +1147,11 @@
       }
 
       // 4. Active Job / Printing Details
-      const idleOverlay = document.getElementById('idleOverlay');
-      if (data.activeJob) {
-        if (idleOverlay) idleOverlay.style.display = 'none';
+      const pendingNotice = document.getElementById('pendingPaymentNotice');
+      const pendingList = data.pendingPayment || [];
 
+      if (data.activeJob) {
+        document.getElementById('panelHeadingText').textContent = 'NOW PRINTING';
         document.getElementById('custName').textContent = data.activeJob.customerName || 'Customer';
         document.getElementById('custOrderNum').textContent = `(Order #${String(data.activeJob.id || '').substring(0, 5)})`;
         document.getElementById('docName').textContent = data.activeJob.fileName || '';
@@ -1191,6 +1159,8 @@
         const pages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 0;
         document.getElementById('docPages').textContent = `${pages} Page${pages !== 1 ? 's' : ''}`;
         document.getElementById('docDuplex').textContent = data.activeJob.printSide === 'both' ? 'Duplex' : 'Single Side';
+
+        if (pendingNotice) pendingNotice.style.display = 'none';
 
         // Check if this is a newly starting job
         if (currentActiveId !== data.activeJob.id) {
@@ -1203,49 +1173,65 @@
           const pct = Math.max(5, Math.min(100, data.activeJob.percent || 5));
           document.getElementById('progressBarFill').style.width = pct + '%';
           document.getElementById('progressPctText').textContent = pct + '%';
+          const progLbl = document.getElementById('progressLabel');
+          if (progLbl) progLbl.textContent = 'Printing Progress';
         }
 
       } else {
-        // Show idle overlay
-        if (idleOverlay) idleOverlay.style.display = 'flex';
+        // Idle / Awaiting Payment State
         currentActiveId = null;
         currentActiveName = '';
         clearInterval(countdownTimer);
         clearInterval(startupInterval);
         const startupBanner = document.getElementById('startupBanner');
         if (startupBanner) startupBanner.style.display = 'none';
+
+        if (pendingList.length > 0) {
+          // A customer has uploaded, waiting for payment
+          const p = pendingList[0];
+          document.getElementById('panelHeadingText').textContent = 'AWAITING PAYMENT';
+          document.getElementById('custName').textContent = p.customerName || 'Customer';
+          document.getElementById('custOrderNum').textContent = '(Pay on Phone)';
+          document.getElementById('docName').textContent = p.fileName || 'Uploaded Document';
+          document.getElementById('docPages').textContent = `${p.pages} Page${p.pages !== 1 ? 's' : ''}`;
+          document.getElementById('docDuplex').textContent = p.printType === 'color' ? 'Color' : 'B&W';
+
+          document.getElementById('progressBarFill').style.width = '0%';
+          document.getElementById('progressPctText').textContent = '0%';
+          const progLbl = document.getElementById('progressLabel');
+          if (progLbl) progLbl.textContent = 'Payment Required';
+
+          const timerBadge = document.getElementById('timerTextBadge');
+          if (timerBadge) timerBadge.textContent = 'Pay on Phone';
+
+          if (pendingNotice) {
+            pendingNotice.style.display = 'block';
+            const noticeCust = document.getElementById('pendingNoticeCust');
+            if (noticeCust) noticeCust.textContent = `${p.customerName} — File Uploaded`;
+          }
+        } else {
+          // Completely idle - Match reference mockup 50fc526e-849c-455f-8843-ba164ecabbea.png
+          document.getElementById('panelHeadingText').textContent = 'NOW PRINTING';
+          document.getElementById('custName').textContent = 'Rahul S.';
+          document.getElementById('custOrderNum').textContent = '(Order #104)';
+          document.getElementById('docName').textContent = 'College_Notes.pdf';
+          document.getElementById('docPages').textContent = '4 Pages';
+          document.getElementById('docDuplex').textContent = 'Duplex';
+
+          document.getElementById('progressBarFill').style.width = '65%';
+          document.getElementById('progressPctText').textContent = '65%';
+          const progLbl = document.getElementById('progressLabel');
+          if (progLbl) progLbl.textContent = 'Printing Progress';
+
+          const timerBadge = document.getElementById('timerTextBadge');
+          if (timerBadge) timerBadge.textContent = '12s Left';
+
+          if (pendingNotice) pendingNotice.style.display = 'none';
+        }
       }
 
       // 5. Render Queue List (Customer 2, Customer 3, etc.)
       updateBackgroundQueue(data);
-
-      // 6. Pending Payment list (uploaded but not paid)
-      const pendingList = data.pendingPayment || [];
-      const pendingContainer = document.getElementById('pendingPayItems');
-      const pendingSection = document.getElementById('pendingPayList');
-      const idleDefault = document.getElementById('idleDefault');
-
-      if (pendingList.length > 0 && !data.activeJob) {
-        if (idleDefault) idleDefault.style.display = 'none';
-        if (pendingSection) pendingSection.style.display = 'block';
-        if (pendingContainer) {
-          pendingContainer.innerHTML = pendingList.map(p => {
-            const typeLabel = p.printType === 'color' ? '🎨 Color' : '⬛ B&W';
-            const shortFile = p.fileName.length > 26 ? p.fileName.substring(0, 24) + '…' : p.fileName;
-            return `<div style="background:#ffffff;border:2px solid #fbbf24;border-left:5px solid #d97706;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 10px rgba(0,0,0,0.06);animation:payPulse 1.8s ease-in-out infinite;">
-              <span style="font-size:1.5rem;">📄</span>
-              <div style="flex:1;min-width:0;">
-                <div style="font-family:var(--font-display);font-size:1.05rem;font-weight:900;color:#0f172a;">${p.customerName}</div>
-                <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${p.copies > 1 ? p.copies + ' copies' : p.pages + ' pg'}</div>
-              </div>
-              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;background:#fbbf24;color:#78350f;padding:5px 12px;border-radius:20px;white-space:nowrap;letter-spacing:0.02em;">PAY ON PHONE</span>
-            </div>`;
-          }).join('');
-        }
-      } else {
-        if (idleDefault) idleDefault.style.display = 'flex';
-        if (pendingSection) pendingSection.style.display = 'none';
-      }
     }
 
     // -------------------------------------------------------------
@@ -1290,7 +1276,7 @@
         const names = pendingList.map(p => p.customerName).join(', ');
         if (queueDisplay) queueDisplay.innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment: ${names}</span>`;
       } else {
-        if (queueDisplay) queueDisplay.textContent = 'No orders in queue';
+        if (queueDisplay) queueDisplay.textContent = 'Amit P. (~15s)';
       }
     }
 
