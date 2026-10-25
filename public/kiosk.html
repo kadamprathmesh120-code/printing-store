@@ -208,8 +208,8 @@
     ------------------------------------------------------------- */
     .main-grid {
       display: grid;
-      grid-template-columns: 43% 57%;
-      gap: 14px;
+      grid-template-columns: 35% 65%;
+      gap: 16px;
       flex: 1;
       min-height: 0;
     }
@@ -227,11 +227,12 @@
       background: var(--card-white);
       border: 2px solid var(--cyan-border);
       border-radius: 22px;
-      padding: 16px 20px;
+      padding: 24px 28px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-evenly;
+      justify-content: center;
+      gap: 20px;
       box-shadow: 0 6px 20px rgba(0, 180, 216, 0.08);
       position: relative;
     }
@@ -252,34 +253,36 @@
     /* Centered Glowing QR Box: Neon Aura Directly Around QR */
     .qr-bracket-box {
       position: relative;
-      padding: 8px;
-      border-radius: 20px;
-      background: radial-gradient(circle, rgba(0, 210, 240, 0.22) 0%, rgba(0, 192, 107, 0.16) 55%, rgba(255, 255, 255, 0.95) 85%);
-      box-shadow: 0 0 35px rgba(0, 210, 240, 0.35), 0 0 60px rgba(0, 192, 107, 0.22);
+      padding: 10px;
+      border-radius: 22px;
+      background: radial-gradient(circle, rgba(0, 210, 240, 0.28) 0%, rgba(0, 192, 107, 0.20) 60%, #ffffff 85%);
+      box-shadow: 0 0 45px rgba(0, 210, 240, 0.4), 0 0 80px rgba(0, 192, 107, 0.28);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 4px 0;
+      margin: 8px 0;
+      width: min(92%, 440px);
+      aspect-ratio: 1 / 1;
     }
 
     .qr-corner {
       position: absolute;
-      width: 32px;
-      height: 32px;
-      border: 4.5px solid var(--cyan-bright);
+      width: 36px;
+      height: 36px;
+      border: 5px solid var(--cyan-bright);
       pointer-events: none;
     }
-    .qr-corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 16px; }
-    .qr-corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 16px; }
-    .qr-corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 16px; }
-    .qr-corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 16px; }
+    .qr-corner.tl { top: -3px; left: -3px; border-right: none; border-bottom: none; border-top-left-radius: 18px; }
+    .qr-corner.tr { top: -3px; right: -3px; border-left: none; border-bottom: none; border-top-right-radius: 18px; }
+    .qr-corner.bl { bottom: -3px; left: -3px; border-right: none; border-top: none; border-bottom-left-radius: 18px; }
+    .qr-corner.br { bottom: -3px; right: -3px; border-left: none; border-top: none; border-bottom-right-radius: 18px; }
 
     /* Animated cyan radar scan line */
     .radar-line {
       position: absolute;
-      left: 10px;
-      right: 10px;
-      height: 3.5px;
+      left: 12px;
+      right: 12px;
+      height: 4px;
       background: linear-gradient(90deg, transparent, #00d2f0, #00c06b, transparent);
       box-shadow: 0 0 16px #00d2f0, 0 0 24px #00c06b;
       top: 14px;
@@ -294,22 +297,24 @@
     }
 
     .qr-img {
-      width: clamp(210px, 34vh, 320px);
-      height: clamp(210px, 34vh, 320px);
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
       display: block;
       border-radius: 14px;
       object-fit: contain;
       background: #ffffff;
-      padding: 4px;
+      padding: 6px;
     }
 
     .qr-callout-title {
       font-family: var(--font-display);
-      font-size: clamp(1.2rem, 1.8vw, 1.55rem);
+      font-size: clamp(1.4rem, 2vw, 1.85rem);
       font-weight: 900;
       letter-spacing: -0.5px;
       color: #0c365a;
-      margin: 6px 0 12px;
+      margin: 4px 0 8px;
       text-align: center;
     }
 
@@ -325,22 +330,22 @@
       width: 100%;
       background: #f7fcfe;
       border: 1.5px solid #d4effa;
-      border-radius: 18px;
-      padding: 10px 8px;
+      border-radius: 20px;
+      padding: 14px 18px;
     }
 
     .step-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       flex: 1;
       text-align: center;
     }
 
     .step-bubble {
-      width: 44px;
-      height: 44px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       background: #ffffff;
       border: 2px solid #a8eaf7;
@@ -358,22 +363,22 @@
 
     .step-title {
       font-family: var(--font-display);
-      font-size: 0.82rem;
+      font-size: 0.95rem;
       font-weight: 900;
       color: #0c365a;
     }
 
     .step-subtext {
-      font-size: 0.64rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       font-weight: 700;
-      line-height: 1;
+      line-height: 1.1;
     }
 
     .step-chevron {
       color: #00b4d8;
       font-weight: 900;
-      font-size: 1.15rem;
+      font-size: 1.25rem;
       opacity: 0.5;
     }
 
@@ -384,10 +389,11 @@
       background: var(--card-white);
       border: 2px solid var(--cyan-border);
       border-radius: 22px;
-      padding: 22px 26px;
+      padding: 22px 28px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
+      gap: 16px;
       box-shadow: 0 6px 20px rgba(0, 180, 216, 0.08);
       position: relative;
     }
@@ -398,7 +404,7 @@
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .printing-heading {
@@ -431,8 +437,8 @@
     /* Middle Layout: Kyocera printer on Left, details on Right */
     .printing-content-split {
       display: grid;
-      grid-template-columns: 46% 54%;
-      gap: 22px;
+      grid-template-columns: 48% 52%;
+      gap: 26px;
       align-items: center;
       flex: 1;
       min-height: 0;
@@ -453,14 +459,14 @@
       position: relative;
       width: 100%;
       height: 100%;
-      max-height: clamp(280px, 48vh, 440px);
+      max-height: clamp(340px, 54vh, 480px);
     }
 
     .kyocera-img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 16px 32px rgba(12, 54, 90, 0.22));
+      filter: drop-shadow(0 20px 40px rgba(12, 54, 90, 0.26));
       animation: float-printer 4s ease-in-out infinite;
     }
 
@@ -469,14 +475,15 @@
       50% { transform: translateY(-5px); }
     }
 
-    /* Right Details in Active State */
+    /* Right Details in Active State: Compact Stack without Dead Space */
     .printing-details-col {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      justify-content: space-evenly;
-      height: 100%;
-      min-height: 0;
+      gap: 18px;
+      justify-content: center;
+      height: auto;
+      width: 100%;
+      max-width: 520px;
     }
 
     /* Customer Name Card */
@@ -824,16 +831,18 @@
         <div class="panel-corner bl"></div>
         <div class="panel-corner br"></div>
 
-        <div class="qr-bracket-box">
-          <div class="qr-corner tl"></div>
-          <div class="qr-corner tr"></div>
-          <div class="qr-corner bl"></div>
-          <div class="qr-corner br"></div>
-          <div class="radar-line"></div>
-          <img id="qrCodeTarget" src="" alt="Scan QR to Print" class="qr-img" />
+        <!-- Unified QR + Title Group -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%;">
+          <div class="qr-bracket-box">
+            <div class="qr-corner tl"></div>
+            <div class="qr-corner tr"></div>
+            <div class="qr-corner bl"></div>
+            <div class="qr-corner br"></div>
+            <div class="radar-line"></div>
+            <img id="qrCodeTarget" src="" alt="Scan QR to Print" class="qr-img" />
+          </div>
+          <h2 class="qr-callout-title">SCAN WITH PHONE TO <span>PRINT</span></h2>
         </div>
-
-        <h2 class="qr-callout-title">SCAN WITH PHONE TO <span>PRINT</span></h2>
 
         <!-- 3 Steps -->
         <div class="three-steps-bar">
