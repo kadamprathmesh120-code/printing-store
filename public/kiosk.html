@@ -419,10 +419,13 @@
     .top-slant-bars span {
       width: 14px;
       height: 28px;
-      background: linear-gradient(135deg, #00d2f0, #00c06b);
       transform: skewX(-20deg);
       border-radius: 3px;
     }
+
+    .top-slant-bars span:nth-child(1) { background: #38bdf8; }
+    .top-slant-bars span:nth-child(2) { background: #00d2f0; }
+    .top-slant-bars span:nth-child(3) { background: #00c06b; }
 
     /* Middle Layout: Kyocera printer on Left, details on Right */
     .printing-content-split {
@@ -477,23 +480,25 @@
     .pill-card-customer {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: #f0f7fe;
-      border: 1.5px solid #cbe9fd;
-      padding: 10px 18px;
-      border-radius: 14px;
+      gap: 14px;
+      background: #ffffff;
+      border: 2px solid #bae6fd;
+      padding: 12px 18px;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0, 140, 200, 0.04);
     }
 
     .icon-box-blue {
-      width: 40px;
-      height: 40px;
-      background: #0284c7;
-      border-radius: 10px;
+      width: 44px;
+      height: 44px;
+      background: #0091ff;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #ffffff;
       flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0, 145, 255, 0.25);
     }
 
     .customer-text-line {
@@ -504,7 +509,7 @@
 
     .customer-text-line strong {
       font-family: var(--font-display);
-      font-size: 1.5rem;
+      font-size: 1.55rem;
       font-weight: 900;
       color: #0c365a;
     }
@@ -519,11 +524,12 @@
     .pill-card-doc {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: #f0f7fe;
-      border: 1.5px solid #cbe9fd;
-      padding: 10px 18px;
-      border-radius: 14px;
+      gap: 14px;
+      background: #ffffff;
+      border: 2px solid #bae6fd;
+      padding: 12px 18px;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0, 140, 200, 0.04);
     }
 
     .doc-info-block strong {
@@ -556,20 +562,21 @@
       display: flex;
       justify-content: space-between;
       font-family: var(--font-display);
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 800;
       color: #0c365a;
     }
 
     .progress-pct-green {
       color: var(--green-accent);
-      font-size: 1.2rem;
+      font-size: 1.25rem;
+      font-weight: 900;
     }
 
     .bar-track {
       width: 100%;
       height: 18px;
-      background: #e2eaf0;
+      background: #dbeafe;
       border-radius: 9999px;
       overflow: hidden;
       padding: 2px;
@@ -578,7 +585,7 @@
     .bar-fill {
       height: 100%;
       width: 65%;
-      background: linear-gradient(90deg, #00d2f0, #00c06b);
+      background: linear-gradient(90deg, #00d285, #00c06b);
       border-radius: 9999px;
       transition: width 0.4s ease;
       box-shadow: 0 0 12px rgba(0, 192, 107, 0.4);
@@ -586,28 +593,27 @@
 
     /* Giant Countdown Pill (Exact match with side angled brackets) */
     .giant-countdown-button {
-      background: linear-gradient(135deg, #004d40 0%, #065f46 50%, #047857 100%);
-      border: 2px solid #00f0ff;
+      background: linear-gradient(135deg, #01382d 0%, #034b3e 50%, #065f46 100%);
+      border: 2.5px solid #00f0b5;
       color: #ffffff;
-      padding: 14px 28px;
-      border-radius: 20px;
+      padding: 12px 28px;
+      border-radius: 9999px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 16px;
       font-family: var(--font-display);
       font-size: 2.5rem;
       font-weight: 900;
       letter-spacing: 0.5px;
-      box-shadow: 0 10px 30px rgba(0, 210, 240, 0.35), inset 0 0 20px rgba(0, 210, 240, 0.2);
+      box-shadow: 0 0 25px rgba(0, 240, 181, 0.35), inset 0 0 16px rgba(0, 240, 181, 0.2);
       position: relative;
     }
 
     .bracket-arrow {
-      color: #00f0ff;
-      font-size: 1.8rem;
+      color: #00f0b5;
+      font-size: 2rem;
       font-weight: 900;
-      opacity: 0.7;
     }
 
     /* -------------------------------------------------------------
