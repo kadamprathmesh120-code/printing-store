@@ -847,6 +847,17 @@
           <p id="finishPopupFile">Please collect your prints from the bottom tray.</p>
         </div>
 
+        <!-- Idle overlay: shown when no active job -->
+        <div id="idleOverlay" style="position:absolute;inset:0;background:rgba(220,242,253,0.92);border-radius:20px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0099cc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.55">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          <div style="font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:#0c365a;opacity:0.7;text-align:center;">Printer Ready</div>
+          <div style="font-family:var(--font-body);font-size:1rem;font-weight:700;color:#577793;text-align:center;">Waiting for next order…</div>
+        </div>
+
         <!-- Title Row -->
         <div class="printing-title-row">
           <div class="printing-heading">
@@ -1040,17 +1051,21 @@
         }
 
         // 3. Active Job / Printing Details
+        const idleOverlay = document.getElementById('idleOverlay');
         if (data.activeJob) {
-          document.getElementById('custName').textContent = data.activeJob.customerName || 'Customer';
-          document.getElementById('custOrderNum').textContent = `(Order #${String(data.activeJob.id || '104').substring(0, 5)})`;
-          document.getElementById('docName').textContent = data.activeJob.fileName || 'College_Notes.pdf';
+          // Hide idle overlay — show live job
+          if (idleOverlay) idleOverlay.style.display = 'none';
 
-          const pages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 4;
-          document.getElementById('docPages').textContent = `${pages} Page${pages > 1 ? 's' : ''}`;
+          document.getElementById('custName').textContent = data.activeJob.customerName || 'Customer';
+          document.getElementById('custOrderNum').textContent = `(Order #${String(data.activeJob.id || '').substring(0, 5)})`;
+          document.getElementById('docName').textContent = data.activeJob.fileName || '';
+
+          const pages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 0;
+          document.getElementById('docPages').textContent = `${pages} Page${pages !== 1 ? 's' : ''}`;
           document.getElementById('docDuplex').textContent = data.activeJob.printSide === 'both' ? 'Duplex' : 'Single Side';
 
           // Progress calculation
-          const pct = Math.max(15, Math.min(100, data.activeJob.percent || 65));
+          const pct = Math.max(5, Math.min(100, data.activeJob.percent || 5));
           document.getElementById('progressBarFill').style.width = pct + '%';
           document.getElementById('progressPctText').textContent = pct + '%';
 
@@ -1062,11 +1077,17 @@
           }
 
         } else {
+          // Show idle overlay
+          if (idleOverlay) idleOverlay.style.display = 'flex';
+
           // If a job just completed, show popup & audio
           if (lastActiveId) {
             showCelebrationToast();
             lastActiveId = null;
           }
+
+          // Stop countdown
+          clearInterval(countdownTimer);
         }
 
         // 4. Up Next Queue
@@ -1074,7 +1095,7 @@
           const firstInQueue = data.queue[0];
           document.getElementById('queueDisplay').textContent = `${firstInQueue.customerName} (~${firstInQueue.estimatedWaitSec || 15}s)`;
         } else {
-          document.getElementById('queueDisplay').textContent = 'Amit P. (~15s)';
+          document.getElementById('queueDisplay').textContent = 'No orders in queue';
         }
 
       } catch (err) {
