@@ -726,6 +726,11 @@
       font-size: 1.25rem;
       font-weight: 700;
     }
+
+    @keyframes payPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
+    }
   </style>
 </head>
 <body>
@@ -848,14 +853,25 @@
         </div>
 
         <!-- Idle overlay: shown when no active job -->
-        <div id="idleOverlay" style="position:absolute;inset:0;background:rgba(220,242,253,0.92);border-radius:20px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0099cc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.55">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
-          </svg>
-          <div style="font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:#0c365a;opacity:0.7;text-align:center;">Printer Ready</div>
-          <div style="font-family:var(--font-body);font-size:1rem;font-weight:700;color:#577793;text-align:center;">Waiting for next order…</div>
+        <div id="idleOverlay" style="position:absolute;inset:0;background:rgba(220,242,253,0.92);border-radius:20px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;overflow:hidden;">
+          <!-- Default idle message -->
+          <div id="idleDefault" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0099cc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.55">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <div style="font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:#0c365a;opacity:0.7;text-align:center;">Printer Ready</div>
+            <div style="font-family:var(--font-body);font-size:1rem;font-weight:700;color:#577793;text-align:center;">Waiting for next order…</div>
+          </div>
+          <!-- Awaiting payment list (shown when customers have uploaded but not paid) -->
+          <div id="pendingPayList" style="display:none;width:100%;max-width:420px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <span style="font-size:1.3rem;">⏳</span>
+              <span style="font-family:var(--font-display);font-size:1.1rem;font-weight:900;color:#b45309;">Awaiting Payment — Print Will Start After Payment</span>
+            </div>
+            <div id="pendingPayItems" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
         </div>
 
         <!-- Title Row -->
@@ -1096,6 +1112,36 @@
           document.getElementById('queueDisplay').textContent = `${firstInQueue.customerName} (~${firstInQueue.estimatedWaitSec || 15}s)`;
         } else {
           document.getElementById('queueDisplay').textContent = 'No orders in queue';
+        }
+
+        // 5. Pending Payment list (uploaded but not paid)
+        const pendingList = data.pendingPayment || [];
+        const pendingContainer = document.getElementById('pendingPayItems');
+        const pendingSection = document.getElementById('pendingPayList');
+        const idleDefault = document.getElementById('idleDefault');
+
+        if (pendingList.length > 0 && !data.activeJob) {
+          // Show pending list, hide default idle icon
+          if (idleDefault) idleDefault.style.display = 'none';
+          if (pendingSection) pendingSection.style.display = 'block';
+          if (pendingContainer) {
+            pendingContainer.innerHTML = pendingList.map(p => {
+              const typeLabel = p.printType === 'color' ? '🎨 Color' : '⬛ B&W';
+              const shortFile = p.fileName.length > 28 ? p.fileName.substring(0, 26) + '…' : p.fileName;
+              return `<div style="background:#fffbeb;border:2px solid #fbbf24;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;animation:payPulse 1.8s ease-in-out infinite;">
+                <span style="font-size:1.5rem;">💳</span>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-family:var(--font-display);font-size:1rem;font-weight:900;color:#92400e;">${p.customerName}</div>
+                  <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:700;color:#b45309;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${p.pages} pg</div>
+                </div>
+                <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;background:#fbbf24;color:#78350f;padding:4px 10px;border-radius:20px;white-space:nowrap;">PAY NOW</span>
+              </div>`;
+            }).join('');
+          }
+        } else {
+          // No pending — show default idle
+          if (idleDefault) idleDefault.style.display = 'flex';
+          if (pendingSection) pendingSection.style.display = 'none';
         }
 
       } catch (err) {

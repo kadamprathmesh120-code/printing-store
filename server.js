@@ -2277,6 +2277,25 @@ app.get('/api/kiosk/status', async (req, res) => {
       LIMIT 3
     `).all();
 
+    // Orders uploaded but payment not yet done (last 30 mins)
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const pendingPayment = db.prepare(`
+      SELECT id, customer_name, file_name, print_type, copies, page_count, created_at
+      FROM orders
+      WHERE status IN ('pending', 'created')
+        AND created_at >= ?
+      ORDER BY created_at ASC
+      LIMIT 10
+    `).all(cutoff).map(o => ({
+      id: o.id,
+      customerName: o.customer_name || 'Customer',
+      fileName: o.file_name || '',
+      printType: o.print_type || 'bw',
+      copies: o.copies || 1,
+      pages: o.page_count || 1,
+      waitingSince: o.created_at
+    }));
+
     const hostHeader = req.get('host') || 'localhost:3000';
     const isLocal = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1');
     const proto = req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https');
@@ -2308,6 +2327,7 @@ app.get('/api/kiosk/status', async (req, res) => {
       activeJob,
       queue,
       recentlyCompleted,
+      pendingPayment,
       storeUrl: baseUrl,
       qrDataUrl
     });
