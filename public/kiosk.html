@@ -231,7 +231,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       box-shadow: 0 6px 20px rgba(0, 180, 216, 0.08);
       position: relative;
     }
@@ -833,8 +833,8 @@
         <div class="panel-corner bl"></div>
         <div class="panel-corner br"></div>
 
-        <!-- Unified QR + Title Group -->
-        <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%;">
+        <!-- Unified QR + Title + 3 Steps Group (Shifted higher up) -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; justify-content:center; flex:1;">
           <div class="qr-bracket-box">
             <div class="qr-corner tl"></div>
             <div class="qr-corner tr"></div>
@@ -843,48 +843,49 @@
             <div class="radar-line"></div>
             <img id="qrCodeTarget" src="" alt="Scan QR to Print" class="qr-img" />
           </div>
+
           <h2 class="qr-callout-title">SCAN WITH PHONE TO <span>PRINT</span></h2>
-        </div>
 
-        <!-- 3 Steps -->
-        <div class="three-steps-bar">
-          <div class="step-col">
-            <div class="step-bubble">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                <line x1="12" y1="18" x2="12.01" y2="18"></line>
-              </svg>
+          <!-- 3 Steps (Shifted higher up directly below title) -->
+          <div class="three-steps-bar">
+            <div class="step-col">
+              <div class="step-bubble">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                  <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                </svg>
+              </div>
+              <div class="step-title">1. Scan</div>
+              <div class="step-subtext">Open camera / Google Lens</div>
             </div>
-            <div class="step-title">1. Scan</div>
-            <div class="step-subtext">Open camera / Google Lens</div>
-          </div>
 
-          <div class="step-chevron">➔</div>
+            <div class="step-chevron">➔</div>
 
-          <div class="step-col">
-            <div class="step-bubble">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
+            <div class="step-col">
+              <div class="step-bubble">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <div class="step-title">2. Upload</div>
+              <div class="step-subtext">Select your file</div>
             </div>
-            <div class="step-title">2. Upload</div>
-            <div class="step-subtext">Select your file</div>
-          </div>
 
-          <div class="step-chevron">➔</div>
+            <div class="step-chevron">➔</div>
 
-          <div class="step-col">
-            <div class="step-bubble">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                <rect x="6" y="14" width="12" height="8"></rect>
-              </svg>
+            <div class="step-col">
+              <div class="step-bubble">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+              </div>
+              <div class="step-title">3. Collect</div>
+              <div class="step-subtext">Pick up your prints</div>
             </div>
-            <div class="step-title">3. Collect</div>
-            <div class="step-subtext">Pick up your prints</div>
           </div>
         </div>
       </section>
