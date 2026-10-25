@@ -731,6 +731,21 @@
       0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5); }
       50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
     }
+
+    @keyframes shimmerBar {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .bar-fill.shimmer {
+      background: linear-gradient(90deg, #f59e0b 25%, #fbbf24 50%, #f59e0b 75%) !important;
+      background-size: 200% 100% !important;
+      animation: shimmerBar 1.2s infinite linear !important;
+      width: 100% !important;
+    }
+    @keyframes bounceBadge {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
   </style>
 </head>
 <body>
@@ -845,11 +860,19 @@
       <!-- RIGHT: "NOW PRINTING" CARD -->
       <section class="panel-printing">
 
-        <!-- Finished Celebration Toast -->
+        <!-- Finished Celebration Toast with 15s Pickup Countdown -->
         <div class="finish-popup" id="finishToast">
-          <div style="font-size: 3.5rem; margin-bottom: 8px;">🎉</div>
-          <h2 id="finishPopupName">Order Complete!</h2>
-          <p id="finishPopupFile">Please collect your prints from the bottom tray.</p>
+          <div style="font-size: 3.5rem; margin-bottom: 4px; animation: bounceBadge 0.9s infinite alternate;">🎉</div>
+          <h2 style="font-size: 2.2rem; margin-bottom: 2px;">Order Complete!</h2>
+          <div id="finishCustomerName" style="font-family: var(--font-display); font-size: 1.6rem; font-weight: 900; margin: 4px 0; text-shadow: 0 2px 8px rgba(0,0,0,0.25);">Customer Name</div>
+          <p id="finishPopupFile" style="font-size: 1.05rem; opacity: 0.95; margin-bottom: 12px;">Please collect your prints from the bottom tray.</p>
+
+          <!-- 15s Collect Countdown Box -->
+          <div style="background: rgba(255,255,255,0.22); border: 2.5px solid rgba(255,255,255,0.7); border-radius: 18px; padding: 12px 28px; display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);">
+            <div style="font-size: 0.85rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">Next Print Starts In</div>
+            <div id="finishCountdownSec" style="font-family: var(--font-display); font-size: 3.2rem; font-weight: 900; line-height: 1;">15s</div>
+            <div id="finishNextCustomer" style="font-size: 0.95rem; font-weight: 700; opacity: 0.95; margin-top: 2px;">Up Next: Next Customer</div>
+          </div>
         </div>
 
         <!-- Idle overlay: shown when no active job -->
@@ -935,6 +958,20 @@
               </div>
             </div>
 
+            <!-- 5s Startup Banner -->
+            <div id="startupBanner" style="display:none;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:8px 14px;margin-bottom:8px;animation:payPulse 1.2s infinite;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:1.2rem;">⚡</span>
+                  <div>
+                    <div style="font-family:var(--font-display);font-size:0.92rem;font-weight:900;color:#92400e;">Preparing Kyocera Laser Engine…</div>
+                    <div style="font-family:var(--font-body);font-size:0.75rem;font-weight:700;color:#b45309;">Spooling document & warming up</div>
+                  </div>
+                </div>
+                <span id="startupSecBadge" style="background:#f59e0b;color:#78350f;font-weight:900;font-size:0.95rem;padding:4px 12px;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">5s</span>
+              </div>
+            </div>
+
             <!-- Progress Bar -->
             <div class="progress-wrapper">
               <div class="progress-text-row">
@@ -957,6 +994,18 @@
               <span class="bracket-arrow">&gt;</span>
             </div>
           </div>
+        </div>
+
+        <!-- QUEUE LIST SECTION (shown when 2nd, 3rd, etc. orders are paid and in line) -->
+        <div id="queueSection" style="display:none;margin-top:14px;padding:12px 16px;background:#f0f9fe;border:2px solid #bae6fd;border-radius:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:1.15rem;">📋</span>
+              <span style="font-family:var(--font-display);font-size:1rem;font-weight:900;color:#0369a1;">PRINT QUEUE (<span id="queueCount">0</span> WAITING)</span>
+            </div>
+            <span style="font-size:0.75rem;font-weight:800;color:#0284c7;background:#e0f2fe;padding:2px 10px;border-radius:10px;">Automatic sequential printing</span>
+          </div>
+          <div id="queueListCards" style="display:flex;flex-direction:column;gap:6px;max-height:140px;overflow-y:auto;padding-right:2px;"></div>
         </div>
 
       </section>
@@ -1046,116 +1095,268 @@
     // -------------------------------------------------------------
     // STATE POLLING & SYNC
     // -------------------------------------------------------------
-    let lastActiveId = null;
+    // -------------------------------------------------------------
+    // STATE POLLING & SYNC
+    // -------------------------------------------------------------
+    let currentActiveId = null;
+    let currentActiveName = '';
+    let isHoldingCompletion = false;
+    let completionCountdown = 15;
+    let completionInterval = null;
+
+    let isStartupRunning = false;
+    let startupCountdown = 5;
+    let startupInterval = null;
+
     let localSeconds = 12;
     let countdownTimer = null;
+    let latestCachedData = null;
 
     async function fetchKioskState() {
       try {
         const res = await fetch('/api/kiosk/status');
         if (!res.ok) return;
         const data = await res.json();
+        latestCachedData = data;
 
-        // 1. QR Code Image
-        if (data.qrDataUrl) {
-          const qrEl = document.getElementById('qrCodeTarget');
-          if (qrEl && qrEl.src !== data.qrDataUrl) {
-            qrEl.src = data.qrDataUrl;
-          }
+        // If currently displaying the 15-second completion pickup screen,
+        // hold the celebration screen and do not switch the active view yet!
+        if (isHoldingCompletion) {
+          updateBackgroundQueue(data);
+          return;
         }
 
-        // 2. Machine details from Admin selection
-        if (data.activePrinterName) {
-          document.getElementById('kioskMachineName').textContent = data.activePrinterName;
-        }
-        if (data.activePrinterSpeed) {
-          document.getElementById('kioskMachineSpeed').textContent = `Online (${data.activePrinterSpeed})`;
-        }
-
-        // 3. Active Job / Printing Details
-        const idleOverlay = document.getElementById('idleOverlay');
-        if (data.activeJob) {
-          // Hide idle overlay — show live job
-          if (idleOverlay) idleOverlay.style.display = 'none';
-
-          document.getElementById('custName').textContent = data.activeJob.customerName || 'Customer';
-          document.getElementById('custOrderNum').textContent = `(Order #${String(data.activeJob.id || '').substring(0, 5)})`;
-          document.getElementById('docName').textContent = data.activeJob.fileName || '';
-
-          const pages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 0;
-          document.getElementById('docPages').textContent = `${pages} Page${pages !== 1 ? 's' : ''}`;
-          document.getElementById('docDuplex').textContent = data.activeJob.printSide === 'both' ? 'Duplex' : 'Single Side';
-
-          // Progress calculation
-          const pct = Math.max(5, Math.min(100, data.activeJob.percent || 5));
-          document.getElementById('progressBarFill').style.width = pct + '%';
-          document.getElementById('progressPctText').textContent = pct + '%';
-
-          // Countdown Timer handling
-          if (lastActiveId !== data.activeJob.id) {
-            lastActiveId = data.activeJob.id;
-            localSeconds = Math.max(3, parseInt(data.activeJob.remainingPrintSec, 10) || 12);
-            startCountdown();
-          }
-
-        } else {
-          // Show idle overlay
-          if (idleOverlay) idleOverlay.style.display = 'flex';
-
-          // If a job just completed, show popup & audio
-          if (lastActiveId) {
-            showCelebrationToast();
-            lastActiveId = null;
-          }
-
-          // Stop countdown
-          clearInterval(countdownTimer);
-        }
-
-        // 4. Up Next Queue
-        const pendingList = data.pendingPayment || [];
-        if (data.queue && data.queue.length > 0) {
-          const firstInQueue = data.queue[0];
-          document.getElementById('queueDisplay').textContent = `${firstInQueue.customerName} (~${firstInQueue.estimatedWaitSec || 15}s)`;
-        } else if (pendingList.length > 0) {
-          const names = pendingList.map(p => p.customerName).join(', ');
-          document.getElementById('queueDisplay').innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment: ${names}</span>`;
-        } else {
-          document.getElementById('queueDisplay').textContent = 'No orders in queue';
-        }
-
-        // 5. Pending Payment list (uploaded but not paid)
-        const pendingContainer = document.getElementById('pendingPayItems');
-        const pendingSection = document.getElementById('pendingPayList');
-        const idleDefault = document.getElementById('idleDefault');
-
-        if (pendingList.length > 0 && !data.activeJob) {
-          // Show pending list, hide default idle icon
-          if (idleDefault) idleDefault.style.display = 'none';
-          if (pendingSection) pendingSection.style.display = 'block';
-          if (pendingContainer) {
-            pendingContainer.innerHTML = pendingList.map(p => {
-              const typeLabel = p.printType === 'color' ? '🎨 Color' : '⬛ B&W';
-              const shortFile = p.fileName.length > 26 ? p.fileName.substring(0, 24) + '…' : p.fileName;
-              return `<div style="background:#ffffff;border:2px solid #fbbf24;border-left:5px solid #d97706;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 10px rgba(0,0,0,0.06);animation:payPulse 1.8s ease-in-out infinite;">
-                <span style="font-size:1.5rem;">📄</span>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-family:var(--font-display);font-size:1.05rem;font-weight:900;color:#0f172a;">${p.customerName}</div>
-                  <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${p.copies > 1 ? p.copies + ' copies' : p.pages + ' pg'}</div>
-                </div>
-                <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;background:#fbbf24;color:#78350f;padding:5px 12px;border-radius:20px;white-space:nowrap;letter-spacing:0.02em;">PAY ON PHONE</span>
-              </div>`;
-            }).join('');
-          }
-        } else {
-          // No pending — show default idle
-          if (idleDefault) idleDefault.style.display = 'flex';
-          if (pendingSection) pendingSection.style.display = 'none';
-        }
-
+        applyKioskState(data);
       } catch (err) {
         console.warn('Poll warning:', err.message);
       }
+    }
+
+    function applyKioskState(data) {
+      if (!data) return;
+
+      // 1. QR Code Image
+      if (data.qrDataUrl) {
+        const qrEl = document.getElementById('qrCodeTarget');
+        if (qrEl && qrEl.src !== data.qrDataUrl) {
+          qrEl.src = data.qrDataUrl;
+        }
+      }
+
+      // 2. Machine details from Admin selection
+      if (data.activePrinterName) {
+        document.getElementById('kioskMachineName').textContent = data.activePrinterName;
+      }
+      if (data.activePrinterSpeed) {
+        document.getElementById('kioskMachineSpeed').textContent = `Online (${data.activePrinterSpeed})`;
+      }
+
+      // 3. Detect Job Completion (Transition from previous job to next or idle)
+      if (currentActiveId && (!data.activeJob || data.activeJob.id !== currentActiveId)) {
+        const finishedName = currentActiveName;
+        const nextName = data.activeJob ? (data.activeJob.customerName || 'Customer') : (data.queue && data.queue[0] ? data.queue[0].customerName : null);
+        currentActiveId = data.activeJob ? data.activeJob.id : null;
+        currentActiveName = data.activeJob ? (data.activeJob.customerName || 'Customer') : '';
+        triggerCompletion(finishedName, nextName, data);
+        return;
+      }
+
+      // 4. Active Job / Printing Details
+      const idleOverlay = document.getElementById('idleOverlay');
+      if (data.activeJob) {
+        if (idleOverlay) idleOverlay.style.display = 'none';
+
+        document.getElementById('custName').textContent = data.activeJob.customerName || 'Customer';
+        document.getElementById('custOrderNum').textContent = `(Order #${String(data.activeJob.id || '').substring(0, 5)})`;
+        document.getElementById('docName').textContent = data.activeJob.fileName || '';
+
+        const pages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 0;
+        document.getElementById('docPages').textContent = `${pages} Page${pages !== 1 ? 's' : ''}`;
+        document.getElementById('docDuplex').textContent = data.activeJob.printSide === 'both' ? 'Duplex' : 'Single Side';
+
+        // Check if this is a newly starting job
+        if (currentActiveId !== data.activeJob.id) {
+          currentActiveId = data.activeJob.id;
+          currentActiveName = data.activeJob.customerName || 'Customer';
+          const printSec = Math.max(3, parseInt(data.activeJob.remainingPrintSec, 10) || 12);
+          triggerStartup(printSec);
+        } else if (!isStartupRunning) {
+          // Progress calculation during active printing
+          const pct = Math.max(5, Math.min(100, data.activeJob.percent || 5));
+          document.getElementById('progressBarFill').style.width = pct + '%';
+          document.getElementById('progressPctText').textContent = pct + '%';
+        }
+
+      } else {
+        // Show idle overlay
+        if (idleOverlay) idleOverlay.style.display = 'flex';
+        currentActiveId = null;
+        currentActiveName = '';
+        clearInterval(countdownTimer);
+        clearInterval(startupInterval);
+        const startupBanner = document.getElementById('startupBanner');
+        if (startupBanner) startupBanner.style.display = 'none';
+      }
+
+      // 5. Render Queue List (Customer 2, Customer 3, etc.)
+      updateBackgroundQueue(data);
+
+      // 6. Pending Payment list (uploaded but not paid)
+      const pendingList = data.pendingPayment || [];
+      const pendingContainer = document.getElementById('pendingPayItems');
+      const pendingSection = document.getElementById('pendingPayList');
+      const idleDefault = document.getElementById('idleDefault');
+
+      if (pendingList.length > 0 && !data.activeJob) {
+        if (idleDefault) idleDefault.style.display = 'none';
+        if (pendingSection) pendingSection.style.display = 'block';
+        if (pendingContainer) {
+          pendingContainer.innerHTML = pendingList.map(p => {
+            const typeLabel = p.printType === 'color' ? '🎨 Color' : '⬛ B&W';
+            const shortFile = p.fileName.length > 26 ? p.fileName.substring(0, 24) + '…' : p.fileName;
+            return `<div style="background:#ffffff;border:2px solid #fbbf24;border-left:5px solid #d97706;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 10px rgba(0,0,0,0.06);animation:payPulse 1.8s ease-in-out infinite;">
+              <span style="font-size:1.5rem;">📄</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-family:var(--font-display);font-size:1.05rem;font-weight:900;color:#0f172a;">${p.customerName}</div>
+                <div style="font-family:var(--font-body);font-size:0.82rem;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${p.copies > 1 ? p.copies + ' copies' : p.pages + ' pg'}</div>
+              </div>
+              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;background:#fbbf24;color:#78350f;padding:5px 12px;border-radius:20px;white-space:nowrap;letter-spacing:0.02em;">PAY ON PHONE</span>
+            </div>`;
+          }).join('');
+        }
+      } else {
+        if (idleDefault) idleDefault.style.display = 'flex';
+        if (pendingSection) pendingSection.style.display = 'none';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // RENDER QUEUE LIST (CUSTOMER 2, 3, etc.) & FOOTER TICKER
+    // -------------------------------------------------------------
+    function updateBackgroundQueue(data) {
+      if (!data) return;
+      const queue = data.queue || [];
+      const queueSection = document.getElementById('queueSection');
+      const queueCards = document.getElementById('queueListCards');
+      const queueCount = document.getElementById('queueCount');
+
+      if (queue.length > 0 && (data.activeJob || isHoldingCompletion)) {
+        if (queueSection) queueSection.style.display = 'block';
+        if (queueCount) queueCount.textContent = queue.length;
+        if (queueCards) {
+          queueCards.innerHTML = queue.map((q, idx) => {
+            const typeLabel = q.printType === 'color' ? '🎨 Color' : '⬛ B&W';
+            const shortFile = q.fileName.length > 24 ? q.fileName.substring(0, 22) + '…' : q.fileName;
+            const waitTime = q.estimatedWaitSec || ((idx + 1) * 15);
+            return `<div style="background:#ffffff;border:1.5px solid #bae6fd;border-left:4px solid #0284c7;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:900;background:#0284c7;color:#ffffff;padding:3px 8px;border-radius:8px;white-space:nowrap;">#${idx + 1} NEXT</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-family:var(--font-display);font-size:0.95rem;font-weight:900;color:#0c365a;">${q.customerName}</div>
+                <div style="font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:#577793;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${q.pages} pg</div>
+              </div>
+              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;color:#0369a1;background:#e0f2fe;padding:3px 8px;border-radius:12px;white-space:nowrap;">~${waitTime}s wait</span>
+            </div>`;
+          }).join('');
+        }
+      } else {
+        if (queueSection) queueSection.style.display = 'none';
+      }
+
+      // Footer ticker
+      const pendingList = data.pendingPayment || [];
+      const queueDisplay = document.getElementById('queueDisplay');
+      if (queue.length > 0) {
+        const qNames = queue.map((q, i) => `#${i + 1} ${q.customerName} (~${q.estimatedWaitSec || 15}s)`).join('  |  ');
+        if (queueDisplay) queueDisplay.textContent = qNames;
+      } else if (pendingList.length > 0) {
+        const names = pendingList.map(p => p.customerName).join(', ');
+        if (queueDisplay) queueDisplay.innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment: ${names}</span>`;
+      } else {
+        if (queueDisplay) queueDisplay.textContent = 'No orders in queue';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 15-SECOND COMPLETION PICKUP TIMER
+    // -------------------------------------------------------------
+    function triggerCompletion(completedCustomerName, nextCustomerName, pendingState) {
+      isHoldingCompletion = true;
+      completionCountdown = 15;
+      clearInterval(completionInterval);
+      clearInterval(countdownTimer);
+      clearInterval(startupInterval);
+
+      playPickupAudio();
+
+      const popup = document.getElementById('finishToast');
+      const custEl = document.getElementById('finishCustomerName');
+      const nextEl = document.getElementById('finishNextCustomer');
+      const secEl = document.getElementById('finishCountdownSec');
+
+      if (custEl) custEl.textContent = completedCustomerName || 'Customer';
+      if (nextEl) nextEl.textContent = nextCustomerName ? `Up Next: ${nextCustomerName}` : 'All orders complete • Printer Ready';
+      if (secEl) secEl.textContent = '15s';
+      if (popup) popup.classList.add('show');
+
+      completionInterval = setInterval(() => {
+        completionCountdown--;
+        if (completionCountdown > 0) {
+          if (secEl) secEl.textContent = `${completionCountdown}s`;
+        } else {
+          clearInterval(completionInterval);
+          isHoldingCompletion = false;
+          if (popup) popup.classList.remove('show');
+
+          // Smoothly transition to next queued customer or idle state
+          applyKioskState(latestCachedData || pendingState);
+        }
+      }, 1000);
+    }
+
+    // -------------------------------------------------------------
+    // 5-SECOND STARTUP / WARMUP TIMER
+    // -------------------------------------------------------------
+    function triggerStartup(printDurationSec) {
+      isStartupRunning = true;
+      startupCountdown = 5;
+      clearInterval(startupInterval);
+      clearInterval(countdownTimer);
+
+      const banner = document.getElementById('startupBanner');
+      const badge = document.getElementById('startupSecBadge');
+      const timerBadge = document.getElementById('timerTextBadge');
+      const progressPct = document.getElementById('progressPctText');
+      const progressBar = document.getElementById('progressBarFill');
+
+      if (banner) banner.style.display = 'block';
+      if (badge) badge.textContent = '5s';
+      if (timerBadge) timerBadge.textContent = '5s Startup';
+      if (progressPct) progressPct.textContent = 'Starting…';
+      if (progressBar) {
+        progressBar.style.width = '100%';
+        progressBar.classList.add('shimmer');
+      }
+
+      startupInterval = setInterval(() => {
+        startupCountdown--;
+        if (startupCountdown > 0) {
+          if (badge) badge.textContent = `${startupCountdown}s`;
+          if (timerBadge) timerBadge.textContent = `${startupCountdown}s Startup`;
+        } else {
+          clearInterval(startupInterval);
+          isStartupRunning = false;
+          if (banner) banner.style.display = 'none';
+          if (progressBar) {
+            progressBar.classList.remove('shimmer');
+            progressBar.style.width = '10%';
+          }
+          if (progressPct) progressPct.textContent = '10%';
+
+          // Switch to live countdown of print duration
+          localSeconds = Math.max(3, parseInt(printDurationSec, 10) || 12);
+          startCountdown();
+        }
+      }, 1000);
     }
 
     function startCountdown() {
@@ -1171,16 +1372,11 @@
 
     function updateTimerBadge() {
       const badge = document.getElementById('timerTextBadge');
-      if (badge) badge.textContent = `${localSeconds}s Left`;
+      if (badge && !isStartupRunning) badge.textContent = `${localSeconds}s Left`;
     }
 
     function showCelebrationToast() {
-      const popup = document.getElementById('finishToast');
-      playPickupAudio();
-      popup.classList.add('show');
-      setTimeout(() => {
-        popup.classList.remove('show');
-      }, 7000);
+      triggerCompletion(currentActiveName || 'Customer', null, latestCachedData);
     }
 
     // Start live loop
