@@ -889,7 +889,7 @@
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
               <rect x="6" y="14" width="12" height="8"></rect>
             </svg>
-            <span id="panelHeadingText">NOW PRINTING</span>
+            <span id="panelHeadingText">PRINTER READY</span>
           </div>
           <div class="top-slant-bars">
             <span></span><span></span><span></span>
@@ -926,8 +926,8 @@
                 </svg>
               </div>
               <div class="customer-text-line">
-                <strong id="custName">—</strong>
-                <span id="custOrderNum"></span>
+                <strong id="custName">Printer Ready</strong>
+                <span id="custOrderNum">(Standby)</span>
               </div>
             </div>
 
@@ -940,11 +940,11 @@
                 </svg>
               </div>
               <div class="doc-info-block">
-                <strong id="docName">No active print</strong>
+                <strong id="docName">Scan QR code with mobile to upload &amp; print</strong>
                 <div class="doc-subspecs">
-                  <span>📄 <span id="docPages">—</span></span>
+                  <span>📄 <span id="docPages">40 PPM</span></span>
                   <span>•</span>
-                  <span>📑 <span id="docDuplex">—</span></span>
+                  <span>📑 <span id="docDuplex">Duplex Ready</span></span>
                 </div>
               </div>
             </div>
@@ -966,8 +966,8 @@
             <!-- Progress Bar -->
             <div class="progress-wrapper">
               <div class="progress-text-row">
-                <span>Printing Progress</span>
-                <span class="progress-pct-green" id="progressPctText">0%</span>
+                <span id="progressLabel">Printer Status</span>
+                <span class="progress-pct-green" id="progressPctText">Ready</span>
               </div>
               <div class="bar-track">
                 <div class="bar-fill" id="progressBarFill" style="width:0%"></div>
@@ -981,7 +981,7 @@
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
-              <span id="timerTextBadge">12s Left</span>
+              <span id="timerTextBadge">Ready to Print</span>
               <span class="bracket-arrow">&gt;</span>
             </div>
           </div>
@@ -1008,8 +1008,8 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="#00d2f0">
           <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
         </svg>
-        <span>Up Next:</span>
-        <strong id="queueDisplay">Amit P. (~15s)</strong>
+        <span>Queue:</span>
+        <strong id="queueDisplay">No orders in queue</strong>
       </div>
 
       <div class="footer-divider-pipe"></div>
@@ -1216,21 +1216,21 @@
             if (noticeCust) noticeCust.textContent = `${p.customerName} — File Uploaded`;
           }
         } else {
-          // Completely idle - Match reference mockup 50fc526e-849c-455f-8843-ba164ecabbea.png
-          document.getElementById('panelHeadingText').textContent = 'NOW PRINTING';
-          document.getElementById('custName').textContent = 'Rahul S.';
-          document.getElementById('custOrderNum').textContent = '(Order #104)';
-          document.getElementById('docName').textContent = 'College_Notes.pdf';
-          document.getElementById('docPages').textContent = '4 Pages';
-          document.getElementById('docDuplex').textContent = 'Duplex';
+          // Completely idle - Standby state (no dummy customer names)
+          document.getElementById('panelHeadingText').textContent = 'PRINTER READY';
+          document.getElementById('custName').textContent = 'Printer Ready';
+          document.getElementById('custOrderNum').textContent = '(Standby)';
+          document.getElementById('docName').textContent = 'Scan QR code with mobile to upload & print';
+          document.getElementById('docPages').textContent = '40 PPM';
+          document.getElementById('docDuplex').textContent = 'Duplex Ready';
 
-          document.getElementById('progressBarFill').style.width = '65%';
-          document.getElementById('progressPctText').textContent = '65%';
+          document.getElementById('progressBarFill').style.width = '0%';
+          document.getElementById('progressPctText').textContent = 'Ready';
           const progLbl = document.getElementById('progressLabel');
-          if (progLbl) progLbl.textContent = 'Printing Progress';
+          if (progLbl) progLbl.textContent = 'Printer Status';
 
           const timerBadge = document.getElementById('timerTextBadge');
-          if (timerBadge) timerBadge.textContent = '12s Left';
+          if (timerBadge) timerBadge.textContent = 'Ready to Print';
 
           if (pendingNotice) pendingNotice.style.display = 'none';
         }
@@ -1282,7 +1282,7 @@
         const names = pendingList.map(p => p.customerName).join(', ');
         if (queueDisplay) queueDisplay.innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment: ${names}</span>`;
       } else {
-        if (queueDisplay) queueDisplay.textContent = 'Amit P. (~15s)';
+        if (queueDisplay) queueDisplay.textContent = 'No orders in queue';
       }
     }
 
