@@ -881,7 +881,7 @@
           <div id="idleDefault" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:480px;text-align:center;">
             <!-- Real Kyocera Machine Image -->
             <div style="width:100%;max-width:280px;height:210px;display:flex;align-items:center;justify-content:center;">
-              <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" style="max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 14px 28px rgba(12, 54, 90, 0.22));animation:float-printer 4s ease-in-out infinite;" />
+              <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" onerror="if(this.src.indexOf('printer-hero.png')===-1)this.src='/printer-hero.png';" style="max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 14px 28px rgba(12, 54, 90, 0.22));animation:float-printer 4s ease-in-out infinite;" />
             </div>
 
             <!-- Online Badge -->
@@ -900,7 +900,7 @@
           <div id="pendingPayList" style="display:none;width:100%;max-width:460px;">
             <!-- Machine Thumbnail in Awaiting Payment -->
             <div style="display:flex;align-items:center;gap:14px;background:#ffffff;border:2px solid #bae6fd;border-radius:14px;padding:10px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-              <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" style="width:70px;height:55px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1));" />
+              <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" onerror="if(this.src.indexOf('printer-hero.png')===-1)this.src='/printer-hero.png';" style="width:70px;height:55px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1));" />
               <div>
                 <div style="font-family:var(--font-display);font-size:1rem;font-weight:900;color:#0c365a;">Kyocera ECOSYS MA4000x</div>
                 <div style="font-size:0.8rem;font-weight:700;color:#0284c7;">⚡ High-Speed 40 PPM Laser Ready</div>
@@ -940,7 +940,7 @@
         <div class="printing-content-split">
           <!-- Real Kyocera Printer Graphic -->
           <div class="kyocera-img-wrap">
-            <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" class="kyocera-img" />
+            <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" onerror="if(this.src.indexOf('printer-hero.png')===-1)this.src='/printer-hero.png';" class="kyocera-img" />
           </div>
 
           <!-- Order Info Column -->

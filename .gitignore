@@ -29,3 +29,5 @@ test-data/
 Desktop*/
 HP95224C*
 Kyocera*
+!public/kyocera.jpg
+!public/KYOCERA*
