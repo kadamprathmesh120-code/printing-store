@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Kadam Xerox Kiosk — Self Service Print</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #dcf2fd;
+      --card-white: #ffffff;
+      --cyan-border: #7ee2f8;
+      --cyan-bright: #00d2f0;
+      --cyan-deep: #0099cc;
+      --navy-dark: #0c365a;
+      --text-muted: #577793;
+      --green-accent: #00c06b;
+      --green-dark: #00874a;
+      --font-display: 'Outfit', -apple-system, sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-canvas);
+      font-family: var(--font-body);
+      color: var(--navy-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Outer Framing matching exact reference image */
+    .kiosk-frame-container {
+      width: calc(100vw - 20px);
+      height: calc(100vh - 20px);
+      max-width: 1400px;
+      max-height: 850px;
+      background: #f0f9fe;
+      border: 2.5px solid var(--cyan-border);
+      border-radius: 28px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 40px rgba(0, 180, 216, 0.18);
+      position: relative;
+    }
+
+    @media (max-width: 900px) {
+      html, body {
+        overflow-y: auto;
+        height: auto;
+      }
+      .kiosk-frame-container {
+        width: 100vw;
+        height: auto;
+        min-height: 100vh;
+        border-radius: 0;
+        border: none;
+        padding: 12px;
+        max-height: none;
+      }
+    }
+
+    /* -------------------------------------------------------------
+       1. TOP HEADER
+    ------------------------------------------------------------- */
+    .header-bar {
+      background: var(--card-white);
+      border: 2px solid var(--cyan-border);
+      border-radius: 20px;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(0, 180, 216, 0.08);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo-svg {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+
+    .brand-text-block h1 {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #0c365a;
+      line-height: 1;
+    }
+
+    .brand-text-block h1 span {
+      color: var(--green-accent);
+    }
+
+    .brand-subline {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    /* Center Pill: Kyocera Online */
+    .machine-status-capsule {
+      background: #e8faf3;
+      border: 1.5px solid #82e2b8;
+      padding: 8px 24px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 10px rgba(0, 192, 107, 0.12);
+    }
+
+    .status-orb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--green-accent);
+      box-shadow: 0 0 10px var(--green-accent);
+      animation: pulse-glow 2s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: 0.7; }
+    }
+
+    .machine-label-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .machine-label-info strong {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0c365a;
+      line-height: 1.1;
+    }
+
+    .machine-label-info span {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #00874a;
+    }
+
+    /* Clock Right */
+    .header-clock-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .clock-icon-svg {
+      width: 26px;
+      height: 26px;
+      color: #0c365a;
+    }
+
+    .clock-numbers {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 900;
+      color: #0c365a;
+      line-height: 1;
+    }
+
+    .calendar-sub {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* -------------------------------------------------------------
+       2. MAIN 2-PANEL GRID
+    ------------------------------------------------------------- */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 43% 57%;
+      gap: 14px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* -------------------------------------------------------------
+       LEFT: QR CODE CARD (Clean Cyan Frame)
+    ------------------------------------------------------------- */
+    .panel-qr {
+      background: var(--card-white);
+      border: 2px solid var(--cyan-border);
+      border-radius: 22px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 6px 20px rgba(0, 180, 216, 0.08);
+      position: relative;
+    }
+
+    /* 4 Corner cyan brackets */
+    .panel-corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border: 4px solid var(--cyan-bright);
+      pointer-events: none;
+    }
+    .panel-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 18px; }
+    .panel-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 18px; }
+    .panel-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 18px; }
+    .panel-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 18px; }
+
+    /* Centered Glowing QR Box */
+    .qr-bracket-box {
+      position: relative;
+      padding: 16px;
+      border-radius: 24px;
+      background: #ffffff;
+      margin: auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 26px rgba(0, 210, 240, 0.16);
+    }
+
+    .qr-corner {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border: 4.5px solid var(--cyan-bright);
+      pointer-events: none;
+    }
+    .qr-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 18px; }
+    .qr-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 18px; }
+    .qr-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 18px; }
+    .qr-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 18px; }
+
+    /* Animated cyan radar scan line */
+    .radar-line {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      height: 3.5px;
+      background: linear-gradient(90deg, transparent, #00d2f0, #00c06b, transparent);
+      box-shadow: 0 0 16px #00d2f0, 0 0 24px #00c06b;
+      top: 18px;
+      animation: scan-radar 2.6s ease-in-out infinite;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    @keyframes scan-radar {
+      0%, 100% { top: 18px; opacity: 0.3; }
+      50% { top: calc(100% - 20px); opacity: 1; }
+    }
+
+    .qr-img {
+      width: clamp(170px, 24vh, 230px);
+      height: clamp(170px, 24vh, 230px);
+      display: block;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+
+    .qr-callout-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.2rem, 1.8vw, 1.55rem);
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #0c365a;
+      margin: 6px 0 12px;
+      text-align: center;
+    }
+
+    .qr-callout-title span {
+      color: var(--green-accent);
+    }
+
+    /* 3 Circular Steps row */
+    .three-steps-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: #f7fcfe;
+      border: 1.5px solid #d4effa;
+      border-radius: 18px;
+      padding: 10px 8px;
+    }
+
+    .step-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      text-align: center;
+    }
+
+    .step-bubble {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #a8eaf7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0099cc;
+      box-shadow: 0 4px 10px rgba(0, 180, 216, 0.12);
+    }
+
+    .step-col:nth-child(5) .step-bubble {
+      color: var(--green-accent);
+      border-color: #8be4b9;
+    }
+
+    .step-title {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 900;
+      color: #0c365a;
+    }
+
+    .step-subtext {
+      font-size: 0.64rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .step-chevron {
+      color: #00b4d8;
+      font-weight: 900;
+      font-size: 1.15rem;
+      opacity: 0.5;
+    }
+
+    /* -------------------------------------------------------------
+       RIGHT: "NOW PRINTING" CARD (Exact Match to Reference)
+    ------------------------------------------------------------- */
+    .panel-printing {
+      background: var(--card-white);
+      border: 2px solid var(--cyan-border);
+      border-radius: 22px;
+      padding: 22px 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 6px 20px rgba(0, 180, 216, 0.08);
+      position: relative;
+    }
+
+    /* Card Top Title */
+    .printing-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      margin-bottom: 8px;
+    }
+
+    .printing-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-display);
+      font-size: 2.1rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: var(--green-accent);
+    }
+
+    .top-slant-bars {
+      display: flex;
+      gap: 6px;
+    }
+
+    .top-slant-bars span {
+      width: 14px;
+      height: 28px;
+      background: linear-gradient(135deg, #00d2f0, #00c06b);
+      transform: skewX(-20deg);
+      border-radius: 3px;
+    }
+
+    /* Middle Layout: Kyocera printer on Left, details on Right */
+    .printing-content-split {
+      display: grid;
+      grid-template-columns: 44% 56%;
+      gap: 20px;
+      align-items: center;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 680px) {
+      .printing-content-split {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+    }
+
+    /* REALISTIC KYOCERA PRINTER IMAGE */
+    .kyocera-img-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-height: 340px;
+    }
+
+    .kyocera-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 14px 28px rgba(12, 54, 90, 0.2));
+      animation: float-printer 4s ease-in-out infinite;
+    }
+
+    @keyframes float-printer {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    /* Right Details in Active State */
+    .printing-details-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      justify-content: center;
+    }
+
+    /* Customer Name Card */
+    .pill-card-customer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f0f7fe;
+      border: 1.5px solid #cbe9fd;
+      padding: 10px 18px;
+      border-radius: 14px;
+    }
+
+    .icon-box-blue {
+      width: 40px;
+      height: 40px;
+      background: #0284c7;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .customer-text-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .customer-text-line strong {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #0c365a;
+    }
+
+    .customer-text-line span {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #577793;
+    }
+
+    /* Document Card */
+    .pill-card-doc {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f0f7fe;
+      border: 1.5px solid #cbe9fd;
+      padding: 10px 18px;
+      border-radius: 14px;
+    }
+
+    .doc-info-block strong {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0c365a;
+      display: block;
+      word-break: break-all;
+    }
+
+    .doc-subspecs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #0284c7;
+    }
+
+    /* Progress bar */
+    .progress-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .progress-text-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0c365a;
+    }
+
+    .progress-pct-green {
+      color: var(--green-accent);
+      font-size: 1.2rem;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 18px;
+      background: #e2eaf0;
+      border-radius: 9999px;
+      overflow: hidden;
+      padding: 2px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 65%;
+      background: linear-gradient(90deg, #00d2f0, #00c06b);
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 12px rgba(0, 192, 107, 0.4);
+    }
+
+    /* Giant Countdown Pill (Exact match with side angled brackets) */
+    .giant-countdown-button {
+      background: linear-gradient(135deg, #004d40 0%, #065f46 50%, #047857 100%);
+      border: 2px solid #00f0ff;
+      color: #ffffff;
+      padding: 14px 28px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      box-shadow: 0 10px 30px rgba(0, 210, 240, 0.35), inset 0 0 20px rgba(0, 210, 240, 0.2);
+      position: relative;
+    }
+
+    .bracket-arrow {
+      color: #00f0ff;
+      font-size: 1.8rem;
+      font-weight: 900;
+      opacity: 0.7;
+    }
+
+    /* -------------------------------------------------------------
+       3. BOTTOM FOOTER RIBBON (Exact Match)
+    ------------------------------------------------------------- */
+    .footer-bar {
+      background: var(--card-white);
+      border: 2px solid var(--cyan-border);
+      border-radius: 18px;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(0, 180, 216, 0.08);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-left-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0c365a;
+    }
+
+    .footer-left-group span {
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .footer-left-group strong {
+      color: #0284c7;
+    }
+
+    .footer-divider-pipe {
+      width: 2px;
+      height: 22px;
+      background: #cce7f5;
+    }
+
+    .footer-right-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0c365a;
+    }
+
+    .footer-right-group span {
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .footer-right-group strong {
+      color: var(--green-accent);
+    }
+
+    .btn-fs-toggle {
+      background: none;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 5px 12px;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-fs-toggle:hover {
+      background: #f1f5f9;
+      color: #0c365a;
+    }
+
+    /* Finished celebration overlay */
+    .finish-popup {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 192, 107, 0.96);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      text-align: center;
+      padding: 24px;
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .finish-popup.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .finish-popup h2 {
+      font-family: var(--font-display);
+      font-size: 2.6rem;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .finish-popup p {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="kiosk-frame-container">
+
+    <!-- 1. TOP HEADER -->
+    <header class="header-bar">
+      <!-- Brand Left -->
+      <div class="brand-left">
+        <svg class="brand-logo-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="48" height="48" rx="14" fill="#00D2F0" />
+          <path d="M14 18V12H34V18" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 32H10C8.89543 32 8 31.1046 8 30V22C8 20.8954 8.89543 20 10 20H38C39.1046 20 40 20.8954 40 22V30C40 31.1046 39.1046 32 38 32H34" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <rect x="14" y="26" width="20" height="12" rx="2" fill="white"/>
+        </svg>
+        <div class="brand-text-block">
+          <h1>KADAM XEROX <span>KIOSK</span></h1>
+          <div class="brand-subline">PRINT • COPY • SCAN • GO DIGITAL</div>
+        </div>
+      </div>
+
+      <!-- Center Machine Capsule -->
+      <div class="machine-status-capsule">
+        <div class="status-orb"></div>
+        <div class="machine-label-info">
+          <strong id="kioskMachineName">Kyocera ECOSYS MA4000x</strong>
+          <span id="kioskMachineSpeed">Online (40 PPM Laser)</span>
+        </div>
+      </div>
+
+      <!-- Clock Right -->
+      <div class="header-clock-box">
+        <svg class="clock-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <div>
+          <div class="clock-numbers" id="clockDisplay">03:14 PM</div>
+          <div class="calendar-sub">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="dateDisplay">26 Oct 2026</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. MAIN 2-PANEL WORKSPACE -->
+    <main class="main-grid">
+
+      <!-- LEFT: QR CODE CARD -->
+      <section class="panel-qr">
+        <div class="panel-corner tl"></div>
+        <div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div>
+        <div class="panel-corner br"></div>
+
+        <div class="qr-bracket-box">
+          <div class="qr-corner tl"></div>
+          <div class="qr-corner tr"></div>
+          <div class="qr-corner bl"></div>
+          <div class="qr-corner br"></div>
+          <div class="radar-line"></div>
+          <img id="qrCodeTarget" src="" alt="Scan QR to Print" class="qr-img" />
+        </div>
+
+        <h2 class="qr-callout-title">SCAN WITH PHONE TO <span>PRINT</span></h2>
+
+        <!-- 3 Steps -->
+        <div class="three-steps-bar">
+          <div class="step-col">
+            <div class="step-bubble">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+            </div>
+            <div class="step-title">1. Scan</div>
+            <div class="step-subtext">Open camera / Google Lens</div>
+          </div>
+
+          <div class="step-chevron">➔</div>
+
+          <div class="step-col">
+            <div class="step-bubble">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div class="step-title">2. Upload</div>
+            <div class="step-subtext">Select your file</div>
+          </div>
+
+          <div class="step-chevron">➔</div>
+
+          <div class="step-col">
+            <div class="step-bubble">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+            </div>
+            <div class="step-title">3. Collect</div>
+            <div class="step-subtext">Pick up your prints</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: "NOW PRINTING" CARD -->
+      <section class="panel-printing">
+
+        <!-- Finished Celebration Toast -->
+        <div class="finish-popup" id="finishToast">
+          <div style="font-size: 3.5rem; margin-bottom: 8px;">🎉</div>
+          <h2 id="finishPopupName">Order Complete!</h2>
+          <p id="finishPopupFile">Please collect your prints from the bottom tray.</p>
+        </div>
+
+        <!-- Title Row -->
+        <div class="printing-title-row">
+          <div class="printing-heading">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            NOW PRINTING
+          </div>
+          <div class="top-slant-bars">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <!-- Middle Split: Realistic Kyocera photo on Left, details on Right -->
+        <div class="printing-content-split">
+          <!-- Real Kyocera Printer Graphic -->
+          <div class="kyocera-img-wrap">
+            <img src="/kyocera.jpg" alt="Kyocera ECOSYS MA4000x" class="kyocera-img" />
+          </div>
+
+          <!-- Order Info Column -->
+          <div class="printing-details-col">
+            <!-- Customer -->
+            <div class="pill-card-customer">
+              <div class="icon-box-blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+              </div>
+              <div class="customer-text-line">
+                <strong id="custName">Rahul S.</strong>
+                <span id="custOrderNum">(Order #104)</span>
+              </div>
+            </div>
+
+            <!-- Document -->
+            <div class="pill-card-doc">
+              <div class="icon-box-blue" style="background:#0284c7;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+              <div class="doc-info-block">
+                <strong id="docName">College_Notes.pdf</strong>
+                <div class="doc-subspecs">
+                  <span>📄 <span id="docPages">4 Pages</span></span>
+                  <span>•</span>
+                  <span>📑 <span id="docDuplex">Duplex</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-wrapper">
+              <div class="progress-text-row">
+                <span>Printing Progress</span>
+                <span class="progress-pct-green" id="progressPctText">65%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" id="progressBarFill"></div>
+              </div>
+            </div>
+
+            <!-- Giant Countdown Timer Pill (Exact match) -->
+            <div class="giant-countdown-button">
+              <span class="bracket-arrow">&lt;</span>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span id="timerTextBadge">12s Left</span>
+              <span class="bracket-arrow">&gt;</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- 3. BOTTOM FOOTER RIBBON -->
+    <footer class="footer-bar">
+      <div class="footer-left-group">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#00d2f0">
+          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+        </svg>
+        <span>Up Next:</span>
+        <strong id="queueDisplay">Amit P. (~15s)</strong>
+      </div>
+
+      <div class="footer-divider-pipe"></div>
+
+      <div class="footer-right-group">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00c06b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        <span>Paper Output:</span>
+        <strong>Collect from Bottom Tray</strong>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn-fs-toggle" onclick="toggleFullScreen()">Fullscreen</button>
+        <div class="top-slant-bars" style="height:20px;">
+          <span style="height:20px; width:10px;"></span>
+          <span style="height:20px; width:10px;"></span>
+          <span style="height:20px; width:10px;"></span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Audio Chime -->
+  <audio id="pickupAudio" src="/pickup.mp3" preload="auto"></audio>
+
+  <script>
+    // -------------------------------------------------------------
+    // LIVE CLOCK & CALENDAR
+    // -------------------------------------------------------------
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const hoursStr = String(hours).padStart(2, '0');
+      document.getElementById('clockDisplay').textContent = `${hoursStr}:${mins} ${ampm}`;
+
+      const options = { day: '2-digit', month: 'short', year: 'numeric' };
+      document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-GB', options);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // -------------------------------------------------------------
+    // FULLSCREEN
+    // -------------------------------------------------------------
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // AUDIO NOTIFICATION
+    // -------------------------------------------------------------
+    function playPickupAudio() {
+      try {
+        const audio = document.getElementById('pickupAudio');
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play().catch(e => console.warn('Audio play restricted:', e.message));
+        }
+      } catch (e) {}
+    }
+
+    // -------------------------------------------------------------
+    // STATE POLLING & SYNC
+    // -------------------------------------------------------------
+    let lastActiveId = null;
+    let localSeconds = 12;
+    let countdownTimer = null;
+
+    async function fetchKioskState() {
+      try {
+        const res = await fetch('/api/kiosk/status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // 1. QR Code Image
+        if (data.qrDataUrl) {
+          const qrEl = document.getElementById('qrCodeTarget');
+          if (qrEl && qrEl.src !== data.qrDataUrl) {
+            qrEl.src = data.qrDataUrl;
+          }
+        }
+
+        // 2. Machine details from Admin selection
+        if (data.activePrinterName) {
+          document.getElementById('kioskMachineName').textContent = data.activePrinterName;
+        }
+        if (data.activePrinterSpeed) {
+          document.getElementById('kioskMachineSpeed').textContent = `Online (${data.activePrinterSpeed})`;
+        }
+
+        // 3. Active Job / Printing Details
+        if (data.activeJob) {
+          document.getElementById('custName').textContent = data.activeJob.customerName || 'Customer';
+          document.getElementById('custOrderNum').textContent = `(Order #${String(data.activeJob.id || '104').substring(0, 5)})`;
+          document.getElementById('docName').textContent = data.activeJob.fileName || 'College_Notes.pdf';
+
+          const pages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 4;
+          document.getElementById('docPages').textContent = `${pages} Page${pages > 1 ? 's' : ''}`;
+          document.getElementById('docDuplex').textContent = data.activeJob.printSide === 'both' ? 'Duplex' : 'Single Side';
+
+          // Progress calculation
+          const pct = Math.max(15, Math.min(100, data.activeJob.percent || 65));
+          document.getElementById('progressBarFill').style.width = pct + '%';
+          document.getElementById('progressPctText').textContent = pct + '%';
+
+          // Countdown Timer handling
+          if (lastActiveId !== data.activeJob.id) {
+            lastActiveId = data.activeJob.id;
+            localSeconds = Math.max(3, parseInt(data.activeJob.remainingPrintSec, 10) || 12);
+            startCountdown();
+          }
+
+        } else {
+          // If a job just completed, show popup & audio
+          if (lastActiveId) {
+            showCelebrationToast();
+            lastActiveId = null;
+          }
+        }
+
+        // 4. Up Next Queue
+        if (data.queue && data.queue.length > 0) {
+          const firstInQueue = data.queue[0];
+          document.getElementById('queueDisplay').textContent = `${firstInQueue.customerName} (~${firstInQueue.estimatedWaitSec || 15}s)`;
+        } else {
+          document.getElementById('queueDisplay').textContent = 'Amit P. (~15s)';
+        }
+
+      } catch (err) {
+        console.warn('Poll warning:', err.message);
+      }
+    }
+
+    function startCountdown() {
+      clearInterval(countdownTimer);
+      updateTimerBadge();
+      countdownTimer = setInterval(() => {
+        if (localSeconds > 1) {
+          localSeconds--;
+          updateTimerBadge();
+        }
+      }, 1000);
+    }
+
+    function updateTimerBadge() {
+      const badge = document.getElementById('timerTextBadge');
+      if (badge) badge.textContent = `${localSeconds}s Left`;
+    }
+
+    function showCelebrationToast() {
+      const popup = document.getElementById('finishToast');
+      playPickupAudio();
+      popup.classList.add('show');
+      setTimeout(() => {
+        popup.classList.remove('show');
+      }, 7000);
+    }
+
+    // Start live loop
+    fetchKioskState();
+    setInterval(fetchKioskState, 1500);
+  </script>
+</body>
+</html>

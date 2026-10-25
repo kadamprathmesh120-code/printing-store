@@ -1014,7 +1014,54 @@
           </button>
           <div style="text-align:center;font-size:0.75rem;color:#64748b;margin-top:-6px;">UPI (Google Pay, PhonePe,
             Paytm, BHIM, CRED) • Cards • Net Banking</div>
+
+          <!-- LOCALHOST TEST ONLY: Cash button — hidden on production (Render) -->
+          <div id="localCashTestBtn" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+              <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+              <span style="font-size:0.7rem;color:#94a3b8;font-weight:700;">LOCAL TEST ONLY</span>
+              <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+            </div>
+            <button type="button" onclick="payWithCashLocalTest()" id="btnCashLocal"
+              style="width:100%;padding:14px;border-radius:14px;font-size:1rem;font-weight:800;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:2px dashed #4ade80;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+              💵 Cash / Test (Localhost)
+            </button>
+            <div style="text-align:center;font-size:0.7rem;color:#94a3b8;margin-top:4px;">Only visible on localhost — for kiosk testing</div>
+          </div>
         </div>
+        <script>
+          // Show cash test button only on localhost
+          (function() {
+            var host = window.location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.')) {
+              var el = document.getElementById('localCashTestBtn');
+              if (el) el.style.display = 'block';
+            }
+          })();
+
+          function payWithCashLocalTest() {
+            var btn = document.getElementById('btnCashLocal');
+            if (btn) { btn.disabled = true; btn.textContent = 'Processing...'; }
+            // Use the existing cash payment flow
+            if (typeof idcPayCash === 'function') {
+              idcPayCash();
+            } else if (typeof confirmCashPaid === 'function') {
+              closePaymentSelectionModal && closePaymentSelectionModal();
+              confirmCashPaid();
+            } else {
+              // Fallback: directly call pay-cash API on the current order
+              var orderId = window.currentOrderId || window.lastOrderId;
+              if (!orderId) { alert('No order found. Please upload a file first.'); return; }
+              fetch('/api/orders/' + encodeURIComponent(orderId) + '/pay-cash', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }
+              }).then(function(r){ return r.json(); }).then(function(d){
+                if (d.error) throw new Error(d.error);
+                alert('✅ Cash order confirmed! Order #' + orderId + ' is now in print queue.');
+                window.location.reload();
+              }).catch(function(e){ alert('Error: ' + e.message); });
+            }
+          }
+        </script>
 
         <div id="paymentError" class="error"
           style="color:#ef4444;font-size:0.82rem;font-weight:600;text-align:center;margin-top:10px;"></div>

@@ -2166,6 +2166,157 @@ app.get('/api/qr', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// KIOSK STATUS API — Real-time active job, countdown timer, queue & printer info
+// ---------------------------------------------------------------------------
+app.get('/api/kiosk/status', async (req, res) => {
+  try {
+    const bwPrinter = getActiveBwPrinterName();
+    const colorPrinter = getActiveColorPrinterName();
+
+    function getFriendlyName(pName) {
+      const s = String(pName || '').toLowerCase();
+      if (s.includes('kyocera')) return 'Kyocera ECOSYS MA4000x';
+      if (s.includes('konica') || s.includes('205i')) return 'Konica Minolta bizhub 205i';
+      if (s.includes('epson') || s.includes('l6370')) return 'Epson L6370';
+      if (s.includes('hp') || s.includes('smart tank')) return 'HP Smart Tank 580';
+      return pName || 'Kyocera ECOSYS MA4000x';
+    }
+
+    function getPrinterSpeed(pName) {
+      const s = String(pName || '').toLowerCase();
+      if (s.includes('kyocera')) return '40 PPM (High Speed Laser)';
+      if (s.includes('konica') || s.includes('205i')) return '20 PPM (Laser)';
+      if (s.includes('epson') || s.includes('l6370')) return '9 PPM (Color Duplex)';
+      if (s.includes('hp')) return '12 PPM (Color)';
+      return '40 PPM (High Speed Laser)';
+    }
+
+    const unprintedOrders = db.prepare(`
+      SELECT * FROM orders
+      WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL)
+      ORDER BY COALESCE(paid_at, created_at) ASC, rowid ASC
+    `).all();
+
+    const enriched = unprintedOrders.map(enrichOrderForCustomer);
+
+    const distinctBatches = [];
+    const batchMap = new Map();
+    for (const ord of enriched) {
+      const bId = ord.batch_id || ord.id;
+      if (!batchMap.has(bId)) {
+        batchMap.set(bId, []);
+        distinctBatches.push(bId);
+      }
+      batchMap.get(bId).push(ord);
+    }
+
+    let activeJob = null;
+    const queue = [];
+
+    if (distinctBatches.length > 0) {
+      const headOrders = batchMap.get(distinctBatches[0]);
+      const first = headOrders[0];
+      const isColor = first.print_type === 'color';
+      const machine = isColor ? colorPrinter : bwPrinter;
+
+      let totalPdfPages = 0;
+      for (const o of headOrders) {
+        const c = Math.max(1, parseInt(o.copies, 10) || 1);
+        totalPdfPages += Math.max(1, parseInt(o.effective_pages || o.page_count, 10) || 1) * c;
+      }
+
+      const pagesPrinted = (activePrintingJob && activePrintingJob.pagesPrinted) || 0;
+      const totalPages = (activePrintingJob && activePrintingJob.totalPages) || totalPdfPages;
+      const percent = totalPages > 0 ? Math.min(100, Math.round((pagesPrinted / totalPages) * 100)) : 0;
+
+      activeJob = {
+        batchId: distinctBatches[0],
+        id: first.id,
+        customerName: first.customer_name || 'Customer',
+        fileName: headOrders.length > 1 ? `${headOrders.length} Files (${headOrders[0].file_name})` : first.file_name,
+        fileCount: headOrders.length,
+        copies: first.copies || 1,
+        pageCount: first.page_count || 1,
+        totalPdfPages: totalPdfPages,
+        printType: first.print_type,
+        printSide: headOrders.some(o => o.print_side === 'both') ? 'both' : 'single',
+        printerName: getFriendlyName(first.printer_name || machine),
+        printerModel: machine,
+        remainingPrintSec: first.remainingPrintSec || Math.max(3, Math.round((totalPdfPages / 40) * 60 + 5)),
+        pagesPrinted: pagesPrinted,
+        totalPages: totalPages,
+        percent: percent
+      };
+
+      for (let i = 1; i < distinctBatches.length; i++) {
+        const qOrders = batchMap.get(distinctBatches[i]);
+        const qFirst = qOrders[0];
+        let qPages = 0;
+        for (const qo of qOrders) {
+          const qc = Math.max(1, parseInt(qo.copies, 10) || 1);
+          qPages += Math.max(1, parseInt(qo.effective_pages || qo.page_count, 10) || 1) * qc;
+        }
+        queue.push({
+          batchId: distinctBatches[i],
+          customerName: qFirst.customer_name || 'Customer',
+          fileName: qOrders.length > 1 ? `${qOrders.length} Files` : qFirst.file_name,
+          printType: qFirst.print_type,
+          copies: qFirst.copies || 1,
+          pages: qPages,
+          estimatedWaitSec: qFirst.estimatedWaitSec || (i * 12)
+        });
+      }
+    }
+
+    const recentlyCompleted = db.prepare(`
+      SELECT id, batch_id, customer_name, file_name, print_type, copies, created_at, paid_at
+      FROM orders
+      WHERE is_printed = 1
+      ORDER BY rowid DESC
+      LIMIT 3
+    `).all();
+
+    const hostHeader = req.get('host') || 'localhost:3000';
+    const isLocal = hostHeader.includes('localhost') || hostHeader.includes('127.0.0.1');
+    const proto = req.headers['x-forwarded-proto'] || (isLocal ? 'http' : 'https');
+    const baseUrl = `${proto}://${hostHeader}`;
+    let qrDataUrl = '';
+    try {
+      qrDataUrl = await qrcode.toDataURL(baseUrl, { width: 360, margin: 2, color: { dark: '#0b192c', light: '#ffffff' } });
+    } catch(e) {}
+
+    res.json({
+      printer: {
+        bw: {
+          raw: bwPrinter,
+          name: getFriendlyName(bwPrinter),
+          isKyocera: bwPrinter.toLowerCase().includes('kyocera'),
+          speed: getPrinterSpeed(bwPrinter),
+          status: 'online'
+        },
+        color: {
+          raw: colorPrinter,
+          name: getFriendlyName(colorPrinter),
+          status: 'online'
+        }
+      },
+      activePrinterName: getFriendlyName(bwPrinter),
+      activePrinterSpeed: getPrinterSpeed(bwPrinter),
+      activePrinterModel: bwPrinter,
+      isCabinetKyoceraOnly: true,
+      activeJob,
+      queue,
+      recentlyCompleted,
+      storeUrl: baseUrl,
+      qrDataUrl
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.get('/api/upi-qr', async (req, res) => {
   try {
     const amount = req.query.amount || '';
