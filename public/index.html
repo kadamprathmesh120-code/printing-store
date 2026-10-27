@@ -5498,15 +5498,17 @@
       if (_cdMode === 'printing') {
         box.style.display = 'block';
         var isFinishing = _cdRemainingSec <= 0;
-        var pct = isFinishing ? 99 : (_cdTotalSec > 0 ? Math.min(98, Math.max(5, Math.round(((_cdTotalSec - _cdRemainingSec) / _cdTotalSec) * 100))) : 50);
+        var elapsedSec = Math.max(0, _cdTotalSec - _cdRemainingSec);
+        var pct = isFinishing ? 99 : (_cdTotalSec > 0 ? Math.min(98, Math.max(5, Math.round((elapsedSec / _cdTotalSec) * 100))) : 50);
         var timeStr = formatTimeMinSec(_cdRemainingSec);
+        var startupRemaining = Math.max(0, (6.5 - elapsedSec)).toFixed(1);
         var subText = isFinishing
           ? 'Finishing up prints... Almost ready!'
           : ((_cdInfo.actualPrinted && _cdInfo.actualPrinted > 0)
             ? ('Printing page ' + _cdInfo.actualPrinted + ' of ' + (_cdInfo.actualTotal || _cdInfo.totalPdfPages) + '...')
-            : (((_cdTotalSec - _cdRemainingSec) < 6)
-              ? ('⚡ Machine warming up & starting print engine...')
-              : ('Printing on ' + (_cdInfo.printerName || 'Printer') + '...')));
+            : ((elapsedSec < 6.5)
+              ? ('⚡ Starting laser engine (' + startupRemaining + 's startup)...')
+              : ('Printing on ' + (_cdInfo.printerName || 'Kyocera ECOSYS MA4000x') + '...')));
 
         box.innerHTML =
           '<div style="background:linear-gradient(135deg, #1E40AF, #2563EB);border:2px solid #60A5FA;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(37,99,235,0.28);">' +
