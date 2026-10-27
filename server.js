@@ -204,7 +204,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
       name: 'KONICA MINOLTA 205i(36:33:9E)',
       displayName: 'Konica Minolta bizhub 205i',
       ppm: 20,
-      firstPrintSec: 0,
+      firstPrintSec: 6.5,
       isBw: true
     };
   }
