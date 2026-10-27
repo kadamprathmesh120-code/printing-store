@@ -199,11 +199,12 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
       isBw: false
     };
   }
+  const duplex = !!isDuplex;
   if (pName.includes('konica') || pName.includes('205i')) {
     return {
       name: 'KONICA MINOLTA 205i(36:33:9E)',
       displayName: 'Konica Minolta bizhub 205i',
-      ppm: 20,
+      ppm: duplex ? 15 : 20,
       firstPrintSec: 6.5,
       isBw: true
     };
@@ -211,7 +212,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
   return {
     name: 'Kyocera ECOSYS MA4000x KX',
     displayName: 'Kyocera ECOSYS MA4000x',
-    ppm: 40,
+    ppm: duplex ? 20 : 40,
     firstPrintSec: 6.5,
     isBw: true
   };
