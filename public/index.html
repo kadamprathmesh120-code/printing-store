@@ -5501,12 +5501,12 @@
         var elapsedSec = Math.max(0, _cdTotalSec - _cdRemainingSec);
         var pct = isFinishing ? 99 : (_cdTotalSec > 0 ? Math.min(98, Math.max(5, Math.round((elapsedSec / _cdTotalSec) * 100))) : 50);
         var timeStr = formatTimeMinSec(_cdRemainingSec);
-        var startupRemaining = Math.max(0, (6.5 - elapsedSec)).toFixed(1);
+        var startupRemaining = Math.max(0, (7.0 - elapsedSec)).toFixed(1);
         var subText = isFinishing
           ? 'Finishing up prints... Almost ready!'
           : ((_cdInfo.actualPrinted && _cdInfo.actualPrinted > 0)
             ? ('Printing page ' + _cdInfo.actualPrinted + ' of ' + (_cdInfo.actualTotal || _cdInfo.totalPdfPages) + '...')
-            : ((elapsedSec < 6.5)
+            : ((elapsedSec < 7.0)
               ? ('⚡ Starting laser engine (' + startupRemaining + 's startup)...')
               : ('Printing on ' + (_cdInfo.printerName || 'Kyocera ECOSYS MA4000x') + '...')));
 
