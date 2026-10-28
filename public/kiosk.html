@@ -1001,7 +1001,7 @@
         <div class="status-orb"></div>
         <div class="machine-label-info">
           <strong id="kioskMachineName">Kyocera ECOSYS MA4000x</strong>
-          <span id="kioskMachineSpeed">Online (40 PPM Laser)</span>
+          <span id="kioskMachineSpeed">Online (40 PPM / 20 Duplex)</span>
         </div>
       </div>
 
@@ -1388,8 +1388,10 @@
         document.getElementById('docName').textContent = data.activeJob.fileName || '';
 
         const pages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 0;
-        document.getElementById('docPages').textContent = `${pages} Page${pages !== 1 ? 's' : ''}`;
-        document.getElementById('docDuplex').textContent = data.activeJob.printSide === 'both' ? 'Duplex' : 'Single Side';
+        const isJobDuplex = data.activeJob.printSide === 'both';
+        const jobPpm = data.activeJob.ppm || (isJobDuplex ? 20 : 40);
+        document.getElementById('docPages').textContent = `${pages} Page${pages !== 1 ? 's' : ''} (${jobPpm} PPM)`;
+        document.getElementById('docDuplex').textContent = isJobDuplex ? 'Duplex (20 PPM)' : 'Single Side (40 PPM)';
 
         if (pendingNotice) pendingNotice.style.display = 'none';
 
@@ -1446,8 +1448,8 @@
           document.getElementById('custName').textContent = 'Printer Ready';
           document.getElementById('custOrderNum').textContent = '(Standby)';
           document.getElementById('docName').textContent = 'Scan QR to upload & print';
-          document.getElementById('docPages').textContent = '40 PPM';
-          document.getElementById('docDuplex').textContent = 'Duplex Ready';
+          document.getElementById('docPages').textContent = '40 PPM / 20 Duplex';
+          document.getElementById('docDuplex').textContent = 'Auto-Duplex Ready';
 
           document.getElementById('progressBarFill').style.width = '0%';
           document.getElementById('progressPctText').textContent = 'Ready';

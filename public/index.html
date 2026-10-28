@@ -5518,7 +5518,7 @@
                 '<span style="font-size:1rem;font-weight:900;letter-spacing:0.5px;">PRINTING NOW</span>' +
               '</div>' +
               '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;letter-spacing:0.3px;">' +
-                '⚡ ' + (_cdInfo.printerPpm || 20) + ' PPM' +
+                '⚡ ' + (_cdInfo.printerPpm || 20) + ' PPM' + (_cdInfo.isDuplex ? ' (Duplex)' : '') +
               '</span>' +
             '</div>' +
             '<div style="background:rgba(0,0,0,0.22);border-radius:14px;padding:10px 14px;margin:10px 0;text-align:center;border:1px solid rgba(255,255,255,0.15);">' +
@@ -5875,7 +5875,9 @@
       var ordersAhead = (typeof firstOrder.orders_ahead === 'number') ? firstOrder.orders_ahead : 0;
       var printerName = firstOrder.printer_display_name || (firstOrder.print_type === 'color' ? 'Epson L6370 (Duplex)' : (String(firstOrder.printer_name || '').toLowerCase().includes('konica') ? 'Konica Minolta bizhub 205i' : 'Kyocera ECOSYS MA4000x'));
       var isKonica = String(printerName).toLowerCase().includes('konica') || String(firstOrder.printer_name || '').toLowerCase().includes('konica') || String(firstOrder.printer_name || '').toLowerCase().includes('205i');
-      var printerPpm = firstOrder.printer_ppm || (firstOrder.print_type === 'color' ? 10 : (isKonica ? 20 : 40));
+      var isAnyDuplex = orders.some(function(o) { return o.print_side === 'both'; });
+      var defaultPpm = (firstOrder.print_type === 'color') ? (isAnyDuplex ? 5 : 9) : (isKonica ? (isAnyDuplex ? 15 : 20) : (isAnyDuplex ? 20 : 40));
+      var printerPpm = firstOrder.printer_ppm || defaultPpm;
       var estPrintTimeSec = (typeof firstOrder.estimated_print_time_sec === 'number') ? firstOrder.estimated_print_time_sec : Math.max(2, Math.round((totalPdfPages / printerPpm) * 60));
       var estWaitSec = firstOrder.estimated_wait_time_sec || 0;
       var actualPrinted = firstOrder.actual_pages_printed;
@@ -5967,6 +5969,7 @@
           totalPdfPages: totalPdfPages,
           totalSheets: totalSheets,
           printerPpm: printerPpm,
+          isDuplex: isAnyDuplex,
           printerName: printerName,
           actualPrinted: actualPrinted,
           actualTotal: actualTotal
@@ -6002,6 +6005,7 @@
           totalPdfPages: totalPdfPages,
           totalSheets: totalSheets,
           printerPpm: printerPpm,
+          isDuplex: isAnyDuplex,
           printerName: printerName,
           ordersAhead: ordersAhead
         });

@@ -212,7 +212,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
   return {
     name: 'Kyocera ECOSYS MA4000x KX',
     displayName: 'Kyocera ECOSYS MA4000x',
-    ppm: 40,
+    ppm: duplex ? 20 : 40,
     firstPrintSec: 6.5,
     isBw: true
   };
@@ -2186,11 +2186,11 @@ app.get('/api/kiosk/status', async (req, res) => {
 
     function getPrinterSpeed(pName) {
       const s = String(pName || '').toLowerCase();
-      if (s.includes('kyocera')) return '40 PPM (High Speed Laser)';
-      if (s.includes('konica') || s.includes('205i')) return '20 PPM (Laser)';
-      if (s.includes('epson') || s.includes('l6370')) return '9 PPM (Color Duplex)';
+      if (s.includes('kyocera')) return '40 PPM / 20 Duplex (Laser)';
+      if (s.includes('konica') || s.includes('205i')) return '20 PPM / 15 Duplex (Laser)';
+      if (s.includes('epson') || s.includes('l6370')) return '9 PPM / 5 Duplex (Color)';
       if (s.includes('hp')) return '12 PPM (Color)';
-      return '40 PPM (High Speed Laser)';
+      return '40 PPM / 20 Duplex (Laser)';
     }
 
     const unprintedOrders = db.prepare(`
@@ -2231,6 +2231,9 @@ app.get('/api/kiosk/status', async (req, res) => {
       const totalPages = (activePrintingJob && activePrintingJob.totalPages) || totalPdfPages;
       const percent = totalPages > 0 ? Math.min(100, Math.round((pagesPrinted / totalPages) * 100)) : 0;
 
+      const isJobDuplex = headOrders.some(o => o.print_side === 'both');
+      const jobPpm = first.printer_ppm || (machine.toLowerCase().includes('konica') ? (isJobDuplex ? 15 : 20) : (isJobDuplex ? 20 : 40));
+
       activeJob = {
         batchId: distinctBatches[0],
         id: first.id,
@@ -2241,10 +2244,13 @@ app.get('/api/kiosk/status', async (req, res) => {
         pageCount: first.page_count || 1,
         totalPdfPages: totalPdfPages,
         printType: first.print_type,
-        printSide: headOrders.some(o => o.print_side === 'both') ? 'both' : 'single',
+        printSide: isJobDuplex ? 'both' : 'single',
+        isDuplex: isJobDuplex,
+        ppm: jobPpm,
+        speedText: `${jobPpm} PPM`,
         printerName: getFriendlyName(first.printer_name || machine),
         printerModel: machine,
-        remainingPrintSec: (first.estimated_print_time_sec != null) ? first.estimated_print_time_sec : Math.max(2, Math.round((totalPdfPages / (first.printer_ppm || (machine.toLowerCase().includes('konica') ? 20 : 40))) * 60)),
+        remainingPrintSec: (first.estimated_print_time_sec != null) ? first.estimated_print_time_sec : Math.max(2, Math.round((totalPdfPages / jobPpm) * 60)),
         pagesPrinted: pagesPrinted,
         totalPages: totalPages,
         percent: percent
