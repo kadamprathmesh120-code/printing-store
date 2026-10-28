@@ -514,26 +514,78 @@
 
     .customer-text-line {
       display: flex;
-      align-items: baseline;
-      gap: 8px;
+      flex-direction: column;
+      gap: 4px;
       min-width: 0;
+      flex: 1;
+    }
+
+    .customer-title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+      flex-wrap: wrap;
     }
 
     .customer-text-line strong {
       font-family: var(--font-display);
-      font-size: 1.55rem;
+      font-size: 2.1rem;
       font-weight: 900;
-      color: #0c365a;
+      letter-spacing: -0.5px;
+      color: #072a4a;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.12;
     }
 
     .customer-text-line span {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #577793;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #486581;
       white-space: nowrap;
+    }
+
+    .order-size-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      font-weight: 900;
+      padding: 3px 12px;
+      border-radius: 999px;
+      width: fit-content;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-top: 2px;
+      transition: all 0.25s ease;
+    }
+
+    .order-size-badge.big-order {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(245, 158, 11, 0.45);
+      border: 1.5px solid #fde68a;
+      animation: bigOrderPulse 1.8s infinite;
+    }
+
+    .order-size-badge.quick-order {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+    }
+
+    .order-size-badge.standard-order {
+      background: #0284c7;
+      color: #ffffff;
+    }
+
+    @keyframes bigOrderPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
     }
 
     /* Document Card */
@@ -924,10 +976,11 @@
         height: 18px;
       }
       .customer-text-line strong {
-        font-size: clamp(1.05rem, 1.45vw, 1.25rem);
+        font-size: clamp(1.45rem, 2.2vw, 1.95rem);
+        line-height: 1.15;
       }
       .customer-text-line span {
-        font-size: 0.82rem;
+        font-size: 0.9rem;
       }
       .doc-info-block strong {
         font-size: clamp(0.95rem, 1.35vw, 1.12rem);
@@ -1151,8 +1204,11 @@
                 </svg>
               </div>
               <div class="customer-text-line">
-                <strong id="custName">Printer Ready</strong>
-                <span id="custOrderNum">(Standby)</span>
+                <div class="customer-title-row">
+                  <strong id="custName">Printer Ready</strong>
+                  <span id="custOrderNum">(Standby)</span>
+                </div>
+                <div id="orderSizeBadge" class="order-size-badge" style="display:none;"></div>
               </div>
             </div>
 
@@ -1393,6 +1449,23 @@
         document.getElementById('docPages').textContent = `${pages} Page${pages !== 1 ? 's' : ''} (${jobPpm} PPM)`;
         document.getElementById('docDuplex').textContent = isJobDuplex ? 'Duplex (20 PPM)' : 'Single Side (40 PPM)';
 
+        // Smart Order Size Badge
+        const sizeBadge = document.getElementById('orderSizeBadge');
+        if (sizeBadge) {
+          sizeBadge.style.display = 'inline-flex';
+          const sheets = Math.ceil(pages / (isJobDuplex ? 2 : 1));
+          if (pages >= 20) {
+            sizeBadge.className = 'order-size-badge big-order';
+            sizeBadge.innerHTML = `🔥 BIG ORDER • ${pages} PAGES (${sheets} SHEETS)`;
+          } else if (pages <= 4) {
+            sizeBadge.className = 'order-size-badge quick-order';
+            sizeBadge.innerHTML = `⚡ QUICK PRINT • ${pages} PAGE${pages !== 1 ? 'S' : ''}`;
+          } else {
+            sizeBadge.className = 'order-size-badge standard-order';
+            sizeBadge.innerHTML = `📄 STANDARD JOB • ${pages} PAGES`;
+          }
+        }
+
         if (pendingNotice) pendingNotice.style.display = 'none';
 
         // Check if this is a newly starting job
@@ -1429,6 +1502,18 @@
           document.getElementById('docPages').textContent = `${p.pages} Page${p.pages !== 1 ? 's' : ''}`;
           document.getElementById('docDuplex').textContent = p.printType === 'color' ? 'Color' : 'B&W';
 
+          const sizeBadge = document.getElementById('orderSizeBadge');
+          if (sizeBadge) {
+            sizeBadge.style.display = 'inline-flex';
+            if (p.pages >= 20) {
+              sizeBadge.className = 'order-size-badge big-order';
+              sizeBadge.innerHTML = `🔥 BIG ORDER • ${p.pages} PAGES`;
+            } else {
+              sizeBadge.className = 'order-size-badge standard-order';
+              sizeBadge.innerHTML = `📄 ${p.pages} PAGE${p.pages !== 1 ? 'S' : ''}`;
+            }
+          }
+
           document.getElementById('progressBarFill').style.width = '0%';
           document.getElementById('progressPctText').textContent = '0%';
           const progLbl = document.getElementById('progressLabel');
@@ -1450,6 +1535,9 @@
           document.getElementById('docName').textContent = 'Scan QR to upload & print';
           document.getElementById('docPages').textContent = '40 PPM / 20 Duplex';
           document.getElementById('docDuplex').textContent = 'Auto-Duplex Ready';
+
+          const sizeBadge = document.getElementById('orderSizeBadge');
+          if (sizeBadge) sizeBadge.style.display = 'none';
 
           document.getElementById('progressBarFill').style.width = '0%';
           document.getElementById('progressPctText').textContent = 'Ready';
@@ -1485,13 +1573,18 @@
             const typeLabel = q.printType === 'color' ? '🎨 Color' : '⬛ B&W';
             const shortFile = q.fileName.length > 24 ? q.fileName.substring(0, 22) + '…' : q.fileName;
             const waitTime = q.estimatedWaitSec || ((idx + 1) * 15);
-            return `<div style="background:#ffffff;border:1.5px solid #bae6fd;border-left:4px solid #0284c7;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
-              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:900;background:#0284c7;color:#ffffff;padding:3px 8px;border-radius:8px;white-space:nowrap;">#${idx + 1} NEXT</span>
+            const isBig = q.pages >= 20;
+            const bigBadge = isBig ? `<span style="font-family:var(--font-display);font-size:0.72rem;font-weight:900;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;padding:2px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(245,158,11,0.3);letter-spacing:0.3px;">🔥 BIG ORDER (${q.pages}p)</span>` : '';
+            return `<div style="background:#ffffff;border:1.5px solid ${isBig ? '#fde68a' : '#bae6fd'};border-left:4px solid ${isBig ? '#f59e0b' : '#0284c7'};border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:900;background:${idx === 0 ? '#0284c7' : '#64748b'};color:#ffffff;padding:3px 8px;border-radius:8px;white-space:nowrap;">#${idx + 1} ${idx === 0 ? 'UP NEXT' : 'QUEUE'}</span>
               <div style="flex:1;min-width:0;">
-                <div style="font-family:var(--font-display);font-size:0.95rem;font-weight:900;color:#0c365a;">${q.customerName}</div>
-                <div style="font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:#577793;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${q.pages} pg</div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span style="font-family:var(--font-display);font-size:1.08rem;font-weight:900;color:#0c365a;">${q.customerName}</span>
+                  ${bigBadge}
+                </div>
+                <div style="font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:#577793;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${q.pages} pages</div>
               </div>
-              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;color:#0369a1;background:#e0f2fe;padding:3px 8px;border-radius:12px;white-space:nowrap;">~${waitTime}s wait</span>
+              <span style="font-family:var(--font-display);font-size:0.78rem;font-weight:800;color:#0369a1;background:#e0f2fe;padding:4px 10px;border-radius:12px;white-space:nowrap;">~${waitTime}s wait</span>
             </div>`;
           }).join('');
         }
@@ -1503,8 +1596,15 @@
       const pendingList = data.pendingPayment || [];
       const queueDisplay = document.getElementById('queueDisplay');
       if (queue.length > 0) {
-        const qNames = queue.map((q, i) => `#${i + 1} ${q.customerName} (~${q.estimatedWaitSec || 15}s)`).join('  |  ');
-        if (queueDisplay) queueDisplay.textContent = qNames;
+        const nextOrder = queue[0];
+        const nextIsBig = nextOrder.pages >= 20;
+        const qNames = queue.map((q, i) => {
+          const bTag = q.pages >= 20 ? ' [🔥BIG]' : '';
+          return `#${i + 1} ${q.customerName} (${q.pages}p${bTag} ~${q.estimatedWaitSec || 15}s)`;
+        }).join('   |   ');
+        if (queueDisplay) {
+          queueDisplay.innerHTML = `<strong style="color:#0284c7;font-weight:900;">⏳ UP NEXT: ${nextOrder.customerName} (${nextOrder.pages} pages${nextIsBig ? ' 🔥BIG ORDER' : ''})</strong> &nbsp;•&nbsp; <span style="color:#64748b;font-weight:700;">All Queued: ${qNames}</span>`;
+        }
       } else if (pendingList.length > 0) {
         const names = pendingList.map(p => p.customerName).join(', ');
         if (queueDisplay) queueDisplay.innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment: ${names}</span>`;

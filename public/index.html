@@ -5510,12 +5510,18 @@
               ? ('⚡ Starting laser engine (' + startupRemaining + 's startup)...')
               : ('Printing on ' + (_cdInfo.printerName || 'Kyocera ECOSYS MA4000x') + '...')));
 
+        var isBigOrder = (_cdInfo.totalPdfPages && _cdInfo.totalPdfPages >= 20);
+        var bigBadgeHtml = isBigOrder
+          ? '<span style="background:#F59E0B;color:#78350F;padding:3px 9px;border-radius:16px;font-size:0.72rem;font-weight:900;letter-spacing:0.3px;box-shadow:0 2px 6px rgba(245,158,11,0.4);">🔥 BIG ORDER</span>'
+          : '';
+
         box.innerHTML =
           '<div style="background:linear-gradient(135deg, #1E40AF, #2563EB);border:2px solid #60A5FA;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(37,99,235,0.28);">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">' +
               '<div style="display:flex;align-items:center;gap:8px;">' +
                 '<span style="font-size:1.3rem;">⚙️</span>' +
                 '<span style="font-size:1rem;font-weight:900;letter-spacing:0.5px;">PRINTING NOW</span>' +
+                bigBadgeHtml +
               '</div>' +
               '<span style="background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;letter-spacing:0.3px;">' +
                 '⚡ ' + (_cdInfo.printerPpm || 20) + ' PPM' + (_cdInfo.isDuplex ? ' (Duplex)' : '') +
@@ -5551,15 +5557,24 @@
           ? 'Preparing your print job... Starting next!'
           : 'Your job will print automatically next!';
 
+        var isBigWait = (_cdInfo.totalPdfPages && _cdInfo.totalPdfPages >= 20);
+        var queuePillText = (ahead === 1)
+          ? '⭐ YOU ARE NEXT IN LINE!'
+          : (ahead + ' customer' + (ahead > 1 ? 's' : '') + ' ahead');
+        var bigWaitBadge = isBigWait
+          ? '<span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:900;margin-left:6px;">🔥 BIG ORDER (' + _cdInfo.totalPdfPages + 'p)</span>'
+          : '';
+
         box.innerHTML =
           '<div style="background:linear-gradient(135deg, #78350F, #B45309);border:2px solid #F59E0B;border-radius:18px;padding:16px;color:#ffffff;box-shadow:0 8px 24px rgba(245,158,11,0.25);">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">' +
               '<div style="display:flex;align-items:center;gap:8px;">' +
                 '<span style="font-size:1.3rem;">⏳</span>' +
                 '<span style="font-size:1rem;font-weight:900;letter-spacing:0.5px;">IN PRINT QUEUE</span>' +
+                bigWaitBadge +
               '</div>' +
               '<span style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:900;">' +
-                ahead + ' customer' + (ahead > 1 ? 's' : '') + ' ahead' +
+                queuePillText +
               '</span>' +
             '</div>' +
             '<div style="background:rgba(0,0,0,0.22);border-radius:14px;padding:10px 14px;margin:10px 0;text-align:center;border:1px solid rgba(255,255,255,0.15);">' +
