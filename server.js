@@ -638,7 +638,18 @@ if (CASHFREE_APP_ID && CASHFREE_SECRET_KEY) {
 const storage = multer.diskStorage({
   destination: path.join(__dirname, 'uploads'),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    let ext = path.extname(file.originalname || '').toLowerCase();
+    if (!ext) {
+      if (file.mimetype) {
+        if (file.mimetype.includes('pdf')) ext = '.pdf';
+        else if (file.mimetype.includes('jpeg') || file.mimetype.includes('jpg')) ext = '.jpg';
+        else if (file.mimetype.includes('png')) ext = '.png';
+        else if (file.mimetype.includes('webp')) ext = '.webp';
+        else ext = '.pdf';
+      } else {
+        ext = '.pdf';
+      }
+    }
     cb(null, `${uuidv4()}${ext}`);
   }
 });
@@ -658,7 +669,8 @@ const upload = multer({
       else if (file.mimetype.startsWith('image/webp')) ext = '.webp';
       else if (file.mimetype === 'application/pdf') ext = '.pdf';
     }
-    if (allowed.includes(ext) || (!ext && file.mimetype && file.mimetype.startsWith('image/'))) {
+    // Accept file if extension is allowed, OR if extension is missing/octet-stream (mobile download/WhatsApp)
+    if (allowed.includes(ext) || (!ext && file.mimetype && file.mimetype.startsWith('image/')) || (!ext && (!file.mimetype || file.mimetype === 'application/octet-stream'))) {
       cb(null, true);
     } else {
       cb(new Error(`File type "${ext || 'unknown'}" is not supported. Supported: PDF, Word, Excel, PowerPoint, Text, Images`));

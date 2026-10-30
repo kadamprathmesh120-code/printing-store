@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Kadam Xerox - Self Service Print</title>
   <script>
+    // Pre-warm server connection as soon as customer opens page
+    try { fetch('/api/kiosk/status', { method: 'GET', cache: 'no-store' }).catch(function(){}); } catch(e){}
     (function () {
       function sendLog(type, args) {
         var msg = Array.prototype.slice.call(args).map(function (arg) {
@@ -3665,15 +3667,19 @@
     }
 
     function sanitizeUploadFileName(name, mimeType) {
-      var clean = (name || 'document.jpg').trim().replace(/[/\\?%*:|"<>]/g, '_');
+      var clean = (name || 'document.pdf').trim().replace(/[/\\?%*:|"<>]/g, '_');
       var dotIdx = clean.lastIndexOf('.');
       var ext = dotIdx > 0 ? clean.substring(dotIdx).toLowerCase() : '';
       var validExts = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt', '.heic', '.heif', '.webp', '.bmp', '.tif', '.tiff', '.ppt', '.pptx', '.xls', '.xlsx', '.csv', '.rtf', '.jfif'];
       if (!ext || !validExts.includes(ext)) {
-        if (mimeType && mimeType.indexOf('pdf') !== -1) clean += '.pdf';
-        else if (mimeType && mimeType.indexOf('png') !== -1) clean += '.png';
-        else if (mimeType && mimeType.indexOf('webp') !== -1) clean += '.webp';
-        else clean += '.jpg';
+        if (mimeType && mimeType.indexOf('image/') !== -1) {
+          if (mimeType.indexOf('png') !== -1) clean += '.png';
+          else if (mimeType.indexOf('webp') !== -1) clean += '.webp';
+          else clean += '.jpg';
+        } else {
+          // Default unknown or extensionless files to .pdf so WhatsApp/browser downloads are never rejected
+          clean += '.pdf';
+        }
       }
       return clean;
     }
@@ -3683,27 +3689,18 @@
       var mimeType = rawFile.type || '';
       var cleanName = sanitizeUploadFileName(originalName || rawFile.name || 'document.jpg', mimeType);
 
-      var isImage = (mimeType.indexOf('image/') !== -1) || /\.(jpe?g|png|webp|bmp|jfif)$/i.test(cleanName);
-      if (!isImage || (rawFile.size && rawFile.size <= 3.5 * 1024 * 1024)) {
-        return { file: rawFile, name: cleanName };
-      }
-
-      // If user chose Original and phone photo is giant (>3.5 MB, e.g. 10MB 50MP photo),
-      // downscale to max 2400px (300 DPI on A4) at 0.92 JPEG quality.
-      // Keeps 100% laser print sharpness while cutting file size by 85% to avoid mobile timeouts.
-      return new Promise(function (resolve) {
-        var img = new Image();
-        var url = URL.createObjectURL(rawFile);
-        var timer = setTimeout(function () {
-          URL.revokeObjectURL(url);
-          resolve({ file: rawFile, name: cleanName });
-        }, 4000);
+      // No image compression: original file uploaded as-is.
+      // Print quality is controlled by printer driver settings (DPI, B&W/Color).
+      // "Failed to fetch" is fixed by 180s timeout + 3 auto-retries, not compression.
+      return { file: rawFile, name: cleanName };
+      void 0; resolve({ file: rawFile, name: cleanName });
+        }, 15000);
 
         img.onload = function () {
           clearTimeout(timer);
           URL.revokeObjectURL(url);
           try {
-            var maxDim = 2400;
+            var maxDim = 2200;
             var w = img.width, h = img.height;
             if (w > maxDim || h > maxDim) {
               if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
@@ -3713,14 +3710,16 @@
             canvas.width = w;
             canvas.height = h;
             var ctx = canvas.getContext('2d');
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, w, h);
             canvas.toBlob(function (blob) {
               if (blob && blob.size < rawFile.size) {
-                resolve({ file: blob, name: cleanName });
+                var optimized = new File([blob], cleanName, { type: 'image/jpeg' });
+                resolve({ file: optimized, name: cleanName });
               } else {
                 resolve({ file: rawFile, name: cleanName });
               }
-            }, 'image/jpeg', 0.92);
+            }, 'image/jpeg', 0.90);
           } catch (e) {
             resolve({ file: rawFile, name: cleanName });
           }
@@ -3822,39 +3821,65 @@
       return formData;
     }
 
-    async function postOrderUpload(formData) {
-      var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      var timeoutId = null;
-      if (controller) {
-        timeoutId = setTimeout(function () {
-          controller.abort();
-        }, 90000);
+    async function postOrderUpload(formData, onRetryStatus) {
+      var maxRetries = 3;
+      var lastError = null;
+
+      for (var attempt = 1; attempt <= maxRetries; attempt++) {
+        var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var timeoutId = null;
+        if (controller) {
+          // 180-second timeout (3 minutes) to support slow mobile 4G/3G connections
+          timeoutId = setTimeout(function () {
+            controller.abort();
+          }, 180000);
+        }
+
+        try {
+          if (attempt > 1 && typeof onRetryStatus === 'function') {
+            onRetryStatus('Retrying upload (' + attempt + '/' + maxRetries + ')...');
+          }
+
+          var opts = { method: 'POST', body: formData };
+          if (controller) opts.signal = controller.signal;
+          var r = await fetch('/api/upload', opts);
+          if (timeoutId) clearTimeout(timeoutId);
+
+          var data = null;
+          try { data = await r.json(); } catch (e) { }
+
+          if (!r.ok) {
+            var serverErrMsg = (data && data.error) ? data.error : ('Server returned HTTP ' + r.status);
+            throw new Error(serverErrMsg);
+          }
+          if (!data || data.error) {
+            throw new Error((data && data.error) || 'Upload returned an invalid response');
+          }
+          return data;
+        } catch (err) {
+          if (timeoutId) clearTimeout(timeoutId);
+          lastError = err;
+
+          var isAbort = err && err.name === 'AbortError';
+          var errMsg = (err && err.message) ? err.message.toLowerCase() : '';
+          var isNetwork = err && (err.name === 'TypeError' || errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('abort'));
+
+          // Retry on network disconnect or timeout if attempts remain
+          if ((isAbort || isNetwork) && attempt < maxRetries) {
+            await new Promise(function (res) { setTimeout(res, 1800); });
+            continue;
+          }
+
+          if (isAbort) {
+            throw new Error('Upload timed out due to slow mobile internet. Please check signal and tap to try again.');
+          }
+          if (isNetwork) {
+            throw new Error('Internet connection was interrupted. Please check signal and tap to try again.');
+          }
+          throw err;
+        }
       }
-
-      try {
-        var opts = { method: 'POST', body: formData };
-        if (controller) opts.signal = controller.signal;
-        var r = await fetch('/api/upload', opts);
-        if (timeoutId) clearTimeout(timeoutId);
-
-        var data = null;
-        try { data = await r.json(); } catch (e) { }
-
-        if (!r.ok) {
-          var serverErrMsg = (data && data.error) ? data.error : ('Server returned HTTP ' + r.status);
-          throw new Error(serverErrMsg);
-        }
-        if (!data || data.error) {
-          throw new Error((data && data.error) || 'Upload returned an invalid response');
-        }
-        return data;
-      } catch (err) {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (err && err.name === 'AbortError') {
-          throw new Error('Upload timed out. Your connection might be slow. Please try again.');
-        }
-        throw err;
-      }
+      throw lastError || new Error('Upload failed. Please tap to try again.');
     }
 
     async function payWithRazorpay() {
@@ -3882,7 +3907,9 @@
       var data;
       try {
         var formData = await buildOrderFormData('razorpay', name);
-        data = await postOrderUpload(formData);
+        data = await postOrderUpload(formData, function (msg) {
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> ' + msg;
+        });
       } catch (err) {
         document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
         if (btn) {
@@ -3987,7 +4014,9 @@
       var data;
       try {
         var formData = await buildOrderFormData('cashfree', name);
-        data = await postOrderUpload(formData);
+        data = await postOrderUpload(formData, function (msg) {
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> ' + msg;
+        });
       } catch (err) {
         if (errEl) errEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
         if (btn) {
@@ -4083,7 +4112,9 @@
       var data;
       try {
         var formData = await buildOrderFormData('cash', name);
-        data = await postOrderUpload(formData);
+        data = await postOrderUpload(formData, function (msg) {
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> ' + msg;
+        });
       } catch (err) {
         document.getElementById('cashConfirmError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yes, I Paid'; }
@@ -4861,21 +4892,45 @@
             fd.append('backEnabled', 'false');
           }
 
-          return fetch('/api/upload-id-copy', { method: 'POST', body: fd })
-            .then(async function (r) {
-              var data = null;
-              try { data = await r.json(); } catch (e) { }
-              if (!r.ok) throw new Error((data && data.error) ? data.error : ('Upload failed with status ' + r.status));
-              return data;
-            })
-            .then(function (data) {
-              if (data.error) throw new Error(data.error);
-              currentOrderIds = [data.orderId];
-              try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
-              var orderIdsSpan = document.getElementById('orderIdsSpan');
-              if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
-              resolve(data);
-            });
+          (async function() {
+            var maxRetries = 3;
+            var lastErr = null;
+            for (var attempt = 1; attempt <= maxRetries; attempt++) {
+              var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+              var timeoutId = null;
+              if (controller) {
+                timeoutId = setTimeout(function () { controller.abort(); }, 180000);
+              }
+              try {
+                var opts = { method: 'POST', body: fd };
+                if (controller) opts.signal = controller.signal;
+                var r = await fetch('/api/upload-id-copy', opts);
+                if (timeoutId) clearTimeout(timeoutId);
+                var data = null;
+                try { data = await r.json(); } catch (e) { }
+                if (!r.ok) throw new Error((data && data.error) ? data.error : ('Upload failed with status ' + r.status));
+                if (!data || data.error) throw new Error((data && data.error) || 'Invalid response');
+                currentOrderIds = [data.orderId];
+                try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
+                var orderIdsSpan = document.getElementById('orderIdsSpan');
+                if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
+                return resolve(data);
+              } catch (err) {
+                if (timeoutId) clearTimeout(timeoutId);
+                lastErr = err;
+                if (attempt < maxRetries) {
+                  await new Promise(function(res) { setTimeout(res, 1800); });
+                  continue;
+                }
+                var isNetwork = err && (err.name === 'TypeError' || String(err.message).toLowerCase().includes('fetch'));
+                if (isNetwork) {
+                  throw new Error('Internet connection was interrupted. Please check signal and tap to try again.');
+                }
+                throw err;
+              }
+            }
+            throw lastErr || new Error('Upload failed. Please try again.');
+          })().catch(reject);
         }).catch(reject);
       });
     }
