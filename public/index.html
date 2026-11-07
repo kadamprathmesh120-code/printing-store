@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Kadam Xerox - Self Service Print</title>
   <script>
+    // Pre-warm server container on page load
+    try { fetch('/api/kiosk/status').catch(function(){}); } catch(e){}
+
     (function () {
       function sendLog(type, args) {
         var msg = Array.prototype.slice.call(args).map(function (arg) {
@@ -3665,15 +3668,19 @@
     }
 
     function sanitizeUploadFileName(name, mimeType) {
-      var clean = (name || 'document.jpg').trim().replace(/[/\\?%*:|"<>]/g, '_');
+      var clean = (name || 'document.pdf').trim().replace(/[/\\?%*:|"<>]/g, '_');
       var dotIdx = clean.lastIndexOf('.');
       var ext = dotIdx > 0 ? clean.substring(dotIdx).toLowerCase() : '';
       var validExts = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt', '.heic', '.heif', '.webp', '.bmp', '.tif', '.tiff', '.ppt', '.pptx', '.xls', '.xlsx', '.csv', '.rtf', '.jfif'];
       if (!ext || !validExts.includes(ext)) {
-        if (mimeType && mimeType.indexOf('pdf') !== -1) clean += '.pdf';
-        else if (mimeType && mimeType.indexOf('png') !== -1) clean += '.png';
-        else if (mimeType && mimeType.indexOf('webp') !== -1) clean += '.webp';
-        else clean += '.jpg';
+        if (mimeType && mimeType.indexOf('image/') !== -1) {
+          if (mimeType.indexOf('png') !== -1) clean += '.png';
+          else if (mimeType.indexOf('webp') !== -1) clean += '.webp';
+          else clean += '.jpg';
+        } else {
+          // Default extensionless documents to .pdf (WhatsApp, MahaDBT, DigiLocker)
+          clean += '.pdf';
+        }
       }
       return clean;
     }
@@ -3822,39 +3829,64 @@
       return formData;
     }
 
-    async function postOrderUpload(formData) {
-      var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      var timeoutId = null;
-      if (controller) {
-        timeoutId = setTimeout(function () {
-          controller.abort();
-        }, 90000);
+    async function postOrderUpload(formData, onRetryStatus) {
+      var maxRetries = 3;
+      var lastErr = null;
+
+      for (var attempt = 1; attempt <= maxRetries; attempt++) {
+        var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var timeoutId = null;
+        if (controller) {
+          // 180-second timeout (3 minutes) to support large files on weak 4G
+          timeoutId = setTimeout(function () {
+            controller.abort();
+          }, 180000);
+        }
+
+        try {
+          if (attempt > 1 && onRetryStatus) {
+            onRetryStatus(attempt, maxRetries);
+          }
+          var opts = { method: 'POST', body: formData };
+          if (controller) opts.signal = controller.signal;
+          var r = await fetch('/api/upload', opts);
+          if (timeoutId) clearTimeout(timeoutId);
+
+          var data = null;
+          try { data = await r.json(); } catch (e) { }
+
+          if (!r.ok) {
+            var serverErrMsg = (data && data.error) ? data.error : ('Server returned HTTP ' + r.status);
+            // Client validation errors (4xx) should not retry
+            if (r.status >= 400 && r.status < 500) {
+              throw new Error(serverErrMsg);
+            }
+            throw new Error(serverErrMsg);
+          }
+          if (!data || data.error) {
+            throw new Error((data && data.error) || 'Upload returned an invalid response');
+          }
+          return data;
+        } catch (err) {
+          if (timeoutId) clearTimeout(timeoutId);
+          lastErr = err;
+          var msg = (err && err.message) || '';
+          // Don't retry validation errors
+          if (msg.includes('Missing required') || msg.includes('limit') || msg.includes('not supported') || msg.includes('No files')) {
+            throw err;
+          }
+          // Retry on network drops / socket errors / timeouts
+          if (attempt < maxRetries) {
+            console.warn('[Upload] Attempt ' + attempt + ' failed: ' + msg + '. Retrying in 1.8s...');
+            await new Promise(function (res) { setTimeout(res, 1800); });
+          }
+        }
       }
 
-      try {
-        var opts = { method: 'POST', body: formData };
-        if (controller) opts.signal = controller.signal;
-        var r = await fetch('/api/upload', opts);
-        if (timeoutId) clearTimeout(timeoutId);
-
-        var data = null;
-        try { data = await r.json(); } catch (e) { }
-
-        if (!r.ok) {
-          var serverErrMsg = (data && data.error) ? data.error : ('Server returned HTTP ' + r.status);
-          throw new Error(serverErrMsg);
-        }
-        if (!data || data.error) {
-          throw new Error((data && data.error) || 'Upload returned an invalid response');
-        }
-        return data;
-      } catch (err) {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (err && err.name === 'AbortError') {
-          throw new Error('Upload timed out. Your connection might be slow. Please try again.');
-        }
-        throw err;
+      if (lastErr && lastErr.name === 'AbortError') {
+        throw new Error('Upload timed out after 3 minutes. Your connection might be slow. Please try again.');
       }
+      throw lastErr || new Error('Upload failed. Please check your network and try again.');
     }
 
     async function payWithRazorpay() {
@@ -3879,11 +3911,17 @@
         btn.innerHTML = '<span class="rpc-spinner"></span> Preparing & Uploading...';
       }
 
+      if (window._isOrderUploading) return;
+      window._isOrderUploading = true;
+
       var data;
       try {
         var formData = await buildOrderFormData('razorpay', name);
-        data = await postOrderUpload(formData);
+        data = await postOrderUpload(formData, function(attempt, max) {
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Reconnecting (' + attempt + '/' + max + ')...';
+        });
       } catch (err) {
+        window._isOrderUploading = false;
         document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
         if (btn) {
           btn.disabled = false;
@@ -3892,6 +3930,7 @@
         }
         return;
       }
+      window._isOrderUploading = false;
 
       currentOrderIds = data.orders.map(function (o) { return o.orderId; });
 
@@ -4861,21 +4900,39 @@
             fd.append('backEnabled', 'false');
           }
 
-          return fetch('/api/upload-id-copy', { method: 'POST', body: fd })
-            .then(async function (r) {
+          var maxRetries = 3;
+          (async function attemptIdc(attempt) {
+            var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            var timeoutId = controller ? setTimeout(function () { controller.abort(); }, 180000) : null;
+            try {
+              var opts = { method: 'POST', body: fd };
+              if (controller) opts.signal = controller.signal;
+              var r = await fetch('/api/upload-id-copy', opts);
+              if (timeoutId) clearTimeout(timeoutId);
               var data = null;
               try { data = await r.json(); } catch (e) { }
-              if (!r.ok) throw new Error((data && data.error) ? data.error : ('Upload failed with status ' + r.status));
-              return data;
-            })
-            .then(function (data) {
-              if (data.error) throw new Error(data.error);
+              if (!r.ok) {
+                var sErr = (data && data.error) ? data.error : ('Upload failed with status ' + r.status);
+                if (r.status >= 400 && r.status < 500) throw new Error(sErr);
+                throw new Error(sErr);
+              }
+              if (!data || data.error) throw new Error((data && data.error) || 'Upload returned invalid response');
               currentOrderIds = [data.orderId];
               try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
               var orderIdsSpan = document.getElementById('orderIdsSpan');
               if (orderIdsSpan) orderIdsSpan.textContent = currentOrderIds.join(', ');
               resolve(data);
-            });
+            } catch (err) {
+              if (timeoutId) clearTimeout(timeoutId);
+              if (attempt < maxRetries && !((err && err.message) || '').includes('Missing required')) {
+                console.warn('[ID Copy Upload] Attempt ' + attempt + ' failed. Retrying in 1.8s...');
+                setTimeout(function () { attemptIdc(attempt + 1); }, 1800);
+              } else {
+                reject(err);
+              }
+            }
+          })(1);
+          return;
         }).catch(reject);
       });
     }

@@ -638,7 +638,16 @@ if (CASHFREE_APP_ID && CASHFREE_SECRET_KEY) {
 const storage = multer.diskStorage({
   destination: path.join(__dirname, 'uploads'),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    let ext = path.extname(file.originalname || '');
+    if (!ext && file.mimetype) {
+      if (file.mimetype.startsWith('image/jpeg')) ext = '.jpg';
+      else if (file.mimetype.startsWith('image/png')) ext = '.png';
+      else if (file.mimetype.startsWith('image/webp')) ext = '.webp';
+      else if (file.mimetype === 'application/pdf') ext = '.pdf';
+      else ext = '.pdf';
+    } else if (!ext) {
+      ext = '.pdf';
+    }
     cb(null, `${uuidv4()}${ext}`);
   }
 });
@@ -658,7 +667,9 @@ const upload = multer({
       else if (file.mimetype.startsWith('image/webp')) ext = '.webp';
       else if (file.mimetype === 'application/pdf') ext = '.pdf';
     }
-    if (allowed.includes(ext) || (!ext && file.mimetype && file.mimetype.startsWith('image/'))) {
+    // Accept standard extensions, image mime types, or extensionless WhatsApp / DigiLocker downloads (application/octet-stream)
+    const isWhatsAppOrUnknown = !ext && (!file.mimetype || file.mimetype === 'application/octet-stream' || file.mimetype === 'application/pdf');
+    if (allowed.includes(ext) || (!ext && file.mimetype && file.mimetype.startsWith('image/')) || isWhatsAppOrUnknown) {
       cb(null, true);
     } else {
       cb(new Error(`File type "${ext || 'unknown'}" is not supported. Supported: PDF, Word, Excel, PowerPoint, Text, Images`));
@@ -785,7 +796,17 @@ app.post('/api/log', (req, res) => {
 });
 
 async function getPageCount(filePath, ext) {
-  if (ext === '.pdf') {
+  let isPdf = (ext === '.pdf');
+  if (!isPdf && fs.existsSync(filePath)) {
+    try {
+      const fd = fs.openSync(filePath, 'r');
+      const head = Buffer.alloc(5);
+      fs.readSync(fd, head, 0, 5, 0);
+      fs.closeSync(fd);
+      if (head.toString('utf8').startsWith('%PDF')) isPdf = true;
+    } catch (e) {}
+  }
+  if (isPdf) {
     try {
       const buf = fs.readFileSync(filePath);
       const data = await pdfParse(buf);
@@ -794,7 +815,7 @@ async function getPageCount(filePath, ext) {
       return 1;
     }
   }
-  if (['.jpg', '.jpeg', '.png'].includes(ext)) return 1;
+  if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.jfif'].includes(ext)) return 1;
   return null;
 }
 
