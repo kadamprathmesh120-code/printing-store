@@ -943,13 +943,12 @@
           Public URL <span style="font-weight:400;color:#9ca3af;">(for customer QR code)</span>
         </label>
         <div style="display:flex;gap:8px;">
-          <input type="text" id="publicUrl" placeholder="https://your-domain.com or ngrok URL"
+          <input type="text" id="publicUrl" placeholder="https://kadamxerox.co.in"
             style="flex:1;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:12px;font-size:0.85em;font-family:inherit;outline:none;transition:border-color .2s;">
           <button class="ctrl-btn primary" onclick="savePublicUrl()" style="padding:10px 20px;min-height:auto;">Save</button>
         </div>
-        <small style="display:block;font-size:0.72em;color:#9ca3af;margin-top:5px;">
-          Get a public URL using <a href="https://ngrok.com" target="_blank" style="color:#2563eb;">ngrok</a>: run
-          <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;font-size:0.9em;">ngrok http 3000</code>
+        <small style="display:block;font-size:0.75em;color:#16a34a;margin-top:5px;font-weight:600;">
+          ✓ Connected Domain: https://kadamxerox.co.in (ngrok not required)
         </small>
       </div>
 
@@ -1645,8 +1644,12 @@
 
     (function loadSavedUrl() {
       var saved = localStorage.getItem('publicUrl');
-      if (saved) {
+      if (saved && !saved.includes('onrender.com') && !saved.includes('ngrok') && !saved.includes('localhost')) {
         document.getElementById('publicUrl').value = saved;
+      } else {
+        var defaultUrl = 'https://kadamxerox.co.in';
+        document.getElementById('publicUrl').value = defaultUrl;
+        localStorage.setItem('publicUrl', defaultUrl);
       }
     })();
 
