@@ -142,7 +142,7 @@ function execP(cmd) {
   });
 }
 
-const RENDER_URL = 'https://printing-store.onrender.com';
+const RENDER_URL = 'https://kadamxerox.co.in';
 const BW_PRINTER_DEFAULT = 'Kyocera ECOSYS MA4000x KX';
 const COLOR_PRINTER_DEFAULT = 'EPSON L6370 Series';
 const PRINTER_CONFIG = path.join(__dirname, 'printer-config.json');
