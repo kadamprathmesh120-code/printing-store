@@ -795,6 +795,42 @@ app.post('/api/log', (req, res) => {
   res.sendStatus(200);
 });
 
+function getDocxPageCount(filePath) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    let offset = 0;
+    while (offset < buf.length - 30) {
+      if (buf.readUInt32LE(offset) === 0x04034b50) {
+        const compMethod = buf.readUInt16LE(offset + 8);
+        const compSize = buf.readUInt32LE(offset + 18);
+        const fnLen = buf.readUInt16LE(offset + 26);
+        const extraLen = buf.readUInt16LE(offset + 28);
+        const fn = buf.toString('utf8', offset + 30, offset + 30 + fnLen);
+        const dataOffset = offset + 30 + fnLen + extraLen;
+        if (fn === 'docProps/app.xml') {
+          const compData = buf.subarray(dataOffset, dataOffset + compSize);
+          let xml = '';
+          if (compMethod === 8) {
+            xml = zlib.inflateRawSync(compData).toString('utf8');
+          } else if (compMethod === 0) {
+            xml = compData.toString('utf8');
+          }
+          const m = xml.match(/<Pages>(\d+)<\/Pages>/);
+          if (m) {
+            const count = parseInt(m[1], 10);
+            if (count > 0) return count;
+          }
+          return 1;
+        }
+        offset = dataOffset + compSize;
+      } else {
+        offset++;
+      }
+    }
+  } catch (e) {}
+  return 1;
+}
+
 async function getPageCount(filePath, ext) {
   let isPdf = (ext === '.pdf');
   if (!isPdf && fs.existsSync(filePath)) {
@@ -816,6 +852,8 @@ async function getPageCount(filePath, ext) {
     }
   }
   if (['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.jfif'].includes(ext)) return 1;
+  if (ext === '.docx') return getDocxPageCount(filePath);
+  if (ext === '.doc') return 1;
   return null;
 }
 

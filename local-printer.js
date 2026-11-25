@@ -5,6 +5,7 @@ const fs = require('fs');
 const net = require('net');
 const { exec, spawn, execFile } = require('child_process');
 const combiner = require('./print-batch-combiner');
+const { PDFDocument } = require('pdf-lib');
 
 // SINGLE-INSTANCE MUTEX LOCK: Prevents multiple local-printer.js processes from running concurrently and double-printing jobs
 const LOCK_PORT = 39281;
@@ -67,6 +68,19 @@ function sanitizePageRange(rangeStr) {
   var cleaned = String(rangeStr).replace(/[^0-9,-]/g, '').trim();
   cleaned = cleaned.replace(/^[,|-]+|[,|-]+$/g, '');
   return cleaned || 'all';
+}
+
+// Convert Word documents (.docx / .doc) to PDF silently via MS Word COM script
+async function convertWordToPdf(docPath, outPdfPath) {
+  var psScript = path.join(__dirname, 'convert-word.ps1');
+  if (!fs.existsSync(psScript)) {
+    throw new Error('convert-word.ps1 not found');
+  }
+  var res = await runPsScript(psScript, { DocPath: docPath, PdfPath: outPdfPath });
+  if (!fs.existsSync(outPdfPath) || fs.statSync(outPdfPath).size === 0) {
+    throw new Error('Word to PDF conversion failed: ' + ((res && (res.stderr || res.stdout)) || 'empty output'));
+  }
+  return outPdfPath;
 }
 
 // Print PDF silently using SumatraPDF directly via spawn (no flash)
@@ -358,20 +372,51 @@ async function printSingleOrder(order, resolvedPrinter, isColorQueue, logPrefix)
   var backLocal = '';
   var combinedPath = '';
   var localFile = '';
+  var convertedWordPdf = '';
+  var rawDownloadedFile = '';
   try {
     var fileUrl = RENDER_URL + '/uploads/' + order.file_path;
     console.log(logPrefix + ' New order:', order.file_name, '-', order.customer_name, '(copies:', order.copies, ')');
     console.log(logPrefix + ' Downloading:', fileUrl);
     var ext = path.extname(order.file_name).toLowerCase();
     localFile = path.join(DOWNLOAD_DIR, order.file_path);
+    rawDownloadedFile = localFile;
 
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
     await downloadFile(fileUrl, localFile);
+
+    // Auto-convert Word documents (.docx / .doc) to PDF
+    if (ext === '.docx' || ext === '.doc') {
+      try {
+        var baseName = path.basename(order.file_path, ext);
+        var targetPdf = path.join(DOWNLOAD_DIR, 'converted_' + baseName + '_' + Date.now() + '.pdf');
+        console.log(logPrefix + ' Converting Word file to PDF:', order.file_name);
+        await convertWordToPdf(localFile, targetPdf);
+        convertedWordPdf = targetPdf;
+        localFile = targetPdf;
+        ext = '.pdf';
+        console.log(logPrefix + ' Word successfully converted to PDF:', path.basename(targetPdf));
+      } catch (wErr) {
+        console.error(logPrefix + ' Word to PDF conversion error:', wErr.message);
+      }
+    }
 
     var isDuplex = (order.print_side === 'both');
     var printerInfo = getPrinterTimingInfo(resolvedPrinter, order.print_type, isDuplex);
     var copyNum = Math.max(1, parseInt(order.copies) || 1);
     var pdfPages = Math.max(1, parseInt(order.effective_pages || order.page_count) || 1) * copyNum;
+
+    // If PDF (or converted from Word), calculate exact pages from document
+    if (ext === '.pdf') {
+      try {
+        var pBytes = fs.readFileSync(localFile);
+        var pDoc = await PDFDocument.load(pBytes, { ignoreEncryption: true });
+        var realPageCount = pDoc.getPageCount();
+        if (realPageCount > 0) {
+          pdfPages = realPageCount * copyNum;
+        }
+      } catch (pe) {}
+    }
 
     var printTimeSec = (pdfPages / printerInfo.ppm) * 60 + printerInfo.firstPrintSec;
     var printTimeMs = printTimeSec * 1000;
@@ -432,7 +477,9 @@ async function printSingleOrder(order, resolvedPrinter, isColorQueue, logPrefix)
     try { await fetchJson(RENDER_URL + '/api/orders/' + order.id + '/mark-printed').catch(function(){}); } catch(e){}
 
     try {
-      if (localFile && fs.existsSync(localFile)) { fs.unlinkSync(localFile); }
+      if (rawDownloadedFile && fs.existsSync(rawDownloadedFile)) { fs.unlinkSync(rawDownloadedFile); }
+      if (convertedWordPdf && fs.existsSync(convertedWordPdf)) { fs.unlinkSync(convertedWordPdf); }
+      if (localFile && localFile !== rawDownloadedFile && localFile !== convertedWordPdf && fs.existsSync(localFile)) { fs.unlinkSync(localFile); }
       if (backLocal && fs.existsSync(backLocal)) { fs.unlinkSync(backLocal); }
       if (combinedPath && fs.existsSync(combinedPath)) { fs.unlinkSync(combinedPath); }
     } catch(e) {}
@@ -465,11 +512,31 @@ async function printMergedBatch(batchFiles, resolvedPrinter, isColorQueue, curre
         await downloadFile(backUrl, backLocal);
       }
 
+      var ext = path.extname(ord.file_name).toLowerCase();
+      var rawDocFile = localFile;
+      var convertedWordPdf = '';
+      if (ext === '.docx' || ext === '.doc') {
+        try {
+          var baseName = path.basename(ord.file_path, ext);
+          var targetPdf = path.join(DOWNLOAD_DIR, 'converted_' + baseName + '_' + Date.now() + '.pdf');
+          console.log(logPrefix + ' Converting batch Word file to PDF:', ord.file_name);
+          await convertWordToPdf(localFile, targetPdf);
+          convertedWordPdf = targetPdf;
+          localFile = targetPdf;
+          ext = '.pdf';
+          console.log(logPrefix + ' Batch Word file converted to PDF:', path.basename(targetPdf));
+        } catch (wErr) {
+          console.error(logPrefix + ' Batch Word conversion warning:', wErr.message);
+        }
+      }
+
       downloadedItems.push({
         order: ord,
         filePath: localFile,
+        rawFilePath: rawDocFile,
+        convertedPdfPath: convertedWordPdf,
         fileName: ord.file_name,
-        ext: path.extname(ord.file_name).toLowerCase(),
+        ext: ext,
         isIdCopy: !!ord.is_id_copy,
         runIdCombine: !!ord.is_id_copy,
         backFilePath: backLocal,
@@ -536,6 +603,8 @@ async function printMergedBatch(batchFiles, resolvedPrinter, isColorQueue, curre
       tracker.markOrderPrinted(o.id);
       fetchJson(RENDER_URL + '/api/orders/' + o.id + '/mark-printed').catch(function(){});
       if (item.filePath && fs.existsSync(item.filePath)) try { fs.unlinkSync(item.filePath); } catch(e){}
+      if (item.rawFilePath && item.rawFilePath !== item.filePath && fs.existsSync(item.rawFilePath)) try { fs.unlinkSync(item.rawFilePath); } catch(e){}
+      if (item.convertedPdfPath && fs.existsSync(item.convertedPdfPath)) try { fs.unlinkSync(item.convertedPdfPath); } catch(e){}
       if (item.backFilePath && fs.existsSync(item.backFilePath)) try { fs.unlinkSync(item.backFilePath); } catch(e){}
     }
     if (mergedBatchPath && fs.existsSync(mergedBatchPath)) try { fs.unlinkSync(mergedBatchPath); } catch(e){}
