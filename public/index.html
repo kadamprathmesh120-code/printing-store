@@ -3829,64 +3829,112 @@
       return formData;
     }
 
-    async function postOrderUpload(formData, onRetryStatus) {
-      var maxRetries = 3;
-      var lastErr = null;
-
-      for (var attempt = 1; attempt <= maxRetries; attempt++) {
-        var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-        var timeoutId = null;
-        if (controller) {
-          // 180-second timeout (3 minutes) to support large files on weak 4G
-          timeoutId = setTimeout(function () {
-            controller.abort();
-          }, 180000);
+    // --- Screen Wake Lock Helper (Prevents phone from sleeping/throttling during upload) ---
+    var _wakeLockSentinel = null;
+    async function acquireScreenWakeLock() {
+      try {
+        if ('wakeLock' in navigator && navigator.wakeLock && typeof navigator.wakeLock.request === 'function') {
+          _wakeLockSentinel = await navigator.wakeLock.request('screen');
+          _wakeLockSentinel.addEventListener('release', function () {
+            _wakeLockSentinel = null;
+          });
         }
+      } catch (e) {
+        _wakeLockSentinel = null;
+      }
+    }
 
-        try {
-          if (attempt > 1 && onRetryStatus) {
-            onRetryStatus(attempt, maxRetries);
+    function releaseScreenWakeLock() {
+      try {
+        if (_wakeLockSentinel && typeof _wakeLockSentinel.release === 'function') {
+          _wakeLockSentinel.release();
+        }
+      } catch (e) {}
+      _wakeLockSentinel = null;
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', async function () {
+        if (document.visibilityState === 'visible' && window._isOrderUploading && !_wakeLockSentinel) {
+          await acquireScreenWakeLock();
+        }
+      });
+    }
+
+    async function postOrderUpload(formData, onRetryStatus) {
+      window._isOrderUploading = true;
+      await acquireScreenWakeLock();
+      try {
+        var maxRetries = 5;
+        var retryDelays = [1500, 2000, 2500, 3000, 3500];
+        var lastErr = null;
+
+        for (var attempt = 1; attempt <= maxRetries; attempt++) {
+          var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+          var timeoutId = null;
+          if (controller) {
+            // 180-second timeout (3 minutes) to support large files on weak 4G
+            timeoutId = setTimeout(function () {
+              controller.abort();
+            }, 180000);
           }
-          var opts = { method: 'POST', body: formData };
-          if (controller) opts.signal = controller.signal;
-          var r = await fetch('/api/upload', opts);
-          if (timeoutId) clearTimeout(timeoutId);
 
-          var data = null;
-          try { data = await r.json(); } catch (e) { }
+          try {
+            if (attempt > 1 && onRetryStatus) {
+              onRetryStatus(attempt, maxRetries);
+            }
+            var opts = { method: 'POST', body: formData };
+            if (controller) opts.signal = controller.signal;
+            var r = await fetch('/api/upload', opts);
+            if (timeoutId) clearTimeout(timeoutId);
 
-          if (!r.ok) {
-            var serverErrMsg = (data && data.error) ? data.error : ('Server returned HTTP ' + r.status);
-            // Client validation errors (4xx) should not retry
-            if (r.status >= 400 && r.status < 500) {
+            var data = null;
+            try { data = await r.json(); } catch (e) { }
+
+            if (!r.ok) {
+              var serverErrMsg = (data && data.error) ? data.error : ('Server returned HTTP ' + r.status);
+              // Client validation errors (4xx) should not retry
+              if (r.status >= 400 && r.status < 500) {
+                throw new Error(serverErrMsg);
+              }
               throw new Error(serverErrMsg);
             }
-            throw new Error(serverErrMsg);
-          }
-          if (!data || data.error) {
-            throw new Error((data && data.error) || 'Upload returned an invalid response');
-          }
-          return data;
-        } catch (err) {
-          if (timeoutId) clearTimeout(timeoutId);
-          lastErr = err;
-          var msg = (err && err.message) || '';
-          // Don't retry validation errors
-          if (msg.includes('Missing required') || msg.includes('limit') || msg.includes('not supported') || msg.includes('No files')) {
-            throw err;
-          }
-          // Retry on network drops / socket errors / timeouts
-          if (attempt < maxRetries) {
-            console.warn('[Upload] Attempt ' + attempt + ' failed: ' + msg + '. Retrying in 1.8s...');
-            await new Promise(function (res) { setTimeout(res, 1800); });
+            if (!data || data.error) {
+              throw new Error((data && data.error) || 'Upload returned an invalid response');
+            }
+            return data;
+          } catch (err) {
+            if (timeoutId) clearTimeout(timeoutId);
+            lastErr = err;
+            var msg = (err && err.message) || '';
+            // Don't retry validation errors
+            if (msg.includes('Missing required') || msg.includes('limit') || msg.includes('not supported') || msg.includes('No files')) {
+              throw err;
+            }
+            // Retry on network drops / socket errors / timeouts
+            if (attempt < maxRetries) {
+              var delayMs = retryDelays[attempt - 1] || 2500;
+              console.warn('[Upload] Attempt ' + attempt + ' failed: ' + msg + '. Retrying in ' + (delayMs / 1000) + 's...');
+              if (onRetryStatus) {
+                onRetryStatus(attempt + 1, maxRetries);
+              }
+              await new Promise(function (res) { setTimeout(res, delayMs); });
+            }
           }
         }
-      }
 
-      if (lastErr && lastErr.name === 'AbortError') {
-        throw new Error('Upload timed out after 3 minutes. Your connection might be slow. Please try again.');
+        if (lastErr && lastErr.name === 'AbortError') {
+          throw new Error('Upload timed out after 3 minutes. Your connection might be slow. Please try again.');
+        }
+        var friendlyMsg = (lastErr && lastErr.message) || '';
+        if (friendlyMsg.toLowerCase().includes('failed to fetch') || friendlyMsg.toLowerCase().includes('networkerror') || friendlyMsg.toLowerCase().includes('network error') || friendlyMsg.toLowerCase().includes('load failed') || friendlyMsg.toLowerCase().includes('failed to load')) {
+          throw new Error('Mobile network weak ya disconnect ho gaya. Kripya check karein aur dobara try karein.');
+        }
+        throw lastErr || new Error('Mobile network weak ya disconnect ho gaya. Kripya dobara try karein.');
+      } finally {
+        window._isOrderUploading = false;
+        releaseScreenWakeLock();
       }
-      throw lastErr || new Error('Upload failed. Please check your network and try again.');
     }
 
     async function payWithRazorpay() {
@@ -3918,11 +3966,19 @@
       try {
         var formData = await buildOrderFormData('razorpay', name);
         data = await postOrderUpload(formData, function(attempt, max) {
-          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Reconnecting (' + attempt + '/' + max + ')...';
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> 📶 Reconnecting (' + attempt + '/' + max + ')...';
+          var pErr = document.getElementById('paymentError');
+          if (pErr) {
+            pErr.innerHTML = '<span style="color:#d97706;font-weight:600;">📶 Mobile network weak hai. Reconnecting (' + attempt + '/' + max + ')... Screen band na karein.</span>';
+          }
         });
       } catch (err) {
         window._isOrderUploading = false;
-        document.getElementById('paymentError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+        var pErr = document.getElementById('paymentError');
+        if (pErr) {
+          var rawMsg = err.message || '';
+          pErr.textContent = rawMsg.includes('Mobile network') ? rawMsg : ('Upload failed: ' + (rawMsg || 'Network error. Try again.'));
+        }
         if (btn) {
           btn.disabled = false;
           var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
@@ -3931,6 +3987,8 @@
         return;
       }
       window._isOrderUploading = false;
+      var pErrSuccess = document.getElementById('paymentError');
+      if (pErrSuccess) pErrSuccess.textContent = '';
 
       currentOrderIds = data.orders.map(function (o) { return o.orderId; });
 
@@ -4017,6 +4075,8 @@
         return;
       }
 
+      if (window._isOrderUploading) return;
+
       var btn = document.getElementById('btnGoToPayment') || document.getElementById('btnCashfreeReview');
       if (btn) {
         btn.disabled = true;
@@ -4026,9 +4086,16 @@
       var data;
       try {
         var formData = await buildOrderFormData('cashfree', name);
-        data = await postOrderUpload(formData);
+        data = await postOrderUpload(formData, function(attempt, max) {
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> 📶 Reconnecting (' + attempt + '/' + max + ')...';
+          if (errEl) {
+            errEl.innerHTML = '<span style="color:#d97706;font-weight:600;">📶 Mobile network weak hai. Reconnecting (' + attempt + '/' + max + ')... Screen band na karein.</span>';
+          }
+        });
       } catch (err) {
-        if (errEl) errEl.textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+        var rawMsg = err.message || '';
+        var finalMsg = rawMsg.includes('Mobile network') ? rawMsg : ('Upload failed: ' + (rawMsg || 'Network error. Try again.'));
+        if (errEl) errEl.textContent = finalMsg;
         if (btn) {
           btn.disabled = false;
           var displayPrice = (window.currentPricing && window.currentPricing.totalPrice) || 5;
@@ -4037,6 +4104,7 @@
         return;
       }
 
+      if (errEl) errEl.textContent = '';
       currentOrderIds = data.orders.map(function (o) { return o.orderId; });
 
       if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Creating Session...';
@@ -4116,19 +4184,30 @@
 
     async function confirmCashPaid() {
       var name = pendingCashName;
+      if (window._isOrderUploading) return;
       var btn = document.getElementById('btnCashYes');
+      var errEl = document.getElementById('cashConfirmError');
       if (btn) { btn.disabled = true; btn.innerHTML = '<span class="rpc-spinner"></span> Placing order...'; }
+      if (errEl) errEl.textContent = '';
 
       var data;
       try {
         var formData = await buildOrderFormData('cash', name);
-        data = await postOrderUpload(formData);
+        data = await postOrderUpload(formData, function(attempt, max) {
+          if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> 📶 Reconnecting (' + attempt + '/' + max + ')...';
+          if (errEl) {
+            errEl.innerHTML = '<span style="color:#d97706;font-weight:600;">📶 Mobile network weak hai. Reconnecting (' + attempt + '/' + max + ')... Screen band na karein.</span>';
+          }
+        });
       } catch (err) {
-        document.getElementById('cashConfirmError').textContent = 'Upload failed: ' + (err.message || 'Network error. Try again.');
+        var rawMsg = err.message || '';
+        var finalMsg = rawMsg.includes('Mobile network') ? rawMsg : ('Upload failed: ' + (rawMsg || 'Network error. Try again.'));
+        if (errEl) errEl.textContent = finalMsg;
         if (btn) { btn.disabled = false; btn.innerHTML = '✅ Yes, I Paid'; }
         return;
       }
 
+      if (errEl) errEl.textContent = '';
       currentOrderIds = data.orders.map(function (o) { return o.orderId; });
       try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
       document.getElementById('orderIdsSpan').textContent = currentOrderIds.join(', ');
@@ -4844,7 +4923,7 @@
       idcUpdatePaySummary();
     }
 
-    function idcSubmitOrder(paymentMethod) {
+    function idcSubmitOrder(paymentMethod, onRetryStatus) {
       return new Promise(function (resolve, reject) {
         if (!idcFrontFile && !idcFrontCropped) {
           reject(new Error('Please upload the front side of your ID card.'));
@@ -4900,11 +4979,16 @@
             fd.append('backEnabled', 'false');
           }
 
-          var maxRetries = 3;
+          var maxRetries = 5;
+          var retryDelays = [1500, 2000, 2500, 3000, 3500];
+          acquireScreenWakeLock();
           (async function attemptIdc(attempt) {
             var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
             var timeoutId = controller ? setTimeout(function () { controller.abort(); }, 180000) : null;
             try {
+              if (attempt > 1 && onRetryStatus) {
+                onRetryStatus(attempt, maxRetries);
+              }
               var opts = { method: 'POST', body: fd };
               if (controller) opts.signal = controller.signal;
               var r = await fetch('/api/upload-id-copy', opts);
@@ -4917,6 +5001,7 @@
                 throw new Error(sErr);
               }
               if (!data || data.error) throw new Error((data && data.error) || 'Upload returned invalid response');
+              releaseScreenWakeLock();
               currentOrderIds = [data.orderId];
               try { sessionStorage.setItem('last_order_ids', JSON.stringify(currentOrderIds)); } catch (e) { }
               var orderIdsSpan = document.getElementById('orderIdsSpan');
@@ -4924,16 +5009,29 @@
               resolve(data);
             } catch (err) {
               if (timeoutId) clearTimeout(timeoutId);
-              if (attempt < maxRetries && !((err && err.message) || '').includes('Missing required')) {
-                console.warn('[ID Copy Upload] Attempt ' + attempt + ' failed. Retrying in 1.8s...');
-                setTimeout(function () { attemptIdc(attempt + 1); }, 1800);
+              var errMsg = (err && err.message) || '';
+              if (attempt < maxRetries && !errMsg.includes('Missing required')) {
+                var delayMs = retryDelays[attempt - 1] || 2500;
+                console.warn('[ID Copy Upload] Attempt ' + attempt + ' failed: ' + errMsg + '. Retrying in ' + (delayMs / 1000) + 's...');
+                if (onRetryStatus) {
+                  onRetryStatus(attempt + 1, maxRetries);
+                }
+                setTimeout(function () { attemptIdc(attempt + 1); }, delayMs);
               } else {
-                reject(err);
+                releaseScreenWakeLock();
+                if (errMsg.toLowerCase().includes('failed to fetch') || errMsg.toLowerCase().includes('networkerror') || errMsg.toLowerCase().includes('network error') || errMsg.toLowerCase().includes('load failed')) {
+                  reject(new Error('Mobile network weak ya disconnect ho gaya. Kripya check karein aur dobara try karein.'));
+                } else {
+                  reject(err);
+                }
               }
             }
           })(1);
           return;
-        }).catch(reject);
+        }).catch(function(e) {
+          releaseScreenWakeLock();
+          reject(e);
+        });
       });
     }
 
@@ -4946,7 +5044,9 @@
         btn.innerHTML = '<span class="rpc-spinner"></span> Creating order...';
       }
 
-      idcSubmitOrder('cashfree')
+      idcSubmitOrder('cashfree', function(attempt, max) {
+        if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> 📶 Reconnecting (' + attempt + '/' + max + ')...';
+      })
         .then(function (data) {
           if (btn) btn.innerHTML = '<span class="rpc-spinner"></span> Creating Session...';
 
@@ -5003,7 +5103,9 @@
         btn.textContent = 'Processing...';
       }
 
-      idcSubmitOrder('cash')
+      idcSubmitOrder('cash', function(attempt, max) {
+        if (btn) btn.textContent = '📶 Reconnecting (' + attempt + '/' + max + ')...';
+      })
         .then(function (data) {
           return fetch('/api/orders/' + encodeURIComponent(data.orderId) + '/pay-cash', {
             method: 'POST',
