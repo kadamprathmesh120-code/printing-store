@@ -904,7 +904,7 @@
     </div>
 
     <div class="controls-grid">
-      <button class="ctrl-btn primary" onclick="fetchOrders()" id="refreshBtn">
+      <button class="ctrl-btn primary" onclick="fetchOrders(true)" id="refreshBtn">
         <i data-lucide="refresh-cw" style="width:18px;height:18px;"></i> Refresh
       </button>
       <button class="ctrl-btn warning" onclick="toggleRazorpayAutoPrint()" id="autoPrintToggle">
@@ -1458,7 +1458,8 @@
 
     function startPolling() {
       stopPolling();
-      pollInterval = setInterval(fetchOrders, 8000);
+      pollInterval = setInterval(fetchOrders, 1500);
+      setInterval(fetchPrinterStatus, 5000);
     }
     function stopPolling() {
       if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
@@ -2189,10 +2190,10 @@
     // -------------------------------------------------------
     //  Fetch Orders
     // -------------------------------------------------------
-    function fetchOrders() {
-      // Spin the refresh button
+    function fetchOrders(isManual) {
+      // Spin the refresh button on manual refresh
       var refreshBtn = document.getElementById('refreshBtn');
-      if (refreshBtn) refreshBtn.style.opacity = '0.6';
+      if (refreshBtn && isManual) refreshBtn.style.opacity = '0.6';
 
       fetch('/api/admin/orders', { headers: { 'X-Admin-Token': adminToken } })
         .then(function(r) {

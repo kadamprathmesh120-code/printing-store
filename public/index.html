@@ -6180,7 +6180,7 @@
     function startAutoStatusPolling() {
       if (statusPollTimer) clearInterval(statusPollTimer);
       checkAllStatus();
-      statusPollTimer = setInterval(checkAllStatus, 4000);
+      statusPollTimer = setInterval(checkAllStatus, 2000);
     }
 
     function startOver() {
