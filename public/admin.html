@@ -1456,13 +1456,16 @@
       lucide.createIcons();
     }
 
+    var printerPollInterval = null;
+
     function startPolling() {
       stopPolling();
-      pollInterval = setInterval(fetchOrders, 1500);
-      setInterval(fetchPrinterStatus, 5000);
+      pollInterval = setInterval(fetchOrders, 2000);
+      printerPollInterval = setInterval(fetchPrinterStatus, 5000);
     }
     function stopPolling() {
       if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      if (printerPollInterval) { clearInterval(printerPollInterval); printerPollInterval = null; }
     }
 
     // -------------------------------------------------------
@@ -1699,21 +1702,22 @@
       var status = document.getElementById(statusId);
       if (!card || !status) return;
 
-      // Remove active-printer class first, re-add later if needed
-      card.classList.remove('active-printer');
+      var targetState = !isOnline ? 'offline' : (jobCount > 0 ? 'printing' : 'online');
+      var targetBadgeClass = !isOnline ? 'pc-status-badge offline' : (jobCount > 0 ? 'pc-status-badge printing' : 'pc-status-badge ready');
+      var targetText = !isOnline ? 'Offline' : (jobCount > 0 ? 'Printing' : 'Ready');
+      var targetHtml = pulseDotHtml + ' ' + targetText;
 
-      if (!isOnline) {
-        card.className = 'printer-card offline';
-        status.className = 'pc-status-badge offline';
-        status.innerHTML = pulseDotHtml + ' Offline';
-      } else if (jobCount > 0) {
-        card.className = 'printer-card printing';
-        status.className = 'pc-status-badge printing';
-        status.innerHTML = pulseDotHtml + ' Printing';
-      } else {
-        card.className = 'printer-card online';
-        status.className = 'pc-status-badge ready';
-        status.innerHTML = pulseDotHtml + ' Ready';
+      if (status.innerHTML !== targetHtml) {
+        status.innerHTML = targetHtml;
+      }
+      if (status.className !== targetBadgeClass) {
+        status.className = targetBadgeClass;
+      }
+      
+      var isCurrentlyActive = card.classList.contains('active-printer');
+      var targetCardClass = 'printer-card ' + targetState + (isCurrentlyActive ? ' active-printer' : '');
+      if (card.className !== targetCardClass) {
+        card.className = targetCardClass;
       }
     }
 
@@ -1763,10 +1767,14 @@
       document.getElementById('kyoceraQueueCount').textContent = kyoceraCount + (kyoceraCount === 1 ? ' job' : ' jobs');
 
       // Mark active BW printer card
+      var bwCard = document.getElementById('bwPrinterCard');
+      var kyoCard = document.getElementById('kyoceraPrinterCard');
       if (activeBwPrinter === 'konica') {
-        document.getElementById('bwPrinterCard').classList.add('active-printer');
+        if (bwCard && !bwCard.classList.contains('active-printer')) bwCard.classList.add('active-printer');
+        if (kyoCard && kyoCard.classList.contains('active-printer')) kyoCard.classList.remove('active-printer');
       } else {
-        document.getElementById('kyoceraPrinterCard').classList.add('active-printer');
+        if (kyoCard && !kyoCard.classList.contains('active-printer')) kyoCard.classList.add('active-printer');
+        if (bwCard && bwCard.classList.contains('active-printer')) bwCard.classList.remove('active-printer');
       }
 
       // Color Printer
@@ -1838,7 +1846,7 @@
       currentTab = tab;
       document.querySelectorAll('.queue-tab').forEach(function(t) { t.classList.remove('active'); });
       document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-      renderOrders();
+      renderOrders(true);
     }
 
     // -------------------------------------------------------
@@ -1905,9 +1913,12 @@
       return labels[status] || { text: status, cls: 'pending' };
     }
 
-    function renderOrders() {
+    var lastOrdersRenderKey = '';
+
+    function renderOrders(force) {
       var grid = document.getElementById('ordersGrid');
-      var orders = allOrders;
+      if (!grid) return;
+      var orders = allOrders || [];
 
       // Filter by tab
       if (currentTab === 'printing') {
@@ -1922,6 +1933,17 @@
         // 'all' tab — hide rejected orders from main view so rejected orders vanish!
         orders = orders.filter(function(o) { return o.status !== 'rejected'; });
       }
+
+      // Smart DOM Diffing: Check if order list or status actually changed
+      var currentKey = currentTab + '::' + (pendingNewIds ? pendingNewIds.join(',') : '') + '::' + orders.map(function(o) {
+        return o.id + '_' + o.status + '_' + (o.is_printed || 0) + '_' + (o.price || 0) + '_' + (o.paid_at || o.created_at);
+      }).join('|');
+
+      if (!force && currentKey === lastOrdersRenderKey) {
+        // Zero changes: Do not touch grid.innerHTML. Eliminates all screen flickering!
+        return;
+      }
+      lastOrdersRenderKey = currentKey;
 
       if (orders.length === 0) {
         var emptyMsg = currentTab === 'all' ? 'No orders yet' : 'No ' + currentTab + ' orders';
@@ -2191,6 +2213,7 @@
     //  Fetch Orders
     // -------------------------------------------------------
     function fetchOrders(isManual) {
+      if (isManual) lastOrdersRenderKey = '';
       // Spin the refresh button on manual refresh
       var refreshBtn = document.getElementById('refreshBtn');
       if (refreshBtn && isManual) refreshBtn.style.opacity = '0.6';
@@ -2313,7 +2336,7 @@
         .then(function(data) {
           if (data.error) { alert(data.error); return; }
           showToast('success', 'Order Accepted', 'Sent to printer. Auto-print will handle it shortly.');
-          fetchOrders();
+          fetchOrders(true);
         })
         .catch(function() { alert('Failed'); });
     }
@@ -2337,7 +2360,7 @@
         .then(function(data) {
           if (data.error) { alert(data.error); return; }
           showToast('error', 'Order Rejected', data.message || 'Order rejected');
-          fetchOrders();
+          fetchOrders(true);
         })
         .catch(function() { alert('Failed to reject order'); });
     }
@@ -2354,7 +2377,7 @@
         .then(function(data) {
           if (data.error) { alert(data.error); return; }
           showToast('warning', 'Machine Error Reported', 'Customer status page alerted of machine delay.');
-          fetchOrders();
+          fetchOrders(true);
         })
         .catch(function() { alert('Failed to report error'); });
     }
@@ -2369,7 +2392,7 @@
         .then(function(data) {
           if (data.error) { alert(data.error); return; }
           showToast('success', 'Order Resumed', 'Order status updated to active.');
-          fetchOrders();
+          fetchOrders(true);
         })
         .catch(function() { alert('Failed to resume order'); });
     }
@@ -2398,7 +2421,7 @@
           }
           showToast('info', 'Order & File Deleted', 'Uploaded document and order record removed.');
           knownOrderIds.delete(id);
-          fetchOrders();
+          fetchOrders(true);
         })
         .catch(function(err) { alert('Failed to delete order: ' + err.message); });
     }
@@ -2416,7 +2439,7 @@
           }
           showToast('warning', 'All Orders & Files Deleted', data.message || 'All orders and uploaded files have been removed.');
           knownOrderIds.clear();
-          fetchOrders();
+          fetchOrders(true);
         })
         .catch(function(err) { alert('Failed to delete all orders: ' + err.message); });
     }
