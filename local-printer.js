@@ -276,7 +276,7 @@ function getPrinterTimingInfo(printerName, printType, isDuplex) {
     name: BW_PRINTER_DEFAULT,
     displayName: 'Kyocera ECOSYS MA4000x',
     ppm: duplex ? 20 : 40,
-    firstPrintSec: 0,
+    firstPrintSec: 10.0,
     isBw: true
   };
 }

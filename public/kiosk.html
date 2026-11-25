@@ -1240,7 +1240,7 @@
                     <div style="font-family:var(--font-body);font-size:0.75rem;font-weight:700;color:#b45309;">Spooling document & warming up</div>
                   </div>
                 </div>
-                <span id="startupSecBadge" style="background:#f59e0b;color:#78350f;font-weight:900;font-size:0.95rem;padding:4px 12px;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">7.0s</span>
+                <span id="startupSecBadge" style="background:#f59e0b;color:#78350f;font-weight:900;font-size:0.95rem;padding:4px 12px;border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">10.0s</span>
               </div>
             </div>
 
@@ -1377,7 +1377,7 @@
     let completionInterval = null;
 
     let isStartupRunning = false;
-    let startupCountdown = 7.0;
+    let startupCountdown = 10.0;
     let startupInterval = null;
 
     let localSeconds = 12;
@@ -1651,11 +1651,11 @@
     }
 
     // -------------------------------------------------------------
-    // 6.5-SECOND STARTUP / WARMUP TIMER (Kyocera First Page Out)
+    // 10.0-SECOND STARTUP / WARMUP TIMER (Kyocera First Page Out)
     // -------------------------------------------------------------
     function triggerStartup(printDurationSec, printerName) {
       isStartupRunning = true;
-      startupCountdown = 7.0;
+      startupCountdown = 10.0;
       clearInterval(startupInterval);
       clearInterval(countdownTimer);
 
@@ -1668,8 +1668,8 @@
 
       if (banner) banner.style.display = 'block';
       if (engineTitle) engineTitle.textContent = `Preparing ${printerName || 'Laser Engine'}…`;
-      if (badge) badge.textContent = '7.0s';
-      if (timerBadge) timerBadge.textContent = '7.0s Startup';
+      if (badge) badge.textContent = '10.0s';
+      if (timerBadge) timerBadge.textContent = '10.0s Startup';
       if (progressPct) progressPct.textContent = 'Starting…';
       if (progressBar) {
         progressBar.style.width = '100%';
@@ -1692,9 +1692,9 @@
           }
           if (progressPct) progressPct.textContent = '10%';
 
-          // Switch to live countdown of continuous print duration (minus 7.0s startup)
+          // Switch to live countdown of continuous print duration (minus 10.0s startup)
           const rawSec = parseInt(printDurationSec, 10) || 12;
-          localSeconds = Math.max(2, Math.round(rawSec > 7.0 ? (rawSec - 7.0) : rawSec));
+          localSeconds = Math.max(2, Math.round(rawSec > 10.0 ? (rawSec - 10.0) : rawSec));
           startCountdown();
         }
       }, 500);
