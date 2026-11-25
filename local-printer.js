@@ -684,9 +684,9 @@ function startWorker() {
   console.log('IMPORTANT: If the BW printer prints extra copies, run this ONCE as Admin:');
   console.log('  Set-PrintConfiguration -PrinterName "' + BW_PRINTER + '" -CopyCount 1');
   console.log('');
-  console.log('Checking every 3 seconds...');
+  console.log('Checking every 1 second (Ultra-Fast Kiosk Mode)...');
   checkAndPrint();
-  setInterval(checkAndPrint, 3000);
+  setInterval(checkAndPrint, 1000);
 }
 
 lockServer.once('listening', startWorker);
