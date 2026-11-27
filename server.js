@@ -2252,6 +2252,15 @@ app.get('/api/kiosk/status', async (req, res) => {
       return '40 PPM / 20 Duplex (Laser)';
     }
 
+    // Auto-clean stale accepted orders older than 1 hour (heals any missed physical print acknowledgements)
+    try {
+      db.prepare(`
+        UPDATE orders SET is_printed = 1
+        WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL)
+          AND created_at < datetime('now', '-1 hour')
+      `).run();
+    } catch (e) {}
+
     const unprintedOrders = db.prepare(`
       SELECT * FROM orders
       WHERE status = 'accepted' AND (is_printed = 0 OR is_printed IS NULL)
@@ -2263,7 +2272,9 @@ app.get('/api/kiosk/status', async (req, res) => {
     const distinctBatches = [];
     const batchMap = new Map();
     for (const ord of enriched) {
-      const bId = ord.batch_id || ord.id;
+      const custClean = (ord.customer_name || 'Customer').trim().toLowerCase();
+      const timeMinute = String(ord.created_at || '').substring(0, 16);
+      const bId = ord.batch_id || (`${custClean}_${timeMinute}`);
       if (!batchMap.has(bId)) {
         batchMap.set(bId, []);
         distinctBatches.push(bId);
@@ -2315,23 +2326,35 @@ app.get('/api/kiosk/status', async (req, res) => {
         percent: percent
       };
 
+      let runningWaitSec = Math.max(3, activeJob.remainingPrintSec || 12) + 5;
       for (let i = 1; i < distinctBatches.length; i++) {
         const qOrders = batchMap.get(distinctBatches[i]);
         const qFirst = qOrders[0];
         let qPages = 0;
+        let isDuplex = false;
+        let isColor = false;
         for (const qo of qOrders) {
           const qc = Math.max(1, parseInt(qo.copies, 10) || 1);
           qPages += Math.max(1, parseInt(qo.effective_pages || qo.page_count, 10) || 1) * qc;
+          if (qo.print_side === 'both') isDuplex = true;
+          if (qo.print_type === 'color') isColor = true;
         }
+        const qMachine = isColor ? colorPrinter : bwPrinter;
+        const qPpm = qFirst.printer_ppm || (qMachine.toLowerCase().includes('konica') ? (isDuplex ? 15 : 20) : (isDuplex ? 20 : 40));
+        const thisJobSec = Math.max(3, Math.round((qPages / qPpm) * 60));
+
         queue.push({
           batchId: distinctBatches[i],
           customerName: qFirst.customer_name || 'Customer',
-          fileName: qOrders.length > 1 ? `${qOrders.length} Files` : qFirst.file_name,
-          printType: qFirst.print_type,
+          fileCount: qOrders.length,
+          fileName: qOrders.length > 1 ? `${qOrders.length} Files (${qFirst.file_name})` : qFirst.file_name,
+          printType: isColor ? 'color' : 'bw',
+          isDuplex: isDuplex,
           copies: qFirst.copies || 1,
           pages: qPages,
-          estimatedWaitSec: (qFirst.estimated_wait_time_sec != null) ? qFirst.estimated_wait_time_sec : (i * 15)
+          estimatedWaitSec: runningWaitSec
         });
+        runningWaitSec += (thisJobSec + 10);
       }
     }
 
@@ -2343,48 +2366,51 @@ app.get('/api/kiosk/status', async (req, res) => {
       LIMIT 3
     `).all();
 
-    // Orders uploaded but payment not yet done (last 30 mins)
-    // Orders uploaded but payment not yet done (unpaid uploads)
+    // Deduplicated Pending Payment (uploaded, awaiting payment on phone)
     let pendingPayment = [];
     try {
-      pendingPayment = db.prepare(`
-        SELECT id, customer_name, file_name, print_type, copies, page_count, created_at
+      const rawPending = db.prepare(`
+        SELECT id, batch_id, customer_name, file_name, print_type, copies, page_count, created_at
         FROM orders
         WHERE status IN ('pending', 'created')
           AND (
-            created_at >= datetime('now', '-3 hours')
-            OR created_at >= datetime('now', 'localtime', '-3 hours')
+            created_at >= datetime('now', '-30 minutes')
+            OR created_at >= datetime('now', 'localtime', '-30 minutes')
           )
         ORDER BY rowid DESC
-        LIMIT 8
-      `).all().map(o => ({
-        id: o.id,
-        customerName: o.customer_name || 'Customer',
-        fileName: o.file_name || 'Uploaded Document',
-        printType: o.print_type || 'bw',
-        copies: o.copies || 1,
-        pages: o.page_count || 1,
-        waitingSince: o.created_at
-      }));
+      `).all();
 
-      // Fallback: if time comparison gave 0 due to clock skew, take latest pending orders
-      if (pendingPayment.length === 0) {
-        pendingPayment = db.prepare(`
-          SELECT id, customer_name, file_name, print_type, copies, page_count, created_at
-          FROM orders
-          WHERE status IN ('pending', 'created')
-          ORDER BY rowid DESC
-          LIMIT 5
-        `).all().map(o => ({
-          id: o.id,
-          customerName: o.customer_name || 'Customer',
-          fileName: o.file_name || 'Uploaded Document',
-          printType: o.print_type || 'bw',
-          copies: o.copies || 1,
-          pages: o.page_count || 1,
-          waitingSince: o.created_at
-        }));
+      const pendingMap = new Map();
+      for (const p of rawPending) {
+        const cName = (p.customer_name || 'Customer').trim();
+        const cKey = cName.toLowerCase();
+        if (!pendingMap.has(cKey)) {
+          pendingMap.set(cKey, {
+            id: p.id,
+            customerName: cName,
+            fileCount: 0,
+            pages: 0,
+            firstFileName: p.file_name || 'Uploaded Document',
+            printType: p.print_type || 'bw',
+            created_at: p.created_at
+          });
+        }
+        const item = pendingMap.get(cKey);
+        item.fileCount += 1;
+        const copies = Math.max(1, parseInt(p.copies, 10) || 1);
+        item.pages += Math.max(1, parseInt(p.page_count, 10) || 1) * copies;
       }
+
+      pendingPayment = Array.from(pendingMap.values()).slice(0, 6).map(item => ({
+        id: item.id,
+        customerName: item.customerName,
+        fileCount: item.fileCount,
+        fileName: item.fileCount > 1 ? `${item.fileCount} Files (${item.firstFileName})` : item.firstFileName,
+        printType: item.printType,
+        copies: 1,
+        pages: item.pages,
+        waitingSince: item.created_at
+      }));
     } catch (e) {
       console.warn('Pending payment query error:', e.message);
     }

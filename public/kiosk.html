@@ -1497,7 +1497,7 @@
           const p = pendingList[0];
           document.getElementById('panelHeadingText').textContent = 'AWAITING PAYMENT';
           document.getElementById('custName').textContent = p.customerName || 'Customer';
-          document.getElementById('custOrderNum').textContent = '(Pay on Phone)';
+          document.getElementById('custOrderNum').textContent = p.fileCount > 1 ? `(${p.fileCount} Files Uploaded)` : '(Pay on Phone)';
           document.getElementById('docName').textContent = p.fileName || 'Uploaded Document';
           document.getElementById('docPages').textContent = `${p.pages} Page${p.pages !== 1 ? 's' : ''}`;
           document.getElementById('docDuplex').textContent = p.printType === 'color' ? 'Color' : 'B&W';
@@ -1525,7 +1525,10 @@
           if (pendingNotice) {
             pendingNotice.style.display = 'block';
             const noticeCust = document.getElementById('pendingNoticeCust');
-            if (noticeCust) noticeCust.textContent = `${p.customerName} — File Uploaded`;
+            if (noticeCust) {
+              const fileStr = p.fileCount > 1 ? `${p.fileCount} files` : '1 file';
+              noticeCust.textContent = `${p.customerName} — ${fileStr} (${p.pages}p)`;
+            }
           }
         } else {
           // Completely idle - Standby state (no dummy customer names)
@@ -1565,28 +1568,52 @@
       const queueCards = document.getElementById('queueListCards');
       const queueCount = document.getElementById('queueCount');
 
-      if (queue.length > 0 && (data.activeJob || isHoldingCompletion)) {
+      if (queue.length > 0) {
         if (queueSection) queueSection.style.display = 'block';
         if (queueCount) queueCount.textContent = queue.length;
         if (queueCards) {
-          queueCards.innerHTML = queue.map((q, idx) => {
-            const typeLabel = q.printType === 'color' ? '🎨 Color' : '⬛ B&W';
-            const shortFile = q.fileName.length > 24 ? q.fileName.substring(0, 22) + '…' : q.fileName;
-            const waitTime = q.estimatedWaitSec || ((idx + 1) * 15);
-            const isBig = q.pages >= 20;
-            const bigBadge = isBig ? `<span style="font-family:var(--font-display);font-size:0.72rem;font-weight:900;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;padding:2px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(245,158,11,0.3);letter-spacing:0.3px;">🔥 BIG ORDER (${q.pages}p)</span>` : '';
-            return `<div style="background:#ffffff;border:1.5px solid ${isBig ? '#fde68a' : '#bae6fd'};border-left:4px solid ${isBig ? '#f59e0b' : '#0284c7'};border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
-              <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:900;background:${idx === 0 ? '#0284c7' : '#64748b'};color:#ffffff;padding:3px 8px;border-radius:8px;white-space:nowrap;">#${idx + 1} ${idx === 0 ? 'UP NEXT' : 'QUEUE'}</span>
-              <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                  <span style="font-family:var(--font-display);font-size:1.08rem;font-weight:900;color:#0c365a;">${q.customerName}</span>
-                  ${bigBadge}
-                </div>
-                <div style="font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:#577793;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${q.pages} pages</div>
+          const upNext = queue[0];
+          const upNextType = upNext.printType === 'color' ? '🎨 Color' : '⬛ Laser B&W';
+          const upNextFile = upNext.fileName.length > 30 ? upNext.fileName.substring(0, 28) + '…' : upNext.fileName;
+          const upNextWait = upNext.estimatedWaitSec || 15;
+          const upNextBig = upNext.pages >= 20 ? `<span style="font-family:var(--font-display);font-size:0.75rem;font-weight:900;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;padding:2px 8px;border-radius:6px;margin-left:6px;">🔥 BIG (${upNext.pages}p)</span>` : '';
+
+          let cardsHtml = `
+            <div style="background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);border:2.5px solid #22c55e;border-radius:14px;padding:11px 15px;margin-bottom:8px;box-shadow:0 4px 12px rgba(34,197,94,0.18);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-family:var(--font-display);font-size:0.82rem;font-weight:900;background:linear-gradient(135deg,#16a34a,#15803d);color:#ffffff;padding:3px 12px;border-radius:20px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(22,163,74,0.3);">⭐ UP NEXT</span>
+                <span style="font-family:var(--font-display);font-size:0.85rem;font-weight:900;color:#15803d;background:#ffffff;padding:2px 10px;border-radius:12px;border:1.5px solid #86efac;">⏱️ Starts in ~${upNextWait}s</span>
               </div>
-              <span style="font-family:var(--font-display);font-size:0.78rem;font-weight:800;color:#0369a1;background:#e0f2fe;padding:4px 10px;border-radius:12px;white-space:nowrap;">~${waitTime}s wait</span>
-            </div>`;
-          }).join('');
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                <span style="font-family:var(--font-display);font-size:1.32rem;font-weight:900;color:#0f172a;letter-spacing:-0.2px;">${upNext.customerName}${upNextBig}</span>
+                <span style="font-family:var(--font-body);font-size:0.88rem;font-weight:800;color:#166534;">${upNext.pages} Page${upNext.pages !== 1 ? 's' : ''} &nbsp;•&nbsp; ${upNextType}</span>
+              </div>
+              <div style="font-family:var(--font-body);font-size:0.75rem;font-weight:600;color:#335c3d;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📄 ${upNextFile}</div>
+            </div>
+          `;
+
+          if (queue.length > 1) {
+            cardsHtml += `<div style="font-family:var(--font-display);font-size:0.75rem;font-weight:800;color:#0369a1;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">Following in line (${queue.length - 1}):</div>`;
+            cardsHtml += queue.slice(1).map((q, idx) => {
+              const typeLabel = q.printType === 'color' ? '🎨 Color' : '⬛ B&W';
+              const shortFile = q.fileName.length > 24 ? q.fileName.substring(0, 22) + '…' : q.fileName;
+              const waitTime = q.estimatedWaitSec || ((idx + 2) * 15);
+              const isBig = q.pages >= 20;
+              const bigBadge = isBig ? `<span style="font-family:var(--font-display);font-size:0.72rem;font-weight:900;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;padding:2px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(245,158,11,0.3);letter-spacing:0.3px;">🔥 BIG (${q.pages}p)</span>` : '';
+              return `<div style="background:#ffffff;border:1.5px solid ${isBig ? '#fde68a' : '#bae6fd'};border-left:4px solid ${isBig ? '#f59e0b' : '#0284c7'};border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+                <span style="font-family:var(--font-display);font-size:0.75rem;font-weight:900;background:#64748b;color:#ffffff;padding:3px 8px;border-radius:8px;white-space:nowrap;">#${idx + 2} QUEUE</span>
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span style="font-family:var(--font-display);font-size:1.05rem;font-weight:900;color:#0c365a;">${q.customerName}</span>
+                    ${bigBadge}
+                  </div>
+                  <div style="font-family:var(--font-body);font-size:0.78rem;font-weight:700;color:#577793;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${shortFile} &nbsp;•&nbsp; ${typeLabel} &nbsp;•&nbsp; ${q.pages} pages</div>
+                </div>
+                <span style="font-family:var(--font-display);font-size:0.78rem;font-weight:800;color:#0369a1;background:#e0f2fe;padding:4px 10px;border-radius:12px;white-space:nowrap;">~${waitTime}s wait</span>
+              </div>`;
+            }).join('');
+          }
+          queueCards.innerHTML = cardsHtml;
         }
       } else {
         if (queueSection) queueSection.style.display = 'none';
@@ -1595,21 +1622,42 @@
       // Footer ticker
       const pendingList = data.pendingPayment || [];
       const queueDisplay = document.getElementById('queueDisplay');
-      if (queue.length > 0) {
-        const nextOrder = queue[0];
-        const nextIsBig = nextOrder.pages >= 20;
-        const qNames = queue.map((q, i) => {
-          const bTag = q.pages >= 20 ? ' [🔥BIG]' : '';
-          return `#${i + 1} ${q.customerName} (${q.pages}p${bTag} ~${q.estimatedWaitSec || 15}s)`;
-        }).join('   |   ');
-        if (queueDisplay) {
-          queueDisplay.innerHTML = `<strong style="color:#0284c7;font-weight:900;">⏳ UP NEXT: ${nextOrder.customerName} (${nextOrder.pages} pages${nextIsBig ? ' 🔥BIG ORDER' : ''})</strong> &nbsp;•&nbsp; <span style="color:#64748b;font-weight:700;">All Queued: ${qNames}</span>`;
+      if (data.activeJob) {
+        const activeName = data.activeJob.customerName || 'Customer';
+        const activePages = data.activeJob.totalPdfPages || data.activeJob.pageCount || 1;
+        const activeText = `🖨️ NOW PRINTING: <strong style="color:#0284c7;font-weight:900;">${activeName} (${activePages}p)</strong>`;
+
+        let upNextText = '';
+        if (queue.length > 0) {
+          upNextText = ` &nbsp;•&nbsp; <strong style="color:#16a34a;font-weight:900;">⭐ UP NEXT: ${queue[0].customerName} (${queue[0].pages}p ~${queue[0].estimatedWaitSec || 15}s)</strong>`;
         }
+
+        let queuedText = '';
+        if (queue.length > 1) {
+          const rest = queue.slice(1, 4).map((q, i) => `#${i + 2} ${q.customerName} (${q.pages}p)`).join(', ');
+          const extra = queue.length > 4 ? ` +${queue.length - 4} more` : '';
+          queuedText = ` &nbsp;•&nbsp; <span style="color:#64748b;font-weight:700;">In Queue: ${rest}${extra}</span>`;
+        }
+
+        if (queueDisplay) queueDisplay.innerHTML = `${activeText}${upNextText}${queuedText}`;
+      } else if (queue.length > 0) {
+        const nextOrd = queue[0];
+        const nextText = `<strong style="color:#16a34a;font-weight:900;">⭐ UP NEXT: ${nextOrd.customerName} (${nextOrd.pages}p ~${nextOrd.estimatedWaitSec || 15}s)</strong>`;
+        let queuedText = '';
+        if (queue.length > 1) {
+          const rest = queue.slice(1, 4).map((q, i) => `#${i + 2} ${q.customerName} (${q.pages}p)`).join(', ');
+          const extra = queue.length > 4 ? ` +${queue.length - 4} more` : '';
+          queuedText = ` &nbsp;•&nbsp; <span style="color:#64748b;font-weight:700;">In Queue: ${rest}${extra}</span>`;
+        }
+        if (queueDisplay) queueDisplay.innerHTML = `${nextText}${queuedText}`;
       } else if (pendingList.length > 0) {
-        const names = pendingList.map(p => p.customerName).join(', ');
-        if (queueDisplay) queueDisplay.innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment: ${names}</span>`;
+        const pSummary = pendingList.map(p => {
+          const fStr = p.fileCount > 1 ? `${p.fileCount} files, ` : '';
+          return `${p.customerName} (${fStr}${p.pages}p)`;
+        }).join(' &nbsp;|&nbsp; ');
+        if (queueDisplay) queueDisplay.innerHTML = `<span style="color:#b45309;font-weight:800;">⏳ Awaiting Payment on Phone: ${pSummary}</span>`;
       } else {
-        if (queueDisplay) queueDisplay.textContent = 'No orders in queue';
+        if (queueDisplay) queueDisplay.innerHTML = `<span style="color:#577793;font-weight:700;">No orders in queue &nbsp;•&nbsp; Scan QR with your phone to upload &amp; print</span>`;
       }
     }
 

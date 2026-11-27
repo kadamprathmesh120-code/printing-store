@@ -647,6 +647,14 @@ async function checkAndPrintQueue(queueType) {
     var orders = await fetchJson(RENDER_URL + '/api/admin/orders?status=accepted&unprinted=1');
     if (!Array.isArray(orders)) return;
 
+    // Auto-heal: If server still thinks an order is unprinted, but local tracker already printed it, sync back to server!
+    for (var oi = 0; oi < orders.length; oi++) {
+      var ordToCheck = orders[oi];
+      if (tracker.isOrderPrinted(ordToCheck.id)) {
+        fetchJson(RENDER_URL + '/api/orders/' + ordToCheck.id + '/mark-printed').catch(function(){});
+      }
+    }
+
     // Filter strictly by queue type: B&W prints only B&W, Color prints only Color
     var acceptedOrders = orders.filter(function(o) {
       var isOrdColor = (o.print_type === 'color');
