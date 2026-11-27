@@ -5,6 +5,11 @@ echo ========================================================
 echo          PRINTING STORE - STARTING ALL SERVICES
 echo ========================================================
 echo.
+
+:: Automatically close any old/hanging instances so startup is always 100% clean
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name = 'node.exe'\" | Where-Object { $_.CommandLine -like '*local-printer.js*' -or $_.CommandLine -like '*server.js*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
+timeout /t 1 /nobreak >nul
+
 echo [1/3] Starting Backend Server (server.js)...
 start "Printing Store Server" /b node server.js
 
