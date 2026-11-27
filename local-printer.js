@@ -197,6 +197,7 @@ function fetchJson(url) {
 
 function downloadFile(url, dest) {
   return new Promise(function(resolve, reject) {
+    try { fs.mkdirSync(path.dirname(dest), { recursive: true }); } catch(e){}
     var file = fs.createWriteStream(dest);
     var mod = url.startsWith('https') ? https : http;
     mod.get(url, function(res) {
